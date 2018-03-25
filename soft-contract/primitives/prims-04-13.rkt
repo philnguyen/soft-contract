@@ -38,41 +38,46 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import prim-runtime^)
+  (import sto^ evl^
+          prim-runtime^
+          step^)
   (export)
 
   (def-pred hash?)
   (def* (hash-equal? hash-eqv? hash-eq? hash-weak?)
     (hash? . -> . boolean?))
 
-  #;(splicing-local
-      ((: hash-helper : ℓ (Listof -V^) -H -φ -Σ -⟦k⟧ Symbol -h → (℘ -ς))
-       (define (hash-helper ℓ Vs H φ Σ ⟦k⟧ name eq)
-         (define-values (A φ*)
-           (cond
-             [(even? (length Vs))
-              (define αₖ (-α->⟪α⟫ (-α.hash.key ℓ H)))
-              (define αᵥ (-α->⟪α⟫ (-α.hash.val ℓ H)))
-              (let go : (Values -A -φ) ([φ : -φ (alloc* Σ φ (list αₖ αᵥ) (list ∅ ∅))] [Vs : (Listof -V^) Vs])
-                (match Vs
-                  [(list* Vₖ Vᵥ Vs*) (go (alloc Σ (alloc Σ φ αₖ Vₖ) αᵥ Vᵥ) Vs*)]
-                  [_ (values (list {set (-Hash^ αₖ αᵥ #t)}) φ)]))]
-             [else
-              (define Cs (list (string->symbol "even number of arg(s)")))
-              (values (blm/simp (ℓ-src ℓ) name Cs Vs ℓ) φ)]))
-         (⟦k⟧ A H φ* Σ)))
-    (def (hash ℓ Vs H φ Σ ⟦k⟧)
+  (splicing-local
+      ((: hash-helper : W ℓ Φ^ Ξ:co Σ Symbol -o → (℘ Ξ))
+       (define (hash-helper Wₓ ℓ Φ^ Ξ Σ name eq)
+         (cond
+           [(even? (length Wₓ))
+            (define H (Ξ:co-ctx Ξ))
+            (define αₖ (mk-α (-α:hash:key ℓ H)))
+            (define αᵥ (mk-α (-α:hash:val ℓ H)))
+            (let go! ([W : W Wₓ])
+              (match W
+                [(list* Vₖ Vᵥ W*)
+                 (⊔ᵥ! Σ αₖ Vₖ)
+                 (⊔ᵥ! Σ αᵥ Vᵥ)
+                 (go! W*)]
+                [_ (void)]))
+            {set (ret! (V->R (Hash^ αₖ αᵥ #t) Φ^) Ξ Σ)}]
+           [else
+            (define msg (list (string->symbol "even number of arg(s)")))
+            {set (Blm/simp ℓ name msg Wₓ)}])))
+    (def (hash W ℓ Φ^ Ξ Σ)
       #:init ()
-      #:rest [Vs (listof any/c)]
-      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hash 'hash-equal?))
-    (def (hasheq ℓ Vs H φ Σ ⟦k⟧)
+      #:rest [W (listof any/c)]
+      (hash-helper W ℓ Φ^ Ξ Σ 'hash 'hash-equal?))
+    (def (hasheq W ℓ Φ^ Ξ Σ)
       #:init ()
-      #:rest [Vs (listof any/c)]
-      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hasheq 'hash-eq?))
-    (def (hasheqv ℓ Vs H φ Σ ⟦k⟧)
+      #:rest [W (listof any/c)]
+      (hash-helper W ℓ Φ^ Ξ Σ 'hasheq 'hash-eq?))
+    (def (hasheqv W ℓ Φ^ Ξ Σ)
       #:init ()
-      #:rest [Vs (listof any/c)]
-      (hash-helper ℓ Vs H φ Σ ⟦k⟧ 'hasheqv 'hash-eqv?)))
+      #:rest [W (listof any/c)]
+      (hash-helper W ℓ Φ^ Ξ Σ 'hasheqv 'hash-eqv?)))
 
   (def make-hash
     (∀/c (α β)

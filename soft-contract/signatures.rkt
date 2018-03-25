@@ -37,7 +37,7 @@
 (define-signature prover^
   ([split-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^))]
    [partition-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^))]
-   #;[check-plausible-index : ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^))]
+   [check-plausible-index : ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^))]
    [V-arity : (case-> [(U Clo Case-Clo) → Arity]
                       [V → (Option Arity)])]
    #|

@@ -3,13 +3,14 @@
 (provide (all-defined-out))
 
 (require racket/match
-         racket/set
+         (except-in racket/set for/set for/seteq for*/set for*/seteq)
          (only-in z3/ffi toggle-warning-messages!)
          typed/racket/unit
          z3/smt
          bnf
          set-extras
          unreachable
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -39,9 +40,8 @@
                      (? P:<?) (? P:>?) (? P:≤?) (? P:≥?))])
       (λ (Φ P Vs)
         (and (difficult? P)
-             (for/or : Boolean ([Ps (in-hash-values Φ)]) ; TODO TR can't for*/or
-               (for/or : Boolean ([P (in-set Ps)])
-                 (difficult? P)))))))
+             (for*/or ([Ps (in-hash-values Φ)] [P (in-set Ps)])
+               (difficult? P))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Translate

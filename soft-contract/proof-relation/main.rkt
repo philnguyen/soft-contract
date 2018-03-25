@@ -60,6 +60,9 @@
         (let-values ([(R✓ R✗ R?) (go R₀)])
           (values (inj-R R✓) (inj-R R✗) (inj-R R?)))))
 
+  (: check-plausible-index ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^)))
+  (define (check-plausible-index Σ Rᵥ i #:fast? [fast? #f])
+     ???)
   #;(: check-plausible-index ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^)))
   #;(define (check-plausible-index Σ Φ^ V^ i [fast? #f])
     (plausible-splits Σ Φ^ '= (list V^ {set (-b i)}))) 

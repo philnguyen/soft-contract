@@ -9,7 +9,7 @@
          racket/stream
          racket/dict
          racket/function
-         racket/set
+         (except-in racket/set for/set for/seteq for*/set for*/seteq)
          racket/flonum
          racket/fixnum
          racket/generator
@@ -19,6 +19,7 @@
          typed/racket/unit
          syntax/parse/define
          set-extras
+         unreachable
          "../utils/debug.rkt"
          "../utils/patterns.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
@@ -40,38 +41,39 @@
 (define-unit prims-04-11@
   (import prim-runtime^
           evl^ sto^
+          prover^
           step^)
   (export)
   
   (def-pred vector?)
-  #;(splicing-let
+  (splicing-let
       ([.internal-make-vector
         (let ()
-          (def (internal-make-vector ℓ Vs H φ Σ ⟦k⟧)
+          (def (internal-make-vector W ℓ Φ^ Ξ Σ)
             #:init ([Vₙ exact-nonnegative-integer?]
                     [Vᵥ any/c])
-            (define σ (-Σ-σ Σ))
+            (define H (Ξ:co-ctx Ξ))
             (match Vₙ
               [(singleton-set (-b (? exact-nonnegative-integer? n)))
-               (define-values (αs-rev φ*)
-                 (for/fold ([αs-rev : (Listof ⟪α⟫) '()] [φ : -φ φ])
-                           ([i (in-range n)])
-                   (define α (-α->⟪α⟫ (-α.idx ℓ H (assert i index?))))
-                   (values (cons α αs-rev) (alloc Σ φ α Vᵥ))))
-               (⟦k⟧ (list {set (-Vector (reverse αs-rev))}) H φ* Σ)]
+               (define αs : (Listof α)
+                 (for/list ([i (in-range n)])
+                   (define α (mk-α (-α:idx ℓ H (assert i index?))))
+                   (⊔ᵥ! Σ α Vᵥ)
+                   α))
+               {set (ret! (V->R (Vect αs) Φ^) Ξ Σ)}]
               [_
-               (define α (-α->⟪α⟫ (-α.vct ℓ H)))
-               (define φ* (alloc Σ φ α Vᵥ))
-               (⟦k⟧ (list {set (-Vector^ α Vₙ)}) H φ* Σ)]))
+               (define α (mk-α (-α:vct ℓ H)))
+               (⊔ᵥ! Σ α Vᵥ)
+               {set (ret! (V->R (Vect^ α Vₙ) Φ^) Ξ Σ)}]))
           .internal-make-vector)])
-    (def (make-vector ℓ Vs H φ Σ ⟦k⟧)
+    (def (make-vector W ℓ Φ^ Ξ Σ)
       #:init ()
-      #:rest [Vs (listof any/c)]
-      (define Vs*
-        (match Vs
+      #:rest [W (listof any/c)]
+      (define W*
+        (match W
           [(list Vₙ) (list Vₙ {set (-b 0)})]
-          [_ Vs]))
-      (.internal-make-vector ℓ Vs* H φ Σ ⟦k⟧)))
+          [_ W]))
+      (.internal-make-vector W* ℓ Φ^ Ξ Σ)))
   
   (def (vector W ℓ Φ^ Ξ Σ)
     #:init ()
@@ -89,9 +91,16 @@
     #:init ([V vector?])
     {set (ret! (V->R (vec-len V) Φ^) Ξ Σ)})
 
-  #;(def (vector-ref W ℓ Φ^ Ξ Σ)
-    #:init ([Vᵥ^ vector?] [Vᵢ integer?])
-    (for/union : (℘ Ξ) ([Vᵥ (in-set Vᵥ^)])
+  (def (vector-ref W ℓ Φ^ Ξ₀ Σ)
+    #:init ([Vᵥ vector?] [Vᵢ integer?])
+    (define with (inst with-2-paths Ξ))
+    (with (λ () (split-results Σ (R (list Vᵥ) Φ^) 'vector? #:fast? #t))
+      (λ (R^)
+        ???)
+      (λ (R^)
+        (for/set : (℘ Ξ) ([W (in-set (collapse-R^/W^ R^))])
+          (Blm/simp ℓ 'vector-ref '(vector?) W))))
+    #;(for/union : (℘ Ξ) ([Vᵥ (in-set Vᵥ^)])
       (match Vᵥ
         [(Vect αs)
          (define Vₐ^

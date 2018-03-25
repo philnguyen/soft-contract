@@ -67,7 +67,7 @@
       [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
       [(Not/C (αℓ α _)) (app-Not/C α)]
       [(St/C #t 𝒾 αℓs) (app-St/C 𝒾 (map αℓ-_0 αℓs))]
-      [(-● ps) (app-opq ps)]
+      [(-● Ps) app-opq]
       [(? S? S) (app-sym S)]))
 
   (: app/rest/unsafe : V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))
@@ -275,14 +275,13 @@
       [#f (let ([msg (string->symbol (format "arity ~v" (guard-arity G)))])
             {set (Blm ℓ 'Λ (list msg) Wₓ)})]))
 
-  (: app-opq : (℘ P) → ⟦F⟧^)
-  (define ((app-opq Ps) Wₓ ℓ Φ^ Ξ Σ)
+  (: app-opq : ⟦F⟧^)
+  (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
     (add-leak! '† Σ Wₓ)
     ???)
 
   (: app-sym : S → ⟦F⟧^)
-  (define ((app-sym S) Wₓ ℓ Φ^ Ξ Σ)
-    ???)
+  (define (app-sym S) app-opq) ; TOOD
 
 
   #| 

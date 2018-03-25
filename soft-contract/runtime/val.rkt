@@ -61,8 +61,7 @@
       (cond [(seen-has? α) #f]
             [else
              (seen-add! α)
-             (for/or ([V (in-set (Σᵥ@ Σᵥ α))])
-               (check V))]))
+             (set-ormap check (Σᵥ@ Σᵥ α))]))
 
     (define check-αℓ : (αℓ → Boolean) (compose1 check-α αℓ-_0))
 
