@@ -67,12 +67,12 @@
          (Cons αₕ αₜ)]
         [_ Vₙ])))
 
-  (: H+ : H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))
+  (: H+ : H ℓ Tgt (U 'app 'mon) → (Values H Boolean))
   (define (H+ H src tgt type)
     (define-values (H* looped?) (-H+ (inspect-H H) src tgt type))
     (values (mk-H H*) looped?))
 
-  (: -H+ : -H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values -H Boolean))
+  (: -H+ : -H ℓ Tgt (U 'app 'mon) → (Values -H Boolean))
   (define (-H+ H src tgt type)
     (match-define (-H:edges edges) H)
     (case type
@@ -89,7 +89,9 @@
 
   )
 
+(Tgt . ≜ . (U ⟦E⟧ V #f))
+
 (define-substructs -H
   [-H:edges (Listof Edge)])
 
-(Edge . ::= . (Edge [src : ℓ] [tgt : (U ⟦E⟧ V)]))
+(Edge . ::= . (Edge [src : ℓ] [tgt : Tgt]))

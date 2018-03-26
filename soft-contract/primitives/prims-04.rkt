@@ -30,6 +30,7 @@
 
 (define-compound-unit/infer prims-04@
   (import prim-runtime^ evl^ sto^ val^
+          prover^
           mon^ step^)
   (export)
   (link prims-04-01@

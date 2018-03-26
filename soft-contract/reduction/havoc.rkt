@@ -18,17 +18,29 @@
          )
 
 (define-unit havoc@
-  (import)
+  (import val^ sto^)
   (export havoc^)
 
-  (: havoc : HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))
-  (define (havoc tag Φ^ Ξ Σ) ???)
+  (: havoc : HV-Tag R^ Ξ:co Σ → (℘ Ξ))
+  (define (havoc tag R^ Ξ Σ) ???)
   
   (: gen-havoc-expr : ((Listof -module) → -e))
   (define (gen-havoc-expr ms) ???)
   
   (: add-leak! : (HV-Tag Σ (U V^ W) → Void))
-  (define (add-leak! tag Σ V) ???)
+  (define (add-leak! tag Σ V)
+    (match-define (cons ?l H) tag)
+    (define α (mk-α (-α:hv (and ?l tag))))
+    (define (keep-behavioral [V : V^]) : V^
+      (for/fold ([V : V^ V])
+                ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
+        (set-remove V Vᵢ)))
+    (define leaks
+      (cond [(set? V) (keep-behavioral V)]
+            [else
+             (for/fold ([V : V^ ∅]) ([Vᵢ (in-list V)])
+               (∪ V (keep-behavioral Vᵢ)))]))
+    (⊔ᵥ! Σ α leaks))
 
   #|
 

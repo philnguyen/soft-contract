@@ -156,7 +156,7 @@
                  (K+ F:Mon (K+ F:Set Ξ₀))))
              (ret! (V->R Vᵥ Φ^ᵢ) Ξ* Σ)]
             [_
-             (add-leak! '† Σ Vᵥ)
+             (add-leak! (cons #f (Ξ:co-ctx Ξ₀)) Σ Vᵥ)
              (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)])))
       (λ ([R^ : R^])
         (define-values (V^ _) (collapse-R^-1 R^))
@@ -277,8 +277,12 @@
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
-    (add-leak! '† Σ Wₓ)
-    ???)
+    (define-values (H* _) (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
+    (define tag (cons #f H*))
+    (define α (αₖ tag ⊥Ρ))
+    (add-leak! tag Σ Wₓ)
+    (⊔ₖ! Σ α Ξ)
+    {set (Ξ:co (list (F:Hv #f)) α H*)})
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TOOD

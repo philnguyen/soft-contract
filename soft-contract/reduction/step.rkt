@@ -22,9 +22,9 @@
 
 (define-unit step@
   (import val^ env^ sto^ evl^
-          alloc^ app^ mon^ compile^
           prover^
-          prims^)
+          prims^
+          alloc^ app^ mon^ compile^ havoc^)
   (export step^)
 
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
@@ -238,7 +238,7 @@
            (define α* (mk-α (-α:wrp 𝒾)))
            (define V^ (Σᵥ@ Σ α))
            (mon C^ V^ (Ctx l 'dummy- l ℓ) Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
-      [(K.Hv HV-Tag) ???]
+      [(F:Hv ?l) (havoc (cons ?l (Ξ:co-ctx Ξ)) R^₀ Ξ Σ)]
       
       ;; Specific helpers
       [(F:Wrap G Ctx α)

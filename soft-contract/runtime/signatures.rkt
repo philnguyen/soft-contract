@@ -18,7 +18,7 @@
                                 Blm)
 (#|Local kont.     |# K . ≜ . (Listof F))
 (#|Instrumentation |# -H . ::= . #:TBD)
-(#|Stack address   |# αₖ . ::= . (αₖ ⟦E⟧ Ρ))
+(#|Stack address   |# αₖ . ::= . (αₖ (U ⟦E⟧ HV-Tag) Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W Φ^))
 (#|Path-condition  |# Φ . ≜ . (Immutable-HashTable (Listof S) (℘ P)))
@@ -93,7 +93,7 @@
                                           [dependency : (Option (Listof Symbol))]
                                           [ctx : ⟦E⟧]
                                           [src : ℓ]))
-(#|Context tag for havoc|# HV-Tag . ::= . '† [#:reuse (Pairof -l H)])
+(#|Context tag for havoc|# HV-Tag . ::= . [#:reuse (Pairof (Option -l) H)])
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)

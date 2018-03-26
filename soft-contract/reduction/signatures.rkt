@@ -32,7 +32,7 @@
   [F:St/C ℓ -𝒾 W (Listof ⟦E⟧) Ρ]
   [F:Def -l (Listof α)]
   [F:Dec ℓ -𝒾]
-  [K.Hv HV-Tag]
+  [F:Hv (Option -l)]
   ;; Specific helpers
   [F:Wrap Prox/C Ctx α]
   [F:Mon-Or/C Ctx V^ V^ V^]
@@ -111,7 +111,7 @@
   (-α:sealed Symbol H) ; points to wrapped objects
 
   ;; HACK
-  (-α:hv HV-Tag)
+  (-α:hv (U (Pairof -l H) #f))
   (-α:mon-x/c Symbol H -l)
   (-α:fc-x/c Symbol H))
 
@@ -120,7 +120,7 @@
    [bind-args! : (Ρ -formals W H Σ → Ρ)]
    [bind-rest! : ([Ρ Symbol W H Σ] [#:end V] . ->* . Ρ)]
    [alloc-rest! : ([(U Symbol ℓ) W H Σ] [#:end V] . ->* . V)]
-   [H+ : (H ℓ (U ⟦E⟧ V) (U 'app 'mon) → (Values H Boolean))] 
+   [H+ : (H ℓ (U ⟦E⟧ V #f) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 
 (define-signature compile^
@@ -168,6 +168,6 @@
   ([fc : (V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature havoc^
-  ([havoc : (HV-Tag Φ^ Ξ:co Σ → (℘ Ξ))]
+  ([havoc : (HV-Tag R^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
    [add-leak! : (HV-Tag Σ (U V^ W) → Void)]))
