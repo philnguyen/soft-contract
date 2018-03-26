@@ -100,7 +100,7 @@
   (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
   (define Σᵥ@/ctx
     (match-lambda**
-      [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))]))
+     [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))])) 
 
   #|
 

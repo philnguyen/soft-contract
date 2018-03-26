@@ -93,7 +93,7 @@
                                           [dependency : (Option (Listof Symbol))]
                                           [ctx : ⟦E⟧]
                                           [src : ℓ]))
-(#|Context tag for havoc|# HV-Tag . ::= . [#:reuse (Pairof (Option -l) H)])
+(#|Context tag for havoc|# HV-Tag . ≜ . (HV-Tag (Option -l) H) #:ad-hoc)
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)
@@ -222,3 +222,6 @@ loc(define-syntax-rule (define-St/G-matcher P St-id)
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]
    [show-V^ : (V^ → Sexp)]))
+
+(define-signature for-gc^
+  ([V-root : (V → (℘ α))]))

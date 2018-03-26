@@ -77,8 +77,12 @@
          [(set-empty? R^₀) ∅]
          [(match K
             [(cons F K*) (co R^₀ F (Ξ:co K* α H) Σ)]
-            [_ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
-                 (ret! R^₀ Ξ₁ Σ))])])]
+            ['()
+             (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
+                  (ret! R^₀ Ξ₁ Σ))
+                (match α ; special address denoting havoc
+                  [(cons (? pair? tag) _) (havoc tag R^₀ Ξ Σ)]
+                  [_ ∅]))])])]
       [_ ∅])) 
 
   (: co : R^ F Ξ:co Σ → (℘ Ξ))
@@ -238,7 +242,6 @@
            (define α* (mk-α (-α:wrp 𝒾)))
            (define V^ (Σᵥ@ Σ α))
            (mon C^ V^ (Ctx l 'dummy- l ℓ) Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
-      [(F:Hv ?l) (havoc (cons ?l (Ξ:co-ctx Ξ)) R^₀ Ξ Σ)]
       
       ;; Specific helpers
       [(F:Wrap G Ctx α)

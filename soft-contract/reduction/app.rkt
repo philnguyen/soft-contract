@@ -282,7 +282,7 @@
     (define α (αₖ tag ⊥Ρ))
     (add-leak! tag Σ Wₓ)
     (⊔ₖ! Σ α Ξ)
-    {set (Ξ:co (list (F:Hv #f)) α H*)})
+    {set (Ξ:co '() α H*)})
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TOOD

@@ -32,7 +32,6 @@
   [F:St/C ℓ -𝒾 W (Listof ⟦E⟧) Ρ]
   [F:Def -l (Listof α)]
   [F:Dec ℓ -𝒾]
-  [F:Hv (Option -l)]
   ;; Specific helpers
   [F:Wrap Prox/C Ctx α]
   [F:Mon-Or/C Ctx V^ V^ V^]
@@ -157,8 +156,8 @@
    [db:max-steps : (Parameterof (Option Integer))]))
 
 (define-signature app^
-  ([app : (V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
-   #;[app₁ : V → ⟦F⟧]
+  ([app  : (V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
+   [app₁ : (V → ⟦F⟧^)]
    [app/rest/unsafe : (V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature mon^

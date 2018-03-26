@@ -19,7 +19,7 @@
 
 (define-compound-unit/infer reduction@
   (import ast-pretty-print^ static-info^ meta-functions^
-          env^ val^ sto^ evl^
+          env^ val^ sto^ evl^ for-gc^
           prims^ prover^)
   (export alloc^ app^ mon^ compile^ step^)
   (link alloc@ fc@ mon@ compile@ step@ app@ havoc@))
