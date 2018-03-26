@@ -111,7 +111,7 @@
   (define-match-expander P
     (syntax-rules () [(_ α ...) (St (== St-id) (list α ...))])
     (syntax-rules () [(_ α ...) (St St-id (list α ...))])))
-loc(define-syntax-rule (define-St/G-matcher P St-id)
+(define-syntax-rule (define-St/G-matcher P St-id)
   (define-match-expander P
     (syntax-rules () [(_ α) (X/G _ (St/C _ (== St-id) _) α)])))
 (define-St-matcher (Cons αₕ αₜ) -𝒾-cons)
