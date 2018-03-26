@@ -22,9 +22,10 @@
 (Ξ* . ::= . (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
 (define-unit verifier@
-  (import static-info^
+  (import parser^
+          static-info^
           sto^
-          step^ compile^ parser^)
+          step^ compile^ (prefix hv: havoc^))
   (export verifier^)
 
   (define-syntax-rule (with-initialized-static-info e ...)
@@ -37,10 +38,11 @@
       (↝* (comp x))))
 
   (: havoc : (Listof Path-String) → (Values (℘ Blm) Σ))
-  (define (havoc ps) ???
-    #;(with-initialized-static-info
+  (define (havoc ps)
+    (with-initialized-static-info
       (define ms (parse-files ps))
-      (↝* (↓ₚ (-prog ms (gen-havoc-expr ms))))))
+      (define hv (-module 'havoc (list (hv:gen-havoc-expr ms))))
+      (↝* (↓ₚ (-prog `(,@ms ,hv))))))
 
   (: havoc/profile ([(Listof Path-String)]
                     [#:delay Positive-Real]
@@ -53,10 +55,11 @@
       (values ans (assert Σ))))
 
   (: havoc-last : (Listof Path-String) → (Values (℘ Blm) Σ))
-  (define (havoc-last ps) ???
-    #;(with-initialized-static-info
+  (define (havoc-last ps)
+    (with-initialized-static-info
       (define ms (parse-files ps))
-      (run (↓ₚ ms (gen-havoc-expr (list (last ms)))))))
+      (define hv (-module 'havoc (list (hv:gen-havoc-expr (list (last ms))))))
+      (↝* (↓ₚ (-prog `(,@ms ,hv))))))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -21,5 +21,5 @@
   (import ast-pretty-print^ static-info^ meta-functions^
           env^ val^ sto^ evl^ for-gc^
           prims^ prover^)
-  (export alloc^ app^ mon^ compile^ step^)
+  (export alloc^ app^ mon^ compile^ step^ havoc^)
   (link alloc@ fc@ mon@ compile@ step@ app@ havoc@))
