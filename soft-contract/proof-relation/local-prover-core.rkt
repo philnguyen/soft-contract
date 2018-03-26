@@ -226,9 +226,6 @@
            [(_ _) #f])]))
     (go P₀ Vs₀))
 
-  (: ⊢@ : P (Listof S) → ?Dec)
-  (define (⊢@ P Vs) ???)
-
   (: Ps⊢P : (℘ P) P → ?Dec)
   (define (Ps⊢P Ps P)
     (or (for/or : ?Dec ([Q (in-set Ps)]) (P⊢P Q P))
@@ -325,7 +322,7 @@
        [((P:≤ r) 'exact-positive-integer?) (and (<  r 1) '✗)]
        ; _ -> real?
        [((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?)) (or 'real? 'number?)) '✓]
-       [((P:≡ b) Q) (⊢@ Q (list (-b b)))]
+       [((P:≡ b) Q) (check dummy-Σ ⊤Φ Q (list (-b b)))]
        ; equal?
        [((P:≡ b₁) (P:≡ b₂)) (bool->Dec (equal? b₁ b₂))]
        [((P:< a) (P:≡ (? real? b))) #:when (<= a b) '✗]
@@ -448,4 +445,6 @@
        #:when (not (or (Clo? V) (Case-Clo? V))) ; to convince TR
        (log-warning "Warning: call `V-arity` on an obviously non-procedure ~a" V)
        #f]))
+
+  (define dummy-Σ (⊥Σ))
   ) 

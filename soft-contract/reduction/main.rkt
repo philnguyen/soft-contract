@@ -15,11 +15,12 @@
          "compile.rkt"
          "step.rkt"
          "havoc.rkt"
+         "for-gc.rkt"
          )
 
 (define-compound-unit/infer reduction@
   (import ast-pretty-print^ static-info^ meta-functions^
-          env^ val^ sto^ evl^ for-gc^
+          env^ val^ sto^ evl^
           prims^ prover^)
   (export alloc^ app^ mon^ compile^ step^ havoc^)
-  (link alloc@ fc@ mon@ compile@ step@ app@ havoc@))
+  (link alloc@ fc@ mon@ compile@ step@ app@ havoc@ for-gc@))

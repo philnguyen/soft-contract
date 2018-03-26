@@ -2,7 +2,10 @@
 
 (provide prover@)
 
-(require racket/match
+(require (for-syntax racket/base
+                     racket/syntax
+                     syntax/parse)
+         racket/match
          (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/list
          racket/bool
@@ -51,10 +54,7 @@
          (values (validate-R R✓*) (validate-R R✗*) (validate-R R?*))]
         [else
          (define (⊕ [R^ : R^] [?R : ?R]) (if ?R (set-add R^ ?R) R^))
-         (for/fold ([R✓ : R^ ∅] [R✗ : R^ ∅] [R? : R^ ∅])
-                   ([Rᵢ (in-set R)])
-           (define-values (R✓* R✗* R?*) (go Rᵢ))
-           (values (⊕ R✓ R✓*) (⊕ R✗ R✗*) (⊕ R? R?*)))]))
+         (for/collect ⊕ [∅ : R^] (R✓ R✗ R?) ([Rᵢ (in-set R)]) (go Rᵢ))]))
     (if (set? R₀)
         (go R₀)
         (let-values ([(R✓ R✗ R?) (go R₀)])
@@ -62,10 +62,12 @@
 
   (: check-plausible-index ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^)))
   (define (check-plausible-index Σ Rᵥ i #:fast? [fast? #f])
-     ???)
-  #;(: check-plausible-index ([Σ Φ^ V^ Natural] [Boolean] . ->* . (Values Φ^ Φ^)))
-  #;(define (check-plausible-index Σ Φ^ V^ i [fast? #f])
-    (plausible-splits Σ Φ^ '= (list V^ {set (-b i)}))) 
+    (define Vᵢ {set (-b i)})
+    (define go : ((U R R^) → (Values R^ R^))
+      (match-lambda
+        [(R (list Vᵥ) Φ^) (split-results Σ (R (list Vᵥ Vᵢ) Φ^) '= #:fast? fast?)]
+        [(? set? Rs) (for/collect ∪ [∅ : R^] (Rs₁ Rs₂) ([R (in-set Rs)]) (go R))]))
+    (go Rᵥ)) 
 
   (define V-arity l:V-arity) 
 
@@ -84,6 +86,15 @@
         [(✓)  (values (R⊔₁ R✓ Vs Φ) R✗ R?)]
         [(✗)  (values R✓ (R⊔₁ R✗ Vs Φ) R?)]
         [else (values R✓ R✗ (R⊔₁ R? Vs Φ))])))
+
+  (define-syntax for/collect
+    (syntax-parser
+      [(for/collect ⊕ (v₀ (~literal :) T) (x ...) (for-clauses ...) body ...)
+       (with-syntax ([(z ...) (for/list ([x (syntax->list #'(x ...))])
+                                (format-id x "~a*" x))])
+         #'(for/fold ([x : T v₀] ...) (for-clauses ...)
+             (define-values (z ...) (let () body ...))
+             (values (⊕ x z) ...)))]))
   )
 
 (define-compound-unit/infer prover@

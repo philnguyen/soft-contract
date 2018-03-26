@@ -203,7 +203,8 @@
    ))
 
 (define-signature evl^
-  ([⊥Φ^ : Φ^]
+  ([⊤Φ : Φ]
+   [⊥Φ^ : Φ^]
    [Φ@ : (Φ (Listof V) → (℘ P))]
    [R⊔ : (R R → R)]
    [R⊔₁ : (R (Listof V) Φ → R)]
@@ -221,7 +222,4 @@
 
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]
-   [show-V^ : (V^ → Sexp)]))
-
-(define-signature for-gc^
-  ([V-root : (V → (℘ α))]))
+   [show-V^ : (V^ → Sexp)])) 

@@ -4,7 +4,6 @@
                "sto.rkt"
                "val.rkt"
                "evl.rkt"
-               "for-gc.rkt"
                "pretty-print.rkt"
                #|
                "instr.rkt"
@@ -18,7 +17,6 @@
          "sto.rkt"
          "val.rkt"
          "evl.rkt"
-         "for-gc.rkt"
          "pretty-print.rkt"
          #|
          "instr.rkt"

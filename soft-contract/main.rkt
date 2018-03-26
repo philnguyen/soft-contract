@@ -20,7 +20,7 @@
   (export verifier^ parser^ ast-pretty-print^ pretty-print^ step^ prim-runtime^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
         prims@ parser@
-        env@ sto@ val@ evl@ for-gc@ pretty-print@
+        env@ sto@ val@ evl@ pretty-print@
         prover@
         reduction@
         verifier@))

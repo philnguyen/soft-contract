@@ -170,3 +170,6 @@
   ([havoc : (HV-Tag R^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
    [add-leak! : (HV-Tag Σ (U V^ W) → Void)]))
+
+(define-signature for-gc^
+  ([V-root : (V → (℘ α))]))

@@ -15,7 +15,8 @@
   (import val^)
   (export evl^)
 
-  (define ⊥Φ^ {set (ann (hash) Φ)})
+  (define ⊤Φ : Φ (hash))
+  (define ⊥Φ^ {set ⊤Φ})
 
   (: Φ@ : Φ (Listof V) → (℘ P))
   (define (Φ@ Φ Vs) (hash-ref Φ Vs mk-∅))
