@@ -245,13 +245,14 @@
 
   (: vec-len : V^ → V^)
   (define (vec-len Vs)
-    (for/union : V^ ([V (in-set Vs)])
-      (match V
-        [(Vect αs) {set (-b (length αs))}]
-        [(Vect^ _ Vₙ) Vₙ]
-        [(X/G (Vect/C αs) _ _) {set (-b (length αs))}]
-        [(? S? V) {set (S:@ 'vector-length (list V))}]
-        [_ {set (-● {set 'exact-nonnegative-integer?})}])))
+    (set-union-map
+     (match-lambda
+       [(Vect αs) {set (-b (length αs))}]
+       [(Vect^ _ Vₙ) Vₙ]
+       [(X/G (Vect/C αs) _ _) {set (-b (length αs))}]
+       [(? S? V) {set (S:@ 'vector-length (list V))}]
+       [_ {set (-● {set 'exact-nonnegative-integer?})}])
+     Vs))
 
   (: mk-res : (℘ P) -o W → V^)
   (define (mk-res Ps o Wₓ)
