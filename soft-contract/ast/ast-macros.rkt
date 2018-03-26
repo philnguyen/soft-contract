@@ -152,7 +152,7 @@
            (-letrec-values bnds e _))
        #:when (and bnds e)
        (and (effect-free? e)
-            (andmap (compose1 effect-free? (inst cdr Any -e)) bnds))]
+            (andmap (compose1 effect-free? Binding-rhs) bnds))]
       [(-set! x e) #f]
       [(-if e e₁ e₂) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
       [(-μ/c _ e) (effect-free? e)]

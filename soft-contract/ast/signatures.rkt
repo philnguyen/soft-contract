@@ -55,6 +55,8 @@
 ;; Formal parameters
 (-formals . ::= . [#:reuse (-var Symbol)])
 
+(Binding . ≜ . (Binding [lhs : (Listof Symbol)] [rhs : -e]) #:ad-hoc)
+
 (Base . ::= . Number ExtFlonum Boolean String Symbol Keyword Bytes Regexp PRegexp Byte-Regexp Byte-PRegexp Char Null Void Arity EOF Undefined Path)
 
 (-dom . ::= . (-dom [name : Symbol] [dependency : (Option (Listof Symbol))] [body : -e] [loc : ℓ]))
@@ -94,10 +96,10 @@
             -begin/e
             (-begin0 -e (Listof -e))
             (-quote Any)
-            (-let-values [bnds : (Assoc (Listof Symbol) -e)]
+            (-let-values [bnds : (Listof Binding)]
                          [body : -e]
                          [loc : ℓ])
-            (-letrec-values [bnds : (Assoc (Listof Symbol) -e)]
+            (-letrec-values [bnds : (Listof Binding)]
                             [body : -e]
                             [loc : ℓ])
             (-set! (U Symbol -𝒾) -e)
@@ -205,7 +207,7 @@
    [-begin/simp : (∀ (X) (Listof X) → (U X (-begin X)))]
    [-begin0/simp : (-e (Listof -e) → -e)]
    [-@/simp : (-e (Listof -e) ℓ → -e)]
-   [-let-values/simp : ((Assoc (Listof Symbol) -e) -e ℓ → -e)]
+   [-let-values/simp : ((Listof Binding) -e ℓ → -e)]
    [-if/simp : (-e -e -e → -e)]))
 
 (define-signature meta-functions^

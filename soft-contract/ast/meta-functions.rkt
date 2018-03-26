@@ -109,7 +109,7 @@
   (define (free-x/c e)
 
     (: go* : (Listof -e) → (℘ Symbol))
-    (define (go* xs) (for/unioneq : (℘ Symbol) ([x xs]) (go x)))
+    (define (go* xs) (apply ∪ ∅eq (map go xs)))
 
     (: go/dom : -dom → (℘ Symbol))
     (define go/dom
@@ -125,9 +125,9 @@
         [(-wcm k v b) (∪ (go k) (go v) (go b))]
         [(-begin0 e es) (∪ (go e) (go* es))]
         [(-let-values bnds e _)
-         (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+         (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
         [(-letrec-values bnds e _)
-         (∪ (for/unioneq : (℘ Symbol) ([bnd bnds]) (go (cdr bnd))) (go e))]
+         (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
         [(-μ/c _ c) (go c)]
         [(--> (-var cs c) d _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
         [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
