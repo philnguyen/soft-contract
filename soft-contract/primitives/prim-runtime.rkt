@@ -270,15 +270,6 @@
          (S:@ o arg))]
       [else {set (-● Ps)}]))
 
-  
-  #|
-  (: r:φ+/-pV^ : -σ -φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))
-  (define (r:φ+/-pV^ σ φ o . Vs)
-    (apply φ+/-pV^ σ φ o Vs))
-
-  
-  |#
-
   (: add-seal : Σ Symbol H -l → Seal/C)
   (define (add-seal Σ x H l)
     (define C (Seal/C x H l))
