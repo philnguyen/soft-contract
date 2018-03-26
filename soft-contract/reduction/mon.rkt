@@ -182,11 +182,12 @@
       [(equal? l l-) ; unseal
        (define (er) {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
        (define (ok) {set (ret! (V->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)})
-       (for/union : (℘ Ξ) ([Vᵢ (in-set V)])
-         (match Vᵢ
-           [(Sealed (== α)) (ok)]
-           [(-● _) {∪ (ok) (er)}]
-           [_ (er)]))]
+       (set-union-map
+        (match-lambda
+          [(Sealed (== α)) (ok)]
+          [(-● _) {∪ (ok) (er)}]
+          [_ (er)])
+        V)]
       [else (error 'mon-seal/c "seal label ~a in context ~a, ~a, ~a" l l+ l- lo)]))
 
   (: mon-Flat/C : V → ⟦C⟧)

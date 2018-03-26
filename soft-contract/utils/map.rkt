@@ -43,7 +43,8 @@
 
 (: span* (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (℘ X)))
 (define (span* m root f)
-  (span m root (mk-set-spanner f #:eq? (hash-eq? m))))
+  (define mt (if (hash-eq? m) ∅eq ∅))
+  (span m root (λ ([ys : (℘ Y)]) (set-union-map f ys mt))))
 
 (: hash-set-once! (∀ (X Y) (HashTable X Y) X Y → Void))
 (define (hash-set-once! m x v)
@@ -76,11 +77,6 @@
                 (and ((check? x) . implies . (equal? ys₁ ys₂))
                      (for/and : Boolean ([y (in-set ys₁)])
                        (loop (span y))))]))))
-
-(: mk-set-spanner (∀ (X Y) ([(X → (℘ Y))] [#:eq? Boolean] . ->* . ((℘ X) → (℘ Y)))))
-(define (mk-set-spanner f #:eq? [use-eq? #f])
-  (cond [use-eq? (λ (xs) (for/unioneq : (℘ Y) ([x (in-set xs)]) (f x)))]
-        [else    (λ (xs) (for/union   : (℘ Y) ([x (in-set xs)]) (f x)))]))
 
 ;; For debugging
 (: large-ones (∀ (X Y) (HashTable X (℘ Y)) Natural → (HashTable X (℘ Y))))

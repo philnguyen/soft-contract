@@ -73,7 +73,7 @@
             (define Wᵢ (make-list n {set (-● ∅)}))
             (define Vᵣ {set (-● {set 'list?})})
             (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'app 'varargs))))
-            ((app₁ V) `(,@Wᵢ ,Vᵣ) ℓ Φ^ Ξ₀ Σ)]))
+            ((app₁ 'apply) `(,{set V} ,@Wᵢ ,Vᵣ) ℓ Φ^ Ξ₀ Σ)]))
        (match (V-arity V)
          [(? list? ks)
           (for/union : (℘ Ξ) ([k (in-list ks)])

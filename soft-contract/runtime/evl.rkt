@@ -48,12 +48,10 @@
       (values (V⊔ V^ V^*) (∪ Φ^ Φ^*))))
 
   (: collapse-R^/Φ^ : R^ → Φ^)
-  (define (collapse-R^/Φ^ R^)
-    (for/union : Φ^ ([R (in-set R^)]) (R-_1 R)))
+  (define (collapse-R^/Φ^ R^) (set-union-map R-_1 R^))
 
   (: collapse-R^/W^ : R^ → W^)
-  (define (collapse-R^/W^ R^)
-    (for/set : W^ ([R (in-set R^)]) (R-_0 R)))
+  (define (collapse-R^/W^ R^) (map/set R-_0 R^))
 
   (define R⊔ : (R R → R)
     (match-lambda**
