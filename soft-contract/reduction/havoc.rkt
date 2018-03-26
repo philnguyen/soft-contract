@@ -18,19 +18,22 @@
          )
 
 (define-unit havoc@
-  (import val^ sto^)
-  (export havoc^)
-
-  (: havoc : HV-Tag R^ Ξ:co Σ → (℘ Ξ))
-  (define (havoc tag R^ Ξ Σ) ???)
+  (import val^ sto^ evl^)
+  (export havoc^) 
   
   (: gen-havoc-expr : ((Listof -module) → -e))
-  (define (gen-havoc-expr ms) ???)
+  (define (gen-havoc-expr ms)
+    (define refs
+      (for*/list : (Listof -x) ([m (in-list ms)]
+                                [path (in-value (-module-path m))]
+                                [form (in-list (-module-body m))] #:when (-provide? form)
+                                [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
+        (match-define (-p/c-item x _ _) spec)
+        (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
+    (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
   
-  (: add-leak! : (HV-Tag Σ (U V^ W) → Void))
+  (: add-leak! : ((U HV-Tag α) Σ (U V^ W) → Void))
   (define (add-leak! tag Σ V)
-    (match-define (cons ?l H) tag)
-    (define α (mk-α (-α:hv (and ?l tag))))
     (define (keep-behavioral [V : V^]) : V^
       (for/fold ([V : V^ V])
                 ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
@@ -40,10 +43,26 @@
             [else
              (for/fold ([V : V^ ∅]) ([Vᵢ (in-list V)])
                (∪ V (keep-behavioral Vᵢ)))]))
-    (⊔ᵥ! Σ α leaks))
+    (⊔ᵥ! Σ (if (pair? tag) (tag->leak tag) tag) leaks))
+
+  (: havoc : HV-Tag R^ Ξ:co Σ → (℘ Ξ))
+  (define (havoc tag R^ Ξ₀ Σ)
+    (define-values (W^ Φ^) (collapse-R^ R^))
+    (define α• (tag->leak tag))
+    (for ([W (in-set W^)])
+      (add-leak! α• Σ W))
+    (for/union : (℘ Ξ) ([V (in-set (Σᵥ@ Σ α•))])
+       (havoc-V V Φ^ Ξ₀ Σ)))
+
+  (: havoc-V : V Φ^ Ξ:co Σ → (℘ Ξ))
+  (define (havoc-V V Φ^ Ξ Σ) ???)
+
+  (: tag->leak : HV-Tag → α)
+  (define (tag->leak tag)
+    (match-define (cons ?l H) tag)
+    (mk-α (-α:hv (and ?l tag))))
 
   #|
-
   (splicing-local
       (#;(define cache : (HashTable -V (Pairof -σ -δσ)) (make-hash))
 
@@ -155,35 +174,6 @@
       [(? -C?)
        (log-warning "TODO: havoc contract combinators")
        (done)]))
-
-  (: gen-havoc-expr : (Listof -module) → -e)
-  (define (gen-havoc-expr ms)
-    (define refs
-      (for*/list : (Listof -x) ([m (in-list ms)]
-                                [path (in-value (-module-path m))]
-                                [form (in-list (-module-body m))] #:when (-provide? form)
-                                [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
-        (match-define (-p/c-item x _ _) spec)
-        (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
-    (define ℓ (loc->ℓ (loc 'havoc-expr 0 0 '())))
-    (with-debugging/off
-      ((ans) (-@ (-•) refs ℓ))
-      (printf "gen-havoc-expr: ~a~n" (show-e ans))))
-
-  (: add-leak! : HV-Tag Σ (U V^ W) → Void)
-  (define (add-leak! tag Σ V)
-    (define α (mk-α (-α:hv tag)))
-    (define (keep-behavioral [V : V^]) : V^
-      (for/fold ([V : V^ V])
-                ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
-        (set-remove V Vᵢ)))
-    (define leaks
-      (cond
-        [(set? V) (keep-behavioral V)]
-        [else
-         (for/fold ([V^ : V^ ∅]) ([Vᵢ (in-list V)])
-           (∪ V^ (keep-behavioral Vᵢ)))]))
-    (⊔ᵥ! Σ α leaks))
   |#
   )
 
