@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide define-parameter :* define-syntax-id)
+(provide define-parameter :*)
 
 (require syntax/parse/define
          (for-syntax racket/base
@@ -13,8 +13,8 @@
     [(_ x : τ v) (define x : (Parameterof τ) (make-parameter v))]))
 
 ;; declare the same type for multiple identifiers
-(define-syntax (:* stx)
-  (syntax-parse stx
+(define-syntax :*
+  (syntax-parser
     #:literals (:)
     [(_ x:id ... : τ ...)
      #'(begin (: x : τ ...) ...)]))
@@ -23,4 +23,4 @@
   (define-syntax (id stx)
     (cond [(identifier? stx) #'e]
           [else
-           (raise-syntax-error 'id "identifier macro expects no argument" stx)])))
+           (raise-syntax-error 'id "identifier macro expects no argument" stx)]))) 

@@ -84,6 +84,7 @@
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
+   [r:blm : (ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))]
    [r:split-results : (Σ R P → (Values R^ R^))]
    [r:with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    

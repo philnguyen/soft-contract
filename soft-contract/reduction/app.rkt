@@ -41,11 +41,9 @@
                                   [Vₕ (in-set (car (R-_0 Rᵢ)))])
                 ((app₁ Vₕ) Wₓ ℓ Φ^ Ξ₀ Σ)))
             (λ (Rs)
-              (for/set : (℘ Blm) ([Rᵢ (in-set Rs)])
-                (Blm ℓ 'Λ (list 'arity-includes (set-first n)) (R-_0 Rᵢ)))))))
+              (blm ℓ 'Λ (list 'arity-includes (set-first n)) (collapse-R^/W^ Rs))))))
       (λ (R^)
-        (for/set : (℘ Blm) ([Rᵢ (in-set R^)])
-          (Blm ℓ 'Λ '(procedure?) (R-_0 Rᵢ))))))
+        (blm ℓ 'Λ '(procedure?) (collapse-R^/W^ R^)))))
 
   (: app₁ : V → ⟦F⟧^)
   ;; Apply single function, assuming function-ness and arity has been checked
@@ -87,11 +85,9 @@
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)
     (define n (length Wₓ))
-    (match ((inst findf Clo) (λ (clo) (arity-includes? (V-arity clo) n)) clos)
-      [(Clo x ⟦E⟧ Ρ) ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)]
-      [#f
-       (define msg (string->symbol (format "arity ~v" (V-arity (Case-Clo clos)))))
-       {set (Blm ℓ 'Λ (list msg) Wₓ)}]))
+    (match-define (Clo x ⟦E⟧ Ρ) ; assume arity already checked
+      ((inst findf Clo) (λ (clo) (arity-includes? (V-arity clo) n)) clos))
+    ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ))
 
   (: app-st-mk : -𝒾 → ⟦F⟧^)
   (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ Ξ Σ)
@@ -129,8 +125,7 @@
             [(? S? S) (ret! (V->R (S:@ Ac (list S)) Φ^ᵢ) Ξ₀ Σ)]
             [_ (ret! (V->R (-● ∅) Φ^ᵢ) Ξ₀ Σ)])))
       (λ ([R^ : R^])
-        (define-values (V^ _) (collapse-R^-1 R^))
-        {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))})))
+        (blm ℓ (-𝒾-name 𝒾) (list P) (collapse-R^/W^ R^)))))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧^)
   (define ((app-st-mut 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
@@ -159,8 +154,7 @@
              (add-leak! (cons #f (Ξ:co-ctx Ξ₀)) Σ Vᵥ)
              (ret! (V->R -void Φ^ᵢ) Ξ₀ Σ)])))
       (λ ([R^ : R^])
-        (define-values (V^ _) (collapse-R^-1 R^))
-        {set (Blm ℓ (-𝒾-name 𝒾) (list P) (list V^))})))
+        (blm ℓ (-𝒾-name 𝒾) (list P) (collapse-R^/W^ R^)))))
 
   (:* app-And/C app-Or/C : α α → ⟦F⟧^)
   (define-values (app-And/C app-Or/C)
@@ -269,11 +263,10 @@
   (: app-Case-=> : Ctx Case-=> α → ⟦F⟧^)
   (define ((app-Case-=> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
     (define n (length Wₓ))
-    (match ((inst findf ==>) (λ (C) (arity-includes? (guard-arity C) n))
-                             (Case-=>-_0 G))
-      [(? values C) ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ)]
-      [#f (let ([msg (string->symbol (format "arity ~v" (guard-arity G)))])
-            {set (Blm ℓ 'Λ (list msg) Wₓ)})]))
+    (match-define (? values C) ; assume arity already checked
+      ((inst findf ==>) (λ (C) (arity-includes? (guard-arity C) n))
+                        (Case-=>-_0 G)))
+    ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ))
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)

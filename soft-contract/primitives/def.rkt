@@ -178,6 +178,7 @@
                                            ?c-elem
                                            (syntax->list #'(e ...)))))]
                  [_
+                  (hack:make-available #'o r:blm)
                   #`(match W
                       [ok-pat
                        #,@(gen-flat-checks (syntax->list #'(c ...))
@@ -185,7 +186,7 @@
                                            (syntax->list #'(e ...)))]
                       [_
                        (define msg '(#,(string->symbol (format "~v" arity))))
-                       {set (Blm/simp ℓ 'o msg W)}])]))))
+                       (r:blm ℓ 'o msg W)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n

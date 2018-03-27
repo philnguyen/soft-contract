@@ -48,9 +48,9 @@
   (define ((mon-Fn/C C) V^₀ ctx Φ^₀ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     
-    (: blm : V → Any → (℘ Ξ))
-    (define ((blm C) _)
-      {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀))})
+    (: -blm : V → Any → (℘ Ξ))
+    (define ((-blm C) _)
+      (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀)))
 
     (: chk-arity : R^ → (℘ Ξ))
     (define (chk-arity R^)
@@ -64,13 +64,13 @@
       (with-2-paths
         (λ () (split-results Σ (R (list val-arity grd-arity) Φ^) 'arity-includes?))
         wrap
-        (blm (match (set-first grd-arity)
-               [(-b (? integer? n))
-                (format-symbol "(arity-includes/c ~a)" n)]
-               [(-b (arity-at-least n))
-                (format-symbol "(arity-at-leastc ~a)" n)]
-               [(-b (list n ...))
-                (string->symbol (format "(arity in ~a)" n))]))))
+        (-blm (match (set-first grd-arity)
+                [(-b (? integer? n))
+                 (format-symbol "(arity-includes/c ~a)" n)]
+                [(-b (arity-at-least n))
+                 (format-symbol "(arity-at-leastc ~a)" n)]
+                [(-b (list n ...))
+                 (string->symbol (format "(arity in ~a)" n))]))))
 
     (: wrap : R^ → (℘ Ξ))
     (define (wrap R^)
@@ -81,7 +81,7 @@
     
     (with-2-paths (λ () (split-results Σ (R (list V^₀) Φ^₀) 'procedure?))
       (if (∀/C? C) wrap chk-arity)
-      (blm 'procedure?)))
+      (-blm 'procedure?)))
 
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) V^₀ ctx Φ^₀ Ξ₀ Σ)
@@ -96,7 +96,7 @@
 
     (with-2-paths (λ () (split-results Σ (R (list V^₀) Φ^₀) (-st-p 𝒾)))
       chk-fields
-      (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lₒ (list (-st-p 𝒾)) (list V^₀))})))
+      (λ _ (blm (ℓ-with-src ℓ l+) lₒ (list (-st-p 𝒾)) (list V^₀)))))
 
   (: mon-X/C : X/C → ⟦C⟧)
   (define ((mon-X/C C) V ctx Φ^ Ξ Σ)
@@ -149,9 +149,9 @@
     (match-define (Ctx l+ _ lₒ ℓₘ) ctx)
     (match-define (Vectof αℓs) C)
 
-    (: blm : P → Any → (℘ Ξ))
-    (define ((blm P) _)
-      {set (Blm/simp (ℓ-with-src ℓₘ l+) lₒ (list P) (list V))})
+    (: -blm : P → Any → (℘ Ξ))
+    (define ((-blm P) _)
+      (blm (ℓ-with-src ℓₘ l+) lₒ (list P) (list V)))
 
     (: chk-elems : R^ → (℘ Ξ))
     (define (chk-elems R^)
@@ -159,7 +159,7 @@
     
     (with-2-paths (λ () (split-results Σ (R (list V) Φ^₀) 'vector?))
       chk-elems
-      (blm 'vector?)))
+      (-blm 'vector?)))
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define (mon-Vect/C C) ???)
@@ -180,7 +180,7 @@
        (⊔ᵥ! Σ α V)
        {set (ret! (V->R (Sealed α) Φ^) Ξ₀ Σ)}]
       [(equal? l l-) ; unseal
-       (define (er) {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
+       (define (er) (blm (ℓ-with-src ℓ l+) lo (list {set C}) (list V)))
        (define (ok) {set (ret! (V->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)})
        (set-union-map
         (match-lambda
@@ -195,7 +195,7 @@
     (match-define (Ctx l+ _ lo ℓ) ctx)
     (with-3-paths (λ () (partition-results Σ (R (list V) Φ^₀) C))
       (λ ([R^ : R^]) {set (ret! R^ Ξ Σ)})
-      (λ _ {set (Blm/simp (ℓ-with-src ℓ l+) lo (list {set C}) (list V))})
+      (λ _ (blm (ℓ-with-src ℓ l+) lo (list {set C}) (list V)))
       (λ ([R^ : R^]) ???)))
 
   #|

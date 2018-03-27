@@ -107,7 +107,7 @@
             (λ (Σ) (defined-at? Σ α)))))
 
     (define (blm:undefined-struct [𝒾 : -𝒾] [ℓ : ℓ])
-      (Blm/simp ℓ 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
+      (Blm (strip-ℓ ℓ) 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
     
     (: ↓ : -e → ⟦E⟧)
     (define-compiler ((↓ E) Ρ Φ^ Ξ Σ)
@@ -181,7 +181,7 @@
                        (λ ([Ρ : Ρ]) (Ρ@ Ρ x))
                        (λ _ (mk-α (-α:top x))))]
           #:recur E]
-      [(-error msg ℓ) (mk-Blm (Blm/simp ℓ 'Λ '(not-reached) (list (set (-b msg)))))]
+      [(-error msg ℓ) (mk-Blm (Blm (strip-ℓ ℓ) 'Λ '(not-reached) (list (set (-b msg)))))]
       [=> (-μ/c x C)
           (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x (Ξ:co-ctx Ξ)))) Φ^ (K+ (F:Μ/C x) Ξ) Σ)
           #:recur C]
@@ -209,7 +209,7 @@
     (↓ e)) 
 
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
-    (define blm:undefined (Blm/simp ℓₓ 'Λ '(defined?) (list {set -undefined})))
+    (define blm:undefined (Blm (strip-ℓ ℓₓ) 'Λ '(defined?) (list {set -undefined})))
     (λ (Ρ Φ^ Ξ Σ)
       (define α (Ρ@ Ρ x))
       (define V^ (Σᵥ@ Σ α))

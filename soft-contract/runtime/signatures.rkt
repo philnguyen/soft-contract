@@ -118,7 +118,6 @@
 (define-St/G-matcher Cons/G -𝒾-cons)
 (define-St-matcher (Box α) -𝒾-box)
 (define-St/G-matcher Box/G -𝒾-box)
-(define-syntax-rule (Blm/simp ℓ+ lo C V) (Blm (strip-ℓ ℓ+) lo C V))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

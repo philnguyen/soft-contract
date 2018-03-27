@@ -104,7 +104,7 @@
              [(arity-at-least n)
               (format-symbol "~a+ values" n)])])
       (λ (ℓ lo arity Vs)
-        (Blm/simp ℓ lo (list (arity->msg arity)) Vs))))
+        (Blm (strip-ℓ ℓ) lo (list (arity->msg arity)) Vs))))
 
   (: collapse-value-lists : W^ Natural → W)
   (define (collapse-value-lists W^ n)

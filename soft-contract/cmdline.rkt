@@ -93,9 +93,8 @@
          (print-blame (set-first blames) "")]
       [n
        (printf "Found ~a possible contract violations~n" n)
-       (for ([blm (in-set blames)]
-             [i (in-naturals)])
-         (print-blame blm (format "(~a)" i)))]))
+       (for ([b (in-set blames)] [i (in-naturals)])
+         (print-blame b (format "(~a)" i)))]))
 
   (: go : (Listof Path-String) → Void)
   (define (go fnames)

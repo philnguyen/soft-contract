@@ -98,8 +98,7 @@
       (λ (R^)
         ???)
       (λ (R^)
-        (for/set : (℘ Ξ) ([W (in-set (collapse-R^/W^ R^))])
-          (Blm/simp ℓ 'vector-ref '(vector?) W))))
+        (r:blm ℓ 'vector-ref '(vector?) (collapse-R^/W^ R^))))
     #;(for/union : (℘ Ξ) ([Vᵥ (in-set Vᵥ^)])
       (match Vᵥ
         [(Vect αs)

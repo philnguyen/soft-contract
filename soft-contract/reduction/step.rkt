@@ -21,7 +21,8 @@
 (provide step@)
 
 (define-unit step@
-  (import val^ env^ sto^ evl^
+  (import static-info^
+          val^ env^ sto^ evl^
           prover^
           prims^
           alloc^ app^ mon^ compile^ havoc^)
@@ -277,6 +278,16 @@
 
   (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (define (ret! R Ξ Σ) (⊔ₐ! Σ Ξ R) Ξ)
+
+  (: blm : ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))
+  (define (blm ℓ+ lo C Wₓ)
+    (define (go [W : W]) (Blm (strip-ℓ ℓ+) lo C W))
+    (cond [(not (transparent-module? (ℓ-src ℓ+))) ∅]
+          [(set? Wₓ)
+           (if (set-andmap (match-λ? (list _)) Wₓ)
+               {set (go (list (foldl V⊔ ⊥V ((inst set-map W V^) Wₓ car))))}
+               {map/set go Wₓ})]
+          [else {set (go Wₓ)}]))
 
   (: with-guarded-arity/W : W Natural ℓ (W → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-arity/W W n ℓ exec)

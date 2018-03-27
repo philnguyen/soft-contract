@@ -65,7 +65,7 @@
             {set (ret! (V->R (Hash^ αₖ αᵥ #t) Φ^) Ξ Σ)}]
            [else
             (define msg (list (string->symbol "even number of arg(s)")))
-            {set (Blm/simp ℓ name msg Wₓ)}])))
+            (r:blm ℓ name msg Wₓ)])))
     (def (hash W ℓ Φ^ Ξ Σ)
       #:init ()
       #:rest [W (listof any/c)]

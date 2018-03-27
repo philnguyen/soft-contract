@@ -43,10 +43,10 @@
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
            (define ?er
              (match ((inst findf V^) (λ (V^) (sequence-ormap Sealed? V^)) W)
-               [(? set? V^) {set (Blm/simp ℓ o '(any/c) (list V^))}]
+               [(? set? V^) (r:blm ℓ o '(any/c) (list V^))]
                [#f ∅]))
            {set-add ?er ok}]
-          [else {set (Blm/simp ℓ o (list (-b n) 'values) W)}]))))
+          [else (r:blm ℓ o (list (-b n) 'values) W)]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
@@ -280,13 +280,15 @@
     (match-lambda [(cons V ℓ) (αℓ (mk-α (-α:imm V)) ℓ)]))
 
   ;; Eta-expand to get aroudn undefined and init-depend
-  (: r:ret! : (U R R^) Ξ:co Σ → Ξ:co)
+  (: r:ret! : ((U R R^) Ξ:co Σ → Ξ:co))
+  (: r:blm : (ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm)))
   (: r:split-results : Σ R P → (Values R^ R^))
   (: r:with-2-paths/collapse
      (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
   (define (r:with-2-paths/collapse e t f) (with-2-paths/collapse e t f))
   (define (r:split-results Σ R P) (split-results Σ R P))
+  (define (r:blm ℓ+ lo C V) (blm ℓ+ lo C V))
 
   #|
   (: t.@/simp : -o (Listof -t) → -t)
