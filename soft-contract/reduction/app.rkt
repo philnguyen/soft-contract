@@ -34,16 +34,18 @@
         (define n {set (-b (length Wₓ))})
         (for/union : (℘ Ξ) ([Rᵢ (in-set R^)])
           (match-define (R (list Vₕ) Φ^) Rᵢ)
-          (with (λ () (split-results Σ (R (list Vₕ n) Φ^) 'arity-includes? #:fast? #t))
+          (define a (map/set ((inst compose V (Option Arity) -b) -b V-arity) Vₕ))
+          (with (λ () (split-results Σ (R (list a n) Φ^) 'arity-includes? #:fast? #t))
             (λ (Rs)
               (for/union : (℘ Ξ) ([Rᵢ (in-set Rs)]
                                   [Φ^ (in-value (R-_1 Rᵢ))]
                                   [Vₕ (in-set (car (R-_0 Rᵢ)))])
                 ((app₁ Vₕ) Wₓ ℓ Φ^ Ξ₀ Σ)))
             (λ (Rs)
-              (blm ℓ 'Λ (list 'arity-includes (set-first n)) (collapse-R^/W^ Rs))))))
+              (define msg (string->symbol (format "(arity-includes/c ~a)" (length Wₓ))))
+              (blm ℓ 'Λ (list msg) (list Vₕ))))))
       (λ (R^)
-        (blm ℓ 'Λ '(procedure?) (collapse-R^/W^ R^)))))
+        (blm ℓ 'Λ '(procedure?) (list Vₕ^)))))
 
   (: app₁ : V → ⟦F⟧^)
   ;; Apply single function, assuming function-ness and arity has been checked
