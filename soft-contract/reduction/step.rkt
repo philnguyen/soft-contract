@@ -45,17 +45,15 @@
     (define-set blms : Blm)
     
     (define db? (db:iter?))
-    (define iter : Natural 0)
     (define cut? : (Natural → Boolean)
       (match (db:max-steps)
         [(? values n) (λ (i) (> i n))]
         [_ (λ _ #f)]))
 
-    (let loop! ([front : (℘ Ξ) {set Ξ₀}])
-      (set! iter (+ 1 iter))
-      (when db?
-        (printf "~a: ~a~n" iter (set-count front)))
+    (let loop! ([front : (℘ Ξ) {set Ξ₀}] [iter : Natural 0])
       (unless (or (set-empty? front) (cut? iter))
+        (when db?
+          (printf "~a: ~a~n" iter (set-count front)))
         (loop!
          (for*/set : (℘ Ξ) ([Ξ₀ (in-set front)]
                             [Ξ₁ (in-set (↝ Ξ₀ Σ))]
@@ -63,7 +61,8 @@
                             [v₁ (in-value (ver))]
                             #:unless (equal? v₁ (hash-ref seen Ξ₁ #f)))
            (hash-set! seen Ξ₁ v₁)
-           Ξ₁))))
+           Ξ₁)
+         (add1 iter))))
     (values blms Σ)) 
 
   (: ->⟦E⟧ : (U -prog ⟦E⟧) → ⟦E⟧)
