@@ -740,7 +740,8 @@
     
     (syntax-parse fml
       [(x:id ...)
-       (-var (parse-binders (syntax->list #'(x ...)) ρ₀) #f)]
+       (define-values (xs ρ) (parse-binders (syntax->list #'(x ...)) ρ₀))
+       (values (-var xs #f) ρ)]
       [rest:id
        (define-values (rest-name ρ) (parse-binder #'rest ρ₀))
        (values (-var '() rest-name) ρ)]
