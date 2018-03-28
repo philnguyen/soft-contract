@@ -250,12 +250,12 @@
            (⊔ᵥ! Σ α V^)
            {set (ret! (V->R (X/G Ctx G α) Φ^) Ξ Σ)}))]
       [(F:Mon-Or/C Ctx Cₗ Cᵣ V) ???]
-      [(F:If:Flat/C V^ Blm)
+      [(F:If:Flat/C V^ Blm^)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
            (with-2-paths/collapse (λ () (split-results Σ R^₀))
              (λ ([Φ^ : Φ^]) {set (ret! (V->R V^ Φ^) Ξ Σ)})
-             (λ _ {set Blm}))))]
+             (λ _ Blm^))))]
       [(F:Fc-And/C l ℓ C₁ C₂) ???]
       [(F:Fc-Or/C l ℓ C₁ C₂ V) ???]
       [(F:Fc-Not/C V) ???]
@@ -311,6 +311,14 @@
   (: with-guarded-single-arity/collapse : R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-single-arity/collapse R^ ℓ exec)
     (with-guarded-arity/collapse R^ 1 ℓ (λ (W Φ^) (exec (car W) Φ^))))
+
+  (: with-guard : Σ Φ^ Ctx V^ P (R^ → (℘ Ξ)) → (℘ Ξ))
+  (define (with-guard Σ Φ^ ctx V P exec)
+    (with-2-paths (λ () (split-results Σ (R (list V) Φ^) P))
+      exec
+      (λ ([R^ : R^])
+        (match-define (Ctx l+ _ lₒ ℓ) ctx)
+        (blm (ℓ-with-src ℓ l+) lₒ (list P) (collapse-R^/W^ R^)))))
 
   (: mk-==>! : Σ H W (Option V^) W^ ℓ → V^)
   (define (mk-==>! Σ H doms-rev rst rngs ℓ)

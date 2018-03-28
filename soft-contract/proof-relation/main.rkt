@@ -67,7 +67,10 @@
       (match-lambda
         [(R (list Vᵥ) Φ^) (split-results Σ (R (list Vᵥ Vᵢ) Φ^) '= #:fast? fast?)]
         [(? set? Rs) (for/collect ∪ [∅ : R^] (Rs₁ Rs₂) ([R (in-set Rs)]) (go R))]))
-    (go Rᵥ)) 
+    (go Rᵥ))
+
+  (: check-one-of : Φ^ V^ (Listof Base) → ?Dec)
+  (define (check-one-of Φ^ V^ R) ???)
 
   (define V-arity l:V-arity) 
 

@@ -54,8 +54,7 @@
                      (Sealed α)
                      C
                      S
-                     P #|hack in prim DSL|#)
-(#|Proxies|# Prox/C . ::= . Fn/C St/C Vect/C Hash/C Set/C)
+                     P #|hack in prim DSL|#) 
 (#|Symbolic value|# S . ::= . -b (S:α α) (S:@ -o (Listof S)))
 (#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Index))
 
@@ -68,14 +67,14 @@
                         (Not/C αℓ)
                         (One-Of/C (Listof Base))
                         (X/C α)
-                        Fn/C
-                        (St/C [flat? : Boolean] -𝒾 (Listof αℓ))
-                        (Vectof αℓ)
-                        (Vect/C (Listof αℓ))
-                        (Hash/C [key : αℓ] [val : αℓ])
-                        (Set/C [elems : αℓ])
+                        Prox/C
                         (Seal/C Symbol H -l))
-
+(#|Proxies|# Prox/C . ::= . Fn/C
+                            (St/C [flat? : Boolean] -𝒾 (Listof αℓ))
+                            (Vectof αℓ)
+                            (Vect/C (Listof αℓ))
+                            (Hash/C [key : αℓ] [val : αℓ])
+                            (Set/C [elems : αℓ]))
 (#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))])
                                  (==>i [doms : (Listof Dom)] [mk-rng : Dom])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
@@ -182,7 +181,6 @@
    [Ρ@* : (Ρ (Listof Symbol) → (Listof α))]
    [Ρ+ : (Ρ Symbol α → Ρ)]
    [-x-dummy : Symbol]))
-
 
 (define-signature val^
   (#;[fresh-sym! : (→ -s)]

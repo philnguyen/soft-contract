@@ -32,12 +32,14 @@
    [get-exclusions : (Symbol → (℘ Symbol))]
    [prim-arity : (Symbol → Arity)]
    [parse-prim : (Identifier → (Option -prim))]
-   [implement-predicate : (Σ Φ^ -o W → R^)]))
+   [implement-predicate : (Σ Φ^ -o W → R^)]
+   [vec-len : (V^ → V^)]))
 
 (define-signature prover^
   ([split-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^))]
    [partition-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^))]
    [check-plausible-index : ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^))]
+   [check-one-of : (Φ^ V^ (Listof Base) → ?Dec)]
    [V-arity : (case-> [(U Clo Case-Clo) → Arity]
                       [V → (Option Arity)])]
    #|

@@ -57,6 +57,7 @@
           [else #f]))
 
   (define implement-predicate rt:implement-predicate)
+  (define vec-len rt:vec-len)
   )
 
 (define-compound-unit/infer prims@

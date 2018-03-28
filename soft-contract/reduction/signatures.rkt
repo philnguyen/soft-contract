@@ -35,7 +35,7 @@
   ;; Specific helpers
   [F:Wrap Prox/C Ctx α]
   [F:Mon-Or/C Ctx V^ V^ V^]
-  [F:If:Flat/C V^ Blm]
+  [F:If:Flat/C V^ (℘ Blm)]
   [F:Fc-And/C -l ℓ V^ V^]
   [F:Fc-Or/C -l ℓ V^ V^ V^]
   [F:Fc-Not/C V^]
@@ -153,6 +153,7 @@
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guard : (Σ Φ^ Ctx V^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Integer))]))
 
