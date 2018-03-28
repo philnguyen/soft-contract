@@ -321,35 +321,19 @@
         (blm (ℓ-with-src ℓ l+) lₒ (list P) (collapse-R^/W^ R^)))))
 
   (: mk-==>! : Σ H W (Option V^) W^ ℓ → V^)
-  (define (mk-==>! Σ H doms-rev rst rngs ℓ)
-    ???
-    #|
-    (define Dom
-      (let ([Init (mk-αℓ*! 'dom -α:dom H ℓ (reverse doms-rev))])
-        (cond [rst (define αᵣ (mk-α (-α:rst ℓ H)))
-                   (define ℓᵣ (ℓ-with-id ℓ 'rest))
-                   (-var Init (αℓ αᵣ ℓᵣ))]
-              [else Init])))
-    (define Rng^ ; Should have had special `any` contract
-      (for/union : (℘ (Option W)) ([rng (in-set rngs)])
-        (match rng
-          [(list V^)
-           #:when (∋ s 'any)
-           ???])))
-    |#
-    #|
-    (define-values (Dom φ₁)
-      (let-values ([(Init φ*) (mk-⟪α⟫ℓ* Σ 'dom -α.dom H ℓ φ (reverse doms.rev))])
-        (cond [rst (define αᵣ (-α->⟪α⟫ (-α.rst ℓ H)))
-                   (define ℓᵣ (ℓ-with-id ℓ 'rest))
-                   (values (-var Init (-⟪α⟫ℓ αᵣ ℓᵣ)) (alloc Σ φ* αᵣ rst))]
-              [else (values Init φ*)])))
-    (define-values (Rng φ₂)
-      (match rngs
-        ['(any) (values 'any φ₁)]
-        [_ (mk-⟪α⟫ℓ* Σ 'rng -α.rng H ℓ φ₁ rngs)]))
-    (values (-=> Dom Rng) φ₂)
-    |#)
+  (define (mk-==>! Σ H₀ doms-rev ?rst rngs ℓ₀)
+    (: mk-αℓs! : Symbol (ℓ H Index → -α) W → (Listof αℓ))
+    (define (mk-αℓs! tag mk W)
+      (for/list ([Vᵢ (in-list W)] [i (in-naturals)] #:when (index? i))
+        (define αᵢ (mk-α (mk ℓ₀ H₀ i)))
+        (⊔ᵥ! Σ αᵢ Vᵢ)
+        (αℓ αᵢ (ℓ-with-id ℓ₀ (cons tag i)))))
+    (define Dom (-var (mk-αℓs! 'dom -α:dom (reverse doms-rev))
+                      (and ?rst (αℓ (mk-α (-α:rst ℓ₀ H₀)) (ℓ-with-id ℓ₀ 'rest)))))
+    (for/set : V^ ([rng (in-set rngs)])
+      (==> Dom (match rng
+                 [(list {singleton-set 'any}) #f]
+                 [_ (mk-αℓs! 'rng -α:rng rng)]))))
 
   (: K+/And : -l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)
   (define (K+/And l ⟦E⟧s Ρ Ξ)
