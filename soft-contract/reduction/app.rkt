@@ -76,13 +76,13 @@
 
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
   (define ((app-clo fmls ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
-    (match-define (Ξ:co _ _ H) Ξ)
+    (match-define (Ξ:co _ _ M H) Ξ)
     (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
     (define Ρ* (bind-args! Ρ fmls Wₓ H* Σ))
     (define α* (αₖ ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
-    {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* H*) Σ)})
+    {set (⟦E⟧ Ρ* Φ^ (Ξ:co '() α* M H*) Σ)})
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)
@@ -277,7 +277,7 @@
     (define α (αₖ tag ⊥Ρ))
     (add-leak! tag Σ Wₓ)
     (⊔ₖ! Σ α Ξ)
-    {set (Ξ:co '() α H*)})
+    {set (Ξ:co '() α (Ξ:co-mark Ξ) H*)})
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TOOD

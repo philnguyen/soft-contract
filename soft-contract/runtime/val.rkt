@@ -156,6 +156,6 @@
 
   (: K+ : F Ξ:co → Ξ:co)
   (define (K+ F Ξ)
-    (match-define (Ξ:co K α H) Ξ)
-    (Ξ:co (cons F K) α H))
+    (match-define (Ξ:co K α M H) Ξ)
+    (Ξ:co (cons F K) α M H))
   )

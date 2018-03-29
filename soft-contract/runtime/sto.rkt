@@ -68,7 +68,7 @@
   (define (construct-call-graph Σₖ)
     (for*/fold ([CG : CG (hash)])
                ([(α Ξₛs) (in-hash (->Σₖ Σₖ))] [Ξₛ (in-set Ξₛs)])
-      (match-define (Ξ:co _ αₛ _) Ξₛ)
+      (match-define (Ξ:co _ αₛ _ _) Ξₛ)
       (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)) mk-∅)))
 
   (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)

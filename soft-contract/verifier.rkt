@@ -23,7 +23,7 @@
 (define-interner ⟨αₖ⟩ αₖ
   #:intern-function-name mk-αₖ
   #:unintern-function-name inspect-αₖ)
-(⟨Ξ⟩ . ::= . (⟨Ξ:co⟩ [kon : K] [ret : ⟨αₖ⟩] [ctx : H]) Blm)
+(⟨Ξ⟩ . ::= . (⟨Ξ:co⟩ [kon : K] [ret : ⟨αₖ⟩] [hist : M] [ctx : H]) Blm)
 (⟨Σₖ⟩ . ≜ . (Immutable-HashTable ⟨αₖ⟩ (Setof ⟨Ξ:co⟩)))
 (⟨Σₐ⟩ . ≜ . (Immutable-HashTable ⟨Ξ:co⟩ R^))
 
@@ -32,7 +32,7 @@
                 [Ξ → ⟨Ξ⟩]))
 (define -⟨Ξ⟩
   (match-lambda
-    [(Ξ:co K α H) (⟨Ξ:co⟩ K (mk-αₖ α) H)]
+    [(Ξ:co K α M H) (⟨Ξ:co⟩ K (mk-αₖ α) M H)]
     [(? Blm? b) b]))
 
 (: -⟨Σₖ⟩ : Σₖ → ⟨Σₖ⟩)
@@ -50,7 +50,7 @@
               [⟨Ξ⟩ → Ξ]))
 (define -Ξ
   (match-lambda
-    [(⟨Ξ:co⟩ K α H) (Ξ:co K (inspect-αₖ α) H)]
+    [(⟨Ξ:co⟩ K α M H) (Ξ:co K (inspect-αₖ α) M H)]
     [(? Blm? b) b]))
 
 (define-unit verifier@

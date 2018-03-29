@@ -14,7 +14,7 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [ret : αₖ] [ctx : H])
+(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [ret : αₖ] [mark : M] [ctx : H])
                                 Blm)
 (#|Local kont.     |# K . ≜ . (Listof F))
 (#|Instrumentation |# -H . ::= . #:TBD)
@@ -28,10 +28,11 @@
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
 (#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable Ξ:co R^))
+(#|Call history    |# M  . ≜ . (Immutable-HashTable Clo (Pairof Call (℘ G))))
 (#|Value list      |# W  . ≜ . (Listof V^))
 (#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ Ξ:co Σ → Ξ))
 (#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ Ξ:co Σ → Ξ))
-(#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ)))
+(#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ))) ; FIXME obsolete
 (#|Kont. frame     |# F . ::= . #:TBD)
 ;; Approximated versions of things
 (Φ^ . ≜ . (℘ Φ))
@@ -41,6 +42,10 @@
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 (?R . ≜ . (Option R))
+(Call . ≜ . (Immutable-HashTable Symbol V^))
+(G . ≜ . (Immutable-HashTable (Pairof Symbol Symbol) Ch))
+(Ch . ::= . '↓ '↧)
+(?Ch . ≜ . (Option Ch)) ; ↓ ⊑ ↧ ⊑ #f
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim
