@@ -249,7 +249,11 @@
          (λ (V^ Φ^)
            (⊔ᵥ! Σ α V^)
            {set (ret! (V->R (X/G Ctx G α) Φ^) Ξ Σ)}))]
-      [(F:Mon-Or/C Ctx Cₗ Cᵣ V) ???]
+      [(F:Mon-Or/C ctx Cₗ Cᵣ V)
+       (with-arity R^₀
+         (match-lambda** ; TODO refine
+          [(0 (R _ Φ^)) (mon Cᵣ V ctx Φ^ Ξ Σ)]
+          [(1 R₁) {set (ret! R₁ Ξ Σ)}]))]
       [(F:If:Flat/C V^ Blm^)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)
@@ -260,30 +264,46 @@
        (with-arity R^₀
          (match-lambda**
           [(0 R₀) {set (ret! R₀ Ξ Σ)}]
-          [(1 R₁) (match-define (αℓ α₂ ℓ₂) αℓ₂)
-                  (match-define (R (list V) Φ^) R₁) ; TODO refine
-                  (fc (Σᵥ@ Σ α₂) V ℓ₂ Φ^ Ξ Σ)]))]
+          [(1 (R (list V) Φ^)) (match-define (αℓ α₂ ℓ₂) αℓ₂)  ; TODO refine
+                               (fc (Σᵥ@ Σ α₂) V ℓ₂ Φ^ Ξ Σ)]))]
       [(F:Fc-Or/C α₁ αℓ₂ Vₓ)
        (with-arity R^₀
          (match-lambda** ; TODO refine
-          [(0 R₀) (match-define (αℓ α₂ ℓ₂) αℓ₂)
-                  (match-define (R _ Φ^) R₀)
-                  (fc (Σᵥ@ Σ α₂) Vₓ ℓ₂ Φ^ Ξ Σ)]
+          [(0 (R _ Φ^)) (match-define (αℓ α₂ ℓ₂) αℓ₂)
+                        (fc (Σᵥ@ Σ α₂) Vₓ ℓ₂ Φ^ Ξ Σ)]
           [(1 R₁) {set (ret! R₁ Ξ Σ)}]))]
       [(F:Fc-Not/C Vₓ)
        (with-arity R^₀
          (match-lambda**
-          [(0 R₀) {set (ret! (R (list Vₓ) (R-_1 R₀)) Ξ Σ)}]
-          [(1 R₁) {set (ret! (R '()       (R-_1 R₁)) Ξ Σ)}]))]
-      [(F:Fc-Struct/C ℓ 𝒾 W-rev EΡ) ???]
+          [(0 (R _ Φ^)) {set (ret! (R (list Vₓ) Φ^) Ξ Σ)}]
+          [(1 (R _ Φ^)) {set (ret! (R '()       Φ^) Ξ Σ)}]))]
+      [(F:Fc-Struct/C ℓ 𝒾 W-rev EΡs)
+       (with-arity R^₀
+         (match-lambda**
+          [(0 R₀) {set (ret! R₀ Ξ Σ)}]
+          [(1 (and R₁ (R (list V) Φ^)))
+           {set (match EΡs
+                  [(cons (cons ⟦E⟧ Ρ) EΡs)
+                   (⟦E⟧ Ρ Φ^ (K+ (F:Fc-Struct/C ℓ 𝒾 (cons V W-rev) EΡs) Ξ) Σ)]
+                  ['()
+                   (define F:mk (F:Ap `(,@W-rev ,{set (-st-mk 𝒾)}) '() ℓ))
+                   (ret! R₁ (K+ F:mk Ξ) Σ)])}]))]
       [(F:Fc:V ℓ ⟦V⟧ Ρ)
        (define-values (C^ Φ^) (collapse-R^-1 R^₀))
        {set (⟦V⟧ Ρ Φ^ (K+ (F:Fc:C ℓ C^) Ξ) Σ)}]
       [(F:Fc:C ℓ C^)
        (define-values (V^ Φ^) (collapse-R^-1 R^₀))
        (fc C^ V^ ℓ Φ^ Ξ Σ)]
-      [(F:Hash-Set-Inner ℓ α) ???]
-      [(F:Set-Add-Inner ℓ α) ???]
+      [(F:Hash-Set-Inner ℓ α)
+       (with-arity R^₀
+         (match-lambda**
+          [(2 (R key-val Φ^))
+           ((app₁ 'hash-set) (cons (Σᵥ@ Σ α) key-val) ℓ Φ^ Ξ Σ)]))]
+      [(F:Set-Add-Inner ℓ α)
+       (with-arity R^₀
+         (match-lambda**
+          [(2 (R (list Vₑ) Φ^))
+           ((app₁ 'set-add) (list (Σᵥ@ Σ α) Vₑ) ℓ Φ^ Ξ Σ)]))]
       [(F:Maybe-Havoc-Prim-Args ℓ Symbol) ???]
       [(F:Make-Prim-Range ctx ?rng-wrap ranges cases) ???]
       [(F:Implement-Predicate P)

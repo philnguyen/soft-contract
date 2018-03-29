@@ -87,7 +87,7 @@
 
   (: fc-X/C : α → ⟦FC⟧)
   (define ((fc-X/C α) Vₓ ℓ Φ^ Ξ Σ)
-    (fc (Σᵥ@ Σ α) Vₓ ℓ Φ^ Ξ Σ))
+    {set (ret! (V->R Vₓ Φ^) (K+ (F:Fc:C ℓ (Σᵥ@ Σ α)) Ξ) Σ)})
 
   (: fc-b : Base → ⟦FC⟧)
   (define ((fc-b b) Vₓ ℓ Φ^ Ξ Σ)
