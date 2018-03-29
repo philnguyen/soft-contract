@@ -70,7 +70,8 @@
     (go Rᵥ))
 
   (: check-one-of : Φ^ V^ (Listof Base) → ?Dec)
-  (define (check-one-of Φ^ V^ R) ???)
+  (define (check-one-of Φ^ V^ bs)
+    (⊔*/set (λ ([V : V]) (l:check-one-of V bs)) V^))
 
   (define V-arity l:V-arity) 
 

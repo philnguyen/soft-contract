@@ -40,16 +40,7 @@
   (define (collapse-R^ R^)
     (for/fold ([W^ : W^ ∅] [Φ^ : Φ^ ∅]) ([R* (in-set R^)])
       (match-define (R W* Φ^*) R*)
-      (values (set-add W^ W*) (∪ Φ^ Φ^*))))
-
-  (: collapse-by-arity : R^ → (Immutable-HashTable Index R))
-  (define (collapse-by-arity R^)
-    (for/fold ([m : (Immutable-HashTable Index R) (hasheq)])
-              ([Rᵢ (in-set R^)])
-      (define n (length (R-_0 Rᵢ)))
-      (hash-set m n (match (hash-ref m n #f)
-                      [(? values R₀) (R⊔ R₀ Rᵢ)]
-                      [#f Rᵢ]))))
+      (values (set-add W^ W*) (∪ Φ^ Φ^*)))) 
 
   (: collapse-R^-1 : R^ → (Values V^ Φ^))
   (define (collapse-R^-1 R^)

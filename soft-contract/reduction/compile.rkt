@@ -261,8 +261,8 @@
       (define EΡs : (Listof EΡ) (for/list ([⟦x⟧ (in-list ⟦x⟧s)]) (EΡ ⟦x⟧ Ρ)))
       (⟦f⟧ Ρ Φ^ (K+ (F:Ap '() EΡs ℓ) Ξ) Σ))) 
 
-  (define/memo (mk-fc [l : -l] [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
-    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V l ℓ ⟦V⟧ Ρ) Ξ) Σ)))
+  (define/memo (mk-fc [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
+    (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V ℓ ⟦V⟧ Ρ) Ξ) Σ)))
 
   (define/memo (mk-wrapped [C : Prox/C] [ctx : Ctx] [α : α] [V : V^]) : ⟦E⟧
     (λ (ρ Φ^ Ξ Σ)

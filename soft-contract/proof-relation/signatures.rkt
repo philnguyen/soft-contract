@@ -8,6 +8,7 @@
 
 (define-signature local-prover-core^
   ([check : (Σ Φ V (Listof V) → ?Dec)]
+   [check-one-of : (V (Listof Base) → ?Dec)]
    [∧  : (R V → R)]
    [∧¬ : (R V → R)]
    [V-arity : (case-> [(U Clo Case-Clo) → Arity]

@@ -7,6 +7,7 @@
          (except-in racket/set for/set for/seteq for*/set for*/seteq)
          syntax/parse/define
          typed/racket/unit
+         bnf
          set-extras
          unreachable
          "../utils/main.rkt"
@@ -17,75 +18,85 @@
          "signatures.rkt")
 
 (define-unit fc@
-  (import )
+  (import sto^ env^ val^ evl^
+          prover^
+          step^ compile^)
   (export fc^)
 
   (: fc : V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))
-  (define (fc C V ℓ Φ^ Ξ Σ) ???)
+  (define (fc C V ℓ Φ^ Ξ₀ Σ)
+    (for/union : (℘ Ξ) ([Cᵢ (in-set C)])
+      ((fc₁ Cᵢ) V ℓ Φ^ Ξ₀ Σ)))
 
-  #|
-  (: flat-chk : -l ℓ -V^ -V^ -H -φ -Σ -⟦k⟧ → (℘ -ς))
-  (define (flat-chk l ℓₐ C^ V^ H φ Σ ⟦k⟧)
-    (define σ (-Σ-σ Σ))
-    (for/union : (℘ -ς) ([C (in-set C^)])
-      (match C
-        [(-And/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
-         (define C₁ (σ@ Σ (-φ-cache φ) α₁))
-         (define C₂ (σ@ Σ (-φ-cache φ) α₂))
-         (push-fc l ℓ₁ C₁ V^ H φ Σ (fc-and/c∷ l ℓ₂ C₁ C₂ ⟦k⟧))]
-        [(-Or/C _ (-⟪α⟫ℓ α₁ ℓ₁) (-⟪α⟫ℓ α₂ ℓ₂))
-         (define C₁ (σ@ Σ (-φ-cache φ) α₁))
-         (define C₂ (σ@ Σ (-φ-cache φ) α₂))
-         (push-fc l ℓ₁ C₁ V^ H φ Σ (fc-or/c∷ l ℓ₂ C₁ C₂ V^ ⟦k⟧))]
-        [(-Not/C (-⟪α⟫ℓ α ℓ*))
-         (define C* (σ@ Σ (-φ-cache φ) α))
-         (push-fc l ℓ* C* V^ H φ Σ (fc-not/c∷ V^ ⟦k⟧))]
-        [(-One-Of/C bs)
-         (case (sat-one-of V^ bs)
-           [(✓) (⟦k⟧ (list {set -tt} V^) H φ Σ)]
-           [(✗) (⟦k⟧ (list {set -ff}   ) H φ Σ)]
-           [(?) (∪ (⟦k⟧ (list {set -tt} (list->set (set-map bs -b))) H φ Σ)
-                   (⟦k⟧ (list {set -ff}) H φ Σ))])]
-        [(-St/C _ s αℓs)
+  (⟦FC⟧ . ≜ . (V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 
-         (: chk-fields : -φ → (℘ -ς))
-         (define (chk-fields φ)
-           (define-values (αs ℓs) (unzip-by -⟪α⟫ℓ-addr -⟪α⟫ℓ-loc αℓs))
-           (define Cs (σ@/list Σ (-φ-cache φ) αs))
-           (define ⟦chk-field⟧s : (Listof -⟦e⟧)
-             (let ([V^* (V+ σ φ V^ (-st-p s))])
-               (for/list ([Cᵢ (in-list Cs)]
-                          [ℓᵢ : ℓ (in-list ℓs)]
-                          [i (in-naturals)] #:when (index? i))
-                 (define ⟦ref⟧ᵢ (mk-app ℓₐ (mk-V (-st-ac s i)) (list (mk-A (list V^*)))))
-                 (mk-fc l ℓᵢ (mk-A (list Cᵢ)) ⟦ref⟧ᵢ))))
-           (match ⟦chk-field⟧s
-             ['()
-              (define ⟦rt⟧ (mk-A (list {set -tt} (V+ σ φ V^ (-st-p s)))))
-              (⟦rt⟧ ⊥ρ H φ Σ ⟦k⟧)]
-             [(cons ⟦chk-field⟧ ⟦chk-field⟧s*)
-              (⟦chk-field⟧ ⊥ρ H φ Σ (fc-struct/c∷ l ℓₐ s '() ⟦chk-field⟧s* ⊥ρ ⟦k⟧))]))
+  (: fc₁ : V → ⟦FC⟧)
+  (define fc₁
+    (match-lambda
+      [(And/C _ αℓ₁ αℓ₂) (fc-And/C αℓ₁ αℓ₂)]
+      [(Or/C  _ αℓ₁ αℓ₂) (fc-Or/C αℓ₁ αℓ₂)]
+      [(Not/C αℓ) (fc-Not/C αℓ)]
+      [(One-Of/C bs) (fc-One-Of/C bs)]
+      [(St/C _ 𝒾 αℓs) (fc-St/C 𝒾 αℓs)]
+      [(X/C α) (fc-X/C α)]
+      [(-b b) (fc-b b)]
+      [V (fc-p V)]))
 
-         (with-φ+/- ([(φ₁ φ₂) (φ+/-pV^ σ φ (-st-p s) V^)]) : -ς
-           #:true (chk-fields φ₁)
-           #:false ((mk-V -ff) ⊥ρ H φ₂ Σ ⟦k⟧))]
-        [(-x/C α)
-         (define C*^ (σ@ Σ (-φ-cache φ) α))
-         (push-fc l ℓₐ C*^ V^ H φ Σ ⟦k⟧ #:looped #t)]
-        [(? -b? b)
-         (define ⟦ap⟧ (mk-app ℓₐ (mk-V 'equal?) (list (mk-A (list V^)) (mk-V b))))
-         (define ⟦rt⟧ (mk-A (list {set -tt} {set b})))
-         (⟦ap⟧ ⊥ρ H φ Σ (if∷ l ⟦rt⟧ (mk-V -ff) ⊥ρ ⟦k⟧))]
-        [_
-         (define ⟦ap⟧ (mk-app ℓₐ (mk-A (list C^)) (list (mk-A (list V^)))))
-         (define ⟦rt⟧ (mk-A (list {set -tt} (V+ σ φ V^ C))))
-         (⟦ap⟧ ⊥ρ H φ Σ (if∷ l ⟦rt⟧ (mk-V -ff) ⊥ρ ⟦k⟧))])))
+  (: fc-And/C : αℓ αℓ → ⟦FC⟧)
+  (define ((fc-And/C αℓ₁ αℓ₂) Vₓ ℓ Φ^ Ξ Σ)
+    (match-define (αℓ α₁ ℓ₁) αℓ₁)
+    (fc (Σᵥ@ Σ α₁) Vₓ ℓ₁ Φ^ (K+ (F:Fc-And/C α₁ αℓ₂) Ξ) Σ))
 
-  (: push-fc ((-l ℓ -V^ -V^ -H -φ -Σ -⟦k⟧) (#:looped Boolean) . ->* . (℘ -ς)))
-  (define (push-fc l ℓ C^ V^ H φ Σ ⟦k⟧ #:looped [looped? #f])
-    (if looped?
-        (let ([αₖ (-αₖ H (-F l ℓ C^ V^) φ)])
-          {set (-ς↑ (σₖ+! Σ αₖ ⟦k⟧))})
-        (flat-chk l ℓ C^ V^ H φ Σ ⟦k⟧)))
-  |#
+  (: fc-Or/C : αℓ αℓ → ⟦FC⟧)
+  (define ((fc-Or/C αℓ₁ αℓ₂) Vₓ ℓ Φ^ Ξ Σ)
+    (match-define (αℓ α₁ ℓ₁) αℓ₁)
+    (fc (Σᵥ@ Σ α₁) Vₓ ℓ₁ Φ^ (K+ (F:Fc-Or/C α₁ αℓ₂ Vₓ) Ξ) Σ))
+
+  (: fc-Not/C : αℓ → ⟦FC⟧)
+  (define ((fc-Not/C αℓ*) Vₓ ℓ Φ^ Ξ Σ)
+    (match-define (αℓ α ℓ) αℓ*)
+    (fc (Σᵥ@ Σ α) Vₓ ℓ Φ^ (K+ (F:Fc-Not/C Vₓ) Ξ) Σ))
+
+  (: fc-One-Of/C : (Listof Base) → ⟦FC⟧)
+  (define ((fc-One-Of/C bs) Vₓ ℓ Φ^ Ξ Σ)
+    (define (er) (ret! (R '() Φ^) Ξ Σ))
+    (define (ok [V : V^]) (ret! (R (list V) Φ^) Ξ Σ))
+    (case (check-one-of Φ^ Vₓ bs)
+      [(✓) {set (ok Vₓ)}]
+      [(✗) {set (er)}]
+      [else {set (ok (list->set (map -b bs))) (er)}]))
+
+  (: fc-St/C : -𝒾 (Listof αℓ) → ⟦FC⟧)
+  (define ((fc-St/C 𝒾 αℓs) Vₓ ℓ Φ^ Ξ Σ)
+    (define (chk-fields [R^ : R^])
+      (define-values (Vₓ* Φ^*) (collapse-R^-1 R^))
+      (define ⟦chk⟧s : (Listof EΡ)
+        (for/list ([αℓᵢ (in-list αℓs)] [i (in-naturals)] #:when (index? i))
+          (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
+          (define ⟦ref⟧ᵢ (mk-app ℓ (mk-V (-st-ac 𝒾 i)) (list (mk-V Vₓ*))))
+          (EΡ (mk-fc ℓᵢ (mk-V (Σᵥ@ Σ αᵢ)) ⟦ref⟧ᵢ) ⊥Ρ)))
+      (match ⟦chk⟧s
+        [(cons (EΡ ⟦chk⟧ _) ⟦chk⟧s)
+         {set (⟦chk⟧ ⊥Ρ Φ^* (K+ (F:Fc-Struct/C ℓ 𝒾 '() ⟦chk⟧s) Ξ) Σ)}]
+        ['() {set (ret! (V->R (St 𝒾 '()) Φ^*) Ξ Σ)}]))
+    (with-2-paths (λ () (split-results Σ (R (list Vₓ) Φ^) (-st-p 𝒾)))
+      chk-fields
+      (λ ([R^ : R^])
+        (define Φ^ (collapse-R^/Φ^ R^))
+        {set (ret! (R '() Φ^) Ξ Σ)})))
+
+  (: fc-X/C : α → ⟦FC⟧)
+  (define ((fc-X/C α) Vₓ ℓ Φ^ Ξ Σ)
+    (fc (Σᵥ@ Σ α) Vₓ ℓ Φ^ Ξ Σ))
+
+  (: fc-b : Base → ⟦FC⟧)
+  (define ((fc-b b) Vₓ ℓ Φ^ Ξ Σ)
+    (define ⟦b⟧ (mk-V (-b b)))
+    (define ⟦ap⟧ (mk-app ℓ (mk-V 'equal?) (list (mk-V Vₓ) ⟦b⟧)))
+    {set (⟦ap⟧ ⊥Ρ Φ^ (K+ (F:If (ℓ-src ℓ) ⟦b⟧ (mk-W '()) ⊥Ρ) Ξ) Σ)})
+
+  (: fc-p : V → ⟦FC⟧)
+  (define ((fc-p P) Vₓ ℓ Φ^ Ξ Σ)
+    (define ⟦ap⟧ (mk-app ℓ (mk-V P) (list (mk-V Vₓ))))
+    {set (⟦ap⟧ ⊥Ρ Φ^ (K+ (F:If (ℓ-src ℓ) (mk-V Vₓ) (mk-W '()) ⊥Ρ) Ξ) Σ)})
   )
