@@ -33,7 +33,7 @@
     (define ⟦E⟧ (->⟦E⟧ x))
     (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
-    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co '() αₖ₀ (hash) H₀) Σ₀) Σ₀))
+    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) (hash) H₀) Σ₀) Σ₀))
 
   (: ↝* : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
   (define (↝* p)
@@ -71,12 +71,12 @@
   (: ↝ : Ξ Σ → (℘ Ξ))
   (define (↝ Ξ Σ)
     (match Ξ
-      [(Ξ:co K α M H)
+      [(Ξ:co (K Fs α) M H)
        (define R^₀ (Σₐ@ Σ Ξ))
        (cond
          [(set-empty? R^₀) ∅]
-         [(match K
-            [(cons F K*) (co R^₀ F (Ξ:co K* α M H) Σ)]
+         [(match Fs
+            [(cons F Fs*) (co R^₀ F (Ξ:co (K Fs* α) M H) Σ)]
             ['()
              (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
                   (ret! R^₀ Ξ₁ Σ))

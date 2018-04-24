@@ -14,9 +14,9 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [ret : αₖ] [mark : M] [ctx : H])
+(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [mark : M] [ctx : H])
                                 Blm)
-(#|Local kont.     |# K . ≜ . (Listof F))
+(#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ (U ⟦E⟧ HV-Tag) Ρ))
 (#|Value address   |# -α . ::= . #:TBD) 
