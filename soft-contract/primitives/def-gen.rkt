@@ -306,12 +306,12 @@
       [((~literal ->) c ... d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define D  (gen-rng #'d))
-       #`(==> (-var (list #,@Cs) #f) #,D)]
+       #`(==> (-var (list #,@Cs) #f) #,D #f)]
       [((~literal ->*) (c ...) #:rest r d)
        (define Cs (map gen-ctc (syntax->list #'(c ...))))
        (define R (gen-ctc #'r))
        (define D (gen-rng #'d))
-       #`(==> (-var (list #,@Cs) #,R) #,D)]
+       #`(==> (-var (list #,@Cs) #,R) #,D #f)]
       [((~literal case->) clauses ...)
        (error 'gen-ctc "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)

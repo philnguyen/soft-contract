@@ -32,11 +32,11 @@
       [(Or/C _ (αℓ α₁ _) (αℓ α₂ _)) {seteq α₁ α₂}]
       [(Not/C (αℓ α _)) {seteq α}]
       [(X/C α) {seteq α}]
-      [(==> (-var αℓs ?αℓ) ?αℓs)
+      [(==> (-var αℓs ?αℓ) ?αℓs _)
        (∪ (list->seteq (map αℓ-_0 αℓs))
           (if ?αℓ {seteq (αℓ-_0 ?αℓ)} ∅eq)
           (if ?αℓs (list->seteq (map αℓ-_0 ?αℓs)) ∅eq))]
-      [(==>i Doms Rng) (apply ∪ (Dom-root Rng) (map Dom-root Doms))]
+      [(==>i Doms Rng _) (apply ∪ (Dom-root Rng) (map Dom-root Doms))]
       [(∀/C _ _ Ρ) (Ρ-root Ρ)]
       [(Case-=> Cs) (apply ∪ ∅eq (map V-root Cs))]
       [(St/C _ _ αℓs) (list->seteq (map αℓ-_0 αℓs))]

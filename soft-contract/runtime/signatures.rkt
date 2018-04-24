@@ -80,13 +80,11 @@
                             (Vect/C (Listof αℓ))
                             (Hash/C [key : αℓ] [val : αℓ])
                             (Set/C [elems : αℓ]))
-(#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))])
-                                 (==>i [doms : (Listof Dom)] [mk-rng : Dom])
+(#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))] [terminating? : Boolean])
+                                 (==>i [doms : (Listof Dom)] [mk-rng : Dom] [terminating? : Boolean])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
                                  (Case-=> (Listof ==>)))
 
-(#|Strict -> |# struct ==>/⇓  ==> () #:transparent)
-(#|Strict ->i|# struct ==>i/⇓ ==> () #:transparent)
 (#|Blame|# Blm . ::= . (Blm [violator : ℓ]
                             [origin : -l]
                             [ctc : (Listof (U V P V^))]

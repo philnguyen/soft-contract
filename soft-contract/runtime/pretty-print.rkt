@@ -86,14 +86,14 @@
       [(Vect/C γs) `(vector/c ,@(map show-α (map αℓ-_0 γs)))]
       [(Hash/C k v) `(hash/c ,(show-α (αℓ-_0 k)) ,(show-α (αℓ-_0 v)))]
       [(Set/C elems) `(set/c ,(show-α (αℓ-_0 elems)))]
-      [(==> (-var αℓs αℓᵣ) βs)
+      [(==> (-var αℓs αℓᵣ) βs ⇓?)
        (define show-rng (if βs (show-αℓs βs) 'any))
-       (cond [αℓᵣ  (define -> (if (==>/⇓? V) '->*/⇓ '->*))
+       (cond [αℓᵣ  (define -> (if ⇓? '->*! '->*))
                    `(,(map show-αℓ αℓs) #:rest ,(show-αℓ αℓᵣ) . ,-> . ,show-rng)]
-             [else (define -> (if (==>/⇓? V) '->/⇓ '->))
+             [else (define -> (if ⇓? '->! '->))
                    `(,@(map show-αℓ αℓs) . ,-> . ,show-rng)])]
-      [(==>i Doms Rng)
-       (define -> (if (==>i/⇓? V) '->i/⇓ '->i))
+      [(==>i Doms Rng ⇓?)
+       (define -> (if ⇓? '->i! '->i))
        `(,-> ,(map show-Dom Doms) ,(show-Dom Rng))]
       [(Case-=> cases) `(case-> ,@(map show-V cases))]
       [(St/C _ 𝒾 αs) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α (map αℓ-_0 αs)))]

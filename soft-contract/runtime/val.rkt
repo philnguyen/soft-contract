@@ -72,7 +72,7 @@
         [(X/G _ G α) (or (Fn/C? G) (check-α α))]
         [(Vect αs) (ormap check-α αs)]
         [(Vect^ α _) (check-α α)]
-        [(==> (-var doms domᵣ) rngs)
+        [(==> (-var doms domᵣ) rngs _)
          (or (and (pair? rngs) (ormap check-αℓ rngs))
              (and domᵣ (check-αℓ domᵣ))
              (ormap check-αℓ doms))]
@@ -85,8 +85,8 @@
 
   (define guard-arity : (Fn/C → Arity)
     (match-lambda
-      [(==> αs _) (shape αs)]
-      [(==>i Doms _) (length Doms)]
+      [(==> αs _ _) (shape αs)]
+      [(==>i Doms _ _) (length Doms)]
       [(Case-=> cases) (normalize-arity (map guard-arity cases))]
       [(? ∀/C?)
        ;; TODO From observing behavior in Racket. But this maybe unsound for proof system

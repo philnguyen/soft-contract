@@ -191,7 +191,7 @@
   (: app-==> : Ctx ==> α → ⟦F⟧^)
   (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
-    (match-define (==> (-var Doms₀ Domᵣ) Rng) G)
+    (match-define (==> (-var Doms₀ Domᵣ) Rng ⇓?) G)
     (define Ξ* (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ))
     (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
     (define Vₕ^ (Σᵥ@ Σ α))
@@ -220,7 +220,7 @@
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G αₕ) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
-    (match-define (==>i Doms Rng) G)
+    (match-define (==>i Doms Rng ⇓?) G)
     (define x->⟦x⟧
       (for/hasheq : (Immutable-HashTable Symbol ⟦E⟧) ([D (in-list Doms)])
         (match-define (Dom x _ ℓₓ) D)

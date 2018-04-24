@@ -156,11 +156,11 @@
       [(-set! x e) #f]
       [(-if e e₁ e₂) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
       [(-μ/c _ e) (effect-free? e)]
-      [(--> (-var cs c) d _)
+      [(--> (-var cs c) d _ _)
        (and (effect-free? d)
             (implies c (effect-free? c))
             (andmap effect-free? cs))]
-      [(-->i cs d) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
+      [(-->i cs d _) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
       [(-struct/c _ cs _) (andmap effect-free? cs)]
       [_ #f]))
   )

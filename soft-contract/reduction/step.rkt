@@ -186,25 +186,25 @@
            (define α (mk-α (-α:x/c x H₀)))
            (⊔ᵥ! Σ α C-body)
            {set (ret! (V->R (X/C α) Φ^) Ξ Σ)}))]
-      [(F:==>:Dom inits↓ inits↑ ?rst rng Ρ ℓ)
+      [(F:==>:Dom inits↓ inits↑ ?rst rng Ρ ℓ ⇓?)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (V Φ^)
            (define inits↓* (cons V inits↓))
            {set (match inits↑
                   [(cons ⟦C⟧ ⟦C⟧s)
-                   (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom inits↓* ⟦C⟧s ?rst rng Ρ ℓ) Ξ) Σ)]
+                   (⟦C⟧ Ρ Φ^ (K+ (F:==>:Dom inits↓* ⟦C⟧s ?rst rng Ρ ℓ ⇓?) Ξ) Σ)]
                   [_ (if ?rst
-                         (?rst Ρ Φ^ (K+ (F:==>:Rst inits↓* rng Ρ ℓ) Ξ) Σ)
-                         (rng Ρ Φ^ (K+ (F:==>:Rng inits↓* #f ℓ) Ξ) Σ))])}))]
-      [(F:==>:Rst inits rng Ρ ℓ)
+                         (?rst Ρ Φ^ (K+ (F:==>:Rst inits↓* rng Ρ ℓ ⇓?) Ξ) Σ)
+                         (rng Ρ Φ^ (K+ (F:==>:Rng inits↓* #f ℓ ⇓?) Ξ) Σ))])}))]
+      [(F:==>:Rst inits rng Ρ ℓ ⇓?)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (Vᵣ Φ^)
-           {set (rng Ρ Φ^ (K+ (F:==>:Rng inits Vᵣ ℓ) Ξ) Σ)}))]
-      [(F:==>:Rng inits ?rst ℓ)
+           {set (rng Ρ Φ^ (K+ (F:==>:Rng inits Vᵣ ℓ ⇓?) Ξ) Σ)}))]
+      [(F:==>:Rng inits ?rst ℓ ⇓?)
        (define-values (D^ Φ^) (collapse-R^ R^₀))
-       (define V (mk-==>! Σ H₀ inits ?rst D^ ℓ))
+       (define V (mk-==>! Σ H₀ inits ?rst D^ ℓ ⇓?))
        {set (ret! (V->R V Φ^) Ξ Σ)}]
-      [(F:==>i Ρ doms↓ (cons x ℓ) doms↑)
+      [(F:==>i Ρ doms↓ (cons x ℓ) doms↑ ⇓?)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (C^ Φ^)
            (define H (Ξ:co-ctx Ξ))
@@ -214,10 +214,10 @@
            (define doms↓* (append doms↓₁ (cons (Dom x α ℓ) doms↓)))
            {set (match doms↑₁
                   [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) doms↑*)
-                   (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ doms↓* (cons x ℓ) doms↑*) Ξ) Σ)]
+                   (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ doms↓* (cons x ℓ) doms↑* ⇓?) Ξ) Σ)]
                   ['()
                    (match-define (cons Rng Doms-rev) doms↓*)
-                   (ret! (V->R (==>i (reverse Doms-rev) Rng) Φ^) Ξ Σ)])}))]
+                   (ret! (V->R (==>i (reverse Doms-rev) Rng ⇓?) Φ^) Ξ Σ)])}))]
       [(F:St/C ℓ 𝒾 Cs ⟦C⟧s Ρ)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (C^ Φ^)
@@ -371,8 +371,8 @@
         (match-define (Ctx l+ _ lₒ ℓ) ctx)
         (blm (ℓ-with-src ℓ l+) lₒ (list P) (collapse-R^/W^ R^)))))
 
-  (: mk-==>! : Σ H W (Option V^) W^ ℓ → V^)
-  (define (mk-==>! Σ H₀ doms-rev ?rst rngs ℓ₀)
+  (: mk-==>! : Σ H W (Option V^) W^ ℓ Boolean → V^)
+  (define (mk-==>! Σ H₀ doms-rev ?rst rngs ℓ₀ ⇓?)
     (: mk-αℓs! : Symbol (ℓ H Index → -α) W → (Listof αℓ))
     (define (mk-αℓs! tag mk W)
       (for/list ([Vᵢ (in-list W)] [i (in-naturals)] #:when (index? i))
@@ -382,9 +382,11 @@
     (define Dom (-var (mk-αℓs! 'dom -α:dom (reverse doms-rev))
                       (and ?rst (αℓ (mk-α (-α:rst ℓ₀ H₀)) (ℓ-with-id ℓ₀ 'rest)))))
     (for/set : V^ ([rng (in-set rngs)])
-      (==> Dom (match rng
-                 [(list {singleton-set 'any}) #f]
-                 [_ (mk-αℓs! 'rng -α:rng rng)]))))
+      (==> Dom
+           (match rng
+             [(list {singleton-set 'any}) #f]
+             [_ (mk-αℓs! 'rng -α:rng rng)])
+           ⇓?)))
 
   (: K+/And : -l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)
   (define (K+/And l ⟦E⟧s Ρ Ξ)

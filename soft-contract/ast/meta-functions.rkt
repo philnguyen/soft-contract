@@ -46,8 +46,8 @@
          [_ (fv e)])]
       [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
-      [(--> (-var cs c) d _) (∪ (if c (fv c) ∅eq) (fv d) (fv cs))]
-      [(-->i cs d)
+      [(--> (-var cs c) d _ _) (∪ (if c (fv c) ∅eq) (fv d) (fv cs))]
+      [(-->i cs d _)
        (define dom-fv : (-dom → (℘ Symbol))
          (match-lambda
            [(-dom _ ?xs d _) (set-subtract (fv d) (if ?xs (list->seteq ?xs) ∅eq))]))
@@ -87,8 +87,8 @@
         [(-set! x e) (go e)]
         [(-if e e₁ e₂) (+ (go e) (go e₁) (go e₂))]
         [(-μ/c x e) (if (equal? x z) 0 (go e))]
-        [(--> (-var cs c) d _) (+ (go d) (if c (go c) 0) (apply + (map go cs)))]
-        [(-->i cs d)
+        [(--> (-var cs c) d _ _) (+ (go d) (if c (go c) 0) (apply + (map go cs)))]
+        [(-->i cs d _)
          (define-values (sum _)
            (for/fold ([sum : Natural 0] [bound? : Boolean #f])
                      ([dom (in-list (append cs (list d)))]
@@ -129,8 +129,8 @@
         [(-letrec-values bnds e _)
          (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
         [(-μ/c _ c) (go c)]
-        [(--> (-var cs c) d _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
-        [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
+        [(--> (-var cs c) d _ _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
+        [(-->i cs d _) (apply ∪ (go/dom d) (map go/dom cs))]
         [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
@@ -219,10 +219,10 @@
                (-set! x (go m e*))]
               [(-μ/c z c)
                (-μ/c z (go (remove-keys m {seteq z}) c))]
-              [(--> (-var cs c) d ℓ)
-               (--> (-var (go-list m cs) (and c (go m c))) (go m d) ℓ)]
-              [(-->i cs d)
-               (-->i (map go/dom cs) (go/dom d))]
+              [(--> (-var cs c) d ℓ ⇓?)
+               (--> (-var (go-list m cs) (and c (go m c))) (go m d) ℓ ⇓?)]
+              [(-->i cs d ⇓?)
+               (-->i (map go/dom cs) (go/dom d) ⇓?)]
               [(-struct/c t cs ℓ)
                (-struct/c t (go-list m cs) ℓ)]
               [_
