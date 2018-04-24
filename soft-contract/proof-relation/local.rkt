@@ -7,13 +7,14 @@
                      "../utils/pretty.rkt")
          typed/racket/unit
          racket/match
-         racket/set
+         (except-in racket/set for/set for/seteq for*/set for*/seteq)
          racket/string
          racket/bool
          racket/list
          syntax/parse/define
          (only-in racket/list first second)
          set-extras
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -554,7 +555,7 @@
                          (: check-all-immutable : ⟪α⟫ → -R)
                          (define (check-all-immutable α)
                            (define Rs
-                             (for/seteq: : (℘ -R) ([V (in-set (σ@ σ α))])
+                             (for/seteq : (℘ -R) ([V (in-set (σ@ σ α))])
                                (p∋Vs σ 'immutable? V)))
                            (cond [(or (∋ Rs '?) (> (set-count Rs) 1)) '?]
                                  [(∋ Rs '✗) '✗]
@@ -748,7 +749,7 @@
             [else
              (seen-add! ⟪α⟫)
              (combine
-              (for/seteq: : (℘ -R) ([Vᵣ (σ@ σ ⟪α⟫)])
+              (for/seteq : (℘ -R) ([Vᵣ (σ@ σ ⟪α⟫)])
                 (check Vᵣ)))]))
 
     (define (check [V : -V]) : -R

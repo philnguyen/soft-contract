@@ -102,7 +102,7 @@
 (-A . ::= . -W -blm)
 
 (struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
-(HV-Tag . ::= . '† [#:old (Pairof -l -H)])
+(HV-Tag . ::= . '† [#:reuse (Pairof -l -H)])
 
 ;; Convenient patterns
 (define-match-expander -Cons

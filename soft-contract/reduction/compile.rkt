@@ -2,11 +2,12 @@
 
 (provide compile@)
 
-(require racket/set
+(require (except-in racket/set for/set for/seteq for*/set for*/seteq)
          racket/list
          racket/match
          typed/racket/unit
          set-extras
+         typed-racket-hacks
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -96,9 +97,9 @@
           (λ (ρ $ Γ H Σ ⟦k⟧)
             (define ρ* (m↓ ρ fvs))
             (define names
-              (for/seteq: : (℘ (U Symbol ℓ)) ([x ($-symbolic-names $)]
-                                              #:unless (and (integer? x)
-                                                            (match? (ℓ->loc x) (loc (? symbol?) _ _ _))))
+              (for/seteq : (℘ (U Symbol ℓ)) ([x ($-symbolic-names $)]
+                                             #:unless (and (integer? x)
+                                                           (match? (ℓ->loc x) (loc (? symbol?) _ _ _))))
                 x))
             (define Γ*
               (∪ (Γ↓ Γ names) #;(for*/set: : -Γ ([φ (in-set Γ)]
