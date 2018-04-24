@@ -1,7 +1,7 @@
 #lang racket
 
 (provide/contract
- [main (integer? . -> . (and/c integer? (>=/c 0)))])
+ [main ((and/c integer? (>=/c 0)) . -> . (and/c integer? (>=/c 0)))])
 
 (define (g x) (λ (_) x))
 
@@ -10,6 +10,4 @@
 (define (neg x) (λ (_) (- 0 (x #f))))
 
 (define (main n)
-  (if (>= n 0)
-      (twice neg (g n) 'unit)
-      42))
+  (twice neg (g n) 'unit))

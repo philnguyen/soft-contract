@@ -3,12 +3,14 @@
 (provide/contract
  [main (integer? integer? . -> . any/c)])
 
-(define STATE/C (one-of/c 'init 'opened 'closed 'ignore))
+;(define STATE/C (one-of/c 'init 'opened 'closed 'ignore))
 
 (define (loop) (loop))
 
 (define (readit st)
-  (if (equal? 'opened st) 'opened 'ignore))
+  (cond [(equal? 'opened st) 'opened]
+        [(equal? 'ignore st) 'ignore]
+        [else (add1 'boom)]))
 
 (define (read_ x st)
   (if x (readit st) st))
