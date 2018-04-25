@@ -113,14 +113,11 @@
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-      [(--> (-var es eᵣ) rng _ ⇓?)
-       (cond [eᵣ   (define -> (if ⇓? '->*! '->*))
-                   `(,(map show-e es) #:rest ,(show-e eᵣ) . ,-> . ,(show-e rng))]
-             [else (define -> (if ⇓? '->! '->))
-                   `(,@(map show-e es) . ,-> . ,(show-e rng))])]
-      [(-->i cs d ⇓?)
-       (define -> (if ⇓? '->i! '->i))
-       `(,-> (,@(map show-dom cs)) ,(show-dom d))]
+      [(--> (-var es eᵣ) rng _)
+       (cond [eᵣ  `(,(map show-e es) #:rest ,(show-e eᵣ) . ->* . ,(show-e rng))]
+             [else `(,@(map show-e es) . -> . ,(show-e rng))])]
+      [(-->i cs d)
+       `(->i (,@(map show-dom cs)) ,(show-dom d))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
       [(-struct/c 𝒾 cs _)

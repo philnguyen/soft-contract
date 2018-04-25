@@ -123,20 +123,6 @@
            #:attr domains (syntax->list #'(c ...))
            #:attr range #'d))
 
-(define-syntax-class scv-->i!
-  #:description "hacked dependent contract"
-  #:literal-sets (lits)
-  #:attributes (domains range)
-  (pattern (~or (begin
-                  (#%plain-app (~literal fake:dynamic->i!) (#%plain-app list c:named-dom ...) d:named-dom)
-                  _ ...)
-                (let-values ()
-                  (#%plain-app (~literal fake:dynamic->i!) (#%plain-app list c:named-dom ...) d:named-dom)
-                  _ ...)
-                (#%plain-app (~literal fake:dynamic->i!) (#%plain-app list c:named-dom ...) d:named-dom))
-           #:attr domains (syntax->list #'(c ...))
-           #:attr range #'d))
-
 (define-syntax-class scv-case->
   #:description "hacked case contract"
   #:literal-sets (lits)
@@ -177,26 +163,6 @@
            #:attr ?rest #'rst
            #:attr range (range-expr #'rng))
   (pattern (let-values ([(_) (~literal fake:dynamic->*)]
-                        [(_) (#%plain-app list cs ...)]
-                        [(_) rng])
-             _ ...)
-           #:attr inits (syntax->list #'(cs ...))
-           #:attr ?rest #f
-           #:attr range (range-expr #'rng)))
-
-(define-syntax-class scv-->!
-  #:description "hacked non-dependent function contract"
-  #:literal-sets (lits)
-  #:attributes (inits ?rest range)
-  (pattern (let-values ([(_) (~literal fake:dynamic->*!)]
-                        [(_) (#%plain-app list cs ...)]
-                        [(_) rst]
-                        [(_) rng])
-             _ ...)
-           #:attr inits (syntax->list #'(cs ...))
-           #:attr ?rest #'rst
-           #:attr range (range-expr #'rng))
-  (pattern (let-values ([(_) (~literal fake:dynamic->*!)]
                         [(_) (#%plain-app list cs ...)]
                         [(_) rng])
              _ ...)

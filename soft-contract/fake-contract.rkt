@@ -32,7 +32,8 @@
          not/c cons/c
          one-of/c box/c vector/c vectorof
          define/contract dynamic-mon
-         contract?)
+         contract?
+         terminating/c)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -87,16 +88,9 @@
          (dynamic->i (list (dom-quote c) ...) (dom-quote d))
          (scv:ignore (c:->i (c ...) d)))]))
 
-(define-syntax ->i!
-  (syntax-parser
-    [(_ (c:dom ...) d:dom)
-     #'(begin
-         (dynamic->i! (list (dom-quote c) ...) (dom-quote d))
-         (scv:ignore (c:->i (c ...) d)))]))
+(define terminating/c values)
 
 (define (dynamic->i . _) (void))
-(define (dynamic->i! . _) (void))
-(define (dynamic->*! . _) (void))
 (define (dynamic-struct/c . _) (void))
 (define (dynamic-struct-out . _) (void))
 (define (dynamic-parametric->/c v) v)
@@ -118,14 +112,6 @@
     [(->* (cs ...) #:rest rest-c result-c)
      (dynamic->* #:mandatory-domain-contracts (list cs ...)
                  #:rest-contract rest-c
-                 #:range-contracts (list result-c))]))
-(define-syntax ->!
-  (syntax-rules (c:any)
-    [(-> cs ... c:any)
-     (dynamic->*! #:mandatory-domain-contracts (list cs ...)
-                  #:range-contracts #f)]
-    [(-> cs ... result-c)
-     (dynamic->* #:mandatory-domain-contracts (list cs ...)
                  #:range-contracts (list result-c))]))
 
 (define-syntax case->

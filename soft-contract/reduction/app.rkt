@@ -62,7 +62,8 @@
        (cond [(==>? G) (app-==> ctx G α)]
              [(==>i? G) (app-==>i ctx G α)]
              [(∀/C? G) (app-∀/C ctx G α)]
-             [else (app-Case-=> ctx G α)])]
+             [(Case-=>? G) (app-Case-=> ctx G α)]
+             [else (app-Terminating/C ctx α)])]
       [(And/C #t (αℓ α₁ _) (αℓ α₂ _)) (app-And/C α₁ α₂)]
       [(Or/C  #t (αℓ α₁ _) (αℓ α₂ _)) (app-Or/C α₁ α₂)]
       [(Not/C (αℓ α _)) (app-Not/C α)]
@@ -191,7 +192,7 @@
   (: app-==> : Ctx ==> α → ⟦F⟧^)
   (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
-    (match-define (==> (-var Doms₀ Domᵣ) Rng ⇓?) G)
+    (match-define (==> (-var Doms₀ Domᵣ) Rng) G)
     (define Ξ* (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ))
     (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
     (define Vₕ^ (Σᵥ@ Σ α))
@@ -219,7 +220,7 @@
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G αₕ) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
-    (match-define (==>i Doms Rng ⇓?) G)
+    (match-define (==>i Doms Rng) G)
     (define x->⟦x⟧
       (for/hasheq : (Immutable-HashTable Symbol ⟦E⟧) ([D (in-list Doms)])
         (match-define (Dom x _ ℓₓ) D)
@@ -268,6 +269,10 @@
       ((inst findf ==>) (λ (C) (arity-includes? (guard-arity C) n))
                         (Case-=>-_0 G)))
     ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ))
+
+  (: app-Terminating/C : Ctx α → ⟦F⟧^)
+  (define ((app-Terminating/C ctx α) Wₓ ℓ Φ^ Ξ Σ)
+    ???)
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)

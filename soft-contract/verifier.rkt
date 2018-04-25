@@ -23,7 +23,7 @@
 (define-interner ⟨αₖ⟩ αₖ
   #:intern-function-name mk-αₖ
   #:unintern-function-name inspect-αₖ)
-(⟨Ξ⟩ . ::= . (⟨Ξ:co⟩ [kon : ⟨K⟩] [hist : (Option M)] [ctx : H]) Blm)
+(⟨Ξ⟩ . ::= . (⟨Ξ:co⟩ [kon : ⟨K⟩] [hist : (Option (Pairof Ctx M))] [ctx : H]) Blm)
 (⟨K⟩ . ::= . (⟨K⟩ (Listof F) ⟨αₖ⟩))
 (⟨Σₖ⟩ . ≜ . (Immutable-HashTable ⟨αₖ⟩ (Setof ⟨Ξ:co⟩)))
 (⟨Σₐ⟩ . ≜ . (Immutable-HashTable ⟨Ξ:co⟩ R^))

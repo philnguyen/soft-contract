@@ -14,7 +14,9 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K] [mark : (Option M)] [ctx : H])
+(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K]
+                                      [mark : (Option (Pairof Ctx M))]
+                                      [ctx : H])
                                 Blm)
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
@@ -80,10 +82,11 @@
                             (Vect/C (Listof αℓ))
                             (Hash/C [key : αℓ] [val : αℓ])
                             (Set/C [elems : αℓ]))
-(#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))] [terminating? : Boolean])
-                                 (==>i [doms : (Listof Dom)] [mk-rng : Dom] [terminating? : Boolean])
+(#|Func. contract|# Fn/C . ::= . (==> [doms : (-var αℓ)] [rng : (Option (Listof αℓ))])
+                                 (==>i [doms : (Listof Dom)] [mk-rng : Dom])
                                  (∀/C (Listof Symbol) ⟦E⟧ Ρ)
-                                 (Case-=> (Listof ==>)))
+                                 (Case-=> (Listof ==>))
+                                 'scv:terminating/c)
 
 (#|Blame|# Blm . ::= . (Blm [violator : ℓ]
                             [origin : -l]

@@ -107,8 +107,8 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (--> [doms : (-var -e)] [rng : -e] [loc : ℓ] [⇓? : Boolean])
-            (-->i [doms : (Listof -dom)] [rng : -dom] [⇓? : Boolean])
+            (--> [doms : (-var -e)] [rng : -e] [loc : ℓ])
+            (-->i [doms : (Listof -dom)] [rng : -dom])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
             (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
