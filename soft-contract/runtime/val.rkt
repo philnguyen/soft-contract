@@ -83,14 +83,17 @@
 
     (check v))
 
-  (define guard-arity : (Fn/C → Arity)
+  (define guard-arity : (case->
+                         [==> → Arity]
+                         [Fn/C → (Option Arity)])
     (match-lambda
       [(==> αs _) (shape αs)]
       [(==>i Doms _) (length Doms)]
       [(Case-=> cases) (normalize-arity (map guard-arity cases))]
       [(? ∀/C?)
        ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
-       (arity-at-least 0)]))
+       (arity-at-least 0)]
+      ['scv:terminating/c #f]))
 
   (: blm-arity : ℓ -l Arity (Listof V^) → Blm)
   (define blm-arity

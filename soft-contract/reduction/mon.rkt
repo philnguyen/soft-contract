@@ -50,25 +50,28 @@
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     
     (define (chk-arity [R^ : R^])
-      (define grd-arity {set (-b (guard-arity C))})
-      (define-values (V^₀ Φ^) (collapse-R^-1 R^))
-      (define val-arity
-        (for*/set : V^ ([Vᵢ (in-set V^₀)])
-          (cond [(V-arity Vᵢ) => -b]
-                [(S? Vᵢ) (S:@ 'procedure-arity (list Vᵢ))]
-                [else (-● {set 'procedure-arity?})])))
-      (with-2-paths
-        (λ () (split-results Σ (R (list val-arity grd-arity) Φ^) 'arity-includes?))
-        wrap
-        (λ _
-          (define C (match (set-first grd-arity)
-                      [(-b (? integer? n))
-                       (format-symbol "(arity-includes/c ~a)" n)]
-                      [(-b (arity-at-least n))
-                       (format-symbol "(arity-at-leastc ~a)" n)]
-                      [(-b (list n ...))
-                       (string->symbol (format "(arity in ~a)" n))]))
-          (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀)))))
+      (match (guard-arity C)
+        [(? values n)
+         (define grd-arity {set (-b n)})
+         (define-values (V^₀ Φ^) (collapse-R^-1 R^))
+         (define val-arity
+           (for*/set : V^ ([Vᵢ (in-set V^₀)])
+             (cond [(V-arity Vᵢ) => -b]
+                   [(S? Vᵢ) (S:@ 'procedure-arity (list Vᵢ))]
+                   [else (-● {set 'procedure-arity?})])))
+         (with-2-paths
+           (λ () (split-results Σ (R (list val-arity grd-arity) Φ^) 'arity-includes?))
+           wrap
+           (λ _
+             (define C (match (set-first grd-arity)
+                         [(-b (? integer? n))
+                          (format-symbol "(arity-includes/c ~a)" n)]
+                         [(-b (arity-at-least n))
+                          (format-symbol "(arity-at-leastc ~a)" n)]
+                         [(-b (list n ...))
+                          (string->symbol (format "(arity in ~a)" n))]))
+             (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list V^₀))))]
+        [_ (wrap R^)]))
 
     (define (wrap [R^ : R^])
       (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀))))

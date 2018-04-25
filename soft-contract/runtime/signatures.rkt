@@ -195,7 +195,9 @@
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
    [behavioral? : (Σᵥ V → Boolean)]
-   [guard-arity : (Fn/C → Arity)]
+   [guard-arity : (case->
+                   [==> → Arity]
+                   [Fn/C → (Option Arity)])]
    [blm-arity : (ℓ -l Arity W → Blm)]
    [V⊔ : (V^ V^ → V^)]
    [V⊔₁ : (V^ V → V^)]
