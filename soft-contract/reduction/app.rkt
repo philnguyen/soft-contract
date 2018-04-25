@@ -81,7 +81,7 @@
     (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
     ;; FIXME guard arity
     (define Ρ* (bind-args! Ρ fmls Wₓ H* Σ))
-    (define α* (αₖ ⟦E⟧ Ρ*))
+    (define α* (αₖ:clo ⟦E⟧ Ρ*))
     (⊔ₖ! Σ α* Ξ)
     {set (⟦E⟧ Ρ* Φ^ (Ξ:co (K '() α*) M H*) Σ)})
 
@@ -270,15 +270,21 @@
                         (Case-=>-_0 G)))
     ((app-==> ctx C α) Wₓ ℓ Φ^ Ξ Σ))
 
-  (: app-Terminating/C : Ctx α → ⟦F⟧^)
-  (define ((app-Terminating/C ctx α) Wₓ ℓ Φ^ Ξ Σ)
-    ???)
+  (splicing-local ((define M₀ : M (hash)))
+    (: app-Terminating/C : Ctx α → ⟦F⟧^)
+    (define ((app-Terminating/C ctx α) Wₓ ℓ Φ^ Ξ Σ)
+      (define αₖ (αₖ:term/c α Wₓ))
+      (⊔ₖ! Σ αₖ Ξ)
+      (define Ξ* (match-let* ([(Ξ:co K₀ ?m H₀) Ξ]
+                              [m* (cons ctx (if ?m (cdr ?m) M₀))])
+                   (Ξ:co (K '() αₖ) m* H₀)))
+      (app (Σᵥ@ Σ α) Wₓ ℓ Φ^ Ξ* Σ)))
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
     (define-values (H* _) (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
     (define tag (cons #f H*))
-    (define α (αₖ tag ⊥Ρ))
+    (define α (αₖ:hv tag))
     (add-leak! tag Σ Wₓ)
     (⊔ₖ! Σ α Ξ)
     {set (Ξ:co (K '() α) (Ξ:co-mark Ξ) H*)})

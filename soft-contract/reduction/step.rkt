@@ -31,7 +31,7 @@
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
   (define (inj x)
     (define ⟦E⟧ (->⟦E⟧ x))
-    (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
+    (define αₖ₀ (αₖ:clo ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
     (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f H₀) Σ₀) Σ₀))
 

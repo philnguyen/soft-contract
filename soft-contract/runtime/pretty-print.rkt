@@ -130,7 +130,9 @@
 
   (define show-αₖ : (αₖ → Sexp)
     (match-lambda
-      [(αₖ ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]))
+      [(αₖ:clo ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]
+      [(αₖ:hv tag) tag]
+      [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-V^ W))]))
 
   (define (show-α [α : α]) : Sexp
     (define (show-α.x [x : Symbol] [H : H])
