@@ -33,7 +33,7 @@
     (define ⟦E⟧ (->⟦E⟧ x))
     (define αₖ₀ (αₖ ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
-    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) (hash) H₀) Σ₀) Σ₀))
+    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f H₀) Σ₀) Σ₀))
 
   (: ↝* : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
   (define (↝* p)
