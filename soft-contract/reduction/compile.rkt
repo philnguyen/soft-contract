@@ -10,6 +10,7 @@
          set-extras
          unreachable
          abstract-compilation
+         (only-in typed-racket-hacks procedure-rename)
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -17,21 +18,22 @@
          )
 
 (define-unit compile@
-  (import meta-functions^ static-info^
-          env^ val^ sto^ evl^
+  (import meta-functions^ static-info^ ast-pretty-print^
+          env^ val^ sto^ evl^ pretty-print^
           step^ alloc^)
   (export compile^)
 
   (: ↓ₚ : -prog → ⟦E⟧)
   ;; Compile program
   (define (↓ₚ p)
-    (match (-prog-_0 p)
-      ['() (mk-W '())]
-      [(cons m ms)
-       (define ⟦m⟧ (↓ₘ m))
-       (define ⟦m⟧s (map ↓ₘ ms))
-       (cond [(null? ⟦m⟧s) ⟦m⟧]
-             [else (λ (Ρ Φ^ Ξ Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn ⟦m⟧s Ρ) Ξ) Σ))])]))
+    (rn (match (-prog-_0 p)
+          ['() (mk-W '())]
+          [(cons m ms)
+           (define ⟦m⟧ (↓ₘ m))
+           (define ⟦m⟧s (map ↓ₘ ms))
+           (cond [(null? ⟦m⟧s) ⟦m⟧]
+                 [else (λ (Ρ Φ^ Ξ Σ) (⟦m⟧ Ρ Φ^ (K+ (F:Bgn ⟦m⟧s Ρ) Ξ) Σ))])])
+        p))
 
   (: ↓ₘ : -module → ⟦E⟧)
   ;; Compile module
@@ -73,14 +75,15 @@
       [_ (begin0 (mk-W '())
            (log-warning "↓d: ignore ~a~n" d))])
 
-    (match ds
-      ['() (mk-W '())]
-      [(cons D Ds)
-       (define ⟦D⟧ (↓d D))
-       (define ⟦D⟧s (map ↓d Ds))
-       (cond [(null? ⟦D⟧s) ⟦D⟧]
-             [else (λ (Ρ Φ^ Ξ Σ)
-                     (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) Ξ) Σ))])]))
+    (rn (match ds
+          ['() (mk-W '())]
+          [(cons D Ds)
+           (define ⟦D⟧ (↓d D))
+           (define ⟦D⟧s (map ↓d Ds))
+           (cond [(null? ⟦D⟧s) ⟦D⟧]
+                 [else (λ (Ρ Φ^ Ξ Σ)
+                         (⟦D⟧ Ρ Φ^ (K+ (F:Bgn ⟦D⟧s Ρ) Ξ) Σ))])])
+        m))
 
   (: ↓ₑ : -l -e → ⟦E⟧)
   (define (↓ₑ l e)
@@ -115,7 +118,7 @@
       [(-•) (mk-V (-● ∅))]
       [(-x (? symbol? x) ℓₓ) (↓ₓ x ℓₓ)]
       [=> (-λ xs E*)
-          (ret! (V->R (Clo xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
+          (ret! (V->R (Clo xs (rn ⟦E*⟧ E*) (m↓ Ρ fvs)) Φ^) Ξ Σ)
           #:where [fvs (fv E)]
           #:recur E*]
       [=> (-x (and 𝒾 (-𝒾 x lₒ)) _)
@@ -206,7 +209,7 @@
           #:recur C (Cs ...)]
       [_ (error '↓ₑ "unhandled: ~a" e)])
     
-    (↓ e)) 
+    (rn (↓ e) e)) 
 
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
     (define blm:undefined (Blm (strip-ℓ ℓₓ) 'Λ '(defined?) (list {set -undefined})))
@@ -221,7 +224,7 @@
     (mk-W (if (set? V) (list V) (list {set V}))))
 
   (define/memo (mk-W [W : W]) : ⟦E⟧
-    (λ (Ρ Φ^ Ξ Σ) (ret! (R W Φ^) Ξ Σ)))
+    (rn (λ (Ρ Φ^ Ξ Σ) (ret! (R W Φ^) Ξ Σ)) W))
 
   (define/memo (mk-Blm [blm : Blm]) : ⟦E⟧ (λ _ blm))
 
@@ -277,4 +280,14 @@
         [(cons (⟦dom⟧ x (? values xs) ⟦E⟧ ℓ) ⟦dom⟧s*)
          (go (cons (Dom x (Clo (-var xs #f) ⟦E⟧ Ρ) ℓ) Doms↓) ⟦dom⟧s*)]
         [_ (values Doms↓ ⟦dom⟧s)])))
+
+  (: rn : ⟦E⟧ (U -e W -module -prog) → ⟦E⟧)
+  ;; Just for debugging. Disable in production as renamed procedures are slower in tight loops
+  (define (rn ⟦E⟧ x)
+    #;⟦E⟧
+    (let ([s (cond [(-e? x) (format "⟦~a⟧"(show-e x))]
+                   [(-prog? x) (format "⟦~a⟧" (map show-module (-prog-_0 x)))]
+                   [(-module? x) (format "⟦~a⟧" (show-module x))]
+                   [else (format "⟦w ~a⟧" (map show-V^ x))])])
+      (procedure-rename ⟦E⟧ (string->symbol s))))
   )
