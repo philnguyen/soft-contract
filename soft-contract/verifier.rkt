@@ -18,41 +18,7 @@
          "reduction/signatures.rkt"
          )
 
-;; Compacting each store to its version to display
-(Ξ* . ::= . (Ξ* ⟨Ξ⟩ Σᵥ ⟨Σₖ⟩ ⟨Σₐ⟩))
-(define-interner ⟨αₖ⟩ αₖ
-  #:intern-function-name mk-αₖ
-  #:unintern-function-name inspect-αₖ)
-(⟨Ξ⟩ . ::= . (⟨Ξ:co⟩ [kon : ⟨K⟩] [hist : (Option (Pairof Ctx M))] [ctx : H]) Blm)
-(⟨K⟩ . ::= . (⟨K⟩ (Listof F) ⟨αₖ⟩))
-(⟨Σₖ⟩ . ≜ . (Immutable-HashTable ⟨αₖ⟩ (Setof ⟨Ξ:co⟩)))
-(⟨Σₐ⟩ . ≜ . (Immutable-HashTable ⟨Ξ:co⟩ R^))
-
-(: -⟨Ξ⟩ (case-> [Ξ:co → ⟨Ξ:co⟩]
-                [Blm → Blm]
-                [Ξ → ⟨Ξ⟩]))
-(define -⟨Ξ⟩
-  (match-lambda
-    [(Ξ:co (K Fs α) M H) (⟨Ξ:co⟩ (⟨K⟩ Fs (mk-αₖ α)) M H)]
-    [(? Blm? b) b]))
-
-(: -⟨Σₖ⟩ : Σₖ → ⟨Σₖ⟩)
-(define (-⟨Σₖ⟩ Σₖ)
-  (for/hasheq : ⟨Σₖ⟩ ([(α Ξs) (in-hash Σₖ)])
-    (values (mk-αₖ α) (map/set -⟨Ξ⟩ Ξs))))
-
-(: -⟨Σₐ⟩ : Σₐ → ⟨Σₐ⟩)
-(define (-⟨Σₐ⟩ Σₐ)
-  (for/hash : ⟨Σₐ⟩ ([(Ξ Rs) (in-hash Σₐ)])
-    (values (-⟨Ξ⟩ Ξ) Rs)))
-
-(: -Ξ (case-> [⟨Ξ:co⟩ → Ξ:co]
-              [Blm → Blm]
-              [⟨Ξ⟩ → Ξ]))
-(define -Ξ
-  (match-lambda
-    [(⟨Ξ:co⟩ (⟨K⟩ Fs α) M H) (Ξ:co (K Fs (inspect-αₖ α)) M H)]
-    [(? Blm? b) b]))
+(Ξ* . ::= . (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
 (define-unit verifier@
   (import parser^
@@ -104,10 +70,10 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (Ξ* (-⟨Ξ⟩ Ξ) Σᵥ (-⟨Σₖ⟩ Σₖ) (-⟨Σₐ⟩ Σₐ)))
+      (Ξ* Ξ Σᵥ Σₖ Σₐ))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
-      (match-lambda [(Ξ* Ξ _ _ _) (-Ξ Ξ)]))
+      (match-lambda [(Ξ* Ξ _ _ _) Ξ]))
     
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
