@@ -112,7 +112,8 @@
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
     
-    (function-traces ↝₁ (Ξ->Ξ* Ξ₀))
+    (parameterize ([print-graph #t])
+      (function-traces ↝₁ (Ξ->Ξ* Ξ₀)))
     Σ₀)
 
   (: viz-call-graph : Runnable → Void)
@@ -126,7 +127,8 @@
          (assert (for/or : (Option αₖ) ([αₖ (in-hash-keys CG)]
                                         #:when (set-empty? (Σₖ@ Σₖ αₖ)))
                    αₖ)))
-       (hash-traces CG entry)]))
+       (parameterize ([print-graph #t])
+         (hash-traces CG entry))]))
 
   (: comp ([Runnable] [#:havoc? Boolean] . ->* . ⟦E⟧))
   (define (comp x #:havoc? [havoc? #f])
