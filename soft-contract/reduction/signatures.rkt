@@ -175,5 +175,8 @@
    [gen-havoc-expr : ((Listof -module) → -e)]
    [add-leak! : (HV-Tag Σ (U V^ W) → Void)]))
 
+(define-signature termination^
+  ([update-call-record : (M Clo W ℓ Φ^ Σ → (Option M))]))
+
 (define-signature for-gc^
   ([V-root : (V → (℘ α))]))

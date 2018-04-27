@@ -11,7 +11,8 @@
    [check-one-of : (V (Listof Base) → ?Dec)]
    [∧  : (R V → R)]
    [∧¬ : (R V → R)]
-   [V-arity : (case-> [(U Clo Case-Clo) → Arity]
+   [V-arity : (case-> [Clo → (U Natural arity-at-least)]
+                      [Case-Clo → Arity]
                       [V → (Option Arity)])]))
 
 (define-signature ext-prover-core^

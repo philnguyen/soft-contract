@@ -22,7 +22,7 @@
           env^ sto^ val^ evl^
           prims^
           prover^
-          compile^ step^ alloc^ havoc^)
+          compile^ step^ alloc^ havoc^ termination^)
   (export app^)
   (init-depend step^)
 
@@ -76,14 +76,25 @@
     ???)
 
   (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
-  (define ((app-clo fmls ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ)
-    (match-define (Ξ:co _ M H) Ξ)
+  (define ((app-clo fmls ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ₀ Σ)
+    (match-define (Ξ:co _ ?m H) Ξ₀)
     (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
+
+    (: on-sc-ok : (Option (Pairof Ctx M)) → (℘ Ξ))
+    (define (on-sc-ok ?m)
+      (define Ρ* (bind-args! Ρ fmls Wₓ H* Σ))
+      (define α* (αₖ:clo ⟦E⟧ Ρ*))
+      (⊔ₖ! Σ α* Ξ₀)
+      {set (⟦E⟧ Ρ* Φ^ (Ξ:co (K '() α*) ?m H*) Σ)})
+    
     ;; FIXME guard arity
-    (define Ρ* (bind-args! Ρ fmls Wₓ H* Σ))
-    (define α* (αₖ:clo ⟦E⟧ Ρ*))
-    (⊔ₖ! Σ α* Ξ)
-    {set (⟦E⟧ Ρ* Φ^ (Ξ:co (K '() α*) M H*) Σ)})
+    (match* (looped? ?m)
+      [(#t (cons (and ctx (Ctx l+ _ lo _)) M))
+       (define Vₕ (Clo fmls ⟦E⟧ Ρ))
+       (match (update-call-record M Vₕ Wₓ ℓ Φ^ Σ)
+         [(? values M*) (on-sc-ok (cons ctx M*))]
+         [_ {set (Blm (ℓ-with-src ℓ l+) lo '(size-change-terminating/c) (cons {set Vₕ} Wₓ))}])]
+      [(_ _) (on-sc-ok ?m)]))
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)

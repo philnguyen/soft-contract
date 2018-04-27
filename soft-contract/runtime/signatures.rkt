@@ -14,7 +14,7 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [kon : K]
+(#|State sans store|# Ξ . ::= . (Ξ:co [frames : K]
                                       [mark : (Option (Pairof Ctx M))]
                                       [ctx : H])
                                 Blm)
@@ -46,10 +46,9 @@
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 (?R . ≜ . (Option R))
-(Call-Record . ::= . (Call-Record [last-args : W] [sc-graph : G]))
-(#|Size-change Graph|# G . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
+(Call-Record . ::= . (Call-Record [last-args : W] [sc-graph : SCG]))
+(#|Size-change Graph|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (Ch . ::= . '↓ '↧)
-(?Ch . ≜ . (Option Ch)) ; ↓ ⊑ ↧ ⊑ #f
 
 (#|Value|# V . ::= . (-● (℘ P))
                      -prim

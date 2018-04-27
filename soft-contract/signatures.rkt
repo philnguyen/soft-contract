@@ -40,7 +40,8 @@
    [partition-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^))]
    [check-plausible-index : ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^))]
    [check-one-of : (Φ^ V^ (Listof Base) → ?Dec)]
-   [V-arity : (case-> [(U Clo Case-Clo) → Arity]
+   [V-arity : (case-> [Clo → (U Natural arity-at-least)]
+                      [Case-Clo → Arity]
                       [V → (Option Arity)])]
    #|
    [p⇒p : (-h -h → -R)]

@@ -427,7 +427,8 @@
 
   (define bool-excludes? (set->predicate (get-exclusions 'boolean?)))
 
-  (: V-arity (case-> [(U Clo Case-Clo) → Arity]
+  (: V-arity (case-> [Clo → (U Natural arity-at-least)]
+                     [Case-Clo → Arity]
                      [V → (Option Arity)]))
   (define V-arity
     (match-lambda
