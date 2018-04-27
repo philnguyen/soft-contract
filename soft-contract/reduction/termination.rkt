@@ -5,6 +5,7 @@
 (require racket/match
          (except-in racket/set for/set for/seteq for*/set for*/seteq)
          typed/racket/unit
+         typed-racket-hacks
          unreachable
          bnf
          "../utils/main.rkt"
@@ -47,17 +48,10 @@
       (values (cons i₀ i₁) ?↓)))
 
   (: cmp : V^ V^ Φ^ Σ → ?Ch)
-  (define (cmp V^₀ V^₁ Φ^ Σ)
-    (for*/fold ([↝ : ?Ch '↓])
-               ([V₀ (in-set V^₀)]
-                [V₁ (in-set V^₁)]
-                #:break (not ↝))
-      (Ch-worst (assert ↝) (cmp₁ V₀ V₁ Φ^ Σ))))
-
-  (: cmp₁ : V V Φ^ Σ → ?Ch)
-  (define (cmp₁ V₀ V₁ Φ^ Σ)
-    #|FIXME|#
-    #f)
+  (define (cmp V^₀ V^₁ Φ^ Σ) 
+    (cond [(defly? (λ () (partition-results Σ (R (list V^₀ V^₁) Φ^) 'equal?))) '↧]
+          [(check-≺ Σ Φ^ V^₀ V^₁) '↓]
+          [else #f]))
 
   (: concat-graph : SCG SCG → SCG)
   (define (concat-graph G₁ G₂)
@@ -81,4 +75,32 @@
      [(_  _ ) '↓]))
 
   (: strict-progress? : SCG → Boolean)
-  (define (strict-progress? G) (for/or ([d (in-hash-values G)]) (eq? d '↓))))
+  (define (strict-progress? G) (for/or ([d (in-hash-values G)]) (eq? d '↓)))
+
+  (: check-≺ : Σ Φ^ V^ V^ → Boolean)
+  (define (check-≺ Σ Φ^ V^₀ V^₁)
+    (for*/and : Boolean ([V₀ (in-set V^₀)] [V₁ (in-set V^₁)])
+      (check-≺₁ Σ Φ^ V₀ V₁)))
+
+  (: check-≺₁ : Σ Φ^ V V → Boolean)
+  (define (check-≺₁ Σ Φ^ V₀ V₁)
+    (or (and (defly? (λ () (partition-results Σ (R (list {set (-b -1)} {set V₀}) Φ^) '<)))
+             (defly? (λ () (partition-results Σ (R (list {set V₀} {set V₁}) Φ^) '<))))
+        (V₁ . sub-value? . V₀)))
+
+  (: sub-value? : V V → Boolean)
+  (define (x . sub-value? . y)
+    (match* (x y)
+      [((S:@ (? -st-ac?) (list x*)) (? S? y))
+       (let go ([x : S x*])
+         (match x
+           [(== y) #t]
+           [(S:@ (? -st-ac?) (list x*)) (go x*)]
+           [_ #f]))]
+      [(_ _) #f]))
+
+  (: defly? : (→ (Values R^ R^ R^)) → Boolean)
+  (define (defly? e)
+    (define-values (_ R₂ R₃) (e))
+    (and (set-empty? R₂) (set-empty? R₃)))
+  )
