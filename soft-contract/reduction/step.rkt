@@ -233,7 +233,7 @@
        (with-guarded-arity/collapse R^₀ (length lhs) +ℓ₀ ; TODO
          (λ (W Φ^)
            (⊔ᵥ*! Σ lhs W)
-           {set (ret! (V->R -void Φ^) Ξ Σ)}))]
+           (↝ (ret! (V->R -void Φ^) Ξ Σ) Σ)))]
       [(F:Dec ℓ 𝒾)
        (with-guarded-single-arity/collapse R^₀ ℓ
          (λ (C^ Φ^)
