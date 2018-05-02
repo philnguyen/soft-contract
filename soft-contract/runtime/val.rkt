@@ -16,10 +16,10 @@
   (import sto^)
   (export val^)
 
-  (: C-flat? : V → Boolean)
+  (: C-flat? : T → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
-  (define (C-flat? V)
-    (match V
+  (define (C-flat? T)
+    (match T
       [(And/C flat? _ _) flat?]
       [(Or/C flat? _ _) flat?]
       [(? Not/C?) #t]
@@ -33,9 +33,10 @@
       [(? X/C?) #t]
       [(? ∀/C?) #f]
       [(? Seal/C?) #f]
+      [(? S:clo?) #t]
       [V (error 'C-flat? "Unepxected: ~a" V)]))
 
-  (: C^-flat? : V^ → Boolean)
+  (: C^-flat? : T^ → Boolean)
   (define (C^-flat? C^)
     (for/and : Boolean ([C (in-set C^)]) (C-flat? C)))
 
@@ -95,7 +96,7 @@
        (arity-at-least 0)]
       ['scv:terminating/c #f]))
 
-  (: blm-arity : ℓ -l Arity (Listof V^) → Blm)
+  (: blm-arity : ℓ -l Arity W → Blm)
   (define blm-arity
     (let ([arity->msg
            (match-lambda
@@ -111,21 +112,19 @@
 
   (: collapse-value-lists : W^ Natural → W)
   (define (collapse-value-lists W^ n)
-    (define W-vec : (Vectorof V^) (make-vector n ⊥V))
+    (define W-vec : (Vectorof T^) (make-vector n ⊥T))
     (for ([W (in-set W^)])
       (for ([V^ (in-list W)] [i (in-naturals)])
-        (vector-set! W-vec i (V⊔ (vector-ref W-vec i) V^))))
+        (vector-set! W-vec i (T⊔ (vector-ref W-vec i) V^))))
     (vector->list W-vec))
 
-  (: V⊔ : V^ V^ → V^)
-  (define (V⊔ V^₁ V^₂)
-    (for/fold ([V^ : V^ V^₁]) ([V (in-set V^₂)])
-      (V⊔₁ V^ V)))
+  ;; TODO
+  (define T⊔ : (T^ T^ → T^) set-union)
+  (define V⊔ : (V^ V^ → V^) set-union)
+  (define T⊔₁ : (T^ T → T^) set-add)
+  (define V⊔₁ : (V^ V → V^) set-add)
 
-  (: V⊔₁ : V^ V → V^)
-  (define (V⊔₁ V^ V) (set-add V^ V))
-
-  (define ⊥V : V^ ∅)
+  (define ⊥T : T^ ∅)
 
   #;(: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list

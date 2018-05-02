@@ -15,14 +15,14 @@
   (import val^)
   (export evl^)
 
-  (define ⊤Φ : Φ (hash))
+  (define ⊤Φ (Φ (hasheq) (hash)))
   (define ⊥Φ^ {set ⊤Φ})
 
-  (: Φ@ : Φ (Listof V) → (℘ P))
-  (define (Φ@ Φ Vs) (hash-ref Φ Vs mk-∅))
+  (: Φ@ : Φ (Listof T) → (℘ P))
+  (define (Φ@ Φ Ts) (hash-ref (Φ-condition Φ) Ts mk-∅))
 
-  (: V->R : (U V V^) Φ^ → R)
-  (define (V->R x Φ^)
+  (: T->R : (U T T^) Φ^ → R)
+  (define (T->R x Φ^)
     (R (if (set? x) (list x) (list (set x))) Φ^))
 
   (: filter/arity : R^ Natural → (Values R^ W^))
@@ -42,11 +42,11 @@
       (match-define (R W* Φ^*) R*)
       (values (set-add W^ W*) (∪ Φ^ Φ^*)))) 
 
-  (: collapse-R^-1 : R^ → (Values V^ Φ^))
+  (: collapse-R^-1 : R^ → (Values T^ Φ^))
   (define (collapse-R^-1 R^)
-    (for/fold ([V^ : V^ ∅] [Φ^ : Φ^ ∅]) ([R* (in-set R^)])
-      (match-define (R (list V^*) Φ^*) R*)
-      (values (V⊔ V^ V^*) (∪ Φ^ Φ^*))))
+    (for/fold ([T^ : T^ ∅] [Φ^ : Φ^ ∅]) ([R* (in-set R^)])
+      (match-define (R (list T^*) Φ^*) R*)
+      (values (T⊔ T^ T^*) (∪ Φ^ Φ^*))))
 
   (: collapse-R^/Φ^ : R^ → Φ^)
   (define (collapse-R^/Φ^ R^) (set-union-map R-_1 R^))
@@ -56,17 +56,17 @@
 
   (define R⊔ : (R R → R)
     (match-lambda**
-     [((R W₁ Φ^₁) (R W₂ Φ^₂)) (R (map V⊔ W₁ W₂) (∪ Φ^₁ Φ^₂))]))
+     [((R W₁ Φ^₁) (R W₂ Φ^₂)) (R (map T⊔ W₁ W₂) (∪ Φ^₁ Φ^₂))]))
 
-  (define R⊔₁ : (R (Listof V) Φ → R)
+  (define R⊔₁ : (R (Listof T) Φ → R)
     (match-lambda**
-     [((R W Φ^) Vs Φ) (R (map V⊔₁ W Vs) (set-add Φ^ Φ))]))
+     [((R W Φ^) Ts Φ) (R (map T⊔₁ W Ts) (set-add Φ^ Φ))]))
 
   (: validate-R : ?R → ?R)
   (define (validate-R R)
     (and R
          (not (set-empty? (R-_1 R)))
-         (not (ormap (inst set-empty? V) (R-_0 R)))
+         (not (ormap (inst set-empty? T) (R-_0 R)))
          R))
 
   (: with-2-paths (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X)))
