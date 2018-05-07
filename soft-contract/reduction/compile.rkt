@@ -144,8 +144,8 @@
                 (V → V))]]
       [=> (-@ E Es ℓ)
           (let ([Ρ₀ (m↓ Ρ fv₀)]
-                [EΡs (for/list : (Listof EΡ) ([⟦E⟧ (in-list ⟦Es⟧)] [fv (in-list fvs)])
-                       (EΡ ⟦E⟧ (m↓ Ρ fv)))])
+                [EΡs (for/list : (Listof EΡ) ([⟦E⟧ (in-list ⟦Es⟧)] [fv (in-list fvs)] [E (in-list Es)])
+                       (EΡ (rn ⟦E⟧ E) (m↓ Ρ fv)))])
             (⟦E⟧ (m↓ Ρ fv₀) Φ^ (K+ (F:Ap '() EΡs ℓ) Ξ) Σ))
           #:where ; HACK
           [_ (match* (E Es)
