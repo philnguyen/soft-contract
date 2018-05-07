@@ -55,7 +55,7 @@
          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
          #:args W
          → Ξ)]
-   [vec-len : (V^ → V^)]
+   [vec-len : (T^ → T^)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -80,7 +80,7 @@
    [add-const! : (Identifier -prim → Void)]
    
    [add-seal : (Σ Symbol H -l → Seal/C)]
-   [mk-res : ((℘ P) -o W → V^)]
+   [mk-res : ((℘ P) -o W → T^)]
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]

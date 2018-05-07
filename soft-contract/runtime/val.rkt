@@ -16,10 +16,10 @@
   (import sto^)
   (export val^)
 
-  (: C-flat? : T → Boolean)
+  (: C-flat? : V → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
-  (define (C-flat? T)
-    (match T
+  (define (C-flat? V)
+    (match V
       [(And/C flat? _ _) flat?]
       [(Or/C flat? _ _) flat?]
       [(? Not/C?) #t]
@@ -33,12 +33,13 @@
       [(? X/C?) #t]
       [(? ∀/C?) #f]
       [(? Seal/C?) #f]
-      [(? S:clo?) #t]
       [V (error 'C-flat? "Unepxected: ~a" V)]))
 
   (: C^-flat? : T^ → Boolean)
   (define (C^-flat? C^)
-    (for/and : Boolean ([C (in-set C^)]) (C-flat? C)))
+    (if (set? C^)
+        (for/and : Boolean ([C (in-set C^)]) (C-flat? C))
+        #f))
 
   (:* with-negative-party with-positive-party : -l V → V)
   (define with-negative-party
@@ -108,20 +109,12 @@
              [(arity-at-least n)
               (format-symbol "~a+ values" n)])])
       (λ (ℓ lo arity Vs)
-        (Blm (strip-ℓ ℓ) lo (list (arity->msg arity)) Vs))))
-
-  (: collapse-value-lists : W^ Natural → W)
-  (define (collapse-value-lists W^ n)
-    (define W-vec : (Vectorof T^) (make-vector n ⊥T))
-    (for ([W (in-set W^)])
-      (for ([V^ (in-list W)] [i (in-naturals)])
-        (vector-set! W-vec i (T⊔ (vector-ref W-vec i) V^))))
-    (vector->list W-vec))
+        (Blm (strip-ℓ ℓ) lo (list (arity->msg arity)) Vs)))) 
 
   ;; TODO
-  (define T⊔ : (T^ T^ → T^) set-union)
+  #;(define T⊔ : (T^ T^ → T^) set-union)
   (define V⊔ : (V^ V^ → V^) set-union)
-  (define T⊔₁ : (T^ T → T^) set-add)
+  #;(define T⊔₁ : (T^ T → T^) set-add)
   (define V⊔₁ : (V^ V → V^) set-add)
 
   (define ⊥T : T^ ∅)
@@ -160,4 +153,7 @@
   (define (K+ F Ξ)
     (match-define (Ξ:co (K Fs α) M H) Ξ)
     (Ξ:co (K (cons F Fs) α) M H))
+
+  (: in-T^ : T^ → (Sequenceof T))
+  (define (in-T^ [T^ : T^]) (if (set? T^) (in-set T^) (in-value T^)))
   )

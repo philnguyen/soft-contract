@@ -20,7 +20,7 @@
   (import)
   (export ext-prover-core^)
 
-  (: check : Σ Φ V (Listof V) → ?Dec)
+  (: check : Σ Φ T (Listof T) → ?Dec)
   (define (check Σ Φ^ P Vs)
     (cond
       [(and (Handled-Pred? P) (andmap S? Vs))
@@ -28,7 +28,7 @@
        #f]
       [else #f]))
 
-  (: should-try? : Φ P (Listof V) → Boolean)
+  (: should-try? : Φ P (Listof T) → Boolean)
   ;; Heuristic avoiding calling out to solvers
   ;; However this heuristic is implemented should be safe in terms of soundness.
   ;; Not calling out to solver when should only hurts precision.
@@ -40,7 +40,7 @@
                      (? P:<?) (? P:>?) (? P:≤?) (? P:≥?))])
       (λ (Φ P Vs)
         (and (difficult? P)
-             (for*/or ([Ps (in-hash-values Φ)] [P (in-set Ps)])
+             (for*/or ([Ps (in-hash-values (Φ-condition Φ))] [P (in-set Ps)])
                (difficult? P))))))
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

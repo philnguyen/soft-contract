@@ -12,36 +12,36 @@
 (EΡ . ::= . (EΡ [code : ⟦E⟧] [env : Ρ]))
 
 (define-substructs F
-  [F:Ap (Listof V^) (Listof (U EΡ V^)) ℓ]
+  [F:Ap (Listof T^) (Listof (U EΡ T^)) ℓ]
   [F:Set! α]
-  [F:Let ℓ (Listof Symbol) (Assoc (Listof Symbol) ⟦E⟧) (Assoc Symbol V^) ⟦E⟧ Ρ]
+  [F:Let ℓ (Listof Symbol) (Assoc (Listof Symbol) ⟦E⟧) (Assoc Symbol T^) ⟦E⟧ Ρ]
   [F:Letrec ℓ (Listof Symbol) (Assoc (Listof Symbol) ⟦E⟧) ⟦E⟧ Ρ]
   [F:If -l ⟦E⟧ ⟦E⟧ Ρ]
   [F:Bgn (NeListof ⟦E⟧) Ρ]
   [F:Bgn0:V (NeListof ⟦E⟧) Ρ]
   [F:Bgn0:E W^ (Listof ⟦E⟧) Ρ]
-  [F:Mon:C Ctx (U EΡ V^)]
-  [F:Mon:V Ctx (U EΡ V^)]
+  [F:Mon:C Ctx (U EΡ T^)]
+  [F:Mon:V Ctx (U EΡ T^)]
   [F:Mon*:C Ctx (Option (Listof αℓ))]
   [F:Mon* Ctx W W (Listof ℓ) W]
   [F:Μ/C Symbol]
   [F:==>:Dom W (Listof ⟦E⟧) (Option ⟦E⟧) ⟦E⟧ Ρ ℓ]
   [F:==>:Rst W ⟦E⟧ Ρ ℓ]
-  [F:==>:Rng W (Option V^) ℓ]
+  [F:==>:Rng W (Option T^) ℓ]
   [F:==>i Ρ (Listof Dom) (Pairof Symbol ℓ) (Listof ⟦dom⟧)]
   [F:St/C ℓ -𝒾 W (Listof ⟦E⟧) Ρ]
   [F:Def -l (Listof α)]
   [F:Dec ℓ -𝒾]
   ;; Specific helpers
   [F:Wrap Prox/C Ctx α]
-  [F:Mon-Or/C Ctx V^ V^ V^]
-  [F:If:Flat/C V^ (℘ Blm)]
+  [F:Mon-Or/C Ctx T^ T^ T^]
+  [F:If:Flat/C T^ (℘ Blm)]
   [F:Fc-And/C α αℓ]
-  [F:Fc-Or/C α αℓ V^]
-  [F:Fc-Not/C V^]
+  [F:Fc-Or/C α αℓ T^]
+  [F:Fc-Not/C T^]
   [F:Fc-Struct/C ℓ -𝒾 W (Listof EΡ)]
   [F:Fc:V ℓ ⟦E⟧ Ρ]
-  [F:Fc:C ℓ V^]
+  [F:Fc:C ℓ T^]
   [F:Hash-Set-Inner ℓ α]
   [F:Set-Add-Inner ℓ α]
   [F:Maybe-Havoc-Prim-Args ℓ Symbol]
@@ -117,9 +117,9 @@
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
-   [bind-args! : (Ρ -formals W H Σ → Ρ)]
-   [bind-rest! : ([Ρ Symbol W H Σ] [#:end V] . ->* . Ρ)]
-   [alloc-rest! : ([(U Symbol ℓ) W H Σ] [#:end V] . ->* . V)]
+   [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
+   [bind-rest! : ([Φ^ Ρ Symbol W H Σ] [#:end V] . ->* . (Values Φ^ Ρ))]
+   [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end V] . ->* . V)]
    [H+ : (H ℓ (U ⟦E⟧ V #f) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 
@@ -128,7 +128,7 @@
    [↓ₘ : (-module → ⟦E⟧)]
    [↓ₑ : (-l -e → ⟦E⟧)]
    [↓ₓ : (Symbol ℓ → ⟦E⟧)]
-   [mk-V : ((U V V^) → ⟦E⟧)]
+   [mk-T : ((U T T^) → ⟦E⟧)]
    [mk-W : (W → ⟦E⟧)]
    [mk-Blm : (Blm → ⟦E⟧)]
    [mk--> : (ℓ (-var ⟦E⟧) ⟦E⟧ → ⟦E⟧)]
@@ -137,7 +137,7 @@
    [mk-mon : (Ctx ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
    [mk-fc : (ℓ ⟦E⟧ ⟦E⟧ → ⟦E⟧)]
    [mk-let* : (ℓ (Listof (Pairof Symbol ⟦E⟧)) ⟦E⟧ → ⟦E⟧)]
-   [mk-wrapped : (Prox/C Ctx α V^ → ⟦E⟧)]
+   [mk-wrapped : (Prox/C Ctx α T^ → ⟦E⟧)]
    [split-⟦dom⟧s : (Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))]
    ))
 
@@ -150,33 +150,38 @@
    [blm : (ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))]
    [K+/And : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
-   [with-arity : (R^ (Index R → (℘ Ξ)) → (℘ Ξ))]
+   [with-arity : (Σ R^ (Index R → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/W : (W Natural ℓ (W → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
-   [with-guarded-arity/collapse : (R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
-   [with-guarded-single-arity/collapse : (R^ ℓ (V^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
-   [with-guard : (Σ Φ^ Ctx V^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guarded-arity/collapse : (Σ R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guarded-single-arity/collapse : (Σ R^ ℓ (T^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-guard : (Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Integer))]))
 
 (define-signature app^
-  ([app  : (V^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
+  ([app  : (T^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
    [app₁ : (V → ⟦F⟧^)]
-   [app/rest/unsafe : (V W V ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
+   [app/rest/unsafe : (T W T ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature mon^
-  ([mon : (V^ V^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))]))
+  ([mon : (T^ T^ Ctx Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature fc^
-  ([fc : (V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
+  ([fc : (T^ T^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature havoc^
   ([havoc : (HV-Tag R^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag Σ (U V^ W) → Void)]))
+   [add-leak! : (HV-Tag Σ V^ → Void)]))
 
 (define-signature termination^
   ([update-call-record : (M Clo W ℓ Φ^ Σ → (Option M))]))
+
+(define-signature approx^
+  ([collapse-R^-1 : ((U Σ Σᵥ) R^ → (Values T^ Φ^))]
+   [collapse-value-lists : ((U Σ Σᵥ) R^ Natural → R)]
+   [R⊔ : ((U Σ Σᵥ) R R → R)]))
 
 (define-signature for-gc^
   ([V-root : (V → (℘ α))]))

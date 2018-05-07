@@ -33,7 +33,7 @@
         (match V^
           [(singleton-set (? Clo? V)) V]
           [_ (error 'scv:make-case-lambda "Internal invariant violated")])))
-    {set (ret! (V->R (Case-Clo clos) Φ^) Ξ Σ)})
+    {set (ret! (T->R (Case-Clo clos) Φ^) Ξ Σ)})
 
   (def (scv:make-case-> W ℓ Φ^ Ξ Σ)
     #:init ()
@@ -43,7 +43,7 @@
         (match V^
           [(singleton-set (? ==>? C)) C]
           [_ (error 'scv:make-case-> "Internal invariant violated")])))
-    {set (ret! (V->R (Case-=> cases) Φ^) Ξ Σ)})
+    {set (ret! (T->R (Case-=> cases) Φ^) Ξ Σ)})
 
   (def (scv:mon W ℓ Φ^ Ξ Σ)
     #:init ([src symbol?] [C contract?] [V any/c])

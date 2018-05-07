@@ -81,9 +81,9 @@
               [_ (format "~a values: ~a" (length Cs) (map show-blm-reason Cs))]))
     (printf "    - Given: ~a~n"
             (match Vs
-              [(list V) (show-set show-V^ V)]
+              [(list V) (show-set show-T V)]
               ['() "(values)"]
-              [_ (format "~a values: ~a" (length Vs) (map show-V^ Vs))])))
+              [_ (format "~a values: ~a" (length Vs) (map show-T Vs))])))
 
   (: print-blames : (℘ Blm) → Void)
   (define (print-blames blames) 

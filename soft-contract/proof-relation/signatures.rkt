@@ -7,16 +7,16 @@
          "../runtime/signatures.rkt")
 
 (define-signature local-prover-core^
-  ([check : (Σ Φ V (Listof V) → ?Dec)]
-   [check-one-of : (V (Listof Base) → ?Dec)]
-   [∧  : (R V → R)]
-   [∧¬ : (R V → R)]
-   [V-arity : (case-> [Clo → (U Natural arity-at-least)]
+  ([check : (Σ Φ T (Listof T) → ?Dec)]
+   [check-one-of : (T (Listof Base) → ?Dec)]
+   [∧  : (R T → R)]
+   [∧¬ : (R T → R)]
+   [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]
-                      [V → (Option Arity)])]))
+                      [T → (Option Arity)])]))
 
 (define-signature ext-prover-core^
-  ([check : (Σ Φ V (Listof V) → ?Dec)]))
+  ([check : (Σ Φ T (Listof T) → ?Dec)]))
 
 (define-signature sat-result^
   ([⊔ : (?Dec ?Dec * → ?Dec)]

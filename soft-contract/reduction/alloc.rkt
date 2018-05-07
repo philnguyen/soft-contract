@@ -18,11 +18,13 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit alloc@
-  (import static-info^ env^ sto^)
+  (import static-info^ env^ sto^
+          prover^)
   (export alloc^)
 
   (: mutable? : α → Boolean)
@@ -33,37 +35,42 @@
       [(? -α:idx?) #t]
       [_ #f]))
 
-  (: bind-args! : Ρ -formals W H Σ → Ρ)
-  (define (bind-args! Ρ₀ fmls W H Σ)
+  (: bind-args! : Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))
+  (define (bind-args! Φ^₀ Ρ₀ fmls W H Σ)
     (match-define (-var xs x) fmls)
-    (define Ρ* (bind-inits! Ρ₀ xs W H Σ))
-    (if x (bind-rest! Ρ* x (drop W (length xs)) H Σ) Ρ*))
+    (define-values (Φ^* Ρ*) (bind-inits! Φ^₀ Ρ₀ xs W H Σ))
+    (if x
+        (bind-rest! Φ^* Ρ* x (drop W (length xs)) H Σ)
+        (values Φ^* Ρ*)))
 
   (splicing-local
-      ((: bind! : Σ Ρ Symbol H (U V V^) → Ρ)
-       (define (bind! Σ Ρ x H V)
+      ((: bind! : Σ Φ^ Ρ Symbol H (U V T^) → (Values Φ^ Ρ))
+       (define (bind! Σ Φ^ Ρ x H T)
          (define α (mk-α (-α:x x H)))
-         (⊔ᵥ! Σ α V)
-         (Ρ+ Ρ x α)))
+         (define V^ (T->V Σ Φ^ T))
+         (⊔ᵥ! Σ α V^)
+         (values Φ^ #|FIXME|#
+                 (Ρ+ Ρ x α))))
     
-    (: bind-inits! : Ρ (Listof Symbol) W H Σ → Ρ)
-    (define (bind-inits! Ρ₀ xs W H Σ)
-      (for/fold ([Ρ : Ρ Ρ₀]) ([x (in-list xs)] [V (in-list W)])
-        (bind! Σ Ρ x H V)))
+    (: bind-inits! : Φ^ Ρ (Listof Symbol) W H Σ → (Values Φ^ Ρ))
+    (define (bind-inits! Φ^₀ Ρ₀ xs W H Σ)
+      (for/fold ([Φ^ : Φ^ Φ^₀] [Ρ : Ρ Ρ₀])
+                ([x (in-list xs)] [V (in-list W)])
+        (bind! Σ Φ^ Ρ x H V)))
 
-    (: bind-rest! ([Ρ Symbol W H Σ] [#:end V] . ->* . Ρ))
-    (define (bind-rest! Ρ x W H Σ #:end [Vₙ -null])
-      (bind! Σ Ρ x H (alloc-rest! x W H Σ #:end Vₙ))))
+    (: bind-rest! ([Φ^ Ρ Symbol W H Σ] [#:end V] . ->* . (Values Φ^ Ρ)))
+    (define (bind-rest! Φ^ Ρ x W H Σ #:end [Vₙ -null])
+      (bind! Σ Φ^ Ρ x H (alloc-rest! x W H Φ^ Σ #:end Vₙ))))
 
-  (: alloc-rest! ([(U Symbol ℓ) W H Σ] [#:end V] . ->* . V))
-  (define (alloc-rest! x Wₓ H Σ #:end [Vₙ -null])
+  (: alloc-rest! ([(U Symbol ℓ) W H Φ^ Σ] [#:end V] . ->* . V))
+  (define (alloc-rest! x Wₓ H Φ^ Σ #:end [Vₙ -null])
     (let go! ([W : W Wₓ] [i : Natural 0])
       (match W
         [(cons Vᵢ W*)
          (define αₕ (mk-α (-α:var:car x H i)))
          (define αₜ (mk-α (-α:var:cdr x H i)))
-         (⊔ᵥ! Σ αₕ Vᵢ)
-         (⊔ᵥ! Σ αₜ (go! W* (+ 1 i)))
+         (⊔T! Σ Φ^ αₕ Vᵢ)
+         (⊔T! Σ Φ^ αₜ (go! W* (+ 1 i)))
          (Cons αₕ αₜ)]
         [_ Vₙ])))
 

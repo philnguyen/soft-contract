@@ -27,9 +27,9 @@
   (export local-prover-core^)
   (init-depend prims^)
 
-  (: check : Σ Φ V (Listof V) → ?Dec)
-  (define (check Σ Φ P₀ Vs₀)
-
+  (: check : Σ Φ T (Listof T) → ?Dec)
+  (define (check Σ Φ P₀ Ts₀)
+    
     (: check-equal* : (Listof α) (Listof α) → ?Dec)
     (define (check-equal* αs₁ αs₂)
       (for/fold ([d : ?Dec '✓])
@@ -41,13 +41,13 @@
         (define ⊔* (inst ⊔*/set V))
         (⊔* (λ (V₁) (⊔* (λ (V₂) (go 'equal? (list V₁ V₂))) Vs₂)) Vs₂)))
 
-    (: go : V (Listof V) → ?Dec)
+    (: go : T (Listof T) → ?Dec)
     (define (go P Vs)
       (cond
         [(and (P? P)
               (andmap S? Vs)
-              (or (Ps⊢P (Φ@ Φ Vs) P)
-                  (neg (Ps⊢P (Φ@ Φ Vs) (P:¬ P)))))]
+              (or (Ps⊢P (Ψ@ Φ Vs) P)
+                  (neg (Ps⊢P (Ψ@ Φ Vs) (P:¬ P)))))]
         [else
          (match* (P Vs)
            [('values (list (S:@ Q Vs*))) (go Q Vs*)]
@@ -87,7 +87,7 @@
                     (values (P:≡ b) S)]
                    [(Q (list S)) (values Q S)]
                    [(_ _) (error 'check "missing conversion for ~a ~a" P Vs)]))
-               (Ps⊢P (Φ@ Φ (list V*)) P*)])]
+               (Ps⊢P (Ψ@ Φ (list V*)) P*)])]
            [((or (? -st-mk?) (? -st-mut?)) _) '✓]
            [((-st-p 𝒾) Vs)
             (match Vs
@@ -104,10 +104,10 @@
                    [(list (-b (and b (? g) ...))) (bool->Dec (o? b))]
                    [_ '✗])] ...
                 c ...))
-            (define (proc-arity-1? [V : V])
-              (and (equal? '✓ (go 'procedure? (list V)))
-                   (arity-includes? (assert (V-arity V)) 1)))
-            (: check-among : (V → Boolean) * → ?Dec)
+            (define (proc-arity-1? [T : T])
+              (and (equal? '✓ (go 'procedure? (list T)))
+                   (arity-includes? (assert (T-arity T)) 1)))
+            (: check-among : (T → Boolean) * → ?Dec)
             (define (check-among . ps)
               (match Vs
                 [(list V)
@@ -224,7 +224,7 @@
            [((P:< r) _) (go '<  (list (car Vs) (-b r)))]
            [((P:≡ b) _) (go 'equal? (cons (-b b) Vs))]
            [(_ _) #f])]))
-    (go P₀ Vs₀))
+    (go P₀ Ts₀))
 
   (: Ps⊢P : (℘ P) P → ?Dec)
   (define (Ps⊢P Ps P)
@@ -337,37 +337,40 @@
        [(_ _) #f]))) 
 
   (splicing-local
-      ((: with-conj : (Φ P (Listof S) → Φ) → R V → R)
+      ((: with-conj : (Φ P (Listof S) → Φ) → R T → R)
        (define ((with-conj conj) R₀ P)
          (cond
            [(P? P)
             (match-define (R W Φ^₀) R₀)
-            (define Φ^₁ (for*/set : Φ^ ([Vs (in-list (cartesian W S?))]
-                                        [Φ : Φ (in-set Φ^₀)])
-                          (conj Φ P Vs)))
+            (define Φ^₁ (cond [(andmap S? W)
+                               (for/set : Φ^ ([Φ : Φ (in-set Φ^₀)])
+                                 (conj Φ P W))]
+                              [else Φ^₀]))
             (R W Φ^₁)]
            [else R₀]))
        (:* conj conj¬ : Φ P (Listof S) → Φ)
        (define (conj Φ P Vs)
          (match* (P Vs)
-           [('values (list (S:@ P* Vs*))) (conj  Φ P* Vs*)]
-           [('not    (list (S:@ P* Vs*))) (conj¬ Φ P* Vs*)]
-           [(_       _                  ) (Φ+ Φ P Vs)]))
+           [('values (list (S:@ (? -o? P*) Vs*))) (conj  Φ P* Vs*)]
+           [('not    (list (S:@ (? -o? P*) Vs*))) (conj¬ Φ P* Vs*)]
+           [(_       _                          ) (Φ+ Φ P Vs)]))
        (define (conj¬ Φ P Vs)
          (match* (P Vs)
-           [('values (list (S:@ P* Vs*))) (conj¬ Φ P* Vs*)]
-           [('not    (list (S:@ P* Vs*))) (conj  Φ P* Vs*)]
-           [((P:< X) _                  ) (conj  Φ (P:≥ X) Vs)]
-           [((P:≤ X) _                  ) (conj  Φ (P:> X) Vs)]
-           [((P:> X) _                  ) (conj  Φ (P:≤ X) Vs)]
-           [((P:≥ X) _                  ) (conj  Φ (P:< X) Vs)]
-           [((P:¬ Q) _                  ) (conj  Φ Q Vs)]
-           [(_       _                  ) (Φ+ Φ (P:¬ P) Vs)])))
+           [('values (list (S:@ (? -o? P*) Vs*))) (conj¬ Φ P* Vs*)]
+           [('not    (list (S:@ (? -o? P*) Vs*))) (conj  Φ P* Vs*)]
+           [((P:< X) _                          ) (conj  Φ (P:≥ X) Vs)]
+           [((P:≤ X) _                          ) (conj  Φ (P:> X) Vs)]
+           [((P:> X) _                          ) (conj  Φ (P:≤ X) Vs)]
+           [((P:≥ X) _                          ) (conj  Φ (P:< X) Vs)]
+           [((P:¬ Q) _                          ) (conj  Φ Q Vs)]
+           [(_       _                          ) (Φ+ Φ (P:¬ P) Vs)])))
     (define ∧ (with-conj conj))
     (define ∧¬ (with-conj conj¬)))
 
   (: Φ+ : Φ P (Listof S) → Φ)
-  (define (Φ+ Φ Q Vs) (hash-update Φ Vs (λ ([Ps : (℘ P)]) (P+ Ps Q)) mk-∅))
+  (define (Φ+ Φ₀ Q Vs)
+    (match-define (Φ $ Ψ) Φ₀)
+    (Φ $ (hash-update Ψ Vs (λ ([Ps : (℘ P)]) (P+ Ps Q)) mk-∅)))
 
   (: P+ : (℘ P) P → (℘ P))
   (define P+ #|TODO|# set-add)
@@ -376,8 +379,9 @@
                   (set->predicate
                    {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
                         'string? 'symbol?})])
-    (: check-proper-list : Σ Φ V → ?Dec)
-    (define (check-proper-list Σ Φ V₀)
+    (: check-proper-list : Σ Φ T → ?Dec)
+    (define (check-proper-list Σ Φ T₀)
+      (define Ψ (Φ-condition Φ))
       (define-set seen : α #:eq? #t #:as-mutable-hash? #t)
 
       (: go-α : α → ?Dec)
@@ -386,34 +390,37 @@
               [else (seen-add! α)
                     (⊔*/set go (Σᵥ@ Σ α))]))
       
-      (: go : V → ?Dec)
+      (: go : T → ?Dec)
       (define go
         (match-lambda
           [(Cons _ α) (go-α α)]
           [(Cons/G α) (go-α α)]
           [(-b b) (bool->Dec (null? b))]
+          [(S:@ (== -cons) (list _ S)) (go S)]
           [(-● Ps) (cond [(∋ Ps 'list?) '✓]
                          [(sequence-ormap list-excl? Ps) '✗]
                          [else #f])]
           [(? S? S)
-           (or (Ps⊢P (Φ@ Φ (list S)) 'list?)
-               (match (Ps⊢P (Φ@ Φ (list S)) -cons?)
+           (or (Ps⊢P (Ψ@ Φ (list S)) 'list?)
+               (match (Ps⊢P (Ψ@ Φ (list S)) -cons?)
                  ['✓ (define S.cdr (S:@ -cdr (list S)))
-                     (and (hash-has-key? Φ (list S.cdr)) (go S.cdr))]
+                     (and (hash-has-key? Ψ (list S.cdr)) (go S.cdr))]
                  [d d]))]))
-      (go V₀)))
+      (go T₀)))
 
-  (: check-one-of : V (Listof Base) → ?Dec)
-  (define (check-one-of V bs)
-    (match V
+  (: check-one-of : T (Listof Base) → ?Dec)
+  (define (check-one-of T bs)
+    (match T
       [(-b b) (if (member b bs) '✓ '✗)]
       [(? -●?) #f]
+      [(? S?) #f]
       [_ '✗]))
 
-  (define ⊢V : (V → ?Dec)
+  (define ⊢T : (T → ?Dec)
     (match-lambda
       [(-b b) (bool->Dec (and b #t))]
       [(-● Ps) (neg (Ps⊢P Ps 'not))]
+      [(S:@ (? -st-mk?) _) '✓]
       [(? S?) #f]
       [_ '✓]))
 
@@ -427,13 +434,13 @@
 
   (define bool-excludes? (set->predicate (get-exclusions 'boolean?)))
 
-  (: V-arity (case-> [Clo → (U Natural arity-at-least)]
+  (: T-arity (case-> [Clo → (U Natural arity-at-least)]
                      [Case-Clo → Arity]
-                     [V → (Option Arity)]))
-  (define V-arity
+                     [T → (Option Arity)]))
+  (define T-arity
     (match-lambda
       [(Clo xs _ _) (shape xs)]
-      [(Case-Clo cases) (normalize-arity (map V-arity cases))]
+      [(Case-Clo cases) (normalize-arity (map T-arity cases))]
       [(Fn:● arity _) arity]
       [(or (And/C #t _ _) (Or/C #t _ _) (? Not/C?) (St/C #t _ _) (? One-Of/C?)) 1]
       [(X/G (? Fn/C? G) _ _) (guard-arity G)]
@@ -444,7 +451,7 @@
       [(? symbol? o) (prim-arity o)]
       [V
        #:when (not (or (Clo? V) (Case-Clo? V))) ; to convince TR
-       (log-warning "Warning: call `V-arity` on an obviously non-procedure ~a" V)
+       (log-warning "Warning: call `T-arity` on an obviously non-procedure ~a" V)
        #f]))
 
   (define dummy-Σ (⊥Σ))

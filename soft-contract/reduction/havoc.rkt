@@ -36,7 +36,7 @@
         (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
     (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
   
-  (: add-leak! : ((U HV-Tag α) Σ (U V^ W) → Void))
+  (: add-leak! : ((U HV-Tag α) Σ V^ → Void))
   (define (add-leak! tag Σ V)
     (define (keep-behavioral [V : V^]) : V^
       (for/fold ([V : V^ V])
@@ -53,8 +53,8 @@
   (define (havoc tag R^ Ξ₀ Σ)
     (define-values (W^ Φ^) (collapse-R^ R^))
     (define α• (tag->leak tag))
-    (for ([W (in-set W^)])
-      (add-leak! α• Σ W))
+    (for* ([W (in-set W^)] [T (in-list W)])
+      (add-leak! α• Σ (T->V Σ Φ^ T)))
     (for/union : (℘ Ξ) ([V (in-set (Σᵥ@ Σ α•))] #:unless (seen? V (Σ-val Σ)))
        (havoc-V V Φ^ Ξ₀ Σ)))
 
@@ -74,7 +74,7 @@
             (define Vᵣ {set (-● {set 'list?})})
             (define ℓ (loc->ℓ (loc 'havoc 0 0 (list 'app 'varargs))))
             ((app₁ 'apply) `(,{set V} ,@Wᵢ ,Vᵣ) ℓ Φ^ Ξ₀ Σ)]))
-       (match (V-arity V)
+       (match (T-arity V)
          [(? list? ks)
           (for/union : (℘ Ξ) ([k (in-list ks)])
             (cond [(integer? k) (with k)]
@@ -99,9 +99,9 @@
        (define Vₐ (for/union : V^ ([α (in-list αs)])
                     (begin0 (Σᵥ@ Σ α)
                       (⊔ᵥ! Σ α (-● ∅)))))
-       {set (ret! (V->R Vₐ Φ^) Ξ₀ Σ)}]
+       {set (ret! (T->R Vₐ Φ^) Ξ₀ Σ)}]
       [(Vect^ α _)
-       {set (begin0 (ret! (V->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)
+       {set (begin0 (ret! (T->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)
               (⊔ᵥ! Σ α (-● ∅)))}]
       ;; Hash
       [(or (? Hash^?) (X/G _ (? Hash/C?) _))

@@ -42,8 +42,8 @@
            (define ok (ret! (implement-predicate Σ Φ^ o W) Ξ Σ))
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
            (define ?er
-             (match ((inst findf V^) (λ (V^) (sequence-ormap Sealed? V^)) W)
-               [(? set? V^) (r:blm ℓ o '(any/c) (list V^))]
+             (match ((inst findf T^) (λ (T^) (and (set? T^) (set-ormap Sealed? T^))) W)
+               [(? set? T^) (r:blm ℓ o '(any/c) (list T^))]
                [#f ∅]))
            {set-add ?er ok}]
           [else (r:blm ℓ o (list (-b n) 'values) W)]))))
@@ -61,11 +61,10 @@
 
   (: W->bs : W → (Option (Listof Base)))
   (define (W->bs W)
-    (foldr (λ ([V^ : V^] [?bs : (Option (Listof Base))])
-             (and ?bs
-                  (= 1 (set-count V^))
-                  (-b? (set-first V^))
-                  (cons (-b-unboxed (assert (set-first V^) -b?)) ?bs)))
+    (foldr (λ ([T^ : T^] [?bs : (Option (Listof Base))])
+             (match* (?bs T^)
+               [(#t {singleton-set (-b b)}) (cons b ?bs)]
+               [(_ _) #f]))
            '()
            W))
 
@@ -243,32 +242,21 @@
     (⟦k⟧:chk-args args H φ Σ)
     |#)
 
-  (: vec-len : V^ → V^)
-  (define (vec-len Vs)
-    (set-union-map
-     (match-lambda
-       [(Vect αs) {set (-b (length αs))}]
-       [(Vect^ _ Vₙ) Vₙ]
-       [(X/G (Vect/C αs) _ _) {set (-b (length αs))}]
-       [(? S? V) {set (S:@ 'vector-length (list V))}]
-       [_ {set (-● {set 'exact-nonnegative-integer?})}])
-     Vs))
+  (: vec-len : T^ → T^)
+  (define (vec-len T^)
+    (if (set? T^)
+        (set-union-map
+         (match-lambda
+           [(Vect αs) {set (-b (length αs))}]
+           [(Vect^ _ Vₙ) Vₙ]
+           [(X/G (Vect/C αs) _ _) {set (-b (length αs))}] 
+           [_ {set (-● {set 'exact-nonnegative-integer?})}])
+         T^)
+        (S:@ 'vector-length (list T^))))
 
-  (: mk-res : (℘ P) -o W → V^)
+  (: mk-res : (℘ P) -o W → T^)
   (define (mk-res Ps o Wₓ)
-    (cond
-      [(andmap (λ ([V^ : V^]) (for/and : Boolean ([V (in-set V^)]) (S? V))) Wₓ)
-       (define args : (℘ (Listof S))
-         (let go ([Wₓ : W Wₓ])
-           (match Wₓ
-             ['() {set '()}]
-             [(cons V Wₓ*)
-              (define rst (go Wₓ*))
-              (for*/set : (℘ (Listof S)) ([S₁ (in-set V)] [Sᵣ (in-set rst)])
-                (cons (assert S₁ S?) Sᵣ))])))
-       (for/set : (℘ S) ([arg (in-set args)])
-         (S:@ o arg))]
-      [else {set (-● Ps)}]))
+    (if (andmap S? Wₓ) (S:@ o Wₓ) {set (-● Ps)}))
 
   (: add-seal : Σ Symbol H -l → Seal/C)
   (define (add-seal Σ x H l)

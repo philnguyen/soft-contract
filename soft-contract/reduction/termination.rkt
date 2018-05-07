@@ -15,7 +15,8 @@
          "signatures.rkt")
 
 (define-unit termination@
-  (import prover^)
+  (import val^
+          prover^)
   (export termination^)
 
   (?Ch . ≜ . (Option Ch))
@@ -29,7 +30,7 @@
             (let ([G* (concat-graph G₀ G)])
               (and (strict-progress? G*)
                    (hash-set M₀ Vₕ (Call-Record Wₓ G*)))))]
-      [#f (hash-set M₀ Vₕ (Call-Record Wₓ (init-sc-graph (V-arity Vₕ))))]))
+      [#f (hash-set M₀ Vₕ (Call-Record Wₓ (init-sc-graph (T-arity Vₕ))))]))
 
   (define/memo (init-sc-graph [a : (U Natural arity-at-least)]) : SCG
     (define n (match a
@@ -42,15 +43,15 @@
   (define (make-sc-graph W₀ W₁ Φ^ Σ)
     (unless (= (length W₀) (length W₁))
       (error 'make-sc-graph "TODO: generalize construction of size-change graphs for argument lists of mismatched lengths ~a and ~a" (length W₀) (length W₁)))
-    (for*/hash : SCG ([(V^₀ i₀) (in-indexed W₀)]
-                      [(V^₁ i₁) (in-indexed W₁)]
-                      [?↓ (in-value (cmp V^₀ V^₁ Φ^ Σ))] #:when ?↓)
+    (for*/hash : SCG ([(T^₀ i₀) (in-indexed W₀)]
+                      [(T^₁ i₁) (in-indexed W₁)]
+                      [?↓ (in-value (cmp T^₀ T^₁ Φ^ Σ))] #:when ?↓)
       (values (cons i₀ i₁) ?↓)))
 
-  (: cmp : V^ V^ Φ^ Σ → ?Ch)
-  (define (cmp V^₀ V^₁ Φ^ Σ) 
-    (cond [(defly? (λ () (partition-results Σ (R (list V^₀ V^₁) Φ^) 'equal?))) '↧]
-          [(check-≺ Σ Φ^ V^₀ V^₁) '↓]
+  (: cmp : T^ T^ Φ^ Σ → ?Ch)
+  (define (cmp T^₀ T^₁ Φ^ Σ) 
+    (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
+          [(check-≺ Σ Φ^ T^₀ T^₁) '↓]
           [else #f]))
 
   (: concat-graph : SCG SCG → SCG)
@@ -77,25 +78,20 @@
   (: strict-progress? : SCG → Boolean)
   (define (strict-progress? G) (for/or ([d (in-hash-values G)]) (eq? d '↓)))
 
-  (: check-≺ : Σ Φ^ V^ V^ → Boolean)
-  (define (check-≺ Σ Φ^ V^₀ V^₁)
-    (for*/and : Boolean ([V₀ (in-set V^₀)] [V₁ (in-set V^₁)])
-      (check-≺₁ Σ Φ^ V₀ V₁)))
+  (: check-≺ : Σ Φ^ T^ T^ → Boolean)
+  (define (check-≺ Σ Φ^ T^₀ T^₁)
+    (or (and (defly? (λ () (partition-results Σ (R (list (-b 1) T^₀) Φ^) '<)))
+             (defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) '<))))
+        (T^₀ . sub-value? . T^₁)))
 
-  (: check-≺₁ : Σ Φ^ V V → Boolean)
-  (define (check-≺₁ Σ Φ^ V₀ V₁)
-    (or (and (defly? (λ () (partition-results Σ (R (list {set (-b -1)} {set V₀}) Φ^) '<)))
-             (defly? (λ () (partition-results Σ (R (list {set V₀} {set V₁}) Φ^) '<))))
-        (V₁ . sub-value? . V₀)))
-
-  (: sub-value? : V V → Boolean)
+  (: sub-value? : T^ T^ → Boolean)
   (define (x . sub-value? . y)
     (match* (x y)
       [((S:@ (? -st-ac?) (list x*)) (? S? y))
-       (let go ([x : S x*])
+       (let loop ([x : S x*])
          (match x
            [(== y) #t]
-           [(S:@ (? -st-ac?) (list x*)) (go x*)]
+           [(S:@ (? -st-ac?) (list x*)) (loop x*)]
            [_ #f]))]
       [(_ _) #f]))
 

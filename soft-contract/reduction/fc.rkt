@@ -20,15 +20,15 @@
 (define-unit fc@
   (import sto^ env^ val^ evl^
           prover^
-          step^ compile^)
+          step^ compile^ approx^)
   (export fc^)
 
-  (: fc : V^ V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))
+  (: fc : T^ T^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))
   (define (fc C V ℓ Φ^ Ξ₀ Σ)
-    (for/union : (℘ Ξ) ([Cᵢ (in-set C)])
+    (for/union : (℘ Ξ) ([Cᵢ (in-set (T->V Σ Φ^ C))])
       ((fc₁ Cᵢ) V ℓ Φ^ Ξ₀ Σ)))
 
-  (⟦FC⟧ . ≜ . (V^ ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
+  (⟦FC⟧ . ≜ . (T^ ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 
   (: fc₁ : V → ⟦FC⟧)
   (define fc₁
@@ -60,7 +60,7 @@
   (: fc-One-Of/C : (Listof Base) → ⟦FC⟧)
   (define ((fc-One-Of/C bs) Vₓ ℓ Φ^ Ξ Σ)
     (define (er) (ret! (R '() Φ^) Ξ Σ))
-    (define (ok [V : V^]) (ret! (R (list V) Φ^) Ξ Σ))
+    (define (ok [V : T^]) (ret! (R (list V) Φ^) Ξ Σ))
     (case (check-one-of Φ^ Vₓ bs)
       [(✓) {set (ok Vₓ)}]
       [(✗) {set (er)}]
@@ -69,16 +69,16 @@
   (: fc-St/C : -𝒾 (Listof αℓ) → ⟦FC⟧)
   (define ((fc-St/C 𝒾 αℓs) Vₓ ℓ Φ^ Ξ Σ)
     (define (chk-fields [R^ : R^])
-      (define-values (Vₓ* Φ^*) (collapse-R^-1 R^))
+      (define-values (Vₓ* Φ^*) (collapse-R^-1 Σ R^))
       (define ⟦chk⟧s : (Listof EΡ)
         (for/list ([αℓᵢ (in-list αℓs)] [i (in-naturals)] #:when (index? i))
           (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
-          (define ⟦ref⟧ᵢ (mk-app ℓ (mk-V (-st-ac 𝒾 i)) (list (mk-V Vₓ*))))
-          (EΡ (mk-fc ℓᵢ (mk-V (Σᵥ@ Σ αᵢ)) ⟦ref⟧ᵢ) ⊥Ρ)))
+          (define ⟦ref⟧ᵢ (mk-app ℓ (mk-T (-st-ac 𝒾 i)) (list (mk-T Vₓ*))))
+          (EΡ (mk-fc ℓᵢ (mk-T (Σᵥ@ Σ αᵢ)) ⟦ref⟧ᵢ) ⊥Ρ)))
       (match ⟦chk⟧s
         [(cons (EΡ ⟦chk⟧ _) ⟦chk⟧s)
          {set (⟦chk⟧ ⊥Ρ Φ^* (K+ (F:Fc-Struct/C ℓ 𝒾 '() ⟦chk⟧s) Ξ) Σ)}]
-        ['() {set (ret! (V->R (St 𝒾 '()) Φ^*) Ξ Σ)}]))
+        ['() {set (ret! (T->R (St 𝒾 '()) Φ^*) Ξ Σ)}]))
     (with-2-paths (λ () (split-results Σ (R (list Vₓ) Φ^) (-st-p 𝒾)))
       chk-fields
       (λ ([R^ : R^])
@@ -87,16 +87,16 @@
 
   (: fc-X/C : α → ⟦FC⟧)
   (define ((fc-X/C α) Vₓ ℓ Φ^ Ξ Σ)
-    {set (ret! (V->R Vₓ Φ^) (K+ (F:Fc:C ℓ (Σᵥ@ Σ α)) Ξ) Σ)})
+    {set (ret! (T->R Vₓ Φ^) (K+ (F:Fc:C ℓ (Σᵥ@ Σ α)) Ξ) Σ)})
 
   (: fc-b : Base → ⟦FC⟧)
   (define ((fc-b b) Vₓ ℓ Φ^ Ξ Σ)
-    (define ⟦b⟧ (mk-V (-b b)))
-    (define ⟦ap⟧ (mk-app ℓ (mk-V 'equal?) (list (mk-V Vₓ) ⟦b⟧)))
+    (define ⟦b⟧ (mk-T (-b b)))
+    (define ⟦ap⟧ (mk-app ℓ (mk-T 'equal?) (list (mk-T Vₓ) ⟦b⟧)))
     {set (⟦ap⟧ ⊥Ρ Φ^ (K+ (F:If (ℓ-src ℓ) ⟦b⟧ (mk-W '()) ⊥Ρ) Ξ) Σ)})
 
   (: fc-p : V → ⟦FC⟧)
   (define ((fc-p P) Vₓ ℓ Φ^ Ξ Σ)
-    (define ⟦ap⟧ (mk-app ℓ (mk-V P) (list (mk-V Vₓ))))
-    {set (⟦ap⟧ ⊥Ρ Φ^ (K+ (F:If (ℓ-src ℓ) (mk-V Vₓ) (mk-W '()) ⊥Ρ) Ξ) Σ)})
+    (define ⟦ap⟧ (mk-app ℓ (mk-T P) (list (mk-T Vₓ))))
+    {set (⟦ap⟧ ⊥Ρ Φ^ (K+ (F:If (ℓ-src ℓ) (mk-T Vₓ) (mk-W '()) ⊥Ρ) Ξ) Σ)})
   )

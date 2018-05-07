@@ -230,18 +230,18 @@
       (if ?rst
           (list
            #`(define (run-body) : (℘ Ξ) #,@body)
-           #`(let go ([rests : (Listof V^) #,(-Vᵣ)])
+           #`(let go ([rests : W #,(-Vᵣ)])
                (match rests
-                 [(cons V^ rests*)
+                 [(cons T^ rests*)
                   ((inst r:with-2-paths/collapse Ξ)
-                   (λ () (r:split-results #,(-Σ) (R (list V^) #,(-Φ^)) '#,?rst))
+                   (λ () (r:split-results #,(-Σ) (R (list T^) #,(-Φ^)) '#,?rst))
                    (λ (#,(-Φ^)) (go rests*))
-                   (λ _ (blm '#,?rst V^)))]
+                   (λ _ (blm '#,?rst T^)))]
                  ['() (run-body)])))
           body))
     (hack:make-available (-o) r:blm)
     (cons
-     #`(define (blm [ctc : V] [val : V^])
+     #`(define (blm [ctc : V] [val : T^])
          (r:blm #,(-ℓ) '#,(-o) (list {set ctc}) (list val)))
      (gen-inits doms (-Vⁿ))))
 

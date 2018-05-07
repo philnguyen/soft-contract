@@ -14,13 +14,15 @@
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit compile@
   (import meta-functions^ static-info^ ast-pretty-print^
           env^ val^ sto^ evl^ pretty-print^
-          step^ alloc^)
+          step^ alloc^
+          prover^)
   (export compile^)
 
   (: ↓ₚ : -prog → ⟦E⟧)
@@ -114,17 +116,20 @@
     
     (: ↓ : -e → ⟦E⟧)
     (define-compiler ((↓ E) Ρ Φ^ Ξ Σ)
-      [(? -prim? p) (mk-V p)]
-      [(-•) (mk-V (-● ∅))]
+      [(? -prim? p) (mk-T p)]
+      [(-•) (mk-T (-● ∅))]
       [(-x (? symbol? x) ℓₓ) (↓ₓ x ℓₓ)]
       [=> (-λ xs E*)
-          (ret! (V->R (Clo xs (rn ⟦E*⟧ E*) (m↓ Ρ fvs)) Φ^) Ξ Σ)
+          (ret! (T->R (Clo xs (rn ⟦E*⟧ E*) (m↓ Ρ fvs)) Φ^) Ξ Σ)
           #:where [fvs (fv E)]
           #:recur E*]
       [=> (-x (and 𝒾 (-𝒾 x lₒ)) _)
           (let ([V^ (map/set modify-V (Σᵥ@ Σ α))])
-            (ret! (V->R V^ Φ^) Ξ Σ))
+            (cond [mut? (ret! (T->R V^ Φ^) Ξ Σ)]
+                  [else (ret! ($@* Φ^ α) Ξ Σ)])
+            )
           #:where
+          [mut? (assignable? 𝒾)]
           [α (mk-α ((if (equal? lₒ l) -α:top -α:wrp) 𝒾))]
           [modify-V
            (ann (cond
@@ -155,7 +160,7 @@
           (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) Ξ) Σ)
           #:recur E E₁ E₂]
       [(-wcm Eₖ Eᵥ E) ???]
-      [(-begin '()) (mk-V -void)]
+      [(-begin '()) (mk-T -void)]
       [(-begin (list E)) (↓ E)]
       [=> (-begin (cons E Es))
           (⟦E⟧ Ρ Φ^ (K+ (F:Bgn (assert ⟦Es⟧ pair?) Ρ) Ξ) Σ)
@@ -164,7 +169,7 @@
       [=> (-begin0 E₀ Es)
           (⟦E₀⟧ Ρ Φ^ (K+ (F:Bgn0:V (assert ⟦Es⟧ pair?) Ρ) Ξ) Σ)
           #:recur E₀ (Es ...)]
-      [(-quote (? Base? b)) (mk-V (-b b))]
+      [(-quote (? Base? b)) (mk-T (-b b))]
       [(-quote q) ???]
       [(-let-values '() E _) (↓ E)]
       [=> (-let-values bnds E ℓ)
@@ -191,11 +196,11 @@
       [(--> Cs D ℓ) (mk--> ℓ (-var-map ↓ Cs) (↓ D))]
       [(-->i Cs D) (mk-->i (map ↓-dom Cs) (↓-dom D))]
       [=> (-∀/c xs E*)
-          (ret! (V->R (∀/C xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
+          (ret! (T->R (∀/C xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
           #:where [fvs (fv E)]
           #:recur E*]
       [=> (-x/c x)
-          (ret! (V->R (X/C (Ρ@ Ρ x)) Φ^) Ξ Σ)]
+          (ret! (T->R (X/C (Ρ@ Ρ x)) Φ^) Ξ Σ)]
       [=> (-struct/c 𝒾 '() ℓ)
           (cond [(𝒾-defined? Σ) (ret! (R C Φ^) Ξ Σ)]
                 [else (blm:undefined-struct 𝒾 ℓ)])
@@ -213,15 +218,16 @@
 
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
     (define blm:undefined (Blm (strip-ℓ ℓₓ) 'Λ '(defined?) (list {set -undefined})))
+    (define mut? (assignable? x))
     (λ (Ρ Φ^ Ξ Σ)
       (define α (Ρ@ Ρ x))
       (define V^ (Σᵥ@ Σ α))
-      (if (set-empty? V^)
-          blm:undefined
-          (ret! (V->R (S:α α) Φ^) Ξ Σ))))
+      (cond [(set-empty? V^) blm:undefined]
+            [mut? (ret! (T->R V^ Φ^) Ξ Σ)]
+            [else (ret! ($@* Φ^ α) Ξ Σ)])))
 
-  (define (mk-V [V : (U V V^)]) : ⟦E⟧
-    (mk-W (if (set? V) (list V) (list {set V}))))
+  (define (mk-T [T : (U T T^)]) : ⟦E⟧
+    (mk-W (if (or (set? T) (S? T)) (list T) (list (set T)))))
 
   (define/memo (mk-W [W : W]) : ⟦E⟧
     (rn (λ (Ρ Φ^ Ξ Σ) (ret! (R W Φ^) Ξ Σ)) W))
@@ -233,7 +239,7 @@
       (define-values (Doms doms) (split-⟦dom⟧s Ρ (append ⟦dom⟧s (list ⟦rng⟧))))
       (match doms
         ['() (let ([G (==>i (reverse (cdr Doms)) (car Doms))])
-               (ret! (V->R G Φ^) Ξ Σ))]
+               (ret! (T->R G Φ^) Ξ Σ))]
         [(cons (⟦dom⟧ x #f ⟦C⟧ ℓ) ⟦dom⟧s)
          (⟦C⟧ Ρ Φ^ (K+ (F:==>i Ρ Doms (cons x ℓ) ⟦dom⟧s) Ξ) Σ)])))
 
@@ -267,10 +273,10 @@
   (define/memo (mk-fc [ℓ : ℓ] [⟦C⟧ : ⟦E⟧] [⟦V⟧ : ⟦E⟧]) : ⟦E⟧
     (λ (Ρ Φ^ Ξ Σ) (⟦C⟧ Ρ Φ^ (K+ (F:Fc:V ℓ ⟦V⟧ Ρ) Ξ) Σ)))
 
-  (define/memo (mk-wrapped [C : Prox/C] [ctx : Ctx] [α : α] [V : V^]) : ⟦E⟧
+  (define/memo (mk-wrapped [C : Prox/C] [ctx : Ctx] [α : α] [T : T^]) : ⟦E⟧
     (λ (ρ Φ^ Ξ Σ)
-      (⊔ᵥ! Σ α V)
-      (ret! (V->R (X/G ctx C α) Φ^) Ξ Σ)))
+      (⊔T! Σ Φ^ α T)
+      (ret! (T->R (X/G ctx C α) Φ^) Ξ Σ)))
 
   (: split-⟦dom⟧s : Ρ (Listof ⟦dom⟧) → (Values (Listof Dom) (Listof ⟦dom⟧)))
   (define (split-⟦dom⟧s Ρ ⟦dom⟧s)
@@ -288,6 +294,6 @@
     (let ([s (cond [(-e? x) (format "⟦~a⟧"(show-e x))]
                    [(-prog? x) (format "⟦~a⟧" (map show-module (-prog-_0 x)))]
                    [(-module? x) (format "⟦~a⟧" (show-module x))]
-                   [else (format "⟦w ~a⟧" (map show-V^ x))])])
+                   [else (format "⟦w ~a⟧" (map show-T x))])])
       (procedure-rename ⟦E⟧ (string->symbol s))))
   )

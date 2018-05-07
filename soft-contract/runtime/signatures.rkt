@@ -26,7 +26,7 @@
 (#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W Φ^))
 (#|Path            |# Φ . ::= . (Φ [alias : $] [condition : Ψ]))
-(#|Path alias      |# $ . ≜ . (Immutable-HashTable Symbol S))
+(#|Path alias      |# $ . ≜ . (Immutable-HashTable α S))
 (#|Path condition  |# Ψ . ≜ . (Immutable-HashTable (Listof S) (℘ P)))
 (#|Environment     |# Ρ . ≜ . (Immutable-HashTable Symbol α))
 (struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
@@ -37,6 +37,7 @@
 (#|Call history    |# M  . ≜ . (Immutable-HashTable Clo Call-Record))
 (#|Value list      |# W  . ≜ . (Listof T^))
 (#|Sym/Abs value   |# T  . ::= . S V)
+(#|Sym/Abs value   |# T^ . ::= . S V^)
 (#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ Ξ:co Σ → Ξ))
 (#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ Ξ:co Σ → Ξ))
 (#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ))) ; FIXME obsolete
@@ -44,7 +45,6 @@
 ;; Approximated versions of things
 (Φ^ . ≜ . (℘ Φ))
 (V^ . ≜ . (℘ V))
-(T^ . ≜ . (℘ T))
 (R^ . ≜ . (℘ R))
 (Ξ:co^ . ≜ . (℘ Ξ:co))
 (W^ . ≜ . (℘ W))
@@ -66,7 +66,7 @@
                      (Sealed α)
                      C
                      P #|hack in prim DSL|#) 
-(#|Symbolic value|# S . ::= . -b (S:clo -formals ⟦E⟧ Ρ) (S:α α) (S:@ S (Listof S)))
+(#|Symbolic value|# S . ::= . -b -o (S:α α) (S:@ S (Listof S)))
 (#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Index))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
@@ -128,7 +128,6 @@
 (define-St-matcher (Box α) -𝒾-box)
 (define-St/G-matcher Box/G -𝒾-box)
 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Some instantiations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -163,16 +162,16 @@
    [⊥Σᵥ : Σᵥ]
    [⊥Σₖ : Σₖ]
    [⊥Σₐ : Σₐ]
-   [Σᵥ@ : ((U Σ Σᵥ) α  → V^)]
+   [Σᵥ@ : ((U Σ Σᵥ) α  → V^)] 
    [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
    [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
-   [⊔ᵥ : (Σᵥ α (U V V^) → Σᵥ)]
-   [⊔ₖ : (Σₖ αₖ Ξ:co → Σₖ)]
-   [⊔ₐ : (Σₐ Ξ:co (U R R^) → Σₐ)]
+   #;[⊔ᵥ : (Σᵥ α (U V V^) → Σᵥ)]
+   #;[⊔ₖ : (Σₖ αₖ Ξ:co → Σₖ)]
+   #;[⊔ₐ : (Σₐ Ξ:co (U R R^) → Σₐ)]
    [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
@@ -194,7 +193,7 @@
 
 (define-signature val^
   (#;[fresh-sym! : (→ -s)]
-   [C-flat? : (T → Boolean)]
+   [C-flat? : (V → Boolean)]
    [C^-flat? : (T^ → Boolean)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
@@ -203,34 +202,28 @@
                    [==> → Arity]
                    [Fn/C → (Option Arity)])]
    [blm-arity : (ℓ -l Arity W → Blm)]
-   [T⊔ : (T^ T^ → T^)]
-   [T⊔₁ : (T^ T → T^)]
    [V⊔₁ : (V^ V → V^)]
    [V⊔ : (V^ V^ → V^)]
-   [⊥T : T^]
-   [collapse-value-lists : (W^ Natural → W)]
    [K+ : (F Ξ:co → Ξ:co)]
+   [in-T^ : (T^ → (Sequenceof T))]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
 (define-signature evl^
   ([⊤Φ : Φ]
    [⊥Φ^ : Φ^]
-   [Φ@ : (Φ (Listof T) → (℘ P))]
-   [R⊔ : (R R → R)]
-   [R⊔₁ : (R (Listof T) Φ → R)]
-   [validate-R : (?R → ?R)]
+   [Ψ@ : (Φ (Listof T) → (℘ P))]
+   [$@* : (Φ^ α → R^)]
    [T->R : ((U T T^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
-   [collapse-R^ : (R^ → (Values W^ Φ^))] 
-   [collapse-R^-1 : (R^ → (Values T^ Φ^))]
+   [collapse-R^ : (R^ → (Values W^ Φ^))]
    [collapse-R^/Φ^ : (R^ → Φ^)]
-   [collapse-R^/W^ : (R^ → W^)] 
-   [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
-   [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
+   [collapse-R^/W^ : (R^ → W^)]
    [with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
-   [with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]))
+   [with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
+   [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
+   [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]))
 
 (define-signature pretty-print^
   ([show-blm-reason : ((U V P V^) → Sexp)]
-   [show-T^ : (T^ → Sexp)])) 
+   [show-T : ((U T T^) → Sexp)])) 

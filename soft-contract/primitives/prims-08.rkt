@@ -18,7 +18,8 @@
 
 (define-unit prims-08@
   (import prim-runtime^ evl^ sto^ val^
-          step^)
+          step^
+          prover^)
   (export)
 
   
@@ -80,7 +81,7 @@
     #:init ([V flat-contract?])
     (define α (mk-α (-α:not/c ℓ (Ξ:co-ctx Ξ))))
     (define ℓ* (ℓ-with-id ℓ 'not/c))
-    {set (ret! (V->R (Not/C (αℓ α ℓ*)) Φ^) Ξ Σ)})
+    {set (ret! (T->R (Not/C (αℓ α ℓ*)) Φ^) Ξ Σ)})
   (def* (=/c </c >/c <=/c >=/c) ; TODO
     (real? . -> . flat-contract?))
   (def between/c (real? real? . -> . flat-contract?))
@@ -99,13 +100,14 @@
              [(singleton-set (-b b)) b]
              [V^ (error 'one-of/c "only support simple values for not, got ~a" V^)])
            W))
-    {set (ret! (V->R (One-Of/C vals) Φ^) Ξ Σ)})
+    {set (ret! (T->R (One-Of/C vals) Φ^) Ξ Σ)})
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
   (def (vectorof W ℓ Φ^ Ξ Σ) ; FIXME uses
-    #:init ([V contract?])
+    #:init ([T contract?])
     (define α (mk-α (-α:vectof ℓ (Ξ:co-ctx Ξ))))
-    {set (ret! (V->R (Vectof (αℓ α (ℓ-with-id ℓ 'vectorof))) Φ^) Ξ Σ)})
+    (⊔T! Σ Φ^ α T)
+    {set (ret! (T->R (Vectof (αℓ α (ℓ-with-id ℓ 'vectorof))) Φ^) Ξ Σ)})
   (def vector-immutableof (contract? . -> . contract?))
   (def (vector/c W ℓ₀ Φ^ Ξ Σ)
     #:init ()
@@ -113,11 +115,11 @@
     (define H (Ξ:co-ctx Ξ))
     ; FIXME uses ; FIXME check for domains to be listof contract
     (define αℓs : (Listof αℓ) ; with side-effect allocating
-      (for/list ([Vᵢ (in-list W)] [i (in-naturals)] #:when (index? i))
+      (for/list ([Tᵢ (in-list W)] [i (in-naturals)] #:when (index? i))
         (define αᵢ (mk-α (-α:vect/c ℓ₀ H i)))
-        (⊔ᵥ! Σ αᵢ Vᵢ)
+        (⊔T! Σ Φ^ αᵢ Tᵢ)
         (αℓ αᵢ (ℓ-with-id ℓ₀ i))))
-    {set (ret! (V->R (Vect/C αℓs) Φ^) Ξ Σ)})
+    {set (ret! (T->R (Vect/C αℓs) Φ^) Ξ Σ)})
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def box/c ; FIXME uses
@@ -139,11 +141,11 @@
     (define Disj (Or/C flat? (αℓ α₀ ℓ₀) (αℓ α₁ ℓ₁)))
     (define Cons (St/C flat? -𝒾-cons (list (αℓ αₕ ℓₕ) (αℓ αₜ ℓₜ))))
     (define Ref (X/C αₗ))
-    (⊔ᵥ! Σ αₗ Disj)
-    (⊔ᵥ! Σ α₁ Cons)
-    (⊔ᵥ! Σ αₕ C)
-    (⊔ᵥ! Σ αₜ Ref)
-    {set (ret! (V->R Ref Φ^) Ξ Σ)})
+    (⊔T! Σ Φ^ αₗ Disj)
+    (⊔T! Σ Φ^ α₁ Cons)
+    (⊔T! Σ Φ^ αₕ C)
+    (⊔T! Σ Φ^ αₜ Ref)
+    {set (ret! (T->R Ref Φ^) Ξ Σ)})
   (def non-empty-listof (contract? . -> . list-contract?))
   (def list*of (contract? . -> . contract?))
   (def cons/c (contract? contract? . -> . contract?))

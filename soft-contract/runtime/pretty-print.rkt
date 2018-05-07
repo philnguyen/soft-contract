@@ -56,7 +56,7 @@
     (match-lambda
       [(? V? V) (show-V V)]
       [(? P? P) (show-P P)]
-      [(? set? s) (show-T^ s)]))
+      [(? set? s) (show-T s)]))
 
   (define (show-V [V : V]) : Sexp
     (match V
@@ -75,7 +75,7 @@
       [(X/G _ G α) `(,(show-V G) ◃ ,(show-α α))]
       [(St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]
       [(Vect αs) `(vector ,@(map show-α αs))]
-      [(Vect^ α n) `(vector^ ,(show-α α) ,(show-T^ n))]
+      [(Vect^ α n) `(vector^ ,(show-α α) ,(show-T n))]
       [(Hash^ k v im?) `(,(if im? 'hash^ 'mutable-hash^) ,(show-α k) ,(show-α v))]
       [(Set^ elems im?) `(,(if im? 'set^ 'mutable-set^) ,(show-α elems))]
       [(And/C _ l r) `(and/c ,(show-α (αℓ-_0 l)) ,(show-α (αℓ-_0 r)))]
@@ -120,13 +120,14 @@
   (: show-αℓs : (Listof αℓ) → Sexp)
   (define show-αℓs (show-values-lift show-αℓ))
 
-  (define (show-T^ [T^ : T^]) : Sexp (set-map T^ show-T))
-  (define (show-T [T : T]) : Sexp (if (S? T) (show-S T) (show-V T)))
+  (define (show-T [T : (U T T^)]) : Sexp
+    (cond [(set? T) (set-map T show-V)]
+          [(S? T) (show-S T)]
+          [else (show-V T)]))
 
   (define show-S : (S → Sexp)
     (match-lambda
       [(-b b) (show-b b)]
-      [(S:clo xs ⟦E⟧ _) `(λ ,(show-formals xs) ...)]
       [(S:α α) (show-α α)]
       [(S:@ S Ss) `(,(show-S S) ,@(map show-S Ss))]))
 
@@ -134,13 +135,13 @@
     (match-define (Blm ℓ lo Cs Vs) blm)
     (match* (Cs Vs)
       [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
-      [(_ _) `(blame ,(show-ℓ ℓ) ,lo ,(map show-blm-reason Cs) ,(map show-T^ Vs))]))
+      [(_ _) `(blame ,(show-ℓ ℓ) ,lo ,(map show-blm-reason Cs) ,(map show-T Vs))]))
 
   (define show-αₖ : (αₖ → Sexp)
     (match-lambda
       [(αₖ:clo ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]
       [(αₖ:hv tag) tag]
-      [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T^ W))]))
+      [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))]))
 
   (define (show-α [α : α]) : Sexp
     (define (show-α.x [x : Symbol] [H : H])
@@ -169,7 +170,7 @@
   (define (dump-Σᵥ Σᵥ #:tag [tag 'store] #:appendix? [appendix? #f])
     (printf "~a:~n" tag)
     (for ([(α V) (in-hash Σᵥ)])
-      (printf "* ~a ↦ ~a~n" (show-α α) (show-T^ V)))
+      (printf "* ~a ↦ ~a~n" (show-α α) (show-T V)))
     (when appendix?
       (printf "where:~n")
       (for ([α (in-hash-keys Σᵥ)])
@@ -187,7 +188,7 @@
       [(P:¬ P) `(not/c ,(show-P P))]
       [(P:arity-includes a) `(arity-includes/c ,a)]))
 
-  (define show-Σ (show-map show-α show-T^))
+  (define show-Σ (show-map show-α show-T))
   (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))
   (define show-Ρ ((inst show-map Symbol α Symbol Sexp) values show-α))
   )

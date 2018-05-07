@@ -40,7 +40,8 @@
 (define-unit prims-04-13@
   (import sto^ evl^
           prim-runtime^
-          step^)
+          step^
+          prover^)
   (export)
 
   (def-pred hash?)
@@ -57,12 +58,12 @@
             (define αᵥ (mk-α (-α:hash:val ℓ H)))
             (let go! ([W : W Wₓ])
               (match W
-                [(list* Vₖ Vᵥ W*)
-                 (⊔ᵥ! Σ αₖ Vₖ)
-                 (⊔ᵥ! Σ αᵥ Vᵥ)
+                [(list* Tₖ Tᵥ W*)
+                 (⊔T! Σ Φ^ αₖ Tₖ)
+                 (⊔T! Σ Φ^ αᵥ Tᵥ)
                  (go! W*)]
                 [_ (void)]))
-            {set (ret! (V->R (Hash^ αₖ αᵥ #t) Φ^) Ξ Σ)}]
+            {set (ret! (T->R (Hash^ αₖ αᵥ #t) Φ^) Ξ Σ)}]
            [else
             (define msg (list (string->symbol "even number of arg(s)")))
             (r:blm ℓ name msg Wₓ)])))

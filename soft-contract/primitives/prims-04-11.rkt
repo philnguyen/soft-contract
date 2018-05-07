@@ -50,28 +50,28 @@
       ([.internal-make-vector
         (let ()
           (def (internal-make-vector W ℓ Φ^ Ξ Σ)
-            #:init ([Vₙ exact-nonnegative-integer?]
-                    [Vᵥ any/c])
+            #:init ([Tₙ exact-nonnegative-integer?]
+                    [Tᵥ any/c])
             (define H (Ξ:co-ctx Ξ))
-            (match Vₙ
+            (match Tₙ
               [(singleton-set (-b (? exact-nonnegative-integer? n)))
                (define αs : (Listof α)
                  (for/list ([i (in-range n)])
                    (define α (mk-α (-α:idx ℓ H (assert i index?))))
-                   (⊔ᵥ! Σ α Vᵥ)
+                   (⊔T! Σ Φ^ α Tᵥ)
                    α))
-               {set (ret! (V->R (Vect αs) Φ^) Ξ Σ)}]
+               {set (ret! (T->R (Vect αs) Φ^) Ξ Σ)}]
               [_
                (define α (mk-α (-α:vct ℓ H)))
-               (⊔ᵥ! Σ α Vᵥ)
-               {set (ret! (V->R (Vect^ α Vₙ) Φ^) Ξ Σ)}]))
+               (⊔T! Σ Φ^ α Tᵥ)
+               {set (ret! (T->R (Vect^ α (T->V Σ Φ^ Tₙ)) Φ^) Ξ Σ)}]))
           .internal-make-vector)])
     (def (make-vector W ℓ Φ^ Ξ Σ)
       #:init ()
       #:rest [W (listof any/c)]
       (define W*
         (match W
-          [(list Vₙ) (list Vₙ {set (-b 0)})]
+          [(list Tₙ) (list Tₙ {set (-b 0)})]
           [_ W]))
       (.internal-make-vector W* ℓ Φ^ Ξ Σ)))
   
@@ -80,33 +80,33 @@
     #:rest [W (listof any/c)]
     (define H (Ξ:co-ctx Ξ))
     (define αs : (Listof α) ; with side-effect allocating
-      (for/list ([V (in-list W)] [i (in-naturals)])
+      (for/list ([T (in-list W)] [i (in-naturals)])
         (define α (mk-α (-α:idx ℓ H (assert i index?))))
-        (⊔ᵥ! Σ α V)
+        (⊔T! Σ Φ^ α T)
         α))
-    {set (ret! (V->R (Vect αs) Φ^) Ξ Σ)})
+    {set (ret! (T->R (Vect αs) Φ^) Ξ Σ)})
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
   (def (vector-length W ℓ Φ^ Ξ Σ)
-    #:init ([V vector?])
-    {set (ret! (V->R (vec-len V) Φ^) Ξ Σ)})
+    #:init ([T vector?])
+    {set (ret! (T->R (vec-len T) Φ^) Ξ Σ)})
 
   (def (vector-ref W ℓ Φ^ Ξ₀ Σ)
-    #:init ([Vᵥ vector?] [Vᵢ integer?])
+    #:init ([Tᵥ vector?] [Tᵢ integer?])
     (define with (inst with-2-paths Ξ))
-    (with (λ () (split-results Σ (R (list Vᵥ) Φ^) 'vector? #:fast? #t))
+    (with (λ () (split-results Σ (R (list Tᵥ) Φ^) 'vector? #:fast? #t))
       (λ (R^)
         ???)
       (λ (R^)
         (r:blm ℓ 'vector-ref '(vector?) (collapse-R^/W^ R^))))
-    #;(for/union : (℘ Ξ) ([Vᵥ (in-set Vᵥ^)])
-      (match Vᵥ
+    #;(for/union : (℘ Ξ) ([Tᵥ (in-set Tᵥ^)])
+      (match Tᵥ
         [(Vect αs)
          (define Vₐ^
            (for/fold ([Vₐ^ : -V^ ∅])
                      ([α : ⟪α⟫ (in-list ⟪α⟫s)]
                       [i : Natural (in-naturals)]
-                      #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+                      #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
              (V⊕ φ Vₐ^ (σ@ Σ (-φ-cache φ) α))))
          (⟦k⟧ (list Vₐ^) H φ Σ)]
         [(-Vector^ α n)
@@ -117,52 +117,52 @@
            [(-Vector/C ⟪α⟫ℓs)
             (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                                  [i : Natural (in-naturals)]
-                                 #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+                                 #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
                        (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) ⟪α⟫ℓ)
                        (define ⟦k⟧* (let ([Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ)])
                                       (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) Cᵢ^ ⟦k⟧)))
-                       (define Vᵥ^* (σ@ Σ (-φ-cache φ) αᵥ))
-                       (.vector-ref ℓ (list Vᵥ^* Vᵢ) H φ Σ ⟦k⟧*))]
+                       (define Tᵥ^* (σ@ Σ (-φ-cache φ) αᵥ))
+                       (.vector-ref ℓ (list Tᵥ^* Tᵢ) H φ Σ ⟦k⟧*))]
            [(-Vectorof ⟪α⟫ℓ)
             (match-define (-⟪α⟫ℓ α* ℓ*) ⟪α⟫ℓ)
             (define ⟦k⟧* (let ([C*^ (σ@ Σ (-φ-cache φ) α*)])
                            (mon.c∷ (ctx-with-ℓ ctx ℓ*) C*^ ⟦k⟧)))
-            (define Vᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
-            (.vector-ref ℓ (list Vᵥ*^ Vᵢ) H φ Σ ⟦k⟧*)])]
+            (define Tᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
+            (.vector-ref ℓ (list Tᵥ*^ Tᵢ) H φ Σ ⟦k⟧*)])]
         [_
          (⟦k⟧ (list {set (-● ∅)}) H φ Σ)])))
   
   #;(def (vector-set! ℓ Vs H φ Σ ⟦k⟧)
-    #:init ([Vᵥ^ vector?] [Vᵢ integer?] [Vᵤ any/c])
-    (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
-      (match Vᵥ
+    #:init ([Tᵥ^ vector?] [Tᵢ integer?] [Vᵤ any/c])
+    (for/union : (℘ -ς) ([Tᵥ (in-set Tᵥ^)])
+      (match Tᵥ
         [(-Vector αs)
          (define φ*
            (for/fold ([φ : -φ φ])
                      ([α (in-list αs)]
                       [i : Natural (in-naturals)]
-                      #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+                      #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
              (mut! Σ φ α Vᵤ)))
          (⟦k⟧ (list {set -void}) H φ* Σ)]
         [(-Vector^ α n)
          (⟦k⟧ (list {set -void}) H (mut! Σ φ α Vᵤ) Σ)]
         [(-Vector/guard grd αᵥ ctx)
          (define ctx* (ctx-neg ctx))
-         (define Vᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
+         (define Tᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
          (match grd
            [(-Vector/C ⟪α⟫ℓs)
             (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
                                  [i : Natural (in-naturals)]
-                                 #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
+                                 #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
                (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) ⟪α⟫ℓ)
                (define Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ))
                (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓᵢ) (mk-A (list Cᵢ^)) (mk-A (list Vᵤ))))
-               (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Vᵢ Vᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧)))]
+               (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Tᵢ Tᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧)))]
            [(-Vectorof ⟪α⟫ℓ)
             (match-define (-⟪α⟫ℓ α* ℓ*) ⟪α⟫ℓ)
             (define C*^ (σ@ Σ (-φ-cache φ) α*))
             (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓ*) (mk-A (list C*^)) (mk-A (list Vᵤ))))
-            (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Vᵢ Vᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧))])]
+            (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Tᵢ Tᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧))])]
         [_
          (⟦k⟧ (list {set -void}) H φ Σ)])))
   

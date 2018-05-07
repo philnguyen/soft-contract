@@ -33,16 +33,19 @@
    [prim-arity : (Symbol → Arity)]
    [parse-prim : (Identifier → (Option -prim))]
    [implement-predicate : (Σ Φ^ -o W → R^)]
-   [vec-len : (V^ → V^)]))
+   [vec-len : (T^ → T^)]))
 
 (define-signature prover^
-  ([split-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^))]
-   [partition-results : ([Σ (U R R^)] [V #:fast? Boolean] . ->* . (Values R^ R^ R^))]
+  ([split-results : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^))]
+   [partition-results : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^ R^))]
    [check-plausible-index : ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^))]
-   [check-one-of : (Φ^ V^ (Listof Base) → ?Dec)]
-   [V-arity : (case-> [Clo → (U Natural arity-at-least)]
+   [check-one-of : (Φ^ T^ (Listof Base) → ?Dec)]
+   [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]
-                      [V → (Option Arity)])]
+                      [T → (Option Arity)])]
+   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
+   [⊔T! : (Σ Φ^ α (U T T^) → Void)]
+   [⊔T*! : (Σ Φ^ (Listof α) (Listof T^) → Void)]
    #|
    [p⇒p : (-h -h → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]

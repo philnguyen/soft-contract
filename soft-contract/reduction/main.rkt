@@ -17,6 +17,7 @@
          "havoc.rkt"
          "for-gc.rkt"
          "termination.rkt"
+         "approx.rkt"
          )
 
 (define-compound-unit/infer reduction@
@@ -24,4 +25,4 @@
           env^ val^ sto^ evl^ pretty-print^
           prims^ prover^)
   (export alloc^ app^ mon^ compile^ step^ havoc^)
-  (link alloc@ fc@ mon@ compile@ step@ app@ havoc@ for-gc@ termination@))
+  (link alloc@ fc@ mon@ compile@ step@ app@ havoc@ for-gc@ termination@ approx@))
