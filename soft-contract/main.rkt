@@ -17,7 +17,12 @@
          )
 
 (define-values/invoke-unit/infer
-  (export verifier^ parser^ ast-pretty-print^ pretty-print^ step^ prim-runtime^)
+  (export ast-pretty-print^
+          pretty-print^ val^ sto^ evl^
+          prim-runtime^
+          prover^
+          step^
+          parser^ verifier^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
         prims@ parser@
         env@ sto@ val@ evl@ pretty-print@

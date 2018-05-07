@@ -66,28 +66,6 @@
                                (and d (? values))))))
             d]
            [('= (list V V)) '✓]
-           [((? P?) _)
-            #:when (and (andmap S? Vs) (not (andmap -b? Vs)))
-            (case P
-              [(list?) (check-proper-list Σ Φ (car Vs))]
-              [else
-               (define-values (P* V*)
-                 (match* (P Vs)
-                   [('>  (list (-b (? real? r)) S)) (values (P:< r) S)]
-                   [('>  (list S (-b (? real? r)))) (values (P:> r) S)]
-                   [('>= (list (-b (? real? r)) S)) (values (P:≤ r) S)]
-                   [('>= (list S (-b (? real? r)))) (values (P:≥ r) S)]
-                   [('<  (list (-b (? real? r)) S)) (values (P:> r) S)]
-                   [('<  (list S (-b (? real? r)))) (values (P:< r) S)]
-                   [('<= (list (-b (? real? r)) S)) (values (P:≥ r) S)]
-                   [('<= (list S (-b (? real? r)))) (values (P:≤ r) S)]
-                   [((or '= 'equal? 'eq? 'eqv? 'string=? 'char=?)
-                     (or (list (-b b) S) (list S (-b b))))
-                    #:when (and S b)
-                    (values (P:≡ b) S)]
-                   [(Q (list S)) (values Q S)]
-                   [(_ _) (error 'check "missing conversion for ~a ~a" P Vs)]))
-               (Ps⊢P (Ψ@ Φ (list V*)) P*)])]
            [((or (? -st-mk?) (? -st-mut?)) _) '✓]
            [((-st-p 𝒾) Vs)
             (match Vs
@@ -224,6 +202,7 @@
            [((P:< r) _) (go '<  (list (car Vs) (-b r)))]
            [((P:≡ b) _) (go 'equal? (cons (-b b) Vs))]
            [(_ _) #f])]))
+
     (go P₀ Ts₀))
 
   (: Ps⊢P : (℘ P) P → ?Dec)
