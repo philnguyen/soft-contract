@@ -214,6 +214,10 @@
    [⊥Φ^ : Φ^]
    [Ψ@ : (Φ (Listof T) → (℘ P))]
    [$@* : (Φ^ α → R^)]
+   [$+ : (case-> [Φ α (U T T^) → Φ]
+                 [Φ^ α (U T T^) → Φ^])]
+   [$+* : (case-> [Φ (Listof α) (Listof (U T T^)) → Φ]
+                  [Φ^ (Listof α) (Listof (U T T^)) → Φ^])]
    [T->R : ((U T T^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]
@@ -225,5 +229,6 @@
    [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]))
 
 (define-signature pretty-print^
-  ([show-blm-reason : ((U V P V^) → Sexp)]
+  ([show-α : (α → Sexp)]
+   [show-blm-reason : ((U V P V^) → Sexp)]
    [show-T : ((U T T^) → Sexp)])) 

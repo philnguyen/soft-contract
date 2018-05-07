@@ -118,8 +118,8 @@
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
    [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
-   [bind-rest! : ([Φ^ Ρ Symbol W H Σ] [#:end V] . ->* . (Values Φ^ Ρ))]
-   [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end V] . ->* . V)]
+   [bind-rest! : ([Φ^ Ρ Symbol W H Σ] [#:end T] . ->* . (Values Φ^ Ρ))]
+   [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end T] . ->* . T)]
    [H+ : (H ℓ (U ⟦E⟧ V #f) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 

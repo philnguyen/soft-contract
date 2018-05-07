@@ -23,7 +23,7 @@
          )
 
 (define-unit alloc@
-  (import static-info^ env^ sto^
+  (import static-info^ env^ sto^ evl^
           prover^)
   (export alloc^)
 
@@ -44,13 +44,12 @@
         (values Φ^* Ρ*)))
 
   (splicing-local
-      ((: bind! : Σ Φ^ Ρ Symbol H (U V T^) → (Values Φ^ Ρ))
+      ((: bind! : Σ Φ^ Ρ Symbol H (U T T^) → (Values Φ^ Ρ))
        (define (bind! Σ Φ^ Ρ x H T)
          (define α (mk-α (-α:x x H)))
          (define V^ (T->V Σ Φ^ T))
          (⊔ᵥ! Σ α V^)
-         (values Φ^ #|FIXME|#
-                 (Ρ+ Ρ x α))))
+         (values (if (mutable? α) Φ^ ($+ Φ^ α T)) (Ρ+ Ρ x α))))
     
     (: bind-inits! : Φ^ Ρ (Listof Symbol) W H Σ → (Values Φ^ Ρ))
     (define (bind-inits! Φ^₀ Ρ₀ xs W H Σ)
@@ -58,11 +57,11 @@
                 ([x (in-list xs)] [V (in-list W)])
         (bind! Σ Φ^ Ρ x H V)))
 
-    (: bind-rest! ([Φ^ Ρ Symbol W H Σ] [#:end V] . ->* . (Values Φ^ Ρ)))
+    (: bind-rest! ([Φ^ Ρ Symbol W H Σ] [#:end T] . ->* . (Values Φ^ Ρ)))
     (define (bind-rest! Φ^ Ρ x W H Σ #:end [Vₙ -null])
       (bind! Σ Φ^ Ρ x H (alloc-rest! x W H Φ^ Σ #:end Vₙ))))
 
-  (: alloc-rest! ([(U Symbol ℓ) W H Φ^ Σ] [#:end V] . ->* . V))
+  (: alloc-rest! ([(U Symbol ℓ) W H Φ^ Σ] [#:end T] . ->* . T))
   (define (alloc-rest! x Wₓ H Φ^ Σ #:end [Vₙ -null])
     (let go! ([W : W Wₓ] [i : Natural 0])
       (match W

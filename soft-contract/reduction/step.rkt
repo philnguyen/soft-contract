@@ -232,7 +232,13 @@
        (with-guarded-arity/collapse Σ R^₀ (length lhs) +ℓ₀ ; TODO
          (λ (W Φ^)
            (⊔T*! Σ Φ^ lhs W)
-           (↝ (ret! (T->R -void Φ^) Ξ Σ) Σ)))]
+           (define Φ^*
+             (let-values ([(αs Ts)
+                           (for/lists ([αs : (Listof α)] [Ts : (Listof T^)])
+                                      ([α (in-list lhs)] [T (in-list W)] #:unless (mutable? α))
+                             (values α T))])
+               ($+* Φ^ αs Ts)))
+           (↝ (ret! (T->R -void Φ^*) Ξ Σ) Σ)))]
       [(F:Dec ℓ 𝒾)
        (with-guarded-single-arity/collapse Σ R^₀ ℓ
          (λ (C^ Φ^)
@@ -240,7 +246,8 @@
            (define α  (mk-α (-α:top 𝒾)))
            (define α* (mk-α (-α:wrp 𝒾)))
            (define T^ (Σᵥ@ Σ α))
-           (mon C^ T^ (Ctx l 'dummy- l ℓ) Φ^ (K+ (F:Def l (list α*)) Ξ) Σ)))]
+           (define Φ^* ($+ Φ^ α* (S:α α*)))
+           (mon C^ T^ (Ctx l 'dummy- l ℓ) Φ^* (K+ (F:Def l (list α*)) Ξ) Σ)))]
       
       ;; Specific helpers
       [(F:Wrap G Ctx α)

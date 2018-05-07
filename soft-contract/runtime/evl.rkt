@@ -13,7 +13,7 @@
          "signatures.rkt")
 
 (define-unit evl@
-  (import val^)
+  (import val^ pretty-print^)
   (export evl^)
 
   (define ⊤Φ (Φ (hasheq) (hash)))
@@ -23,10 +23,32 @@
   (define (Ψ@ Φ Ts) (hash-ref (Φ-condition Φ) Ts mk-∅))
 
   (: $@ : Φ α → S)
-  (define ($@ Φ α) (hash-ref (Φ-alias Φ) α (λ () (error '$@ "nothing at ~a" α))))
+  (define ($@ Φ α)
+    (hash-ref (Φ-alias Φ) α (λ () (error '$@ "nothing at ~a" (show-α α)))))
 
   (: $@* : Φ^ α → R^)
   (define ($@* Φ^ α) (partition-Φ^ (λ (Φ) (list ($@ Φ α))) Φ^))
+
+  (: $+ (case-> [Φ α (U T T^) → Φ]
+                [Φ^ α (U T T^) → Φ^]))
+  (define ($+ Φ* α T^)
+    (define go : (Φ → Φ)
+      (let ([S (if (S? T^) T^ (S:α α))])
+        (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)])))
+    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
+
+  (: $+* (case-> [Φ (Listof α) (Listof (U T T^)) → Φ]
+                 [Φ^ (Listof α) (Listof (U T T^)) → Φ^]))
+  (define ($+* Φ* αs Ts)
+    (define go : (Φ → Φ)
+      (let ([Ss : (Listof S) (for/list ([α (in-list αs)] [T (in-list Ts)])
+                               (if (S? T) T (S:α α)))])
+        (match-lambda [(Φ $₀ Ψ)
+                       (Φ (for/fold ([$ : $ $₀])
+                                    ([α (in-list αs)] [S (in-list Ss)])
+                            (hash-set $ α S))
+                          Ψ)])))
+    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
 
   (: partition-Φ^ : (Φ → W) Φ^ → R^)
   (define (partition-Φ^ f Φs)

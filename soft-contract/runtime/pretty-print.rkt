@@ -144,9 +144,7 @@
       [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))]))
 
   (define (show-α [α : α]) : Sexp
-    (define (show-α.x [x : Symbol] [H : H])
-      (format-symbol "~a_~a" x (n-sub H)))
-    α
+    (string->symbol (format "~a" (inspect-α α)))
     #;(match (inspect α)
       [(-α:x x H) (show-α:x x H)]
       [(-α:hv l)
