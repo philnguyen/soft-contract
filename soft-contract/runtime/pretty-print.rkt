@@ -128,6 +128,7 @@
   (define show-S : (S → Sexp)
     (match-lambda
       [(-b b) (show-b b)]
+      [(? -o? o) (show-o o)]
       [(S:α α) (show-α α)]
       [(S:@ S Ss) `(,(show-S S) ,@(map show-S Ss))]))
 

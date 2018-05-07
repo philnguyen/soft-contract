@@ -105,9 +105,18 @@
     (define-set ✗-Φ^ : Φ)
     (define-set ?-Φ^ : Φ)
 
+    (define ?S : (Integer → (Option S))
+      (let ([poses ((inst make-vector (Option S)) n #f)])
+        (for ([T (in-list W₀)] [i (in-naturals)] #:unless (set? T))
+          (vector-set! poses i T))
+        (λ (i) (vector-ref poses i))))
+
     (define-syntax-rule (W⊔! Ts Ts*)
       (for ([Tᵢ (in-list Ts*)] [i (in-naturals)])
-        (define Tᵢ* (if (S? Tᵢ) Tᵢ (set-add (assert (vector-ref Ts i) set?) Tᵢ)))
+        (define Tᵢ*
+          (match (?S i)
+            [(? values S) S]
+            [_ (set-add (assert (vector-ref Ts i) set?) (assert Tᵢ V?))]))
         (vector-set! Ts i Tᵢ*)))
 
     (: check-with! : (Listof T) → Void)
