@@ -113,6 +113,8 @@
 
     (define (blm:undefined-struct [𝒾 : -𝒾] [ℓ : ℓ])
       (Blm (strip-ℓ ℓ) 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
+
+    (define (↓/rn [E : -e]) : ⟦E⟧ (rn (↓ E) E))
     
     (: ↓ : -e → ⟦E⟧)
     (define-compiler ((↓ E) Ρ Φ^ Ξ Σ)
@@ -120,9 +122,10 @@
       [(-•) (mk-T (-● ∅))]
       [(-x (? symbol? x) ℓₓ) (↓ₓ x ℓₓ)]
       [=> (-λ xs E*)
-          (ret! (T->R (Clo xs (rn ⟦E*⟧ E*) (m↓ Ρ fvs)) Φ^) Ξ Σ)
-          #:where [fvs (fv E)]
-          #:recur E*]
+          (ret! (T->R (Clo xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)
+          #:where
+          [fvs (fv E)]
+          [⟦E*⟧ (↓/rn E*)]]
       [=> (-x (and 𝒾 (-𝒾 x lₒ)) _)
           (let ([V^ (map/set modify-V (Σᵥ@ Σ α))])
             (cond [mut? (ret! (T->R V^ Φ^) Ξ Σ)]
@@ -145,7 +148,7 @@
       [=> (-@ E Es ℓ)
           (let ([Ρ₀ (m↓ Ρ fv₀)]
                 [EΡs (for/list : (Listof EΡ) ([⟦E⟧ (in-list ⟦Es⟧)] [fv (in-list fvs)] [E (in-list Es)])
-                       (EΡ (rn ⟦E⟧ E) (m↓ Ρ fv)))])
+                       (EΡ ⟦E⟧ (m↓ Ρ fv)))])
             (⟦E⟧ (m↓ Ρ fv₀) Φ^ (K+ (F:Ap '() EΡs ℓ) Ξ) Σ))
           #:where ; HACK
           [_ (match* (E Es)
@@ -155,7 +158,8 @@
                [(_ _) 'ignore])]
           [fv₀ (fv E)]
           [fvs (map fv Es)]
-          #:recur E (Es ...)]
+          [⟦E⟧ (↓/rn E)]
+          [⟦Es⟧ (map ↓/rn Es)]]
       [=> (-if E E₁ E₂)
           (⟦E⟧ Ρ Φ^ (K+ (F:If l ⟦E₁⟧ ⟦E₂⟧ Ρ) Ξ) Σ)
           #:recur E E₁ E₂]
