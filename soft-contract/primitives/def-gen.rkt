@@ -102,19 +102,15 @@
 
     (define (gen-pat c x)
       (syntax-parse (?flatten-ctc c)
-        [(~or () (~literal any/c)) #`(singleton-set (-b #,x))]
-        [(p)
-         (define/with-syntax p* (for-TR #'p))
-         #`(singleton-set (-b (? p* #,x)))]
+        [(~or () (~literal any/c)) #`(-b #,x)]
         [(p ...)
-         (define/with-syntax (p* ...) (map for-TR (syntax->list #'(p ...))))
-         #`(singleton-set (-b (and #,x (? p) ...)))]))
+         (with-syntax ([(p* ...) (map for-TR (syntax->list #'(p ...)))])
+           #`(-b (and #,x (? p*) ...)))]))
     (define/with-syntax (bᵢ ...) (gen-ids (-W) 'b (length dom-inits)))
     (define/with-syntax bᵣ (format-id (-W) "bᵣ"))
     (define/with-syntax (a ...) (gen-ids (-W) 'a (length rngs)))
-    (define/with-syntax (bₐ ...) (gen-ids (-W) 'bₐ (length rngs)))
     (define/with-syntax (Vᵢ ...) (map gen-pat dom-inits (syntax->list #'(bᵢ ...))))
-    (define/with-syntax (pat ...)
+    (define/with-syntax (pat+grd ...)
       (syntax-parse ?dom-rst
         [#f #'((list Vᵢ ...))]
         [((~literal listof) c)
@@ -130,10 +126,9 @@
       (if ?dom-rst #`(apply #,(-o) bᵢ ... bᵣ) #`(#,(-o) bᵢ ...)))
     (list
      #`(match #,(-W)
-         [pat ...
+         [pat+grd ...
           (define-values (a ...) compute-ans)
-          (define-values (bₐ ...) (values {set (-b a)} ...))
-          {set (r:ret! (R (list bₐ ...) #,(-Φ^)) #,(-Ξ) #,(-Σ))}]
+          {set (r:ret! (R (list (-b a) ...) #,(-Φ^)) #,(-Ξ) #,(-Σ))}]
          [_ #,@body])))
 
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
@@ -188,7 +183,7 @@
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           (define/with-syntax φ* (gensym 'φ*))
           #`(define #,x (add-seal #,(-Σ) 'x.name (Ξ:co-ctx #,(-Ξ)) (ℓ-src #,(-ℓ)))))
-      ,#`{set (exec-prim #,(-ℓ) '#,(-o) #,(-Φ^) #,(-Ξ) #,(-Σ)
+      ,#`{set (exec-prim #,(-ℓ) '#,(-o) #,(-Ξ) #,(-Σ)
                          #:volatile? #,(-volatile?)
                          #:dom doms
                          #:rng (list V-rng ...)
@@ -197,7 +192,7 @@
                                           #`(list #,@(for/list ([d (in-list rngs)])
                                                        #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
                          #:refinements (list refinement-cases ...)
-                         #:args #,(-W))}))
+                         #:args (R #,(-W) #,(-Φ^)))}))
 
   (define/contract (gen-flat-checks doms ?rst body)
     ((listof syntax?) (or/c #f identifier?) (listof syntax?) . -> . (listof syntax?))

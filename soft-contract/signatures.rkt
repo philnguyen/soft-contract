@@ -46,6 +46,7 @@
    [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
    [⊔T! : (Σ Φ^ α (U T T^) → Void)]
    [⊔T*! : (Σ Φ^ (Listof α) (Listof T^) → Void)]
+   [V^+ : (T^ V → T^)]
    #|
    [p⇒p : (-h -h → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]

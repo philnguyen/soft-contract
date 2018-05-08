@@ -44,7 +44,7 @@
   [F:Fc:C ℓ T^]
   [F:Hash-Set-Inner ℓ α]
   [F:Set-Add-Inner ℓ α]
-  [F:Maybe-Havoc-Prim-Args ℓ Symbol]
+  [F:Havoc-Prim-Args ℓ Symbol]
   [F:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V)))]
   [F:Implement-Predicate Symbol]
   [F:Absurd])
@@ -162,6 +162,7 @@
 (define-signature app^
   ([app  : (T^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))]
    [app₁ : (V → ⟦F⟧^)]
+   [app-opq : ⟦F⟧^]
    [app/rest/unsafe : (T W T ℓ Φ^ Ξ:co Σ → (℘ Ξ))]))
 
 (define-signature mon^

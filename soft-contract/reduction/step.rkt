@@ -310,8 +310,21 @@
          (match-lambda**
           [(2 (R (list Vₑ) Φ^))
            ((app₁ 'set-add) (list (Σᵥ@ Σ α) Vₑ) ℓ Φ^ Ξ Σ)]))]
-      [(F:Maybe-Havoc-Prim-Args ℓ Symbol) ???]
-      [(F:Make-Prim-Range ctx ?rng-wrap ranges cases) ???]
+      [(F:Havoc-Prim-Args ℓ Symbol)
+       (define Tₕᵥ
+         (for*/set : V^ ([R₀ (in-set R^₀)]
+                         [Φ^₀ (in-value (R-_1 R₀))]
+                         [T (in-list (R-_0 R₀))]
+                         [V (in-set (T->V Σ Φ^₀ T))] #:when (behavioral? Σ V))
+           V))
+       (cond [(set-empty? Tₕᵥ) {set (ret! R^₀ Ξ Σ)}]
+             [else (define ℓ* (ℓ-with-id ℓ 'prim-havoc) )
+                   (define Φ^* (collapse-R^/Φ^ R^₀))
+                   (app-opq (list Tₕᵥ) ℓ* Φ^* Ξ Σ)])]
+      [(F:Make-Prim-Range ctx ?rng-wrap ranges cases)
+       (define R^₁ (refine-ranges Σ cases R^₀ ranges))
+       (define Ξ* (if ?rng-wrap (K+ (F:Mon*:C ctx ?rng-wrap) Ξ) Ξ))
+       {set (ret! R^₁ Ξ* Σ)}]
       [(F:Implement-Predicate P)
        (with-guarded-arity R^₀ 1 +ℓ₀
          (λ (R^₀)
@@ -407,6 +420,67 @@
       (define α (mk-α (mk ℓ H i)))
       (⊔T! Σ Φ^ α T)
       (αℓ α (ℓ-with-id ℓ (cons tag i)))))
+
+  (: refine-ranges : Σ (Listof (List (Listof V) (Option V) (Listof V))) R^ W → R^)
+  (define (refine-ranges Σ cases arg-lists rng) 
+
+    (: go-arg : R → R)
+    (define (go-arg R-args)
+      (match-define (R args Φ^₀) R-args)
+
+      (: obvious? : V T^ → Boolean)
+      (define (obvious? p xs)
+        (define (⊢ [o : V] [T^ : T^]) : ?Dec
+          (match o
+            [(Not/C (αℓ (app inspect-α (-α:imm C)) _))
+             (case (⊢ C T^)
+               [(✓) '✗]
+               [(✗) '✓]
+               [else #f])]
+            [(? P? P)
+             (let-values ([(R✓ R✗ R?)
+                           (partition-results Σ (R (list T^) Φ^₀) o #:fast? #t)])
+               (and (set-empty? R?)
+                    (or (and (set-empty? R✗) '✓)
+                        (and (set-empty? R✓) '✗))))]
+            [_ #f]))
+        (eq? (⊢ p xs) '✓))
+
+      (for/fold ([R* : R (R rng Φ^₀)]) ([kase (in-list cases)])
+        (match-define (list dom-inits ?dom-rst refinements) kase)
+
+        (: check-inits : (Listof V) (Listof T^) → R)
+        (define check-inits
+          (match-lambda**
+           [((cons dom doms*) (cons arg args*))
+            (if (obvious? dom arg) (check-inits doms* args*) R*)]
+           [('() args) (check-rest args)]
+           [((cons _ _) '()) R*]))
+
+        (: check-rest : (Listof T^) → R)
+        (define (check-rest args)
+          (cond
+            [?dom-rst
+             (let go ([args : (Listof T^) args])
+               (match args
+                 ['() (refine-rng)]
+                 [(cons arg args*) (if (obvious? ?dom-rst arg) (go args*) R*)]))]
+            [else (if (null? args) (refine-rng) R*)]))
+
+        (define (refine-rng)
+          (define-values (rng-rev Φ^*)
+            (for/fold ([rng-rev : (Listof T^) '()] [Φ^ : Φ^ (R-_1 R*)])
+                      ([rngᵢ (in-list (R-_0 R*))]
+                       [refᵢ (in-list refinements)])
+              (values (cons (V^+ rngᵢ refᵢ) rng-rev)
+                      (if (and (P? refᵢ) (S? rngᵢ))
+                          (Ψ+ Φ^ refᵢ (list rngᵢ))
+                          Φ^))))
+          (R (reverse rng-rev) Φ^*))
+
+        (check-inits dom-inits args)))
+
+    (map/set go-arg arg-lists))
 
   (: ↠ : ⟦E⟧ Ρ Φ^ Ξ:co Σ → (℘ Ξ))
   ;; Skip boring states. Use this for production. Not great for debugging.

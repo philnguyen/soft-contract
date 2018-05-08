@@ -310,7 +310,7 @@
     {set (Ξ:co (K '() α) (Ξ:co-mark Ξ) H*)})
 
   (: app-sym : S → ⟦F⟧^)
-  (define (app-sym S) app-opq) ; TOOD
+  (define (app-sym S) app-opq) ; TODO
 
 
   #| 

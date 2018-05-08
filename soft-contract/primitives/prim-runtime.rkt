@@ -60,13 +60,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (: W->bs : W → (Option (Listof Base)))
-  (define (W->bs W)
-    (foldr (λ ([T^ : T^] [?bs : (Option (Listof Base))])
-             (match* (?bs T^)
-               [(#t {singleton-set (-b b)}) (cons b ?bs)]
-               [(_ _) #f]))
-           '()
-           W))
+  (define (W->bs W) (and (andmap -b? W) (map -b-unboxed W)))
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,16 +180,16 @@
         (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥Ρ))))))
 
   (: exec-prim :
-     ℓ (Intersection Symbol -o) Φ^ Ξ:co Σ
+     ℓ Symbol Ξ:co Σ
      #:volatile? Boolean
      #:dom (Listof (Pairof V ℓ))
      #:rng W
      #:rng-wrap (Option (Listof (Pairof V ℓ)))
      #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
-     #:args W
+     #:args R
      → Ξ)
   (define (exec-prim
-           ℓ o Φ^ Ξ Σ
+           ℓ o Ξ Σ
            #:volatile? volatile?
            #:dom doms
            #:rng ranges
@@ -205,42 +199,26 @@
     (define l (ℓ-src ℓ))
     (define ctx* (Ctx l o o ℓ))
     (define ctx (Ctx o l o ℓ))
-    (define Ξ:chk-args-done
-      (cond
-        [(and (null? refinements)
-              (equal? 'boolean? (hash-ref range-table o #f))
-              (andmap symbol? (map (inst car V Any) doms)))
-         (K+ (F:Implement-Predicate o) Ξ)]
-        [else
-         (define Ξ:mk-rng
-           (K+ (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements) Ξ))
-         (K+ (F:Maybe-Havoc-Prim-Args ℓ o) Ξ:mk-rng)]))
-    (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:chk-args-done))
-    (ret! (R args Φ^) Ξ:chk-args Σ)
-    #|
-    (define l (ℓ-src ℓ))
-    (define ctx* (Ctx l o o ℓ))
-    (define ctx  (Ctx o l o ℓ))
 
-    (define ⟦k⟧:chk-args-done
-      (let ([no-return?
-             (for/or : Boolean ([rng (in-list ranges)])
-               (match rng
-                 [(singleton-set (-● (singleton-set 'none/c))) #t]
-                 [_ #f]))])
-        (cond
-          [no-return? (absurd∷ ⟦k⟧)]
-          [(and (null? refinements)
-                (equal? 'boolean? (hash-ref range-table o #f))
-                (andmap symbol? (map (inst car -V Any) doms)))
-           (implement-predicate∷ o ⟦k⟧)]
-          [else
-           (define ⟦k⟧:mk-rng
-             (make-prim-range∷ ctx (and ?range-wraps (map mk-⟪α⟫ℓ ?range-wraps)) ranges refinements ⟦k⟧))
-           (maybe-havoc-prim-args∷ ℓ o ⟦k⟧:mk-rng)])))
-    (define ⟦k⟧:chk-args (mon*.c∷ ctx* (map mk-⟪α⟫ℓ doms) ⟦k⟧:chk-args-done))
-    (⟦k⟧:chk-args args H φ Σ)
-    |#)
+    (define (no-return?)
+      (ormap (match-λ? {singleton-set (-● (singleton-set 'none/c))}) ranges))
+
+    (define (simple-pred?)
+      (and (null? refinements)
+           (equal? 'boolean? (hash-ref range-table o #f))
+           (andmap symbol? (map (inst car V Any) doms))))
+    
+    (define Ξ:gen-rng
+      (cond
+        [(no-return?) (K+ (F:Absurd) Ξ)]
+        [(simple-pred?) (K+ (F:Implement-Predicate o) Ξ)]
+        [else
+         (define Mk-Rng (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements))
+         (define Havoc (F:Havoc-Prim-Args ℓ o))
+         (K+ Havoc (K+ Mk-Rng Ξ))]))
+    
+    (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:gen-rng))
+    (ret! args Ξ:chk-args Σ))
 
   (: vec-len : T^ → T^)
   (define (vec-len T^)

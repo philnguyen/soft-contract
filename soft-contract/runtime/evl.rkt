@@ -29,6 +29,15 @@
   (: $@* : Φ^ α → R^)
   (define ($@* Φ^ α) (partition-Φ^ (λ (Φ) (list ($@ Φ α))) Φ^))
 
+  (: Ψ+ (case-> [Φ P (Listof S) → Φ]
+                [Φ^ P (Listof S) → Φ^]))
+  (define (Ψ+ Φ* p xs)
+    (define go : (Φ → Φ)
+      (match-lambda
+        [(Φ $ Ψ₀)
+         (Φ $ (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (set-add ps p)) mk-∅))]))
+    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
+
   (: $+ (case-> [Φ α (U T T^) → Φ]
                 [Φ^ α (U T T^) → Φ^]))
   (define ($+ Φ* α T^)

@@ -47,13 +47,13 @@
    [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → V)]
    [make-∀/c : (Symbol (Listof Symbol) -e Ρ → V)]
    [exec-prim
-    : (ℓ (Intersection Symbol -o) Φ^ Ξ:co Σ
+    : (ℓ Symbol Ξ:co Σ
          #:volatile? Boolean
          #:dom (Listof (Pairof V ℓ))
          #:rng W
          #:rng-wrap (Option (Listof (Pairof V ℓ)))
          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
-         #:args W
+         #:args R
          → Ξ)]
    [vec-len : (T^ → T^)]
 

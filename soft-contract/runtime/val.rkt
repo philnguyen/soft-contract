@@ -51,7 +51,7 @@
      [(l+ (X/G C α (Ctx _ l- lo ℓ))) (X/G C α (Ctx l+ l- lo ℓ))]
      [(_ V) V]))
 
-  (: behavioral? : Σᵥ V → Boolean)
+  (: behavioral? : (U Σ Σᵥ) V → Boolean)
   ;; Check if value maybe behavioral.
   ;; `#t` is a conservative answer "maybe yes"
   ;; `#f` is a strong answer "definitely no"

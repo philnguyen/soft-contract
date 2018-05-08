@@ -197,7 +197,7 @@
    [C^-flat? : (T^ → Boolean)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
-   [behavioral? : (Σᵥ V → Boolean)]
+   [behavioral? : ((U Σ Σᵥ) V → Boolean)]
    [guard-arity : (case->
                    [==> → Arity]
                    [Fn/C → (Option Arity)])]
@@ -214,6 +214,8 @@
    [⊥Φ^ : Φ^]
    [Ψ@ : (Φ (Listof T) → (℘ P))]
    [$@* : (Φ^ α → R^)]
+   [Ψ+ : (case-> [Φ P (Listof S) → Φ]
+                 [Φ^ P (Listof S) → Φ^])]
    [$+ : (case-> [Φ α (U T T^) → Φ]
                  [Φ^ α (U T T^) → Φ^])]
    [$+* : (case-> [Φ (Listof α) (Listof (U T T^)) → Φ]

@@ -6,33 +6,17 @@
     (make-frame (⟦k⟧ A _ φ Σ) #:roots ()
       (⟦k⟧ A H φ Σ)))
 
-(define-frame (maybe-havoc-prim-args∷ [ℓ : ℓ] [o : Symbol] [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (define σ (-Σ-σ Σ))
-      (define behavioral-args
-        (for*/set: : -V^ ([V^ (in-list A)]
-                          [V (in-set V^)]
-                          #:when (behavioral? σ (-φ-cache φ) V))
-          V))
-      (if (set-empty? behavioral-args)
-          (⟦k⟧ A H φ Σ)
-          (app (ℓ-with-id ℓ 'prim-havoc)
-               {set (-Fn● 1 (cons o H))}
-               (list behavioral-args)
-               H φ Σ
-               (bgn0.e∷ A '() ⊥ρ ⟦k⟧)))))
-
-  (define-frame (make-prim-range∷ [ctx : -ctx]
-                                  [?rng-wrap : (Option (Listof -⟪α⟫ℓ))]
-                                  [ranges : (Listof -V^)]
-                                  [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
-                                  [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A H φ Σ) #:roots ()
-      (define-values (refined-ranges φ*)
-        (let-values ([(ranges₀ φ₀) (maybe-refine ranges (-Σ-σ Σ) φ cases A)])
-          (hack:maybe-refine-more (assert (-ctx-src ctx) -o?) ranges₀ (-Σ-σ Σ) φ₀ A)))
-      (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
-      (⟦k⟧* refined-ranges H φ* Σ)))
+(define-frame (make-prim-range∷ [ctx : -ctx]
+                                [?rng-wrap : (Option (Listof -⟪α⟫ℓ))]
+                                [ranges : (Listof -V^)]
+                                [cases : (Listof (List (Listof -V) (Option -V) (Listof -V)))]
+                                [⟦k⟧ : -⟦k⟧])
+  (make-frame (⟦k⟧ A H φ Σ) #:roots ()
+              (define-values (refined-ranges φ*)
+                (let-values ([(ranges₀ φ₀) (maybe-refine ranges (-Σ-σ Σ) φ cases A)])
+                  (hack:maybe-refine-more (assert (-ctx-src ctx) -o?) ranges₀ (-Σ-σ Σ) φ₀ A)))
+              (define ⟦k⟧* (if ?rng-wrap (mon*.c∷ ctx ?rng-wrap ⟦k⟧) ⟦k⟧))
+              (⟦k⟧* refined-ranges H φ* Σ)))
 
 (define-frame (implement-predicate∷ [o : Symbol] [⟦k⟧ : -⟦k⟧])
     (make-frame (⟦k⟧ A H φ Σ) #:roots ()

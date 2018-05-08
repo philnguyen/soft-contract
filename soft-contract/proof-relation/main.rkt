@@ -26,7 +26,8 @@
          "ext-prover-core.rkt")
 
 (define-unit prover-core@
-  (import val^ evl^ sto^
+  (import static-info^
+          val^ evl^ sto^
           sat-result^ (prefix l: local-prover-core^) (prefix x: ext-prover-core^))
   (export prover^)
   (init-depend local-prover-core^)
@@ -93,6 +94,28 @@
   (define (⊔T*! Σ Φ^ αs Ts)
     (for ([α (in-list αs)] [T (in-list Ts)])
       (⊔T! Σ Φ^ α T)))
+
+  (: V^+ : T^ V → T^)
+  (define (V^+ x p)
+    
+    (define V+ : (V V → V)
+      (match-lambda**
+       [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
+       [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
+       [((-● ps) (? P? p)) (-● (set-add ps p))]
+       [(_ 'null?) -null]
+       [(_ 'not) -ff]
+       [(V _) V]))
+    
+    (if (set? x)
+        (for/fold ([acc : V^ ∅]) ([V (in-set x)])
+          (case (l:check Σ-dummy ⊤Φ p (list V))
+            [(✓) (set-add acc V)]
+            [(✗) acc]
+            [else (set-add acc (V+ V p))]))
+        x))
+  
+  (define Σ-dummy (⊥Σ))
 
   (: with-checker : (Σ Φ T (Listof T) → ?Dec) Σ T R → (Values R^ R^ R^))
   (define (with-checker check Σ P R₀)
@@ -165,20 +188,7 @@
   (export proof-system^)
   (init-depend local-prover^ external-prover^)
 
-  (: V+ : -σ -φ -V^ (U -h -V) → -V^)
-  (define (V+ σ φ V^ C)
-    (define V₁+ : (-V (U -h -V) → -V)
-      (match-lambda**
-       [(V (-St/C _ 𝒾 _)) (V₁+ V (-st-p 𝒾))]
-       [((-● ps) (? -h? h)) (-● (set-add ps h))]
-       [(_ 'null?) -null]
-       [(_ 'not) -ff]
-       [(V _) V]))
-    (for/fold ([acc : -V^ ∅]) ([V (in-set V^)])
-      (case (V∈C σ φ {set V} C)
-        [(✓) (set-add acc V)]
-        [(✗) acc]
-        [(?) (set-add acc (V₁+ V C))])))
+  
 
   (: V- : -σ -φ -V^ (U -h -V) → -V^)
   (define (V- σ φ V^ C)
