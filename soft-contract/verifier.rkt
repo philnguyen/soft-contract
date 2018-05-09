@@ -18,7 +18,10 @@
          "reduction/signatures.rkt"
          )
 
-(Ξ* . ::= . (Ξ* Ξ Σᵥ Σₖ Σₐ))
+(define-interner Ver-V Σᵥ)
+(define-interner Ver-K Σₖ)
+(define-interner Ver-A Σₐ)
+(Ξ* . ::= . (Ξ* Ξ Ver-V Ver-K Σₐ))
 
 (define-unit verifier@
   (import parser^
@@ -70,7 +73,7 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (Ξ* Ξ Σᵥ Σₖ Σₐ))
+      (Ξ* Ξ (Ver-V-of Σᵥ) (Ver-K-of Σₖ) Σₐ))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
       (match-lambda [(Ξ* Ξ _ _ _) Ξ]))
