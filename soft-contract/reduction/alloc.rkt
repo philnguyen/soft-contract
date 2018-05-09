@@ -91,11 +91,12 @@
              [else (values (-H:edges (cons (Edge src tgt) edges)) #f)])]
       [(mon) ???]))
 
+
   (define H₀ (mk-H (-H:edges '())))
 
   )
 
-(Tgt . ≜ . (U ⟦E⟧ V #f))
+(Tgt . ≜ . (U ⟦E⟧ #f))
 
 (define-substructs -H
   [-H:edges (Listof Edge)])

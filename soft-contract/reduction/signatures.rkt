@@ -120,7 +120,7 @@
    [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
    [bind-rest! : ([Φ^ Ρ Symbol W H Σ] [#:end T] . ->* . (Values Φ^ Ρ))]
    [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end T] . ->* . T)]
-   [H+ : (H ℓ (U ⟦E⟧ V #f) (U 'app 'mon) → (Values H Boolean))] 
+   [H+ : (H ℓ (U ⟦E⟧ #f) (U 'app 'mon) → (Values H Boolean))] 
    [H₀ : H]))
 
 (define-signature compile^
