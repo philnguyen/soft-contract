@@ -59,4 +59,3 @@
    [-Case-Clo → Arity]
    [-V → (Option Arity)])]
    |#))
-

@@ -34,7 +34,7 @@
     (define-set Φs : Φ)
     (for ([Rᵢ (in-set Rs)])
       (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
-      (Φs-union! Φ^ᵢ)
+      (set! Φs (Φ^⊔ Φs Φ^ᵢ))
       (for ([Tₖ (in-list Wᵢ)] [k (in-range n)])
         (define Tₖ*
           (match (?retain k)
@@ -47,7 +47,7 @@
   (define (R⊔ Σ R₁ R₂)
     (match-define (R W₁ Φ^₁) R₁)
     (match-define (R W₂ Φ^₂) R₂)
-    (define Φ^* (∪ Φ^₁ Φ^₂))
+    (define Φ^* (Φ^⊔ Φ^₁ Φ^₂))
     (R (W⊔ Σ Φ^* W₁ W₂) Φ^*))
 
   (: W⊔ : (U Σ Σᵥ) Φ^ W W → W)

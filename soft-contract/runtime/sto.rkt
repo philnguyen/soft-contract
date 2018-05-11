@@ -18,7 +18,7 @@
 (define-substructs -α (-α:opq))
 
 (define-unit sto@
-  (import val^)
+  (import val^ evl^)
   (export sto^)
 
   (define ⊥Σᵥ : Σᵥ (hasheq))
@@ -81,7 +81,7 @@
 
   (: ⊔ₐ : Σₐ Ξ:co (U R R^) → Σₐ)
   (define (⊔ₐ Σ Ξ R)
-    (hash-update Σ Ξ (λ ([R₀ : R^]) (if (set? R) (∪ R₀ R) (set-add R₀ R))) mk-∅))
+    (hash-update Σ Ξ (λ ([R₀ : R^]) (R^⊔ R₀ (if (set? R) R {set R}))) mk-∅))
 
   (: ⊔ᵥ! : Σ α (U V V^) → Void)
   (define (⊔ᵥ! Σ α V) (set-Σ-val! Σ (⊔ᵥ (Σ-val Σ) α V)))
@@ -254,7 +254,7 @@
   (: cachable? : -σ -δσ ⟪α⟫ → Boolean)
   (define (cachable? σ δσ α)
     (equal? 1 (cardinality σ δσ α)))
-  |#
+  |# 
 
   (: ->Σ (∀ (X) (Σ → X) → (U Σ X) → X))
   (define ((->Σ f) m) (if (Σ? m) (f m) m))
