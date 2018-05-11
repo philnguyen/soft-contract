@@ -233,11 +233,9 @@
          (λ (W Φ^)
            (⊔T*! Σ Φ^ lhs W)
            (define Φ^*
-             (let-values ([(αs Ts)
-                           (for/lists ([αs : (Listof α)] [Ts : (Listof T^)])
-                                      ([α (in-list lhs)] [T (in-list W)] #:unless (mutable? α))
-                             (values α T))])
-               ($+* Φ^ αs Ts)))
+             (for/fold ([acc : (℘ Φ) Φ^])
+                       ([α (in-list lhs)] [T (in-list W)] #:unless (mutable? α))
+               ($+ acc α (if (S? T) T (S:α α)))))
            (↝ (ret! (T->R -void Φ^*) Ξ Σ) Σ)))]
       [(F:Dec ℓ 𝒾)
        (with-guarded-single-arity/collapse Σ R^₀ ℓ

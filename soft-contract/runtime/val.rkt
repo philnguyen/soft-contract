@@ -154,6 +154,11 @@
     (match-define (Ξ:co (K Fs α) M H) Ξ)
     (Ξ:co (K (cons F Fs) α) M H))
 
-  (: in-T^ : T^ → (Sequenceof T))
-  (define (in-T^ [T^ : T^]) (if (set? T^) (in-set T^) (in-value T^)))
+  (: in-scope? : S (℘ α) → Boolean)
+  (define (in-scope? S₀ αs)
+    (let go ([S : S S₀])
+      (match S
+        [(S:α α) (∋ αs α)]
+        [(S:@ f xs) (and (go f) (andmap go xs))]
+        [_ #t])))
   )

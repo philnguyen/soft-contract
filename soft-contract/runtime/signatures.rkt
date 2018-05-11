@@ -205,7 +205,7 @@
    [V⊔₁ : (V^ V → V^)]
    [V⊔ : (V^ V^ → V^)]
    [K+ : (F Ξ:co → Ξ:co)]
-   [in-T^ : (T^ → (Sequenceof T))]
+   [in-scope? : (S (℘ α) → Boolean)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
@@ -216,10 +216,8 @@
    [$@* : (Φ^ α → R^)]
    [Ψ+ : (case-> [Φ P (Listof S) → Φ]
                  [Φ^ P (Listof S) → Φ^])]
-   [$+ : (case-> [Φ α (U T T^) → Φ]
-                 [Φ^ α (U T T^) → Φ^])]
-   [$+* : (case-> [Φ (Listof α) (Listof (U T T^)) → Φ]
-                  [Φ^ (Listof α) (Listof (U T T^)) → Φ^])]
+   [$+ : (case-> [Φ α S → Φ]
+                 [Φ^ α S → Φ^])]
    [T->R : ((U T T^) Φ^ → R)]
    [filter/arity : (R^ Natural → (Values R^ W^))]
    [collapse-R^ : (R^ → (Values W^ Φ^))]

@@ -21,7 +21,7 @@
 (define-interner Ver-V Σᵥ)
 (define-interner Ver-K Σₖ)
 (define-interner Ver-A Σₐ)
-(Ξ* . ::= . (Ξ* Ξ Ver-V Ver-K Σₐ))
+(Ξ* . ::= . (Ξ* Ξ Ver-V Ver-K R^))
 
 (define-unit verifier@
   (import parser^
@@ -73,7 +73,7 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (Ξ* Ξ (Ver-V-of Σᵥ) (Ver-K-of Σₖ) Σₐ))
+      (Ξ* Ξ (Ver-V-of Σᵥ) (Ver-K-of Σₖ) (hash-ref Σₐ Ξ)))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
       (match-lambda [(Ξ* Ξ _ _ _) Ξ]))
@@ -81,7 +81,7 @@
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
     
-    (parameterize ([print-graph #t])
+    (parameterize ([print-graph #f])
       (function-traces ↝₁ (Ξ->Ξ* Ξ₀)))
     Σ₀)
 

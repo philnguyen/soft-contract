@@ -50,7 +50,7 @@
   ;; Apply single function, assuming function-ness and arity has been checked
   (define app₁
     (match-lambda
-      [(Clo xs ⟦E⟧ Ρ) (app-clo xs ⟦E⟧ Ρ)]
+      [(? Clo? V) (app-clo V)]
       [(Case-Clo cases) (app-case-clo cases)]
       [(-st-mk 𝒾) (app-st-mk 𝒾)]
       [(-st-p 𝒾) (app-st-p 𝒾)]
@@ -74,10 +74,11 @@
   (define (app/rest/unsafe Tₕ Wₓ Vᵣ ℓ Φ^ Ξ Σ)
     ???)
 
-  (: app-clo : -formals ⟦E⟧ Ρ → ⟦F⟧^)
-  (define ((app-clo fmls ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ₀ Σ)
+  (: app-clo : Clo → ⟦F⟧^)
+  (define ((app-clo clo) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match-define (Ξ:co _ ?m H) Ξ₀)
-    (define-values (H* looped?) (H+ H ℓ ⟦E⟧ 'app))
+    (match-define (Clo fmls ⟦E⟧ Ρ) clo)
+    (define H* (H+ H ℓ clo 'app))
 
     (: on-sc-ok : (Option (Pairof Ctx M)) → (℘ Ξ))
     (define (on-sc-ok ?m)
@@ -87,7 +88,7 @@
       {set (⟦E⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m H*) Σ)})
     
     ;; FIXME guard arity
-    (match* (looped? ?m)
+    (match* ((looped? H*) ?m)
       [(#t (cons (and ctx (Ctx l+ _ lo _)) M))
        (define Tₕ (Clo fmls ⟦E⟧ Ρ))
        (match (update-call-record M Tₕ Wₓ ℓ Φ^ Σ)
@@ -98,9 +99,9 @@
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
   (define ((app-case-clo clos) Wₓ ℓ Φ^ Ξ Σ)
     (define n (length Wₓ))
-    (match-define (Clo x ⟦E⟧ Ρ) ; assume arity already checked
+    (define clo ; assume arity already checked
       ((inst findf Clo) (λ (clo) (arity-includes? (T-arity clo) n)) clos))
-    ((app-clo x ⟦E⟧ Ρ) Wₓ ℓ Φ^ Ξ Σ))
+    ((app-clo (assert clo)) Wₓ ℓ Φ^ Ξ Σ))
 
   (: app-st-mk : -𝒾 → ⟦F⟧^)
   (define ((app-st-mk 𝒾) Wₓ ℓ Φ^ Ξ Σ)
@@ -227,8 +228,8 @@
        (match-let ([(cons (EΡ ⟦X⟧ Ρ) ⟦X⟧s) ⟦X⟧s])
          {set (⟦X⟧ Ρ Φ^ (K+ (F:Ap (list Tₕ^) ⟦X⟧s ℓ*) Ξ*) Σ)})]
       [(_ (αℓ αᵣ ℓᵣ))
-       (define Vᵣ (alloc-rest! ℓ Wᵣ (Ξ:co-ctx Ξ) Φ^ Σ))
-       (define ⟦X⟧ᵣ (mk-mon (Ctx-with-ℓ ctx* ℓᵣ) (mk-T (Σᵥ@ Σ αᵣ)) (mk-T Vᵣ)))
+       (define Tᵣ (alloc-rest! ℓ Wᵣ (Ξ:co-ctx Ξ) Φ^ Σ))
+       (define ⟦X⟧ᵣ (mk-mon (Ctx-with-ℓ ctx* ℓᵣ) (mk-T (Σᵥ@ Σ αᵣ)) (mk-T Tᵣ)))
        (define Fn (list Tₕ^ {set 'apply}))
        (match ⟦X⟧s
          [(cons (cons ⟦X⟧ Ρ) ⟦X⟧s)
@@ -301,7 +302,7 @@
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
-    (define-values (H* _) (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
+    (define H* (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
     (define tag (cons #f H*))
     (define α (αₖ:hv tag))
     (for ([Tₓ (in-list Wₓ)])

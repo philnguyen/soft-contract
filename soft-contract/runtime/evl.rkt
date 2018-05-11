@@ -38,25 +38,10 @@
          (Φ $ (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (set-add ps p)) mk-∅))]))
     (if (set? Φ*) (map/set go Φ*) (go Φ*)))
 
-  (: $+ (case-> [Φ α (U T T^) → Φ]
-                [Φ^ α (U T T^) → Φ^]))
-  (define ($+ Φ* α T^)
-    (define go : (Φ → Φ)
-      (let ([S (if (S? T^) T^ (S:α α))])
-        (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)])))
-    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
-
-  (: $+* (case-> [Φ (Listof α) (Listof (U T T^)) → Φ]
-                 [Φ^ (Listof α) (Listof (U T T^)) → Φ^]))
-  (define ($+* Φ* αs Ts)
-    (define go : (Φ → Φ)
-      (let ([Ss : (Listof S) (for/list ([α (in-list αs)] [T (in-list Ts)])
-                               (if (S? T) T (S:α α)))])
-        (match-lambda [(Φ $₀ Ψ)
-                       (Φ (for/fold ([$ : $ $₀])
-                                    ([α (in-list αs)] [S (in-list Ss)])
-                            (hash-set $ α S))
-                          Ψ)])))
+  (: $+ (case-> [Φ α S → Φ]
+                [Φ^ α S → Φ^]))
+  (define ($+ Φ* α S)
+    (define go : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)]))
     (if (set? Φ*) (map/set go Φ*) (go Φ*)))
 
   (: partition-Φ^ : (Φ → W) Φ^ → R^)
