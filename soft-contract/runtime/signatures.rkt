@@ -212,7 +212,7 @@
 (define-signature evl^
   ([⊤Φ : Φ]
    [⊥Φ^ : Φ^]
-   [Ψ@ : (Φ (Listof T) → (℘ P))]
+   [Ψ@ : ((U Φ^ Φ) (Listof T) → (℘ P))]
    [$@* : (Φ^ α → R^)]
    [Ψ+ : (case-> [Φ P (Listof S) → Φ]
                  [Φ^ P (Listof S) → Φ^])]

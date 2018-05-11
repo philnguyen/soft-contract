@@ -19,8 +19,14 @@
   (define ⊤Φ (Φ (hasheq) (hash)))
   (define ⊥Φ^ {set ⊤Φ})
 
-  (: Ψ@ : Φ (Listof T) → (℘ P))
-  (define (Ψ@ Φ Ts) (hash-ref (Φ-condition Φ) Ts mk-∅))
+  (: Ψ@ : (U Φ Φ^) (Listof T) → (℘ P))
+  (define (Ψ@ Φ* Ts)
+    (define (go [Φ : Φ]) (hash-ref (Φ-condition Φ) Ts mk-∅))
+    (if (set? Φ*)
+        (for/fold ([acc : (℘ P) (go (set-first Φ*))])
+                  ([Φᵢ (in-set (set-rest Φ*))])
+          (∩ acc (go Φᵢ)))
+        (go Φ*)))
 
   (: $@ : Φ α → S)
   (define ($@ Φ α)

@@ -13,7 +13,10 @@
    [∧¬ : (R T → R)]
    [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]
-                      [T → (Option Arity)])]))
+                      [T → (Option Arity)])]
+   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
+   [V^+ : (case-> [V^ V → V^]
+                  [T^ V → T^])]))
 
 (define-signature ext-prover-core^
   ([check : (Σ Φ T (Listof T) → ?Dec)]))

@@ -41,6 +41,10 @@
         (define ⊔* (inst ⊔*/set V))
         (⊔* (λ (V₁) (⊔* (λ (V₂) (go 'equal? (list V₁ V₂))) Vs₂)) Vs₂)))
 
+    (: go-harder : P S → ?Dec)
+    (define (go-harder P S)
+      (⊔*/set (λ ([V : V]) (go P (list V))) (T->V Σ {set Φ} S)))
+
     (: go : T (Listof T) → ?Dec)
     (define (go P Vs)
       (cond
@@ -79,7 +83,11 @@
               (case P
                 [(o?)
                  (match Vs
-                   [(list (-b (and b (? g) ...))) (bool->Dec (o? b))]
+                   [(list V)
+                    (match V
+                      [(-b (and b (? g) ...)) (bool->Dec (o? b))]
+                      [(? S? S) (go-harder 'o? S)]
+                      [_ '✗])]
                    [_ '✗])] ...
                 c ...))
             (define (proc-arity-1? [T : T])
@@ -432,6 +440,41 @@
        #:when (not (or (Clo? V) (Case-Clo? V))) ; to convince TR
        (log-warning "Warning: call `T-arity` on an obviously non-procedure ~a" V)
        #f]))
+
+  (: T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^))
+  (define (T->V Σ Φ^ T)
+    
+    (define S->V : (S → V^)
+      (match-lambda
+        [(? -b? b) {set b}]
+        [(? -o? o) {set o}]
+        [(S:α α) (Σᵥ@ Σ α)]
+        [(and S (S:@ Sₕ Sₓs)) {set (-● (Ψ@ Φ^ (list S)))}]))
+    
+    (cond [(S? T) (S->V T)]
+          [(set? T) T]
+          [else {set T}]))
+
+  (: V^+ (case-> [V^ V → V^]
+                 [T^ V → T^]))
+  (define (V^+ x p)
+    
+    (define V+ : (V V → V)
+      (match-lambda**
+       [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
+       [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
+       [((-● ps) (? P? p)) (-● (set-add ps p))]
+       [(_ 'null?) -null]
+       [(_ 'not) -ff]
+       [(V _) V]))
+    
+    (if (set? x)
+        (for/fold ([acc : V^ ∅]) ([V (in-set x)])
+          (case (check dummy-Σ ⊤Φ p (list V))
+            [(✓) (set-add acc V)]
+            [(✗) acc]
+            [else (set-add acc (V+ V p))]))
+        x))
 
   (define dummy-Σ (⊥Σ))
   ) 

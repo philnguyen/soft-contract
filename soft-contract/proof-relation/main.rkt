@@ -70,22 +70,7 @@
           [else #f]))
 
   (define T-arity l:T-arity)
-
-  (: T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^))
-  (define (T->V Σ Φ^ T)
-    
-    (define S->V : (S → V^)
-      (match-lambda
-        [(? -b? b) {set b}]
-        [(? -o? o) {set o}]
-        [(S:α α) (Σᵥ@ Σ α)]
-        [(and S (S:@ Sₕ Sₓs))
-         ;; FIXME refine
-         {set (-● ∅)}]))
-    
-    (cond [(S? T) (S->V T)]
-          [(set? T) T]
-          [else {set T}]))
+  (define T->V l:T->V)
 
   (: ⊔T! : Σ Φ^ α (U T T^) → Void)
   (define (⊔T! Σ Φ^ α T) (⊔ᵥ! Σ α (T->V Σ Φ^ T)))
@@ -95,28 +80,8 @@
     (for ([α (in-list αs)] [T (in-list Ts)])
       (⊔T! Σ Φ^ α T)))
 
-  (: V^+ : T^ V → T^)
-  (define (V^+ x p)
-    
-    (define V+ : (V V → V)
-      (match-lambda**
-       [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
-       [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-       [((-● ps) (? P? p)) (-● (set-add ps p))]
-       [(_ 'null?) -null]
-       [(_ 'not) -ff]
-       [(V _) V]))
-    
-    (if (set? x)
-        (for/fold ([acc : V^ ∅]) ([V (in-set x)])
-          (case (l:check Σ-dummy ⊤Φ p (list V))
-            [(✓) (set-add acc V)]
-            [(✗) acc]
-            [else (set-add acc (V+ V p))]))
-        x))
+  (define V^+ l:V^+)
   
-  (define Σ-dummy (⊥Σ))
-
   (: with-checker : (Σ Φ T (Listof T) → ?Dec) Σ T R → (Values R^ R^ R^))
   (define (with-checker check Σ P R₀)
     (match-define (R W₀ Φ^₀) R₀)
