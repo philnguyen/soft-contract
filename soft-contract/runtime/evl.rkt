@@ -9,6 +9,7 @@
          typed-racket-hacks
          set-extras
          unreachable
+         "../utils/main.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt")
 
@@ -113,8 +114,14 @@
     (: go : R^ R → R^)
     (define (go R* Rᵢ)
       (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
-      (match (for/or : (Option R) ([R (in-set R*)])
-               (and (equal? Wᵢ (R-_0 R)) R))
+      (define subsumed? : (W → Boolean)
+        (match Wᵢ
+          [(list {singleton-set (? -b? b)})
+           (λ (W₀) (or (equal? W₀ Wᵢ) (match? W₀ (list (== b)))))]
+          [_ (λ (W₀) (equal? W₀ Wᵢ))]))
+      
+      (match (for/or : (Option R) ([R (in-set R*)] #:when (subsumed? (R-_0 R)))
+               R)
         [(and R₀ (R _ Φ^₀)) (set-add (set-remove R* R₀) (R Wᵢ (Φ^⊔ Φ^₀ Φ^ᵢ)))]
         [_ (set-add R* Rᵢ)]))
     (for/fold ([acc : R^ R^₁]) ([R (in-set R^₂)])
