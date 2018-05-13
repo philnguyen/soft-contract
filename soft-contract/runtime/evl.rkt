@@ -36,7 +36,11 @@
     (hash-ref (Φ-alias Φ) α (λ () (error '$@ "nothing at ~a" (show-α α)))))
 
   (: $@* : Φ^ α → R^)
-  (define ($@* Φ^ α) (partition-Φ^ (λ (Φ) (list ($@ Φ α))) Φ^))
+  (define ($@* Φs α)
+    (define m
+      (for/fold ([m : (HashTable W Φ^) (hash)]) ([Φ (in-set Φs)])
+        (hash-update m (list ($@ Φ α)) (λ ([Φs : Φ^]) (Φ^+ Φs Φ)) mk-∅)))
+    (list->set (hash-map m R)))
 
   (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
                 [Φ (U P (℘ P)) (Listof S) → Φ]
@@ -53,14 +57,7 @@
 
   (: $+ (case-> [Φ α S → Φ]
                 [Φ^ α S → Φ^]))
-  (define ($+ Φ* α S) ((lift-Φ* (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)])) Φ*))
-
-  (: partition-Φ^ : (Φ → W) Φ^ → R^)
-  (define (partition-Φ^ f Φs)
-    (define m (for/fold ([m : (HashTable W Φ^) (hash)])
-                        ([Φ (in-set Φs)])
-                (hash-update m (f Φ) (λ ([Φs : Φ^]) (Φ^+ Φs Φ)) mk-∅)))
-    (list->set (hash-map m R)))
+  (define ($+ Φ* α S) ((lift-Φ* (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)])) Φ*)) 
 
   (: collapse-R^ : R^ → (Values W^ Φ^))
   (define (collapse-R^ R^)
