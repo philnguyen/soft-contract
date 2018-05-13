@@ -89,7 +89,7 @@
    [with-guarded-arity : (R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-arity/collapse : (Σ R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (Σ R^ ℓ (T^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
-   [with-guard : (Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
+   [with-check : (Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Integer))]))
 
@@ -116,7 +116,7 @@
 (define-signature approx^
   ([collapse-R^-1 : ((U Σ Σᵥ) R^ → (Values T^ Φ^))]
    [collapse-value-lists : ((U Σ Σᵥ) R^ Natural → R)]
-   [R⊔ : ((U Σ Σᵥ) R R → R)]
+   [R⊕ : ((U Σ Σᵥ) R R → R)]
    [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]

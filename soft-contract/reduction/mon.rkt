@@ -81,13 +81,13 @@
       (⊔T! Σ Φ^ α T^)
       {set (ret! (T->R (X/G ctx C α) Φ^) Ξ₀ Σ)})
     
-    (with-guard Σ Φ^₀ ctx T^₀ 'procedure? (if (∀/C? C) wrap chk-arity)))
+    (with-check Σ Φ^₀ ctx T^₀ 'procedure? (if (∀/C? C) wrap chk-arity)))
 
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) T^₀ ctx Φ^₀ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     (match-define (St/C _ 𝒾 αℓs) C)
-    (with-guard Σ Φ^₀ ctx T^₀ (-st-p 𝒾)
+    (with-check Σ Φ^₀ ctx T^₀ (-st-p 𝒾)
       (λ (R^)
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
         (define ⟦mon⟧s : (Listof ⟦E⟧)
@@ -155,7 +155,7 @@
   (define ((mon-Vectof C) V ctx Φ^₀ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     (match-define (Vectof (αℓ α* ℓ*)) C)
-    (with-guard Σ Φ^₀ ctx V 'vector?
+    (with-check Σ Φ^₀ ctx V 'vector?
       (λ (R^)
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
         (define ⟦elem⟧
@@ -191,7 +191,7 @@
               (define F:ap (F:Ap (list {set 'vector}) ⟦mon⟧s ℓ))
               (⟦mon⟧ ⊥Ρ Φ^ (K+ F:ap (K+ F:wrap Ξ₀)) Σ)])})
 
-    (with-guard Σ Φ^₀ ctx V 'vector?
+    (with-check Σ Φ^₀ ctx V 'vector?
       (λ (R^)
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
         (define Vₗ (vec-len T^))
@@ -205,7 +205,7 @@
   (define ((mon-Hash/C C) V ctx Φ^ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     (match-define (Hash/C (αℓ αₖ ℓₖ) (αℓ αᵥ ℓᵥ)) C)
-    (with-guard Σ Φ^ ctx V 'hash?
+    (with-check Σ Φ^ ctx V 'hash?
       (λ (R^)
         (define αₕ (mk-α (-α:unhsh ctx (Ξ:co-ctx Ξ₀))))
         (for*/union : (℘ Ξ) ([Rᵢ (in-set R^)]
@@ -231,7 +231,7 @@
   (define ((mon-Set/C C) V ctx Φ^ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
     (match-define (Set/C (αℓ αₑ ℓₑ)) C)
-    (with-guard Σ Φ^ ctx V 'set?
+    (with-check Σ Φ^ ctx V 'set?
       (λ (R^)
         (define αₛ (mk-α (-α:unset ctx (Ξ:co-ctx Ξ₀))))
         (for*/union : (℘ Ξ) ([Rᵢ (in-set R^)]

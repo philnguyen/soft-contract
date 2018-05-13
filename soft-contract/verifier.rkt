@@ -21,7 +21,7 @@
 (define-interner Ver-V Σᵥ)
 (define-interner Ver-K Σₖ)
 (define-interner Ver-A Σₐ)
-(Ξ* . ::= . (Ξ* Ξ Σᵥ Ver-K R^))
+(Ξ* . ::= . (Ξ* Ξ Ver-V Ver-K R^))
 
 (define-unit verifier@
   (import parser^
@@ -73,7 +73,7 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (Ξ* Ξ Σᵥ (Ver-K-of Σₖ) (hash-ref Σₐ Ξ (λ () ∅))))
+      (Ξ* Ξ (Ver-V-of Σᵥ) (Ver-K-of Σₖ) (hash-ref Σₐ Ξ (λ () ∅))))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
       (match-lambda [(Ξ* Ξ _ _ _) Ξ]))

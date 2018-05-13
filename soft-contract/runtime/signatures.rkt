@@ -114,6 +114,8 @@
   #:intern-function-name mk-H
   #:unintern-function-name inspect-H)
 
+((Joiner X) . ≜ . (X X → (Option X)))
+
 ;; Convenient patterns
 (define-syntax-rule (define-St-matcher (P α ...) St-id)
   (define-match-expander P
@@ -261,6 +263,8 @@
    [V⊔ : (V^ V^ → V^)]
    [K+ : (F Ξ:co → Ξ:co)]
    [in-scope? : (S (℘ α) → Boolean)]
+   [compact-with : (∀ (X) (Joiner X) → (℘ X) X → (℘ X))]
+   [iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
@@ -284,8 +288,8 @@
    [with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
    [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
-   [R^⊔ : (R^ R^ → R^)]
-   [Φ^⊔ : (Φ^ Φ^ → Φ^)]
+   [R^⊔ : (R^ R → R^)]
+   [Φ^⊔ : (Φ^ Φ → Φ^)]
    [Ψ↓ : (Ψ (℘ α) → Ψ)]
    [$↓ : ($ (℘ α) → $)]))
 

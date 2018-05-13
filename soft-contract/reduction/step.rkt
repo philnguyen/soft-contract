@@ -349,7 +349,7 @@
     (for ([Rᵢ (in-set R^)])
       (define n (length (R-_0 Rᵢ)))
       (hash-set! m n (match (hash-ref m n #f)
-                       [(? values R₀) (R⊔ Σ R₀ Rᵢ)]
+                       [(? values R₀) (R⊕ Σ R₀ Rᵢ)]
                        [#f Rᵢ])))
     (for/union : (℘ Ξ) ([(i Rᵢ) (in-hash m)]) (handler i Rᵢ)))
 
@@ -377,8 +377,8 @@
   (define (with-guarded-single-arity/collapse Σ R^ ℓ exec)
     (with-guarded-arity/collapse Σ R^ 1 ℓ (λ (W Φ^) (exec (car W) Φ^))))
 
-  (: with-guard : Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))
-  (define (with-guard Σ Φ^ ctx V P exec)
+  (: with-check : Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))
+  (define (with-check Σ Φ^ ctx V P exec)
     (with-2-paths (λ () (split-results Σ (R (list V) Φ^) P))
       exec
       (λ ([R^ : R^])

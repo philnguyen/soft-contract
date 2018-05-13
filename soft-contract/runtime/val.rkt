@@ -160,5 +160,19 @@
       (match S
         [(S:α α) #:when (-α:x? (inspect-α α)) (∋ αs α)]
         [(S:@ f xs) (and (go f) (andmap go xs))]
-        [_ #t]))) 
+        [_ #t])))
+
+  (: compact-with (∀ (X) (Joiner X) → (℘ X) X → (℘ X)))
+  (define ((compact-with ?⊔) xs x)
+    (define-values (subsumed x*)
+      (for*/fold ([subsumed : (℘ X) ∅] [x* : X x])
+                 ([x₀ (in-set xs)]
+                  [?x₁ (in-value (?⊔ x₀ x*))] #:when ?x₁)
+        (values (set-add subsumed x₀) ?x₁)))
+    (set-add (set-subtract xs subsumed) x*))
+
+  (: iter-⊔ (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X)))
+  (define ((iter-⊔ f) xs₁ xs₂)
+    (for/fold ([acc : (℘ X) xs₁]) ([x (in-set xs₂)])
+      (f acc x)))
   )

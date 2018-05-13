@@ -1,6 +1,6 @@
 #lang typed/racket/base
 
-(provide NeListof Assoc unzip-by unzip cartesian)
+(provide NeListof Assoc unzip-by unzip cartesian ?map)
 (require racket/match
          racket/list
          racket/set)
@@ -54,3 +54,15 @@
              (for*/list : (Listof (Listof Y)) ([yⱼ (in-list y)] [pᵢ (in-list ps)])
                (cons yⱼ pᵢ))])]
          [_ '{()}]))]))
+
+(: ?map (∀ (X Y Z) (X Y → (Option Z)) (Listof X) (Listof Y) → (Option (Listof Z))))
+(define (?map f xs ys)
+  (let go ([xs : (Listof X) xs] [ys : (Listof Y) ys])
+    (match* (xs ys)
+      [((cons x xs*) (cons y ys*))
+       (match (f x y)
+         [(? values z) (match (go xs* ys*)
+                         [(? values zs*) (cons z zs*)]
+                         [_ #f])]
+         [_ #f])]
+      [(_ _) '()])))

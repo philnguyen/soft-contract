@@ -16,6 +16,7 @@
 (define-unit evl@
   (import val^ pretty-print^)
   (export evl^)
+  (init-depend val^)
 
   (define ⊤Ψ : Ψ (hash))
   (define ⊤Φ (Φ (hasheq) ⊤Ψ))
@@ -39,7 +40,7 @@
   (define ($@* Φs α)
     (define m
       (for/fold ([m : (HashTable W Φ^) (hash)]) ([Φ (in-set Φs)])
-        (hash-update m (list ($@ Φ α)) (λ ([Φs : Φ^]) (Φ^+ Φs Φ)) mk-∅)))
+        (hash-update m (list ($@ Φ α)) (λ ([Φs : Φ^]) (Φ^⊔ Φs Φ)) mk-∅)))
     (list->set (hash-map m R)))
 
   (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
@@ -63,10 +64,10 @@
   (define (collapse-R^ R^)
     (for/fold ([W^ : W^ ∅] [Φ^ : Φ^ ∅]) ([R* (in-set R^)])
       (match-define (R W* Φ^*) R*)
-      (values (set-add W^ W*) (Φ^⊔ Φ^ Φ^*))))
+      (values (set-add W^ W*) ((iter-⊔ Φ^⊔) Φ^ Φ^*))))
 
   (: collapse-R^/Φ^ : R^ → Φ^)
-  (define (collapse-R^/Φ^ R^) (foldl Φ^⊔ ∅ (set-map R^ R-_1)))
+  (define (collapse-R^/Φ^ R^) (foldl (iter-⊔ Φ^⊔) ∅ (set-map R^ R-_1)))
 
   (: collapse-R^/W^ : R^ → W^)
   (define (collapse-R^/W^ R^) (map/set R-_0 R^))
@@ -108,10 +109,10 @@
     (define-values (R^₁ R^₂ R^₃) (mk))
     (∪ (if (set-empty? R^₁) ∅ (f₁ R^₁))
        (if (set-empty? R^₂) ∅ (f₂ R^₂))
-       (if (set-empty? R^₃) ∅ (f₃ R^₃))))
+       (if (set-empty? R^₃) ∅ (f₃ R^₃)))) 
 
-  (: R^⊔ : R^ R^ → R^)
-  (define (R^⊔ R^₁ R^₂)
+  #;(: R^⊔ : R^ R^ → R^)
+  #;(define (R^⊔ R^₁ R^₂)
     (: go : R^ R → R^)
     (define (go R* Rᵢ)
       (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
@@ -128,13 +129,13 @@
     (for/fold ([acc : R^ R^₁]) ([R (in-set R^₂)])
       (go acc R)))
 
-  (: Φ^⊔ : Φ^ Φ^ → Φ^)
-  (define (Φ^⊔ Φ^₁ Φ^₂)
+  #;(: Φ^⊔ : Φ^ Φ^ → Φ^)
+  #;(define (Φ^⊔ Φ^₁ Φ^₂)
     (for/fold ([acc : Φ^ Φ^₁]) ([Φ (in-set Φ^₂)])
       (Φ^+ acc Φ))) 
 
-  (: Φ^+ : Φ^ Φ → Φ^)
-  (define (Φ^+ Φ^ Φᵢ)
+  #;(: Φ^+ : Φ^ Φ → Φ^)
+  #;(define (Φ^+ Φ^ Φᵢ)
     (match-define (Φ $ᵢ Ψᵢ) Φᵢ)
 
     (: $⊔ : $ $ → $)
@@ -202,4 +203,54 @@
 
   (: lift-Φ* : (Φ → Φ) → (case-> [Φ → Φ] [Φ^ → Φ^]))
   (define ((lift-Φ* go) Φ*) (if (set? Φ*) (map/set go Φ*) (go Φ*)))
+
+  (define $⊔ : (Joiner $)
+    (λ ($₁ $₂)
+      (assert (= (hash-count $₁) (hash-count $₂)))
+      (for/fold ([$ : (Option $) $₁])
+                ([(α S₁) (in-hash $₁)] #:break (not $))
+        (define S₂ (hash-ref $₂ α))
+        (or (and (equal? S₁ S₂) $)
+            (let ([S* (S:α α)])
+              (and (equal? S₁ S*) $)
+              (and (equal? S₂ S*) (hash-set (assert $) α S₂)))))))
+
+  (define Ψ⊔ : (Joiner Ψ)
+    (λ (Ψ₁ Ψ₂)
+      (for/fold ([Ψ : (Option Ψ) Ψ₁])
+                ([(args Ps₁) (in-hash Ψ₁)] #:break (not Ψ))
+        (define Ps₂ (Ψ@ Ψ₂ args))
+        (or (and (⊆ Ps₁ Ps₂) Ψ)
+            (and (⊆ Ps₂ Ps₁) (hash-set (assert Ψ) args Ps₂))))))
+
+  (define Φ⊔ : (Joiner Φ)
+    (match-lambda**
+     [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂))
+      (with-guard ([$ ($⊔ $₁ $₂)]
+                   [Ψ (Ψ⊔ Ψ₁ Ψ₂)])
+        (Φ $ Ψ))]))
+
+  (define R⊔ : (Joiner R)
+    (match-lambda**
+     [((R W₁ Φ^₁) (R W₂ Φ^₂))
+      (with-guard ([Φ^* ((iter-⊔ Φ^⊔) Φ^₁ Φ^₂)])
+        (define T⊔/Φ^ : (Joiner T^)
+          (match-lambda**
+           [(x x) x]
+           [((? S? S₁) (and S₂ (S:α α)))
+            #:when (for/and : Boolean ([Φ₁ (in-set Φ^₁)])
+                     (equal? (hash-ref (Φ-alias Φ₁) α) S₁))
+            S₂]
+           [((and S₁ (S:α α)) (? S? S₂))
+            #:when (for/and : Boolean ([Φ₂ (in-set Φ^₂)])
+                     (equal? (hash-ref (Φ-alias Φ₂) α) S₂))
+            S₁]
+           [((? V? V) (? set? V^)) #:when (∋ V^ V) V^]
+           [((? set? V^) (? V? V)) #:when (∋ V^ V) V^]
+           [(_ _) #f]))
+        (with-guard ([W (?map T⊔/Φ^ W₁ W₂)])
+          (R W Φ^*)))]))
+
+  (define Φ^⊔ (compact-with Φ⊔))
+  (define R^⊔ (compact-with R⊔))
   )
