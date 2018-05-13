@@ -21,7 +21,7 @@
          )
 
 (define-unit local-prover-core@
-  (import static-info^
+  (import static-info^ meta-functions^
           sto^ evl^ val^ prims^
           sat-result^)
   (export local-prover-core^)

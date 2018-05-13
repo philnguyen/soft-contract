@@ -6,7 +6,6 @@
 (require racket/match
          racket/set
          racket/list
-         racket/string
          racket/extflonum 
          racket/splicing
          typed/racket/unit
@@ -25,48 +24,7 @@
 (define-type -begin/e (-begin -e))
 (define-type -begin/top (-begin -top-level-form))
 
-(struct (X) -var ([init : (Listof X)] [rest : (Option X)]) #:transparent)
-
-(: -var-map (∀ (X Y) (X → Y) (-var X) → (-var Y)))
-(define (-var-map f v)
-  (match-define (-var xs x) v)
-  (-var (map f xs) (and x (f x))))
-
-(: -var->set (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X))))
-(define (-var->set xs #:eq? [use-eq? #f])
-  (match-define (-var xs₀ ?xᵣ) xs)
-  (define s ((if use-eq? list->seteq list->set) xs₀))
-  (if ?xᵣ (set-add s ?xᵣ) s))
-
-(: -var-fold (∀ (X Y Z) (X Y Z → Z) Z (-var X) (-var Y) → Z))
-(define (-var-fold f z₀ xs ys)
-  (match-define (-var xs₀ ?xᵣ) xs)
-  (match-define (-var ys₀ ?yᵣ) ys)
-  (define z₁ (foldl f z₀ xs₀ ys₀))
-  (if (and ?xᵣ ?yᵣ) (f ?xᵣ ?yᵣ z₁) z₁))
-
-(: in-var (∀ (X) (-var X) → (Sequenceof X)))
-(define in-var
-  (match-lambda
-    [(-var xs ?x) (cond [?x (in-sequences (in-list xs) (in-value ?x))]
-                        [else (in-list xs)])]))
-
-(: shape (∀ (X) (-var X) → (U Index arity-at-least)))
-(define shape
-  (match-lambda
-    [(-var (app length n) x) (if x (arity-at-least n) n)]))
-
-(: +x! : (U Symbol Integer) * → Symbol)
-(define (+x! . prefixes)
-  (define (stuff->string x) (format "~a" x))
-  (define prefix (string-join (map stuff->string prefixes) "_" #:after-last "_"))
-  (gensym prefix))
-
-(: +x!/memo : (U Symbol Integer) * → Symbol)
-(define +x!/memo
-  (let ([m : (HashTable (Listof (U Symbol Integer)) Symbol) (make-hash)])
-    (λ [xs : (U Symbol Integer) *]
-      (hash-ref! m xs (λ () (apply +x! xs))))))
+(struct (X) -var ([init : (Listof X)] [rest : (Option X)]) #:transparent) 
 
 ;; Identifier as a name and its source
 (struct -𝒾 ([name : Symbol] [src : -l]) #:transparent)
@@ -235,7 +193,14 @@
    [e/map : (Subst -e → -e)]
    [e/ : (Symbol -e -e → -e)]
    [formals->names : (-formals → (℘ Symbol))]
-   [first-forward-ref : ((Listof -dom) → (Option Symbol))]))
+   [first-forward-ref : ((Listof -dom) → (Option Symbol))]
+   [var-map : (∀ (X Y) (X → Y) (-var X) → (-var Y))]
+   [var->set : (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X)))]
+   [var-fold : (∀ (X Y Z) (X Y Z → Z) Z (-var X) (-var Y) → Z)]
+   [in-var : (∀ (X) (-var X) → (Sequenceof X))]
+   [shape : (∀ (X) (-var X) → (U Index arity-at-least))]
+   [+x! : ((U Symbol Integer) * → Symbol)]
+   [+x!/memo : ((U Symbol Integer) * → Symbol)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

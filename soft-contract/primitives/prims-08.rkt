@@ -17,7 +17,8 @@
          "signatures.rkt")
 
 (define-unit prims-08@
-  (import prim-runtime^ evl^ sto^ val^
+  (import meta-functions^
+          prim-runtime^ evl^ sto^ val^
           step^
           prover^)
   (export)

@@ -61,7 +61,7 @@
   )
 
 (define-compound-unit/infer prims@
-  (import ast-pretty-print^ static-info^
+  (import ast-pretty-print^ static-info^ meta-functions^
           val^ sto^ env^ evl^
           prover^
           alloc^ compile^ step^ mon^)

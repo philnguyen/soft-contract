@@ -64,9 +64,9 @@
 
          (define ext-Ψ : (Ψ Ψ → Ψ)
            (let* ([mappings
-                   (-var-fold (λ ([α : α] [T : T^] [m : (Immutable-HashTable S S:α)])
-                                (if (S? T) (hash-set m T (S:α α)) m))
-                              ((inst hash S S:α)) fmls args)]
+                   (var-fold (λ ([α : α] [T : T^] [m : (Immutable-HashTable S S:α)])
+                               (if (S? T) (hash-set m T (S:α α)) m))
+                             ((inst hash S S:α)) fmls args)]
                   [er? (λ ([S : S]) (hash-has-key? mappings S))]
                   [subst₁
                    (λ ([Sₑᵣ : S]) : (Option S)
@@ -103,12 +103,12 @@
        (: ext-env : Ρ -formals (-var α) → Ρ)
        (define (ext-env Ρ₀ xs αs)
          (define f : (Symbol α Ρ → Ρ) (λ (x α Ρ) (Ρ+ Ρ x α)))
-         (-var-fold f Ρ₀ xs αs)))
+         (var-fold f Ρ₀ xs αs)))
     
     (: bind-args! : Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))
     (define (bind-args! Φ^ Ρ fmls W H Σ)
-      (define fmls:addr (-var-map (λ ([x : Symbol]) (mk-α (-α:x x H))) fmls))
-      (define scope (set-subtract (hash-ref binders H) (-var->set fmls:addr #:eq? #t)))
+      (define fmls:addr (var-map (λ ([x : Symbol]) (mk-α (-α:x x H))) fmls))
+      (define scope (set-subtract (hash-ref binders H) (var->set fmls:addr #:eq? #t)))
       (alloc! Σ Φ^ fmls:addr W)
       (values (er->ee Φ^ fmls:addr W (looped? H) scope) (ext-env Ρ fmls fmls:addr))))
 

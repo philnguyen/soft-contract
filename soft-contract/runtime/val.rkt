@@ -13,7 +13,7 @@
          "signatures.rkt")
 
 (define-unit val@
-  (import sto^)
+  (import meta-functions^ sto^)
   (export val^)
 
   (: C-flat? : V → Boolean)

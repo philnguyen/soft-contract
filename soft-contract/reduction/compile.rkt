@@ -197,7 +197,7 @@
       [=> (-μ/c x C)
           (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x (Ξ:co-ctx Ξ)))) Φ^ (K+ (F:Μ/C x) Ξ) Σ)
           #:recur C]
-      [(--> Cs D ℓ) (mk--> ℓ (-var-map ↓ Cs) (↓ D))]
+      [(--> Cs D ℓ) (mk--> ℓ (var-map ↓ Cs) (↓ D))]
       [(-->i Cs D) (mk-->i (map ↓-dom Cs) (↓-dom D))]
       [=> (-∀/c xs E*)
           (ret! (T->R (∀/C xs ⟦E*⟧ (m↓ Ρ fvs)) Φ^) Ξ Σ)

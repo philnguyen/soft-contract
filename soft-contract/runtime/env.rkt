@@ -8,8 +8,9 @@
 (provide env@)
 
 (define-unit env@
-  (import)
+  (import meta-functions^)
   (export env^)
+  (init-depend meta-functions^)
 
   (define ⊥Ρ : Ρ (hasheq))
 

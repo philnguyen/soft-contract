@@ -141,7 +141,7 @@
   )
 
 (define-compound-unit/infer prover@
-  (import static-info^ sto^ val^ evl^ prims^)
+  (import static-info^ meta-functions^ sto^ val^ evl^ prims^)
   (export prover^)
   (link sat-result@ local-prover-core@ ext-prover-core@ prover-core@))
 
