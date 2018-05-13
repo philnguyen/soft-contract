@@ -17,17 +17,19 @@
   (import val^ pretty-print^)
   (export evl^)
 
-  (define ⊤Φ (Φ (hasheq) (hash)))
+  (define ⊤Ψ : Ψ (hash))
+  (define ⊤Φ (Φ (hasheq) ⊤Ψ))
   (define ⊥Φ^ {set ⊤Φ})
 
-  (: Ψ@ : (U Φ Φ^) (Listof T) → (℘ P))
-  (define (Ψ@ Φ* Ts)
-    (define (go [Φ : Φ]) (hash-ref (Φ-condition Φ) Ts mk-∅))
-    (if (set? Φ*)
-        (for/fold ([acc : (℘ P) (go (set-first Φ*))])
-                  ([Φᵢ (in-set (set-rest Φ*))])
-          (∩ acc (go Φᵢ)))
-        (go Φ*)))
+  (: Ψ@ : (U Φ Φ^ Ψ) (Listof T) → (℘ P))
+  (define (Ψ@ x Ts)
+    (define (go [Ψ : Ψ]) (hash-ref Ψ Ts mk-∅))
+    (define (go-Φ [Φ : Φ]) (go (Φ-condition Φ)))
+    (cond [(set? x) (for/fold ([acc : (℘ P) (go-Φ (set-first x))])
+                               ([Φᵢ (in-set (set-rest x))])
+                       (∩ acc (go-Φ Φᵢ)))]
+          [(Φ? x) (go-Φ x)]
+          [else (go x)]))
 
   (: $@ : Φ α → S)
   (define ($@ Φ α)
@@ -36,20 +38,22 @@
   (: $@* : Φ^ α → R^)
   (define ($@* Φ^ α) (partition-Φ^ (λ (Φ) (list ($@ Φ α))) Φ^))
 
-  (: Ψ+ (case-> [Φ P (Listof S) → Φ]
-                [Φ^ P (Listof S) → Φ^]))
-  (define (Ψ+ Φ* p xs)
-    (define go : (Φ → Φ)
-      (match-lambda
-        [(Φ $ Ψ₀)
-         (Φ $ (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (set-add ps p)) mk-∅))]))
-    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
+  (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
+                [Φ (U P (℘ P)) (Listof S) → Φ]
+                [Φ^ (U P (℘ P)) (Listof S) → Φ^]))
+  (define (Ψ+ x p* xs)
+    (define go : (Ψ → Ψ)
+      (if (set? p*)
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (∪ ps p*)) mk-∅))
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (set-add ps p*)) mk-∅))))
+    (define go-Φ : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ $ (go Ψ))]))
+    (cond [(set? x) (map/set go-Φ x)]
+          [(Φ? x) (go-Φ x)]
+          [else (go x)]))
 
   (: $+ (case-> [Φ α S → Φ]
                 [Φ^ α S → Φ^]))
-  (define ($+ Φ* α S)
-    (define go : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)]))
-    (if (set? Φ*) (map/set go Φ*) (go Φ*)))
+  (define ($+ Φ* α S) ((lift-Φ* (match-lambda [(Φ $ Ψ) (Φ (hash-set $ α S) Ψ)])) Φ*))
 
   (: partition-Φ^ : (Φ → W) Φ^ → R^)
   (define (partition-Φ^ f Φs)
@@ -130,19 +134,75 @@
   (: Φ^⊔ : Φ^ Φ^ → Φ^)
   (define (Φ^⊔ Φ^₁ Φ^₂)
     (for/fold ([acc : Φ^ Φ^₁]) ([Φ (in-set Φ^₂)])
-      (Φ^+ acc Φ)))
+      (Φ^+ acc Φ))) 
 
   (: Φ^+ : Φ^ Φ → Φ^)
   (define (Φ^+ Φ^ Φᵢ)
-    (: $⊑ : $ $ → Boolean)
-    (define ($⊑ $₁ $₂)
-      (for/and ([(α S₁) (in-hash $₁)])
-        (define S₂ (hash-ref $₂ α))
-        (or (equal? S₁ S₂) (equal? S₂ (S:α α)))))
-    
     (match-define (Φ $ᵢ Ψᵢ) Φᵢ)
-    (define ?Φ₀ (for/or : (Option Φ) ([Φ₀ (in-set Φ^)])
-                  (match-define (Φ $₀ Ψ₀) Φ₀)
-                  (and (equal? Ψ₀ Ψᵢ) ($⊑ $₀ $ᵢ) Φ₀)))
-    (set-add (if ?Φ₀ (set-remove Φ^ ?Φ₀) Φ^) Φᵢ))
+
+    (: $⊔ : $ $ → $)
+    (define ($⊔ $₁ $₂)
+      (for*/fold ([acc : $ $₁])
+                 ([(α S₁) (in-hash $₁)]
+                  [S₂ (in-value (hash-ref $₂ α))]
+                  #:unless (equal? S₁ S₂))
+        (hash-set acc α (S:α α))))
+
+    (: Ψ⊔ : Ψ Ψ → Ψ)
+    (define (Ψ⊔ Ψ₁ Ψ₂)
+      (for*/fold ([acc : Ψ Ψ₁])
+                 ([(args Ps₁) (in-hash Ψ₁)]
+                  [Ps₂ (in-value (Ψ@ Ψ₂ args))]
+                  #:unless (equal? Ps₁ Ps₂)
+                  [Ps* (in-value (∩ Ps₁ Ps₂))])
+        (if (set-empty? Ps*)
+            (hash-remove acc args)
+            (hash-set acc args Ps*))))
+    
+    (: $-compat? : $ → Boolean)
+    (define ($-compat? $₀)
+      (for/and ([(α S₀) (in-hash $₀)])
+        (define Sᵢ (hash-ref $ᵢ α))
+        (or (equal? Sᵢ S₀)
+            (let ([S^ (S:α α)])
+              (or (equal? Sᵢ S^) (equal? S₀ S^))))))
+
+    (: Ψ-compat? : Ψ → Boolean)
+    (define (Ψ-compat? Ψ₀)
+      (for/and ([(args Psᵢ) (in-hash Ψᵢ)])
+        (define Ps₀ (Ψ@ Ψ₀ args))
+        (or (⊆ Psᵢ Ps₀) (⊆ Ps₀ Psᵢ))))
+
+    (define compat? : (Φ → Boolean)
+      (match-lambda [(Φ $₀ Ψ₀) (Ψ-compat? Ψ₀) ($-compat? $₀)]))
+    
+    (define Φ₀s (set-filter compat? Φ^))
+    (define-values ($* Ψ*)
+      (for/fold ([$* : $ $ᵢ] [Ψ* : Ψ Ψᵢ])
+                ([Φ₀ (in-set Φ₀s)])
+        (match-define (Φ $₀ Ψ₀) Φ₀)
+        (values ($⊔ $* $₀) (Ψ⊔ Ψ* Ψ₀))))
+    (set-add (set-subtract Φ^ Φ₀s) (Φ $* Ψᵢ)))
+
+  (: Ψ↓ : Ψ (℘ α) → Ψ)
+  (define (Ψ↓ Ψ₀ αs)
+    (for/fold ([Ψ : Ψ Ψ₀]) ([args (in-hash-keys Ψ₀)]
+                            #:unless (for/and : Boolean ([S (in-list args)])
+                                       (in-scope? S αs)))
+      (hash-remove Ψ args)))
+
+  (: $↓ : $ (℘ α) → $)
+  (define ($↓ $₀ αs)
+    (for/fold ([$ : $ $₀]) ([(α S) (in-hash $₀)]
+                            #:unless (∋ αs α)
+                            #:unless (in-scope? S αs))
+      (hash-remove $ α)))
+
+  (: Φ↓ (case-> [Φ (℘ α) → Φ]
+                [Φ^ (℘ α) → Φ^]))
+  (define (Φ↓ Φ* αs)
+    ((lift-Φ* (match-lambda [(Φ $ Ψ) (Φ ($↓ $ αs) (Ψ↓ Ψ αs))])) Φ*))
+
+  (: lift-Φ* : (Φ → Φ) → (case-> [Φ → Φ] [Φ^ → Φ^]))
+  (define ((lift-Φ* go) Φ*) (if (set? Φ*) (map/set go Φ*) (go Φ*)))
   )

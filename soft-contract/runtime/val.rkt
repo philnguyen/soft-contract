@@ -158,7 +158,7 @@
   (define (in-scope? S₀ αs)
     (let go ([S : S S₀])
       (match S
-        [(S:α α) (∋ αs α)]
+        [(S:α α) #:when (-α:x? (inspect-α α)) (∋ αs α)]
         [(S:@ f xs) (and (go f) (andmap go xs))]
         [_ #t])))
   )

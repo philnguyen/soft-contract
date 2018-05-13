@@ -142,7 +142,7 @@
                      (with-positive-party 'dummy+
                        (with-negative-party l
                          (match V
-                           [(X/G l³ C _) (X/G l³ C α•)]
+                           [(X/G l³ C _) (X/G l³ C (mk-α (-α:imm (-● {set 'procedure?}))))]
                            [_ V]))))])
                 (V → V))]]
       [=> (-@ E Es ℓ)

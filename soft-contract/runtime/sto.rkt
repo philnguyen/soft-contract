@@ -15,8 +15,6 @@
          "../ast/signatures.rkt"
          "signatures.rkt")
 
-(define-substructs -α (-α:opq))
-
 (define-unit sto@
   (import val^ evl^)
   (export sto^)
@@ -55,8 +53,6 @@
 
   (: Σₐ@ : (U Σ Σₐ) Ξ:co → R^)
   (define (Σₐ@ Σ Ξ:co) (hash-ref (->Σₐ Σ) Ξ:co mk-∅))
-
-  (define α• (mk-α (-α:opq)))
 
   (: defined-at? : (U Σ Σᵥ) α → Boolean)
   (define (defined-at? Σ α)

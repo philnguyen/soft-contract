@@ -144,18 +144,18 @@
       [(αₖ:hv tag) tag]
       [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))]))
 
-  (define (show-α [α : α]) : Sexp
-    (string->symbol (format "~a" (inspect-α α)))
-    #;(match (inspect α)
+  (: show-α : α → Sexp)
+  (define (show-α α)
+    (define (show-α:x [x : Symbol] [H : H]) (format-symbol "~a~a" x (n-sub H)))
+    (match (inspect-α α)
       [(-α:x x H) (show-α:x x H)]
       [(-α:hv l)
-       (case l
-         [(†) 'αₕᵥ]
-         [else (format-symbol "αₕᵥ_~a_~a" (car l) (cdr l))])]
+       (cond [l (format-symbol "αₕᵥ_~a_~a" (car l) (cdr l))]
+             [else 'αₕᵥ])]
       [(-α:mon-x/c x H _) (show-α:x x H)]
       [(-α:fc-x/c x H) (show-α:x x H)]
-      [(-α:fv H) (show-α:x 'dummy H)]
-      [(-𝒾 x _) x]
+      [(-α:dummy H) (show-α:x 'dummy H)]
+      [(-α:top (-𝒾 x _)) x]
       [(-α:wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
       [(-α:sealed x H) (format-symbol "~a*" (show-α:x x H))]
       [(-α:imm V) (show-V V)]
@@ -189,5 +189,5 @@
 
   (define show-Σ (show-map show-α show-T))
   (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))
-  (define show-Ρ ((inst show-map Symbol α Symbol Sexp) values show-α))
+  (define show-Ρ : (Ρ → (Listof (List Symbol '↦ Sexp))) ((inst show-map Symbol α Symbol Sexp) values show-α))
   )

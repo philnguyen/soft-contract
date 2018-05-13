@@ -23,7 +23,6 @@
 (#|Stack address   |# αₖ . ::= . (αₖ:clo ⟦E⟧ Ρ)
                                  (αₖ:hv HV-Tag)
                                  (αₖ:term/c α W))
-(#|Value address   |# -α . ::= . #:TBD) 
 (#|Result          |# R . ::= . (R W Φ^))
 (#|Path            |# Φ . ::= . (Φ [alias : $] [condition : Ψ]))
 (#|Path alias      |# $ . ≜ . (Immutable-HashTable α S))
@@ -132,15 +131,79 @@
 ;;;;; Some instantiations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-substructs -α
-  ;; tmp hack.
-  ;; Only use this in the prim DSL where all values are finite
-  ;; with purely syntactic components
-  (-α:imm #|restricted|# V)
-  ;; indirection for `listof` to keep in-sync with regular listof contracts
-  (-α:imm:listof     Symbol #|elem, ok with care|# V ℓ)
-  (-α:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
+(#|Value address   |# -α . ::= . (-α:top -𝒾)
+                                 (-α:wrp -𝒾)
+  
+                                 ; for binding
+                                 (-α:x Symbol H)
+                                 (-α:dummy H)
+                                 ; for struct field
+                                 (-α:fld -𝒾 ℓ H Index)
+                                 ; for Cons/varargs
+                                 ; idx prevents infinite list
+                                 (-α:var:car (U ℓ Symbol) H (Option Natural))
+                                 (-α:var:cdr (U ℓ Symbol) H (Option Natural))
+  
+                                 ;; for wrapped mutable struct
+                                 (-α:st -𝒾 Ctx H)
+  
+                                 ;; for vector indices
+                                 (-α:idx ℓ H Natural)
+  
+                                 ;; for vector^ content
+                                 (-α:vct ℓ H)
+  
+                                 ;; for hash^ content
+                                 (-α:hash:key ℓ H)
+                                 (-α:hash:val ℓ H)
+  
+                                 ;; for set^ content
+                                 (-α:set:elem ℓ H)
+  
+                                 ;; for wrapped vector
+                                 (-α:unvct Ctx H)
 
+                                 ;; for wrapped hash
+                                 (-α:unhsh Ctx H)
+
+                                 ;; for wrapped set
+                                 (-α:unset Ctx H)
+
+                                 ;; for contract components
+                                 (-α:and/c:l ℓ H)
+                                 (-α:and/c:r ℓ H)
+                                 (-α:or/c:l ℓ H)
+                                 (-α:or/c:r ℓ H)
+                                 (-α:not/c ℓ H)
+                                 (-α:x/c Symbol H)
+                                 (-α:vect/c ℓ H Natural)
+                                 (-α:vectof ℓ H)
+                                 (-α:hash/c:key ℓ H)
+                                 (-α:hash/c:val ℓ H)
+                                 (-α:set/c:elem ℓ H)
+                                 (-α:struct/c -𝒾 ℓ H Natural)
+                                 (-α:dom ℓ H Natural)
+                                 (-α:rst ℓ H)
+                                 (-α:rng ℓ H Natural)
+
+                                 ;; for wrapped function
+                                 (-α:fn Ctx H)
+
+                                 ;; For values wrapped in seals
+                                 (-α:sealed Symbol H) ; points to wrapped objects
+
+                                 ;; HACK
+                                 (-α:hv (U (Pairof -l H) #f))
+                                 (-α:mon-x/c Symbol H -l)
+                                 (-α:fc-x/c Symbol H)
+
+                                 ;; Only use this in the prim DSL where all values are finite
+                                 ;; with purely syntactic components
+                                 (-α:imm #|restricted|# V)
+                                 ;; indirection for `listof` to keep in-sync with regular listof contracts
+                                 (-α:imm:listof     Symbol #|elem, ok with care|# V ℓ)
+                                 (-α:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
+ 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Simple helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -166,7 +229,6 @@
    [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
    [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
-   [α• : α]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
    #;[⊔ᵥ : (Σᵥ α (U V V^) → Σᵥ)]
@@ -210,12 +272,14 @@
    ))
 
 (define-signature evl^
-  ([⊤Φ : Φ]
+  ([⊤Ψ : Ψ]
+   [⊤Φ : Φ]
    [⊥Φ^ : Φ^]
-   [Ψ@ : ((U Φ^ Φ) (Listof T) → (℘ P))]
+   [Ψ@ : ((U Φ^ Φ Ψ) (Listof T) → (℘ P))]
    [$@* : (Φ^ α → R^)]
-   [Ψ+ : (case-> [Φ P (Listof S) → Φ]
-                 [Φ^ P (Listof S) → Φ^])]
+   [Ψ+ : (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
+                 [Φ (U P (℘ P)) (Listof S) → Φ]
+                 [Φ^ (U P (℘ P)) (Listof S) → Φ^])]
    [$+ : (case-> [Φ α S → Φ]
                  [Φ^ α S → Φ^])]
    [T->R : ((U T T^) Φ^ → R)]
@@ -228,7 +292,9 @@
    [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
    [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
    [R^⊔ : (R^ R^ → R^)]
-   [Φ^⊔ : (Φ^ Φ^ → Φ^)]))
+   [Φ^⊔ : (Φ^ Φ^ → Φ^)]
+   [Ψ↓ : (Ψ (℘ α) → Ψ)]
+   [$↓ : ($ (℘ α) → $)]))
 
 (define-signature pretty-print^
   ([show-α : (α → Sexp)]

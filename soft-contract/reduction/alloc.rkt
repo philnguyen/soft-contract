@@ -35,42 +35,82 @@
       [(-α:x x _) (assignable? x)]
       [(-α:fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
       [(? -α:idx?) #t]
-      [_ #f]))
-
-  (: bind-args! : Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))
-  (define (bind-args! Φ^₀ Ρ₀ fmls W H Σ)
-    (match-define (-var xs x) fmls)
-    (define-values (Φ^* Ρ*) (bind-inits! Φ^₀ Ρ₀ xs W H Σ))
-    (if x
-        (bind-rest! Φ^* Ρ* x (drop W (length xs)) H Σ)
-        (values Φ^* Ρ*)))
+      [_ #f])) 
 
   (splicing-local
-      ((: bind! : Σ Φ^ Ρ Symbol H T^ → (Values Φ^ Ρ))
-       (define (bind! Σ Φ^ Ρ x H T)
-         (define α (mk-α (-α:x x H)))
-         (define V^ (T->V Σ Φ^ T))
-         (⊔ᵥ! Σ α V^)
-         (define Φ^*
-           (if (mutable? α)
-               Φ^
-               (let ([S (if (and (S? T)
-                                 (not (looped? H))
-                                 (T . in-scope? . (hash-ref binders H)))
-                            T
-                            (S:α α))])
-                 ($+ Φ^ α S))))
-         (values Φ^* (Ρ+ Ρ x α))))
-    
-    (: bind-inits! : Φ^ Ρ (Listof Symbol) W H Σ → (Values Φ^ Ρ))
-    (define (bind-inits! Φ^₀ Ρ₀ xs W H Σ)
-      (for/fold ([Φ^ : Φ^ Φ^₀] [Ρ : Ρ Ρ₀])
-                ([x (in-list xs)] [V (in-list W)])
-        (bind! Σ Φ^ Ρ x H V)))
+      ((: mk-list-S : W → (Option S))
+       (define (mk-list-S W)
+         (and (andmap S? W)
+              (foldr (λ ([S : S] [acc : S]) (S:@ -cons (list S acc))) -null W)))
 
-    (: bind-rest! ([Φ^ Ρ Symbol W H Σ] [#:end T^] . ->* . (Values Φ^ Ρ)))
-    (define (bind-rest! Φ^ Ρ x W H Σ #:end [Vₙ -null])
-      (bind! Σ Φ^ Ρ x H (alloc-rest! x W H Φ^ Σ #:end Vₙ))))
+       (: er->ee : Φ^ (-var α) W Boolean (℘ α) → Φ^)
+       (define (er->ee Φ^ₑᵣ fmls arg-list looped? scope)
+         
+         (define args : (-var T^)
+           (if (-var-rest fmls)
+               (let-values ([(Wᵢ Wᵣ) (split-at arg-list (length (-var-init fmls)))])
+                 (-var Wᵢ (mk-list-S Wᵣ)))
+               (-var arg-list #f)))
+
+         (define ext-$ : ($ → $)
+           (let-values ([(αs Ss)
+                         (for/lists ([αs : (Listof α)] [Ss : (Listof S)])
+                                    ([α : α (in-var fmls)] [T (in-var args)] #:unless (mutable? α))
+                           (define S (if (and (S? T) (not looped?) (in-scope? T scope))
+                                         T
+                                         (S:α α)))
+                           (values α S))])
+             (λ ($₀) (foldl (λ ([α : α] [S : S] [$ : $]) (hash-set $ α S)) $₀ αs Ss))))
+
+         (define ext-Ψ : (Ψ Ψ → Ψ)
+           (let* ([mappings
+                   (-var-fold (λ ([α : α] [T : T^] [m : (Immutable-HashTable S S:α)])
+                                (if (S? T) (hash-set m T (S:α α)) m))
+                              ((inst hash S S:α)) fmls args)]
+                  [er? (λ ([S : S]) (hash-has-key? mappings S))]
+                  [subst₁
+                   (λ ([Sₑᵣ : S]) : (Option S)
+                      (cond [(hash-ref mappings Sₑᵣ #f) => values]
+                            [(in-scope? Sₑᵣ scope) Sₑᵣ]
+                            [else #f]))]
+                  [subst
+                   (λ ([Ss : (Listof S)]) : (Option (Listof S))
+                     (foldr (λ ([Sᵢ : S] [acc : (Option (Listof S))])
+                              (and acc (let ([Sᵢ* (subst₁ Sᵢ)]) (and Sᵢ* (cons Sᵢ* acc)))))
+                            '()
+                            Ss))])
+             (λ (Ψₑₑ Ψₑᵣ)
+               (for*/fold ([Ψ : Ψ Ψₑₑ])
+                          ([(argsₑᵣ Ps) (in-hash Ψₑᵣ)]
+                           #:when (ormap er? argsₑᵣ)
+                           [?argsₑₑ (in-value (subst argsₑᵣ))]
+                           #:when ?argsₑₑ)
+                 (Ψ+ Ψ Ps ?argsₑₑ)))))
+
+         (for/set : Φ^ ([Φₑᵣ (in-set Φ^ₑᵣ)])
+           (match-define (Φ $ₑᵣ Ψₑᵣ) Φₑᵣ)
+           (Φ (ext-$ ($↓ $ₑᵣ scope)) (ext-Ψ (Ψ↓ Ψₑᵣ scope) Ψₑᵣ))))
+
+       (: alloc! : Σ Φ^ (-var α) W → Void)
+       (define (alloc! Σ Φ^ αs W)
+         (match-define (-var αs₀ ?αᵣ) αs)
+         (for ([α (in-list αs₀)] [T (in-list W)])
+           (⊔T! Σ Φ^ α T))
+         (when ?αᵣ
+           (match-define (-α:x x H) (inspect-α ?αᵣ))
+           (⊔T! Σ Φ^ ?αᵣ (alloc-rest! x (drop W (length αs₀)) H Φ^ Σ))))
+
+       (: ext-env : Ρ -formals (-var α) → Ρ)
+       (define (ext-env Ρ₀ xs αs)
+         (define f : (Symbol α Ρ → Ρ) (λ (x α Ρ) (Ρ+ Ρ x α)))
+         (-var-fold f Ρ₀ xs αs)))
+    
+    (: bind-args! : Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))
+    (define (bind-args! Φ^ Ρ fmls W H Σ)
+      (define fmls:addr (-var-map (λ ([x : Symbol]) (mk-α (-α:x x H))) fmls))
+      (define scope (set-subtract (hash-ref binders H) (-var->set fmls:addr #:eq? #t)))
+      (alloc! Σ Φ^ fmls:addr W)
+      (values (er->ee Φ^ fmls:addr W (looped? H) scope) (ext-env Ρ fmls fmls:addr))))
 
   (: alloc-rest! ([(U Symbol ℓ) W H Φ^ Σ] [#:end T^] . ->* . T^))
   (define (alloc-rest! x Wₓ H Φ^ Σ #:end [Tₙ {set -null}])

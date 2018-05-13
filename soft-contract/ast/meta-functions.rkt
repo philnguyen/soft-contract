@@ -241,10 +241,7 @@
       (hash-remove m x)))
 
   (: formals->names : -formals → (℘ Symbol))
-  (define formals->names
-    (match-lambda
-      [(-var xs (? values x)) (set-add (list->seteq xs) x)]
-      [(-var xs _) (list->seteq xs)]))
+  (define (formals->names xs) (-var->set xs #:eq? #t))
 
   (: first-forward-ref : (Listof -dom) → (Option Symbol))
   (define (first-forward-ref doms)

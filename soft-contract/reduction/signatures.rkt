@@ -47,78 +47,11 @@
   [F:Havoc-Prim-Args ℓ Symbol]
   [F:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V)))]
   [F:Implement-Predicate Symbol]
-  [F:Absurd])
-
-(define-substructs -α
-  (-α:top -𝒾)
-  (-α:wrp -𝒾)
-  
-  ; for binding
-  (-α:x Symbol H)
-  ; for struct field
-  (-α:fld -𝒾 ℓ H Index)
-  ; for Cons/varargs
-  ; idx prevents infinite list
-  (-α:var:car (U ℓ Symbol) H (Option Natural))
-  (-α:var:cdr (U ℓ Symbol) H (Option Natural))
-
-  ;; for wrapped mutable struct
-  (-α:st -𝒾 Ctx H)
-
-  ;; for vector indices
-  (-α:idx ℓ H Natural)
-  
-  ;; for vector^ content
-  (-α:vct ℓ H)
-
-  ;; for hash^ content
-  (-α:hash:key ℓ H)
-  (-α:hash:val ℓ H)
-
-  ;; for set^ content
-  (-α:set:elem ℓ H)
-
-  ;; for wrapped vector
-  (-α:unvct Ctx H)
-
-  ;; for wrapped hash
-  (-α:unhsh Ctx H)
-
-  ;; for wrapped set
-  (-α:unset Ctx H)
-
-  ;; for contract components
-  (-α:and/c:l ℓ H)
-  (-α:and/c:r ℓ H)
-  (-α:or/c:l ℓ H)
-  (-α:or/c:r ℓ H)
-  (-α:not/c ℓ H)
-  (-α:x/c Symbol H)
-  (-α:vect/c ℓ H Natural)
-  (-α:vectof ℓ H)
-  (-α:hash/c:key ℓ H)
-  (-α:hash/c:val ℓ H)
-  (-α:set/c:elem ℓ H)
-  (-α:struct/c -𝒾 ℓ H Natural)
-  (-α:dom ℓ H Natural)
-  (-α:rst ℓ H)
-  (-α:rng ℓ H Natural)
-
-  ;; for wrapped function
-  (-α:fn Ctx H)
-
-  ;; For values wrapped in seals
-  (-α:sealed Symbol H) ; points to wrapped objects
-
-  ;; HACK
-  (-α:hv (U (Pairof -l H) #f))
-  (-α:mon-x/c Symbol H -l)
-  (-α:fc-x/c Symbol H))
+  [F:Absurd]) 
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
    [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
-   [bind-rest! : ([Φ^ Ρ Symbol W H Σ] [#:end T^] . ->* . (Values Φ^ Ρ))]
    [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end T^] . ->* . T^)]
    [H+ : (H ℓ (U Clo #f) (U 'app 'mon) → H)]
    [looped? : (H → Boolean)]
