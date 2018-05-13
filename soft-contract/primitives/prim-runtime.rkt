@@ -18,10 +18,10 @@
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import val^ sto^ env^ evl^
+  (import val^ env^ evl^
           alloc^ compile^
           prover^
-          step^)
+          step^ approx^)
   (export prim-runtime^)
 
   (splicing-let ([TT (list {set -tt})]

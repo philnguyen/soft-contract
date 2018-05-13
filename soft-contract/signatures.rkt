@@ -43,9 +43,7 @@
    [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]
                       [T → (Option Arity)])]
-   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
-   [⊔T! : (Σ Φ^ α (U T T^) → Void)]
-   [⊔T*! : (Σ Φ^ (Listof α) (Listof T^) → Void)]
+   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)] 
    [V^+ : (case-> [V^ V → V^]
                   [T^ V → T^])]
    #|

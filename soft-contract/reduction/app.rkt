@@ -19,10 +19,10 @@
 
 (define-unit app@
   (import static-info^ ast-pretty-print^
-          env^ sto^ val^ evl^
+          env^ val^ sto^ evl^
           prims^
           prover^
-          compile^ step^ alloc^ havoc^ termination^)
+          compile^ step^ alloc^ havoc^ termination^ approx^)
   (export app^)
   (init-depend step^)
 

@@ -40,9 +40,9 @@
 
 (define-unit prims-04-11@
   (import prim-runtime^
-          evl^ sto^
+          evl^
           prover^
-          step^)
+          step^ approx^)
   (export)
   
   (def-pred vector?)

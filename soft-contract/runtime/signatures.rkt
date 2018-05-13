@@ -231,13 +231,6 @@
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
-   #;[⊔ᵥ : (Σᵥ α (U V V^) → Σᵥ)]
-   #;[⊔ₖ : (Σₖ αₖ Ξ:co → Σₖ)]
-   #;[⊔ₐ : (Σₐ Ξ:co (U R R^) → Σₐ)]
-   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
-   [⊔ᵥ! : (Σ α (U V V^) → Void)]
-   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
-   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
    [Σᵥ@/ctx : (Σ Ctx αℓ → (Values V^ Ctx))]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]

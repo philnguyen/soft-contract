@@ -22,7 +22,7 @@
   (import static-info^
           val^ sto^ evl^ for-gc^
           prover^
-          alloc^ app^ step^)
+          alloc^ app^ step^ approx^)
   (export havoc^) 
   
   (: gen-havoc-expr : ((Listof -module) → -e))

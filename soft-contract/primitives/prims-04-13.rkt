@@ -38,10 +38,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import sto^ evl^
+  (import evl^
           prim-runtime^
           step^
-          prover^)
+          prover^ approx^)
   (export)
 
   (def-pred hash?)

@@ -116,7 +116,13 @@
 (define-signature approx^
   ([collapse-R^-1 : ((U Σ Σᵥ) R^ → (Values T^ Φ^))]
    [collapse-value-lists : ((U Σ Σᵥ) R^ Natural → R)]
-   [R⊔ : ((U Σ Σᵥ) R R → R)]))
+   [R⊔ : ((U Σ Σᵥ) R R → R)]
+   [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
+   [⊔ᵥ! : (Σ α (U V V^) → Void)]
+   [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
+   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
+   [⊔T! : (Σ Φ^ α (U T T^) → Void)]
+   [⊔T*! : (Σ Φ^ (Listof α) (Listof T^) → Void)]))
 
 (define-signature for-gc^
   ([V-root : (V → (℘ α))]))

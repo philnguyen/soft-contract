@@ -62,9 +62,9 @@
 
 (define-compound-unit/infer prims@
   (import ast-pretty-print^ static-info^ meta-functions^
-          val^ sto^ env^ evl^
+          val^ env^ evl^
           prover^
-          alloc^ compile^ step^ mon^)
+          alloc^ compile^ step^ mon^ approx^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

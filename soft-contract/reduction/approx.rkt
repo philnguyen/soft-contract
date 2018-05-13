@@ -14,7 +14,7 @@
          "signatures.rkt")
 
 (define-unit approx@
-  (import evl^
+  (import evl^ val^
           prover^)
   (export approx^) 
 
@@ -69,4 +69,173 @@
                       [(== Tᵢ) (void)]
                       [_ (vector-set! vals i #f)])])))
     (λ (i) (vector-ref vals i)))
+
+  (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)
+  (define (⊔ᵥ Σ α V)
+    (hash-update Σ α (λ ([V₀ : V^]) (if (set? V) (V⊔ V₀ V) (V⊔₁ V₀ V))) mk-∅))
+
+  (: ⊔ₖ : Σₖ αₖ Ξ:co → Σₖ)
+  (define (⊔ₖ Σ α Ξ)
+    (hash-update Σ α (λ ([Ξs : (℘ Ξ:co)]) (Ξ^⊔ Ξs Ξ)) mk-∅))
+
+  (: ⊔ₐ : Σₐ Ξ:co (U R R^) → Σₐ)
+  (define (⊔ₐ Σ Ξ R)
+    (hash-update Σ Ξ (λ ([R₀ : R^]) (R^⊔ R₀ (if (set? R) R {set R}))) mk-∅))
+
+  (: ⊔ᵥ! : Σ α (U V V^) → Void)
+  (define (⊔ᵥ! Σ α V) (set-Σ-val! Σ (⊔ᵥ (Σ-val Σ) α V)))
+
+  (: ⊔T! : Σ Φ^ α (U T T^) → Void)
+  (define (⊔T! Σ Φ^ α T) (⊔ᵥ! Σ α (T->V Σ Φ^ T)))
+
+  (: ⊔T*! : Σ Φ^ (Listof α) (Listof T^) → Void)
+  (define (⊔T*! Σ Φ^ αs Ts)
+    (for ([α (in-list αs)] [T (in-list Ts)])
+      (⊔T! Σ Φ^ α T)))
+
+  (: ⊔ᵥ*! : Σ (Listof α) (Listof V^) → Void)
+  (define (⊔ᵥ*! Σ αs Vs)
+    (for ([α (in-list αs)] [V (in-list Vs)])
+      (⊔ᵥ! Σ α V)))
+
+  (: ⊔ₐ! : Σ Ξ:co (U R R^) → Void)
+  (define (⊔ₐ! Σ Ξ R) (set-Σ-evl! Σ (⊔ₐ (Σ-evl Σ) Ξ R)))
+  
+  (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
+  (define (⊔ₖ! Σ αₖ Ξ) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Ξ)))
+
+  (: Ξ^⊔ : Ξ:co^ Ξ:co → Ξ:co^)
+  ;; FIXME: could have avoided this if all fields on the stack are allocated
+  (define (Ξ^⊔ Ξ^₀ Ξᵢ)
+    (define-type (Joiner X) (X X → (Option X)))
+
+    (define-syntax with-guard
+      (syntax-rules ()
+        [(_ () e ...) (let () e ...)]
+        [(_ ([x eₓ] bnd ...) e ...) (let ([x eₓ])
+                                      (and x (with-guard (bnd ...) e ...)))]))
+
+    (define Ξ⊔ : (Joiner Ξ:co)
+      (match-lambda**
+       [((Ξ:co K₁ m H) (Ξ:co K₂ m H)) (with-guard ([K (K⊔ K₁ K₂)])
+                                        (Ξ:co K m H))]
+       [(_ _) #f]))
+
+    (define K⊔ : (Joiner K)
+      (match-lambda**
+       [((K Fs₁ α) (K Fs₂ α)) (with-guard ([Fs (?map F⊔ Fs₁ Fs₂)])
+                                (K Fs α))]
+       [(_ _) #f]))
+
+    (define F⊔ : (Joiner F)
+      (match-lambda**
+       [(F₁ F₂) #:when (equal? F₁ F₂) F₁]
+       [((F:Ap Ts₁ Es₁ ℓ) (F:Ap Ts₂ Es₂ ℓ))
+        (with-guard ([Ts (?map T⊔ Ts₁ Ts₂)]
+                     [Es (?map EΡ⊔ Es₁ Es₂)])
+          (F:Ap Ts Es ℓ))]
+       [((F:Let ℓ xs bnds bnds₁ E Ρ) (F:Let ℓ xs bnds bnds₂ E Ρ))
+        (with-guard ([bnds* (?map bnd⊔ bnds₁ bnds₂)])
+          (F:Let ℓ xs bnds bnds* E Ρ))]
+       [((F:Bgn0:E W^₁ Es Ρ) (F:Bgn0:E W^₂ Es Ρ))
+        (with-guard ([W^* (W^⊔ W^₁ W^₂)])
+          (F:Bgn0:E W^* Es Ρ))]
+       [((F:Mon:C Ctx x₁) (F:Mon:C Ctx x₂))
+        (with-guard ([x (EΡ⊔ x₁ x₂)])
+          (F:Mon:C Ctx x))]
+       [((F:Mon:V Ctx x₁) (F:Mon:V Ctx x₂))
+        (with-guard ([x (EΡ⊔ x₁ x₂)])
+          (F:Mon:V Ctx x))]
+       [((F:Mon* Ctx W₁ W₂ ℓs W₃) (F:Mon* Ctx W₄ W₅ ℓs W₆))
+        (with-guard ([W₁* (W⊔ W₁ W₄)]
+                     [W₂* (W⊔ W₂ W₅)]
+                     [W₃* (W⊔ W₃ W₆)])
+          (F:Mon* Ctx W₁* W₂* ℓs W₃*))]
+       [((F:==>:Dom W₁ Es ?E E Ρ ℓ) (F:==>:Dom W₂ Es ?E E Ρ ℓ))
+        (with-guard ([W* (W⊔ W₁ W₂)])
+          (F:==>:Dom W* Es ?E E Ρ ℓ))]
+       [((F:==>:Rst W₁ E Ρ ℓ) (F:==>:Rst W₂ E Ρ ℓ))
+        (with-guard ([W (W⊔ W₁ W₂)])
+          (F:==>:Rst W E Ρ ℓ))]
+       [((F:==>:Rng W₁ T₁ ℓ) (F:==>:Rng W₂ T₂ ℓ))
+        (with-guard ([W (W⊔ W₁ W₂)])
+          (or (and (equal? T₁ T₂) (F:==>:Rng W T₁ ℓ))
+              (and T₁ T₂ (with-guard ([T (T⊔ T₁ T₂)])
+                           (F:==>:Rng W T ℓ)))))]
+       [((F:St/C ℓ 𝒾 W₁ Es Ρ) (F:St/C ℓ 𝒾 W₂ Es Ρ))
+        (with-guard ([W (W⊔ W₁ W₂)])
+          (F:St/C ℓ 𝒾 W Es Ρ))]
+       [((F:Mon-Or/C Ctx T₁ T₂ T₃) (F:Mon-Or/C Ctx T₄ T₅ T₆))
+        (with-guard ([T₁* (T⊔ T₁ T₄)]
+                     [T₂* (T⊔ T₂ T₅)]
+                     [T₃* (T⊔ T₃ T₆)])
+          (F:Mon-Or/C Ctx T₁* T₂* T₃*))]
+       [((F:If:Flat/C T₁ blms₁) (F:If:Flat/C T₂ blms₂))
+        (with-guard ([T (T⊔ T₁ T₂)])
+          (F:If:Flat/C T (∪ blms₁ blms₂)))]
+       [((F:Fc-Or/C α αℓ T₁) (F:Fc-Or/C α αℓ T₂))
+        (with-guard ([T (T⊔ T₁ T₂)])
+          (F:Fc-Or/C α αℓ T))]
+       [((F:Fc-Not/C T₁) (F:Fc-Not/C T₂))
+        (with-guard ([T (T⊔ T₁ T₂)])
+          (F:Fc-Not/C T))]
+       [((F:Fc-Struct/C ℓ 𝒾 W₁ Es) (F:Fc-Struct/C ℓ 𝒾 W₂ Es))
+        (with-guard ([W (W⊔ W₁ W₂)])
+          (F:Fc-Struct/C ℓ 𝒾 W Es))]
+       [((F:Fc:C ℓ T₁) (F:Fc:C ℓ T₂))
+        (with-guard ([T (T⊔ T₁ T₂)])
+          (F:Fc:C ℓ T))]
+       [(_ _) #f])) 
+
+    (define bnd⊔ : (Joiner (Pairof Symbol T^))
+      (match-lambda**
+       [((cons x T₁) (cons x T₂)) (with-guard ([T (T⊔ T₁ T₂)]) (cons x T))]))
+
+    (define EΡ⊔ : (Joiner (U EΡ T^))
+      (match-lambda**
+       [((? T^? T₁) (? T^? T₂)) (T⊔ T₁ T₂)]
+       [(x y) #:when (equal? x y) x]
+       [(_ _) #f]))
+
+    (define W^⊔ : (Joiner W^)
+      (λ (W^₁ W^₂)
+        (or (and (⊆ W^₁ W^₂) W^₂)
+            (and (⊆ W^₂ W^₁) W^₁))))
+
+    (define W⊔ : (Joiner W)
+      (match-lambda**
+       [((cons T₁ W₁) (cons T₂ W₂))
+        (with-guard ([T (T⊔ T₁ T₂)]
+                     [W (W⊔ W₁ W₂)])
+          (cons T W))]
+       [('() '()) '()]
+       [(_ _) #f]))
+
+    (define T⊔ : (Joiner T^)
+      (match-lambda**
+       [(x x) x]
+       [((? set? s₁) (? set? s₂)) (or (and (⊆ s₁ s₂) s₂)
+                                      (and (⊆ s₂ s₁) s₁))]
+       [((? V? V) (? set? s)) #:when (∋ s V) s]
+       [((? set? s) (? V? V)) #:when (∋ s V) s]
+       [(_ _) #f]))
+
+    (: ?map (∀ (X Y Z) (X Y → (Option Z)) (Listof X) (Listof Y) → (Option (Listof Z))))
+    (define (?map f xs ys)
+      (let go ([xs : (Listof X) xs] [ys : (Listof Y) ys])
+        (match* (xs ys)
+          [((cons x xs*) (cons y ys*))
+           (match (f x y)
+             [(? values z) (match (go xs* ys*)
+                             [(? values zs*) (cons z zs*)]
+                             [_ #f])]
+             [_ #f])]
+          [(_ _) '()])))
+    
+    (define-values (subsumed Ξ*)
+      (for*/fold ([subsumed : (℘ Ξ:co) ∅] [Ξ* : Ξ:co Ξᵢ])
+                 ([Ξ₀ (in-set Ξ^₀)]
+                  [?Ξ₁ (in-value (Ξ⊔ Ξ₀ Ξ*))] #:when ?Ξ₁)
+        (values (set-add subsumed Ξ₀) ?Ξ₁)))
+    (set-add (set-subtract Ξ^₀ subsumed) Ξ*))
   )

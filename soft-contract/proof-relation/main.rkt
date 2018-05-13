@@ -70,15 +70,7 @@
           [else #f]))
 
   (define T-arity l:T-arity)
-  (define T->V l:T->V)
-
-  (: ⊔T! : Σ Φ^ α (U T T^) → Void)
-  (define (⊔T! Σ Φ^ α T) (⊔ᵥ! Σ α (T->V Σ Φ^ T)))
-
-  (: ⊔T*! : Σ Φ^ (Listof α) (Listof T^) → Void)
-  (define (⊔T*! Σ Φ^ αs Ts)
-    (for ([α (in-list αs)] [T (in-list Ts)])
-      (⊔T! Σ Φ^ α T)))
+  (define T->V l:T->V) 
 
   (define V^+ l:V^+)
   

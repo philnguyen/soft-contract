@@ -20,9 +20,9 @@
 
 (define-unit compile@
   (import meta-functions^ static-info^ ast-pretty-print^
-          env^ val^ sto^ evl^ pretty-print^
+          env^ val^ evl^ sto^ pretty-print^
           step^ alloc^
-          prover^)
+          prover^ approx^)
   (export compile^)
 
   (: ↓ₚ : -prog → ⟦E⟧)

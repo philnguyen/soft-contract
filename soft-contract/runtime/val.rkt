@@ -160,5 +160,5 @@
       (match S
         [(S:α α) #:when (-α:x? (inspect-α α)) (∋ αs α)]
         [(S:@ f xs) (and (go f) (andmap go xs))]
-        [_ #t])))
+        [_ #t]))) 
   )

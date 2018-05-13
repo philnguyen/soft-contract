@@ -25,8 +25,8 @@
 
 (define-unit alloc@
   (import static-info^ meta-functions^
-          val^ env^ sto^ evl^
-          prover^)
+          val^ env^ evl^
+          prover^ approx^)
   (export alloc^)
 
   (: mutable? : α → Boolean)

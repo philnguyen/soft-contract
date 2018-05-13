@@ -18,9 +18,9 @@
 
 (define-unit prims-08@
   (import meta-functions^
-          prim-runtime^ evl^ sto^ val^
+          prim-runtime^ evl^ val^
           step^
-          prover^)
+          prover^ approx^)
   (export)
 
   
