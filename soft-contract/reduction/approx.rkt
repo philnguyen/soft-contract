@@ -108,110 +108,70 @@
   (define (⊔ₖ! Σ αₖ Ξ) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Ξ))) 
 
   ;; FIXME: could have avoided this if all fields on the stack are allocated
-  (define Ξ⊔ : (Joiner Ξ:co)
+  (define cmp-Ξ : (?Cmp Ξ:co)
     (match-lambda**
-     [((Ξ:co K₁ m H) (Ξ:co K₂ m H)) (with-guard ([K (K⊔ K₁ K₂)])
-                                      (Ξ:co K m H))]
+     [((Ξ:co K₁ m H) (Ξ:co K₂ m H)) (cmp-K K₁ K₂)]
      [(_ _) #f]))
 
-  (define K⊔ : (Joiner K)
+  (define cmp-K : (?Cmp K)
     (match-lambda**
-     [((K Fs₁ α) (K Fs₂ α)) (with-guard ([Fs (?map F⊔ Fs₁ Fs₂)])
-                              (K Fs α))]
+     [((K Fs₁ α) (K Fs₂ α)) (fold-cmp cmp-F Fs₁ Fs₂)]
      [(_ _) #f]))
 
-  (define F⊔ : (Joiner F)
-    (match-lambda**
-     [(F₁ F₂) #:when (equal? F₁ F₂) F₁]
+  (define cmp-F : (?Cmp F)
+    (match-lambda** 
      [((F:Ap Ts₁ Es₁ ℓ) (F:Ap Ts₂ Es₂ ℓ))
-      (with-guard ([Ts (?map T⊔ Ts₁ Ts₂)]
-                   [Es (?map EΡ⊔ Es₁ Es₂)])
-        (F:Ap Ts Es ℓ))]
+      (Ord:* (fold-cmp cmp-T^ Ts₁ Ts₂) (fold-cmp cmp-EΡ Es₁ Es₂))]
      [((F:Let ℓ xs bnds bnds₁ E Ρ) (F:Let ℓ xs bnds bnds₂ E Ρ))
-      (with-guard ([bnds* (?map bnd⊔ bnds₁ bnds₂)])
-        (F:Let ℓ xs bnds bnds* E Ρ))]
+      (fold-cmp cmp-bnd bnds₁ bnds₂)]
      [((F:Bgn0:E W^₁ Es Ρ) (F:Bgn0:E W^₂ Es Ρ))
-      (with-guard ([W^* (W^⊔ W^₁ W^₂)])
-        (F:Bgn0:E W^* Es Ρ))]
+      (cmp-sets W^₁ W^₂)]
      [((F:Mon:C Ctx x₁) (F:Mon:C Ctx x₂))
-      (with-guard ([x (EΡ⊔ x₁ x₂)])
-        (F:Mon:C Ctx x))]
+      (cmp-EΡ x₁ x₂)]
      [((F:Mon:V Ctx x₁) (F:Mon:V Ctx x₂))
-      (with-guard ([x (EΡ⊔ x₁ x₂)])
-        (F:Mon:V Ctx x))]
+      (cmp-EΡ x₁ x₂)]
      [((F:Mon* Ctx W₁ W₂ ℓs W₃) (F:Mon* Ctx W₄ W₅ ℓs W₆))
-      (with-guard ([W₁* (W⊔ W₁ W₄)]
-                   [W₂* (W⊔ W₂ W₅)]
-                   [W₃* (W⊔ W₃ W₆)])
-        (F:Mon* Ctx W₁* W₂* ℓs W₃*))]
+      (Ord:* (cmp-W W₁ W₄)
+             (cmp-W W₂ W₅)
+             (cmp-W W₃ W₆))]
      [((F:==>:Dom W₁ Es ?E E Ρ ℓ) (F:==>:Dom W₂ Es ?E E Ρ ℓ))
-      (with-guard ([W* (W⊔ W₁ W₂)])
-        (F:==>:Dom W* Es ?E E Ρ ℓ))]
+      (cmp-W W₁ W₂)]
      [((F:==>:Rst W₁ E Ρ ℓ) (F:==>:Rst W₂ E Ρ ℓ))
-      (with-guard ([W (W⊔ W₁ W₂)])
-        (F:==>:Rst W E Ρ ℓ))]
+      (cmp-W W₁ W₂)]
      [((F:==>:Rng W₁ T₁ ℓ) (F:==>:Rng W₂ T₂ ℓ))
-      (with-guard ([W (W⊔ W₁ W₂)])
-        (or (and (equal? T₁ T₂) (F:==>:Rng W T₁ ℓ))
-            (and T₁ T₂ (with-guard ([T (T⊔ T₁ T₂)])
-                         (F:==>:Rng W T ℓ)))))]
+      (Ord:* (cmp-W W₁ W₂)
+             (or (and (equal? T₁ T₂) '=)
+                 (and T₁ T₂ (cmp-T^ T₁ T₂))))]
      [((F:St/C ℓ 𝒾 W₁ Es Ρ) (F:St/C ℓ 𝒾 W₂ Es Ρ))
-      (with-guard ([W (W⊔ W₁ W₂)])
-        (F:St/C ℓ 𝒾 W Es Ρ))]
+      (cmp-W W₁ W₂)]
      [((F:Mon-Or/C Ctx T₁ T₂ T₃) (F:Mon-Or/C Ctx T₄ T₅ T₆))
-      (with-guard ([T₁* (T⊔ T₁ T₄)]
-                   [T₂* (T⊔ T₂ T₅)]
-                   [T₃* (T⊔ T₃ T₆)])
-        (F:Mon-Or/C Ctx T₁* T₂* T₃*))]
+      (Ord:* (cmp-T^ T₁ T₄)
+             (cmp-T^ T₂ T₅)
+             (cmp-T^ T₃ T₆))]
      [((F:If:Flat/C T₁ blms₁) (F:If:Flat/C T₂ blms₂))
-      (with-guard ([T (T⊔ T₁ T₂)])
-        (F:If:Flat/C T (∪ blms₁ blms₂)))]
+      (Ord:* (cmp-T^ T₁ T₂) (cmp-sets blms₁ blms₂))]
      [((F:Fc-Or/C α αℓ T₁) (F:Fc-Or/C α αℓ T₂))
-      (with-guard ([T (T⊔ T₁ T₂)])
-        (F:Fc-Or/C α αℓ T))]
+      (cmp-T^ T₁ T₂)]
      [((F:Fc-Not/C T₁) (F:Fc-Not/C T₂))
-      (with-guard ([T (T⊔ T₁ T₂)])
-        (F:Fc-Not/C T))]
+      (cmp-T^ T₁ T₂)]
      [((F:Fc-Struct/C ℓ 𝒾 W₁ Es) (F:Fc-Struct/C ℓ 𝒾 W₂ Es))
-      (with-guard ([W (W⊔ W₁ W₂)])
-        (F:Fc-Struct/C ℓ 𝒾 W Es))]
+      (cmp-W W₁ W₂)]
      [((F:Fc:C ℓ T₁) (F:Fc:C ℓ T₂))
-      (with-guard ([T (T⊔ T₁ T₂)])
-        (F:Fc:C ℓ T))]
+      (cmp-T^ T₁ T₂)]
+     [(F₁ F₂) (and (equal? F₁ F₂) '=)]))
+
+  (define cmp-bnd : (?Cmp (Pairof Symbol T^))
+    (match-lambda**
+     [((cons x T₁) (cons x T₂)) (cmp-T^ T₁ T₂)]
      [(_ _) #f]))
 
-  (define bnd⊔ : (Joiner (Pairof Symbol T^))
+  (define cmp-EΡ : (?Cmp (U EΡ T^))
     (match-lambda**
-     [((cons x T₁) (cons x T₂)) (with-guard ([T (T⊔ T₁ T₂)]) (cons x T))]))
-
-  (define EΡ⊔ : (Joiner (U EΡ T^))
-    (match-lambda**
-     [((? T^? T₁) (? T^? T₂)) (T⊔ T₁ T₂)]
-     [(x y) #:when (equal? x y) x]
+     [((? T^? T₁) (? T^? T₂)) (cmp-T^ T₁ T₂)]
+     [(x x) '=]
      [(_ _) #f]))
 
-  (define W^⊔ : (Joiner W^)
-    (λ (W^₁ W^₂)
-      (or (and (⊆ W^₁ W^₂) W^₂)
-          (and (⊆ W^₂ W^₁) W^₁))))
-
-  (define W⊔ : (Joiner W)
-    (match-lambda**
-     [((cons T₁ W₁) (cons T₂ W₂))
-      (with-guard ([T (T⊔ T₁ T₂)]
-                   [W (W⊔ W₁ W₂)])
-        (cons T W))]
-     [('() '()) '()]
-     [(_ _) #f]))
-
-  (define T⊔ : (Joiner T^)
-    (match-lambda**
-     [(x x) x]
-     [((? set? s₁) (? set? s₂)) (or (and (⊆ s₁ s₂) s₂)
-                                    (and (⊆ s₂ s₁) s₁))]
-     [((? V? V) (? set? s)) #:when (∋ s V) s]
-     [((? set? s) (? V? V)) #:when (∋ s V) s]
-     [(_ _) #f]))
-
-  (define Ξ^⊔ (compact-with Ξ⊔))
+  (define (cmp-W [W₁ : W] [W₂ : W]) (fold-cmp cmp-T^ W₁ W₂))
+  (define cmp-T^ (cmp-T^/$ #f #f))
+  (define Ξ^⊔ ((inst compact-with Ξ:co) cmp-Ξ))
   )

@@ -133,46 +133,67 @@
   (: lift-Φ* : (Φ → Φ) → (case-> [Φ → Φ] [Φ^ → Φ^]))
   (define ((lift-Φ* go) Φ*) (if (set? Φ*) (map/set go Φ*) (go Φ*)))
 
-  (define $⊑ : ($ $ → Boolean)
+  (define cmp-$ : (?Cmp $)
     (λ ($₁ $₂)
-      (for/and ([(α S₁) (in-hash $₁)])
-        (match? (hash-ref $₂ α) (== S₁) (S:α (== α))))))
+      (for/fold ([cmp : ?Ord '=])
+                ([(α S₁) (in-hash $₁)] #:break (not cmp))
+        (match* (S₁ (hash-ref $₂ α))
+          [(S S) cmp]
+          [((S:α (== α)) _) (concat-ord (assert cmp) '>)]
+          [(_ (S:α (== α))) (concat-ord (assert cmp) '<)]
+          [(_ _) #f]))))
 
-  (define Ψ⊑ : (Ψ Ψ → Boolean)
+  (define cmp-Ψ : (?Cmp Ψ)
     (λ (Ψ₁ Ψ₂)
-      (for/and ([(args Ps₂) (in-hash Ψ₂)])
-        (⊆ (Ψ@ Ψ₁ args) Ps₂))))
+      (define-values (cmp₁ Ψ₂:rest)
+        (for/fold ([cmp : ?Ord '=] [Ψ₂:rest : Ψ ⊤Ψ])
+                  ([(args Ps₁) (in-hash Ψ₁)] #:break (not cmp))
+          (values (cmp-sets (Ψ@ Ψ₂ args) Ps₁) (hash-remove Ψ₂ args))))
+      (and cmp₁
+           (if (hash-empty? Ψ₂:rest)
+               cmp₁
+               (concat-ord cmp₁ '>)))))
 
-  (define Φ⊑ : (Φ Φ → Boolean)
+  (define cmp-Φ : (?Cmp Φ)
     (match-lambda**
-     [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂)) (and ($⊑ $₁ $₂) (Ψ⊑ Ψ₁ Ψ₂))]))
+     [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂)) (Ord:* (cmp-$ $₁ $₂) (cmp-Ψ Ψ₁ Ψ₂))]))
 
-  (define Φ⊔ : (Joiner Φ)
-    (λ (Φ₁ Φ₂)
-      (or (and (Φ⊑ Φ₂ Φ₁) Φ₁)
-          (and (Φ⊑ Φ₁ Φ₂) Φ₂))))
+  (: cmp-T^/$ : (Option (℘ $)) (Option (℘ $)) → (?Cmp T^))
+  (define (cmp-T^/$ $^₁ $^₂)
+    (define simpl : (?Cmp T^)
+      (match-lambda**
+       ;; cache-independent
+       [(x x) '=]
+       [((? set? V^₁) (? set? V^₂)) (cmp-sets V^₁ V^₂)]
+       [((? V? V) (? set? V^)) #:when (∋ V^ V) '<]
+       [((? set? V^) (? V? V)) #:when (∋ V^ V) '>]
+       [(_ _) #f]))
+    (if (and $^₁ $^₂)
+        (match-lambda**
+         [((? S? S₁) (and S₂ (S:α α)))
+          #:when (for/and : Boolean ([$₁ (in-set $^₁)])
+                   (equal? (hash-ref $₁ α) S₁))
+          '<]
+         [((and S₁ (S:α α)) (? S? S₂))
+          #:when (for/and : Boolean ([$₂ (in-set $^₂)])
+                   (equal? (hash-ref $₂ α) S₂))
+          '>]
+         [(T₁ T₂) (simpl T₁ T₂)])
+        simpl))
 
-  (define R⊔ : (Joiner R)
+  (define cmp-R : (?Cmp R)
     (match-lambda**
      [((R W₁ Φ^₁) (R W₂ Φ^₂))
-      (with-guard ([Φ^* ((iter-⊔ Φ^⊔) Φ^₁ Φ^₂)])
-        (define T⊔/Φ^ : (Joiner T^)
-          (match-lambda**
-           [(x x) x]
-           [((? S? S₁) (and S₂ (S:α α)))
-            #:when (for/and : Boolean ([Φ₁ (in-set Φ^₁)])
-                     (equal? (hash-ref (Φ-alias Φ₁) α) S₁))
-            S₂]
-           [((and S₁ (S:α α)) (? S? S₂))
-            #:when (for/and : Boolean ([Φ₂ (in-set Φ^₂)])
-                     (equal? (hash-ref (Φ-alias Φ₂) α) S₂))
-            S₁]
-           [((? V? V) (? set? V^)) #:when (∋ V^ V) V^]
-           [((? set? V^) (? V? V)) #:when (∋ V^ V) V^]
-           [(_ _) #f]))
-        (with-guard ([W (?map T⊔/Φ^ W₁ W₂)])
-          (R W Φ^*)))]))
+      (define cmp-T^ (cmp-T^/$ (map/set Φ-alias Φ^₁) (map/set Φ-alias Φ^₂)))
+      (define W₁-vs-W₂ (foldl (λ ([T₁ : T^] [T₂ : T^] [o : ?Ord])
+                                (and o (concat-ord o (cmp-T^ T₁ T₂))))
+                              '= W₁ W₂))
+      (for*/fold ([cmp : ?Ord W₁-vs-W₂])
+                 ([Φ₁ (in-set Φ^₁)]
+                  [Φ₂ (in-set Φ^₂)]
+                  #:break (not cmp))
+        (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]))
 
-  (define Φ^⊔ (compact-with Φ⊔))
-  (define R^⊔ (compact-with R⊔))
+  (define Φ^⊔ ((inst compact-with Φ) cmp-Φ))
+  (define R^⊔ ((inst compact-with R) cmp-R))
   )

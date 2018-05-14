@@ -162,17 +162,49 @@
         [(S:@ f xs) (and (go f) (andmap go xs))]
         [_ #t])))
 
-  (: compact-with (∀ (X) (Joiner X) → (℘ X) X → (℘ X)))
-  (define ((compact-with ?⊔) xs x)
+  (define cmp-sets : (?Cmp (℘ Any))
+    (λ (s₁ s₂)
+      (define s₁⊆s₂ (s₁ . ⊆ . s₂))
+      (define s₂⊆s₁ (s₂ . ⊆ . s₁))
+      (or (and s₁⊆s₂ s₂⊆s₁ '=)
+          (and s₁⊆s₂ '<)
+          (and s₂⊆s₁ '>))))
+
+  (: fold-cmp (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord))
+  (define (fold-cmp cmp xs ys)
+    (let go ([xs : (Listof X) xs] [ys : (Listof X) ys])
+      (match* (xs ys)
+        [((cons x xs*) (cons y ys*))
+         (define x-vs-y (cmp x y))
+         (and x-vs-y (concat-ord x-vs-y (go xs* ys*)))]
+        [('() '()) '=]
+        [(_ _) #f]))) 
+
+  (: compact-with (∀ (X) (?Cmp X) → (℘ X) X → (℘ X)))
+  (define ((compact-with cmp) xs x)
+    (define (?⊔ [x₁ : X] [x₂ : X]) : (Option X)
+      (case (cmp x₁ x₂)
+        [(> =) x₁]
+        [(<) x₂]
+        [else #f]))
+    
     (define-values (subsumed x*)
       (for*/fold ([subsumed : (℘ X) ∅] [x* : X x])
                  ([x₀ (in-set xs)]
                   [?x₁ (in-value (?⊔ x₀ x*))] #:when ?x₁)
         (values (set-add subsumed x₀) ?x₁)))
+    
     (set-add (set-subtract xs subsumed) x*))
 
   (: iter-⊔ (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X)))
   (define ((iter-⊔ f) xs₁ xs₂)
     (for/fold ([acc : (℘ X) xs₁]) ([x (in-set xs₂)])
       (f acc x)))
+
+  (define Ctx-flip : (Ctx → Ctx)
+    (match-lambda
+      [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
+  (define Ctx-with-ℓ : (Ctx ℓ → Ctx)
+    (match-lambda**
+     [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
   )

@@ -106,6 +106,9 @@
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)
 (?Dec . ≜ . (Option Dec))
+(Ord . ::= . '< '> '=)
+(?Ord . ≜ . (Option Ord))
+((?Cmp X) . ≜ . (X X → ?Ord))
 
 (define-interner α -α
   #:intern-function-name mk-α
@@ -114,7 +117,7 @@
   #:intern-function-name mk-H
   #:unintern-function-name inspect-H)
 
-((Joiner X) . ≜ . (X X → (Option X)))
+#;((Joiner X) . ≜ . (X X → (Option X)))
 
 ;; Convenient patterns
 (define-syntax-rule (define-St-matcher (P α ...) St-id)
@@ -208,14 +211,23 @@
  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Simple helpers
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 
-(define Ctx-flip : (Ctx → Ctx)
-  (match-lambda
-    [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
-(define Ctx-with-ℓ : (Ctx ℓ → Ctx)
-  (match-lambda**
-   [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
+(: concat-ord : Ord ?Ord → ?Ord)
+(define (concat-ord o₁ o₂)
+  (case o₂
+    [(>) (case o₁ [(<) #f] [else '>])]
+    [(<) (case o₁ [(>) #f] [else '<])]
+    [(=) o₁]
+    [else #f]))
+
+(define-syntax Ord:*
+  (syntax-rules ()
+    [(_) '=]
+    [(_ e) e]
+    [(_ e₁ e ...)
+     (let ([o₁ e₁])
+       (and o₁ (concat-ord o₁ (Ord:* e ...))))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -263,8 +275,12 @@
    [V⊔ : (V^ V^ → V^)]
    [K+ : (F Ξ:co → Ξ:co)]
    [in-scope? : (S (℘ α) → Boolean)]
-   [compact-with : (∀ (X) (Joiner X) → (℘ X) X → (℘ X))]
+   [cmp-sets : (?Cmp (℘ Any))]
+   [fold-cmp : (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord)]
+   [compact-with : (∀ (X) (?Cmp X) → (℘ X) X → (℘ X))]
    [iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
+   [Ctx-flip : (Ctx → Ctx)]
+   [Ctx-with-ℓ : (Ctx ℓ → Ctx)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 
@@ -287,7 +303,8 @@
    [with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    [with-3-paths/collapse : (∀ (X) (→ (Values R^ R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
    [with-2-paths : (∀ (X) (→ (Values R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
-   [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))]
+   [with-3-paths : (∀ (X) (→ (Values R^ R^ R^)) (R^ → (℘ X)) (R^ → (℘ X)) (R^ → (℘ X)) → (℘ X))] 
+   [cmp-T^/$ : ((Option (℘ $)) (Option (℘ $)) → (?Cmp T^))]
    [R^⊔ : (R^ R → R^)]
    [Φ^⊔ : (Φ^ Φ → Φ^)]
    [Ψ↓ : (Ψ (℘ α) → Ψ)]
