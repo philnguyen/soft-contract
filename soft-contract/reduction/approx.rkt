@@ -81,7 +81,9 @@
 
   (: ⊔ₐ : Σₐ Ξ:co (U R R^) → Σₐ)
   (define (⊔ₐ Σ Ξ R)
-    (hash-update Σ Ξ (λ ([R₀ : R^]) (if (set? R) ((iter-⊔ R^⊔) R₀ R) (R^⊔ R₀ R))) mk-∅))
+    (hash-update Σ Ξ (λ ([R₀ : R^])
+                       (if (set? R) ((iter-⊔ R^⊔) R₀ R) (R^⊔ R₀ R))
+                       ) mk-∅))
 
   (: ⊔ᵥ! : Σ α (U V V^) → Void)
   (define (⊔ᵥ! Σ α V) (set-Σ-val! Σ (⊔ᵥ (Σ-val Σ) α V)))

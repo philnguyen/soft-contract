@@ -109,78 +109,7 @@
     (define-values (R^₁ R^₂ R^₃) (mk))
     (∪ (if (set-empty? R^₁) ∅ (f₁ R^₁))
        (if (set-empty? R^₂) ∅ (f₂ R^₂))
-       (if (set-empty? R^₃) ∅ (f₃ R^₃)))) 
-
-  #;(: R^⊔ : R^ R^ → R^)
-  #;(define (R^⊔ R^₁ R^₂)
-    (: go : R^ R → R^)
-    (define (go R* Rᵢ)
-      (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
-      (define subsumed? : (W → Boolean)
-        (match Wᵢ
-          [(list {singleton-set (? -b? b)})
-           (λ (W₀) (or (equal? W₀ Wᵢ) (match? W₀ (list (== b)))))]
-          [_ (λ (W₀) (equal? W₀ Wᵢ))]))
-      
-      (match (for/or : (Option R) ([R (in-set R*)] #:when (subsumed? (R-_0 R)))
-               R)
-        [(and R₀ (R _ Φ^₀)) (set-add (set-remove R* R₀) (R Wᵢ (Φ^⊔ Φ^₀ Φ^ᵢ)))]
-        [_ (set-add R* Rᵢ)]))
-    (for/fold ([acc : R^ R^₁]) ([R (in-set R^₂)])
-      (go acc R)))
-
-  #;(: Φ^⊔ : Φ^ Φ^ → Φ^)
-  #;(define (Φ^⊔ Φ^₁ Φ^₂)
-    (for/fold ([acc : Φ^ Φ^₁]) ([Φ (in-set Φ^₂)])
-      (Φ^+ acc Φ))) 
-
-  #;(: Φ^+ : Φ^ Φ → Φ^)
-  #;(define (Φ^+ Φ^ Φᵢ)
-    (match-define (Φ $ᵢ Ψᵢ) Φᵢ)
-
-    (: $⊔ : $ $ → $)
-    (define ($⊔ $₁ $₂)
-      (for*/fold ([acc : $ $₁])
-                 ([(α S₁) (in-hash $₁)]
-                  [S₂ (in-value (hash-ref $₂ α))]
-                  #:unless (equal? S₁ S₂))
-        (hash-set acc α (S:α α))))
-
-    (: Ψ⊔ : Ψ Ψ → Ψ)
-    (define (Ψ⊔ Ψ₁ Ψ₂)
-      (for*/fold ([acc : Ψ Ψ₁])
-                 ([(args Ps₁) (in-hash Ψ₁)]
-                  [Ps₂ (in-value (Ψ@ Ψ₂ args))]
-                  #:unless (equal? Ps₁ Ps₂)
-                  [Ps* (in-value (∩ Ps₁ Ps₂))])
-        (if (set-empty? Ps*)
-            (hash-remove acc args)
-            (hash-set acc args Ps*))))
-    
-    (: $-compat? : $ → Boolean)
-    (define ($-compat? $₀)
-      (for/and ([(α S₀) (in-hash $₀)])
-        (define Sᵢ (hash-ref $ᵢ α))
-        (or (equal? Sᵢ S₀)
-            (let ([S^ (S:α α)])
-              (or (equal? Sᵢ S^) (equal? S₀ S^))))))
-
-    (: Ψ-compat? : Ψ → Boolean)
-    (define (Ψ-compat? Ψ₀)
-      (for/and ([(args Psᵢ) (in-hash Ψᵢ)])
-        (define Ps₀ (Ψ@ Ψ₀ args))
-        (or (⊆ Psᵢ Ps₀) (⊆ Ps₀ Psᵢ))))
-
-    (define compat? : (Φ → Boolean)
-      (match-lambda [(Φ $₀ Ψ₀) (Ψ-compat? Ψ₀) ($-compat? $₀)]))
-    
-    (define Φ₀s (set-filter compat? Φ^))
-    (define-values ($* Ψ*)
-      (for/fold ([$* : $ $ᵢ] [Ψ* : Ψ Ψᵢ])
-                ([Φ₀ (in-set Φ₀s)])
-        (match-define (Φ $₀ Ψ₀) Φ₀)
-        (values ($⊔ $* $₀) (Ψ⊔ Ψ* Ψ₀))))
-    (set-add (set-subtract Φ^ Φ₀s) (Φ $* Ψᵢ)))
+       (if (set-empty? R^₃) ∅ (f₃ R^₃))))
 
   (: Ψ↓ : Ψ (℘ α) → Ψ)
   (define (Ψ↓ Ψ₀ αs)
@@ -204,31 +133,24 @@
   (: lift-Φ* : (Φ → Φ) → (case-> [Φ → Φ] [Φ^ → Φ^]))
   (define ((lift-Φ* go) Φ*) (if (set? Φ*) (map/set go Φ*) (go Φ*)))
 
-  (define $⊔ : (Joiner $)
+  (define $⊑ : ($ $ → Boolean)
     (λ ($₁ $₂)
-      (assert (= (hash-count $₁) (hash-count $₂)))
-      (for/fold ([$ : (Option $) $₁])
-                ([(α S₁) (in-hash $₁)] #:break (not $))
-        (define S₂ (hash-ref $₂ α))
-        (or (and (equal? S₁ S₂) $)
-            (let ([S* (S:α α)])
-              (and (equal? S₁ S*) $)
-              (and (equal? S₂ S*) (hash-set (assert $) α S₂)))))))
+      (for/and ([(α S₁) (in-hash $₁)])
+        (match? (hash-ref $₂ α) (== S₁) (S:α (== α))))))
 
-  (define Ψ⊔ : (Joiner Ψ)
+  (define Ψ⊑ : (Ψ Ψ → Boolean)
     (λ (Ψ₁ Ψ₂)
-      (for/fold ([Ψ : (Option Ψ) Ψ₁])
-                ([(args Ps₁) (in-hash Ψ₁)] #:break (not Ψ))
-        (define Ps₂ (Ψ@ Ψ₂ args))
-        (or (and (⊆ Ps₁ Ps₂) Ψ)
-            (and (⊆ Ps₂ Ps₁) (hash-set (assert Ψ) args Ps₂))))))
+      (for/and ([(args Ps₂) (in-hash Ψ₂)])
+        (⊆ (Ψ@ Ψ₁ args) Ps₂))))
+
+  (define Φ⊑ : (Φ Φ → Boolean)
+    (match-lambda**
+     [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂)) (and ($⊑ $₁ $₂) (Ψ⊑ Ψ₁ Ψ₂))]))
 
   (define Φ⊔ : (Joiner Φ)
-    (match-lambda**
-     [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂))
-      (with-guard ([$ ($⊔ $₁ $₂)]
-                   [Ψ (Ψ⊔ Ψ₁ Ψ₂)])
-        (Φ $ Ψ))]))
+    (λ (Φ₁ Φ₂)
+      (or (and (Φ⊑ Φ₂ Φ₁) Φ₁)
+          (and (Φ⊑ Φ₁ Φ₂) Φ₂))))
 
   (define R⊔ : (Joiner R)
     (match-lambda**
