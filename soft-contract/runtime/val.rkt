@@ -178,22 +178,22 @@
          (define x-vs-y (cmp x y))
          (and x-vs-y (concat-ord x-vs-y (go xs* ys*)))]
         [('() '()) '=]
-        [(_ _) #f]))) 
+        [(_ _) #f])))
 
-  (: compact-with (∀ (X) (?Cmp X) → (℘ X) X → (℘ X)))
-  (define ((compact-with cmp) xs x)
-    (define (?⊔ [x₁ : X] [x₂ : X]) : (Option X)
-      (case (cmp x₁ x₂)
-        [(> =) x₁]
-        [(<) x₂]
-        [else #f]))
-    
+  (: join-by-max (∀ (X) (?Cmp X) → (?Joiner X)))
+  (define ((join-by-max cmp) x₁ x₂)
+    (case (cmp x₁ x₂)
+      [(> =) x₁]
+      [(<  ) x₂]
+      [else  #f]))
+
+  (: compact-with (∀ (X) (?Joiner X) → (℘ X) X → (℘ X)))
+  (define ((compact-with ?⊔) xs x)
     (define-values (subsumed x*)
       (for*/fold ([subsumed : (℘ X) ∅] [x* : X x])
                  ([x₀ (in-set xs)]
                   [?x₁ (in-value (?⊔ x₀ x*))] #:when ?x₁)
         (values (set-add subsumed x₀) ?x₁)))
-    
     (set-add (set-subtract xs subsumed) x*))
 
   (: iter-⊔ (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X)))

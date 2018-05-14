@@ -173,5 +173,5 @@
 
   (define (cmp-W [W₁ : W] [W₂ : W]) (fold-cmp cmp-T^ W₁ W₂))
   (define cmp-T^ (cmp-T^/$ #f #f))
-  (define Ξ^⊔ ((inst compact-with Ξ:co) cmp-Ξ))
+  (define Ξ^⊔ (compact-with ((inst join-by-max Ξ:co) cmp-Ξ)))
   )

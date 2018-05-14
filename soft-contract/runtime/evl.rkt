@@ -194,6 +194,6 @@
                   #:break (not cmp))
         (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]))
 
-  (define Φ^⊔ ((inst compact-with Φ) cmp-Φ))
-  (define R^⊔ ((inst compact-with R) cmp-R))
+  (define Φ^⊔ (compact-with ((inst join-by-max Φ) cmp-Φ)))
+  (define R^⊔ (compact-with ((inst join-by-max R) cmp-R)))
   )

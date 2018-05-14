@@ -109,6 +109,7 @@
 (Ord . ::= . '< '> '=)
 (?Ord . ≜ . (Option Ord))
 ((?Cmp X) . ≜ . (X X → ?Ord))
+((?Joiner X) . ≜ . (X X → (Option X)))
 
 (define-interner α -α
   #:intern-function-name mk-α
@@ -116,8 +117,6 @@
 (define-interner H -H
   #:intern-function-name mk-H
   #:unintern-function-name inspect-H)
-
-#;((Joiner X) . ≜ . (X X → (Option X)))
 
 ;; Convenient patterns
 (define-syntax-rule (define-St-matcher (P α ...) St-id)
@@ -277,7 +276,8 @@
    [in-scope? : (S (℘ α) → Boolean)]
    [cmp-sets : (?Cmp (℘ Any))]
    [fold-cmp : (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord)]
-   [compact-with : (∀ (X) (?Cmp X) → (℘ X) X → (℘ X))]
+   [join-by-max : (∀ (X) (?Cmp X) → (?Joiner X))]
+   [compact-with : (∀ (X) (?Joiner X) → (℘ X) X → (℘ X))]
    [iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
    [Ctx-flip : (Ctx → Ctx)]
    [Ctx-with-ℓ : (Ctx ℓ → Ctx)]
