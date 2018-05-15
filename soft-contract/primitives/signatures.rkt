@@ -80,7 +80,7 @@
    [add-const! : (Identifier -prim → Void)]
    
    [add-seal : (Σ Symbol H -l → Seal/C)]
-   [mk-res : ((℘ P) -o W → T^)]
+   [mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
    [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]

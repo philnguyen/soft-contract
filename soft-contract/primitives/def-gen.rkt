@@ -169,30 +169,32 @@
                [_ #''any/c]))
            (define/with-syntax D (gen-rng-V #'d))
            #`(list (list C ...) R D)])))
-    (define/with-syntax (V-rng ...)
+    (define/with-syntax compute-range
       (match (?flatten-range rngs)
         ['any
          (log-warning "arbitrarily generate 1 value for range `any` in `~a`~n" (syntax-e (-o)))
-         (list #`(mk-res ∅ '#,(-o) #,(-W)))]
-        [#f (list #`(mk-res ∅ '#,(-o) #,(-W)))]
+         #`(mk-res #,(-Φ^) (list ∅) '#,(-o) #,(-W))]
+        [#f #`(mk-res #,(-Φ^) (list ∅) '#,(-o) #,(-W))]
         [initial-refinements
-         (for/list ([cs (in-list initial-refinements)])
-           (define/with-syntax (c ...) (map o->v cs))
-           #`(mk-res (set c ...) '#,(-o) #,(-W)))]))
+         (with-syntax ([((c ...) ...)
+                        (for/list ([cs (in-list initial-refinements)])
+                          (map o->v cs))])
+           #`(mk-res #,(-Φ^) (list (set c ...) ...) '#,(-o) #,(-W)))]))
     `(,@(for/list ([x (in-hash-values (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           (define/with-syntax φ* (gensym 'φ*))
           #`(define #,x (add-seal #,(-Σ) 'x.name (Ξ:co-ctx #,(-Ξ)) (ℓ-src #,(-ℓ)))))
-      ,#`{set (exec-prim #,(-ℓ) '#,(-o) #,(-Ξ) #,(-Σ)
-                         #:volatile? #,(-volatile?)
-                         #:dom doms
-                         #:rng (list V-rng ...)
-                         #:rng-wrap #,(if (?flatten-range rngs)
-                                          #'#f
-                                          #`(list #,@(for/list ([d (in-list rngs)])
-                                                       #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
-                         #:refinements (list refinement-cases ...)
-                         #:args (R #,(-W) #,(-Φ^)))}))
+      ,#`(let-values ([(rng Φ^*) compute-range])
+           {set (exec-prim #,(-ℓ) '#,(-o) #,(-Ξ) #,(-Σ)
+                           #:volatile? #,(-volatile?)
+                           #:dom doms
+                           #:rng rng
+                           #:rng-wrap #,(if (?flatten-range rngs)
+                                            #'#f
+                                            #`(list #,@(for/list ([d (in-list rngs)])
+                                                         #`(cons #,(gen-ctc-V d) #,(gen-stx-ℓ d)))))
+                           #:refinements (list refinement-cases ...)
+                           #:args (R #,(-W) Φ^*))})))
 
   (define/contract (gen-flat-checks doms ?rst body)
     ((listof syntax?) (or/c #f identifier?) (listof syntax?) . -> . (listof syntax?))
