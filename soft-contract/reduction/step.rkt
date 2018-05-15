@@ -80,8 +80,8 @@
             ['()
              (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
                   (ret! R^₀ Ξ₁ Σ))
-                (match α ; special address denoting havoc
-                  [(cons (? pair? tag) _) (havoc tag R^₀ Ξ Σ)]
+                (match α
+                  [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
                   [_ ∅]))])])]
       [_ ∅])) 
 
