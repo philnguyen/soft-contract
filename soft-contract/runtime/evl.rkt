@@ -183,7 +183,7 @@
 
   (define cmp-R : (?Cmp R)
     (match-lambda**
-     [((R W₁ Φ^₁) (R W₂ Φ^₂))
+     [((R W₁ Φ^₁) (R W₂ Φ^₂)) #:when (= (length W₁) (length W₂))
       (define cmp-T^ (cmp-T^/$ (map/set Φ-alias Φ^₁) (map/set Φ-alias Φ^₂)))
       (define W₁-vs-W₂ (foldl (λ ([T₁ : T^] [T₂ : T^] [o : ?Ord])
                                 (and o (concat-ord o (cmp-T^ T₁ T₂))))
@@ -192,7 +192,8 @@
                  ([Φ₁ (in-set Φ^₁)]
                   [Φ₂ (in-set Φ^₂)]
                   #:break (not cmp))
-        (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]))
+        (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]
+     [(_ _) #f]))
 
   (define Φ^⊔ (compact-with ((inst join-by-max Φ) cmp-Φ)))
   (define R^⊔ (compact-with ((inst join-by-max R) cmp-R)))

@@ -7,7 +7,7 @@
          "../runtime/signatures.rkt")
 
 (define-signature local-prover-core^
-  ([check : (Σ Φ T (Listof T) → ?Dec)]
+  ([check : ((U Σ Σᵥ) Φ T (Listof T) → ?Dec)]
    [check-one-of : (T (Listof Base) → ?Dec)]
    [∧  : (R T → R)]
    [∧¬ : (R T → R)]
@@ -19,7 +19,7 @@
                   [T^ V → T^])]))
 
 (define-signature ext-prover-core^
-  ([check : (Σ Φ T (Listof T) → ?Dec)]))
+  ([check : ((U Σ Σᵥ) Φ T (Listof T) → ?Dec)]))
 
 (define-signature sat-result^
   ([⊔ : (?Dec ?Dec * → ?Dec)]

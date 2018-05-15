@@ -101,7 +101,7 @@
                                           [dependency : (Option (Listof Symbol))]
                                           [ctx : ⟦E⟧]
                                           [src : ℓ]))
-(#|Context tag for havoc|# HV-Tag . ≜ . (HV-Tag (Option -l) H) #:ad-hoc)
+(#|Context tag for havoc|# HV-Tag . ≜ . (mk-HV-Tag (Option -l) H) #:ad-hoc)
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)

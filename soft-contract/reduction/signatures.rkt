@@ -34,7 +34,7 @@
   [F:Dec ℓ -𝒾]
   ;; Specific helpers
   [F:Wrap Prox/C Ctx α]
-  [F:Mon-Or/C Ctx T^ T^ T^]
+  [F:Mon-Or/C Ctx V^ V^ T^]
   [F:If:Flat/C T^ (℘ Blm)]
   [F:Fc-And/C α αℓ]
   [F:Fc-Or/C α αℓ T^]

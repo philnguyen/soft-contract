@@ -254,8 +254,20 @@
       [(F:Mon-Or/C ctx Cₗ Cᵣ V)
        (with-arity Σ R^₀
          (match-lambda** ; TODO refine
-          [(0 (R _ Φ^)) (mon Cᵣ V ctx Φ^ Ξ Σ)]
-          [(1 R₁) {set (ret! R₁ Ξ Σ)}]))]
+          [(0 (R _ Φ^₀))
+           (define V:S? (S? V))
+           (define-values (V* Φ^*)
+             (for/fold ([V* : T^ V] [Φ^* : Φ^ Φ^₀])
+                       ([Cᵢ (in-set Cₗ)] #:when (P? Cᵢ))
+               (define ¬Cᵢ (P:¬ Cᵢ))
+               (values (V^+ V* ¬Cᵢ) (if V:S? (Ψ+ Φ^* Cᵢ (list V)) Φ^*))))
+           (mon Cᵣ V* ctx Φ^* Ξ Σ)]
+          [(1 (R (list T) Φ^))
+           (define T:S? (S? T))
+           (define R* (for/set : R^ ([Cᵢ (in-set Cₗ)])
+                        (R (list (V^+ T Cᵢ))
+                           (if (and T:S? (P? Cᵢ)) (Ψ+ Φ^ Cᵢ (list T)) Φ^))))
+           {set (ret! R* Ξ Σ)}]))]
       [(F:If:Flat/C T^ Blm^)
        (with-guarded-arity R^₀ 1 +ℓ₀ ; TODO
          (λ (R^₀)

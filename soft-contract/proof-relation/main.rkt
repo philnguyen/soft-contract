@@ -119,7 +119,7 @@
          (if (set? T^)
              (for ([V (in-set T^)]) (go! W* (cons V acc)))
              (go! W* (cons T^ acc)))]))
-
+    
     (values (collect ✓-Ts ✓-Φ^) (collect ✗-Ts ✗-Φ^) (collect ?-Ts ?-Φ^)))
 
   (define-syntax for/collect

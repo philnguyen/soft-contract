@@ -27,7 +27,7 @@
   (export local-prover-core^)
   (init-depend prims^)
 
-  (: check : Σ Φ T (Listof T) → ?Dec)
+  (: check : (U Σ Σᵥ) Φ T (Listof T) → ?Dec)
   (define (check Σ Φ P₀ Ts₀)
     
     (: check-equal* : (Listof α) (Listof α) → ?Dec)
@@ -278,9 +278,13 @@
        [((? base-only?) (? -st-p?)) '✗]
        [((? -st-p?) (? base-only?)) '✗]
        ;; Negate
-       [((P:¬ P) (P:¬ Q)) (and (eq? '✓ (P⊢P Q P)) '✓)]
-       [(P (P:¬ Q)) (neg (P⊢P Q P))]
-       [((P:¬ P) Q) (and (eq? '✓ (P⊢P Q P)) '✗)]
+       [((P:¬ P) (P:¬ Q)) (case (P⊢P Q P)
+                            [(✓) '✓]
+                            [else #f])]
+       [(P (P:¬ Q)) (neg (P⊢P P Q))]
+       [((P:¬ P) Q) (case (P⊢P Q P)
+                      [(✓) '✗]
+                      [else #f])]
        ;; Special rules for real numbers
        ; < and <
        [((P:≤ a)              (P:< b)             ) (and     (<  a b) '✓)]
@@ -367,7 +371,7 @@
                   (set->predicate
                    {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
                         'string? 'symbol?})])
-    (: check-proper-list : Σ Φ T → ?Dec)
+    (: check-proper-list : (U Σ Σᵥ) Φ T → ?Dec)
     (define (check-proper-list Σ Φ T₀)
       (define Ψ (Φ-condition Φ))
       (define-set seen : α #:eq? #t #:as-mutable-hash? #t)
@@ -444,12 +448,21 @@
 
   (: T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^))
   (define (T->V Σ Φ^ T)
-    
+
+    (: refine : V^ (℘ P) → V^)
+    (define (refine Vs Ps)
+      (for*/fold ([acc : V^ Vs])
+                 ([P (in-set Ps)]
+                  [Vᵢ (in-set Vs)]
+                  #:when (for/and : Boolean ([Φ : Φ (in-set Φ^)])
+                           (eq? '✗ (check Σ Φ P (list Vᵢ)))))
+        (set-remove acc Vᵢ)))
+
     (define S->V : (S → V^)
       (match-lambda
         [(? -b? b) {set b}]
         [(? -o? o) {set o}]
-        [(S:α α) (Σᵥ@ Σ α)]
+        [(and S (S:α α)) (refine (Σᵥ@ Σ α) (Ψ@ Φ^ (list S)))]
         [(and S (S:@ Sₕ Sₓs)) {set (-● (Ψ@ Φ^ (list S)))}]))
     
     (cond [(S? T) (S->V T)]

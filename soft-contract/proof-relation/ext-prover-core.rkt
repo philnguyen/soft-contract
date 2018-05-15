@@ -20,7 +20,7 @@
   (import)
   (export ext-prover-core^)
 
-  (: check : Σ Φ T (Listof T) → ?Dec)
+  (: check : (U Σ Σᵥ) Φ T (Listof T) → ?Dec)
   (define (check Σ Φ^ P Vs)
     (cond
       [(and (Handled-Pred? P) (andmap S? Vs))

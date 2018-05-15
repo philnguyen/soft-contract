@@ -119,7 +119,7 @@
   (define ((mon-Or/C C) V ctx Φ^ Ξ₀ Σ)
     (match-define (Or/C flat? αℓ₁ αℓ₂) C)
 
-    (: chk : T^ Ctx T^ Ctx → (℘ Ξ))
+    (: chk : V^ Ctx V^ Ctx → (℘ Ξ))
     (define (chk C-fl ctx-fl C-ho ctx-ho)
       (match-define (Ctx _ _ lₒ-fl ℓ-fl) ctx-fl)
       (define Ξ* (K+ (F:Mon-Or/C ctx-ho C-fl C-ho V) Ξ₀))
@@ -283,7 +283,7 @@
       -blm
       (λ ([R^ : R^])
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
-        (define Ξ* (K+ (F:If:Flat/C T^ (-blm R^)) Ξ₀))
+        (define Ξ* (let ([T* (V^+ T^ C)]) (K+ (F:If:Flat/C T* (-blm R^)) Ξ₀)))
         (match C
           [(? -b? b) ((app₁ 'equal?) (list T^ {set b}) ℓ Φ^ Ξ* Σ)]
           [_         ((app₁ C) (list T^) ℓ Φ^ Ξ* Σ)]))))
