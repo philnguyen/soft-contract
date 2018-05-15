@@ -111,12 +111,6 @@
       (λ (ℓ lo arity Vs)
         (Blm (strip-ℓ ℓ) lo (list (arity->msg arity)) Vs)))) 
 
-  ;; TODO
-  #;(define T⊔ : (T^ T^ → T^) set-union)
-  (define V⊔ : (V^ V^ → V^) set-union)
-  #;(define T⊔₁ : (T^ T → T^) set-add)
-  (define V⊔₁ : (V^ V → V^) set-add)
-
   (define ⊥T : T^ ∅)
 
   #;(: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))

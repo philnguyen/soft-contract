@@ -270,8 +270,6 @@
                    [==> → Arity]
                    [Fn/C → (Option Arity)])]
    [blm-arity : (ℓ -l Arity W → Blm)]
-   [V⊔₁ : (V^ V → V^)]
-   [V⊔ : (V^ V^ → V^)]
    [K+ : (F Ξ:co → Ξ:co)]
    [in-scope? : (S (℘ α) → Boolean)]
    [cmp-sets : (?Cmp (℘ Any))]

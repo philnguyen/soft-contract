@@ -73,7 +73,9 @@
 
   (: ⊔ᵥ : Σᵥ α (U V V^) → Σᵥ)
   (define (⊔ᵥ Σ α V)
-    (hash-update Σ α (λ ([V₀ : V^]) (if (set? V) (V⊔ V₀ V) (V⊔₁ V₀ V))) mk-∅))
+    (hash-update Σ α (λ ([V₀ : V^])
+                       (if (set? V) ((iter-⊔ V^⊔) V₀ V) (V^⊔ V₀ V)))
+                 mk-∅))
 
   (: ⊔ₖ : Σₖ αₖ Ξ:co → Σₖ)
   (define (⊔ₖ Σ α Ξ)
@@ -170,6 +172,9 @@
      [((? T^? T₁) (? T^? T₂)) (cmp-T^ T₁ T₂)]
      [(x x) '=]
      [(_ _) #f]))
+
+  (: V^⊔ : V^ V → V^)
+  (define (V^⊔ Vs Vᵢ) (set-add Vs Vᵢ))
 
   (define (cmp-W [W₁ : W] [W₂ : W]) (fold-cmp cmp-T^ W₁ W₂))
   (define cmp-T^ (cmp-T^/$ #f #f))
