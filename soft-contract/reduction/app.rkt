@@ -308,7 +308,8 @@
     (for ([Tₓ (in-list Wₓ)])
       (add-leak! tag Σ (T->V Σ Φ^ Tₓ)))
     (⊔ₖ! Σ α Ξ)
-    {set (Ξ:co (K '() α) (Ξ:co-mark Ξ) H*)})
+    (define Ξ* (Ξ:co (K '() α) (Ξ:co-mark Ξ) H*))
+    (havoc (mk-HV-Tag #f H*) {set (R Wₓ Φ^)} Ξ* Σ))
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TODO

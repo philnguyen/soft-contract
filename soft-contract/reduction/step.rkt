@@ -73,15 +73,13 @@
     (match Ξ
       [(Ξ:co (K Fs α) M H)
        (define R^₀ (Σₐ@ Σ Ξ))
-       (define (do-hv)
-         (match α
-           [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
-           [_ ∅]))
        (cond
-         [(set-empty? R^₀) (do-hv)]
+         [(set-empty? R^₀) ∅]
          [(null? Fs) (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
                           (ret! R^₀ Ξ₁ Σ))
-                        (do-hv))]
+                        (match α
+                          [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
+                          [_ ∅]))]
          [else (co R^₀ (car Fs) (Ξ:co (K (cdr Fs) α) M H) Σ)])]
       [_ ∅])) 
 
@@ -316,9 +314,7 @@
                          [V (in-set (T->V Σ Φ^₀ T))] #:when (behavioral? Σ V))
            V))
        (cond [(set-empty? Tₕᵥ) {set (ret! R^₀ Ξ Σ)}]
-             [else (define ℓ* (ℓ-with-id ℓ 'prim-havoc) )
-                   (define Φ^* (collapse-R^/Φ^ R^₀))
-                   (app-opq (list Tₕᵥ) ℓ* Φ^* Ξ Σ)])]
+             [else (havoc (mk-HV-Tag (ℓ-src ℓ) (Ξ:co-ctx Ξ)) R^₀ Ξ Σ)])]
       [(F:Make-Prim-Range ctx ?rng-wrap ranges cases)
        (define R^₁ (refine-ranges Σ cases R^₀ ranges))
        (define Ξ* (if ?rng-wrap (K+ (F:Mon*:C ctx ?rng-wrap) Ξ) Ξ))

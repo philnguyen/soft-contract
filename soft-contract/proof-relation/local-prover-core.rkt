@@ -431,7 +431,7 @@
       [(Case-Clo cases) (normalize-arity (map T-arity cases))]
       [(Fn:● arity _) arity]
       [(or (And/C #t _ _) (Or/C #t _ _) (? Not/C?) (St/C #t _ _) (? One-Of/C?)) 1]
-      [(X/G (? Fn/C? G) _ _) (guard-arity G)]
+      [(X/G _ (? Fn/C? G) _) (guard-arity G)]
       [(? -st-p?) 1]
       [(-st-mk 𝒾) (count-struct-fields 𝒾)]
       [(? -st-ac?) 1]
