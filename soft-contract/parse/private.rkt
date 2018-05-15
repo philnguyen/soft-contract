@@ -232,12 +232,12 @@
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-           (-p/c-item s-name (--> st-doms st-p ℓₖ) ℓₑ)))
+           (-p/c-item s-name (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
            (-p/c-item (format-symbol "~a?" s-name)
-                      (--> (list 'any/c) 'boolean? ℓₚ)
+                      (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
          (let ([offset (field-offset 𝒾)])
@@ -247,7 +247,7 @@
              (define ℓᵢ (ℓ-with-id ℓ i))
              (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
              (define ac-name (format-symbol "~a-~a" s-name ac))
-             (-p/c-item ac-name (--> (list st-p) st-dom ℓᵢ) ℓₑ))))
+             (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]
@@ -469,7 +469,7 @@
          (match (attribute c.range)
            ['any 'any]
            [d (parse-e d)]))
-       (--> dom rng (next-ℓ! #'c) #f)] 
+       (--> (-var dom #f) rng (next-ℓ! #'c))] 
       ;; Dependent contract
       [e:scv-->i
        (define cs (map parse-named-domain (attribute e.domains)))
@@ -482,8 +482,7 @@
          (map
           (match-lambda
             [(list inits ?rest rng stx)
-             (define dom (cond [?rest (-var (map parse-e inits) (parse-e ?rest))]
-                               [else (map parse-e inits)]))
+             (define dom (-var (map parse-e inits) (and ?rest (parse-e ?rest))))
              (--> dom (parse-e rng) (next-ℓ! stx))])
           (attribute e.cases)))
        (-@ 'scv:make-case-> cases (next-ℓ! stx))]
