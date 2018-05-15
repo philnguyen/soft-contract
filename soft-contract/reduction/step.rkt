@@ -73,16 +73,16 @@
     (match Ξ
       [(Ξ:co (K Fs α) M H)
        (define R^₀ (Σₐ@ Σ Ξ))
+       (define (do-hv)
+         (match α
+           [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
+           [_ ∅]))
        (cond
-         [(set-empty? R^₀) ∅]
-         [(match Fs
-            [(cons F Fs*) (co R^₀ F (Ξ:co (K Fs* α) M H) Σ)]
-            ['()
-             (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
-                  (ret! R^₀ Ξ₁ Σ))
-                (match α
-                  [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
-                  [_ ∅]))])])]
+         [(set-empty? R^₀) (do-hv)]
+         [(null? Fs) (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
+                          (ret! R^₀ Ξ₁ Σ))
+                        (do-hv))]
+         [else (co R^₀ (car Fs) (Ξ:co (K (cdr Fs) α) M H) Σ)])]
       [_ ∅])) 
 
   (: co : R^ F Ξ:co Σ → (℘ Ξ))
