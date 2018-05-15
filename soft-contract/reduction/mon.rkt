@@ -53,26 +53,27 @@
     (define (chk-arity [R^ : R^])
       (match (guard-arity C)
         [(? values n)
-         (define grd-arity {set (-b n)})
-         (define-values (T^₀ Φ^) (collapse-R^-1 Σ R^))
-         (define val-arity
-           (if (set? T^₀)
-               (for/set : V^ ([Vᵢ (in-set T^₀)])
-                 (cond [(T-arity Vᵢ) => -b]
-                       [else (-● {set 'procedure-arity?})]))
-               (S:@ 'procedure-arity (list T^₀))))
-         (with-2-paths
-           (λ () (split-results Σ (R (list val-arity grd-arity) Φ^) 'arity-includes?))
-           wrap
-           (λ _
-             (define C (match (set-first grd-arity)
-                         [(-b (? integer? n))
-                          (format-symbol "(arity-includes/c ~a)" n)]
-                         [(-b (arity-at-least n))
-                          (format-symbol "(arity-at-leastc ~a)" n)]
-                         [(-b (list n ...))
-                          (string->symbol (format "(arity in ~a)" n))]))
-             (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list T^₀))))]
+         (define grd-arity (-b n))
+         (for/union : (℘ Ξ) ([Rᵢ (in-set R^)])
+           (match-define (R (list Tₕ) Φ^ᵢ) Rᵢ)
+           (define Tₕ:arity
+             (cond [(set? Tₕ) (for/set : V^ ([Vᵢ (in-set Tₕ)])
+                                (cond [(T-arity Vᵢ) => -b]
+                                      [else (-● {set 'procedure-arity?})]))]
+                   [else (S:@ 'procedure-arity (list Tₕ))]))
+           ((inst with-2-paths Ξ)
+             (λ () (split-results Σ (R (list Tₕ:arity grd-arity) Φ^ᵢ) 'arity-includes?))
+             (λ (R^)
+               (wrap {set (R (list Tₕ) (set-union-map R-_1 R^))}))
+             (λ _
+               (define C (match n
+                           [(? integer? n)
+                            (format-symbol "(arity-includes/c ~a)" n)]
+                           [(arity-at-least k)
+                            (format-symbol "(arity-at-least/c ~a)" k)]
+                           [(list k ...)
+                            (string->symbol (format "(arity-one-of/c ~a)" k))]))
+               (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list Tₕ)))))]
         [_ (wrap R^)]))
 
     (define (wrap [R^ : R^])
