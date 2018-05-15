@@ -32,7 +32,7 @@
       ((inst with-3-paths/collapse R) (λ () (partition-results Σ (R W Φ^₀) o))
         (λ (Φ^) {set (R TT Φ^)})
         (λ (Φ^) {set (R FF Φ^)})
-        (λ (Φ^) {set (R ?? Φ^)}))))
+        (λ (Φ^) {set (R (if (andmap S? W) (list (S:@ o W)) ??) Φ^)}))))
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
