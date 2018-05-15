@@ -477,9 +477,9 @@
       (match-lambda**
        [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
        [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-       [((-● ps) (? P? p)) (-● (set-add ps p))]
        [(_ 'null?) -null]
        [(_ 'not) -ff]
+       [((-● ps) (? P? p)) (-● (set-add ps p))]
        [(V _) V]))
     
     (if (set? x)
