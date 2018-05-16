@@ -124,7 +124,7 @@
          {set (Cons αₕ αₜ)}]
         [_ Tₙ])))
 
-  (: H+ : H ℓ (Option Clo) (U 'app 'mon) → H)
+  (: H+ : H ℓ (U Clo #f -l) (U 'app 'mon) → H)
   (define (H+ H₀ src fn type)
     (define-values (H* looped?) (-H+ (inspect-H H₀) src fn type))
     (define H₁ (mk-H H*))
@@ -132,16 +132,16 @@
       (hash-set! looped-ctxs H₁ #t))
     (unless (hash-has-key? binders H₁)
       (define αs
-        (cond [fn (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 fn)))])
-                    (mk-α (-α:x x H₁)))]
+        (cond [(Clo? fn) (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 fn)))])
+                           (mk-α (-α:x x H₁)))]
               [else ∅eq]))
       (hash-set! binders H₁ (∪ αs (hash-ref binders H₀))))
     H₁)
 
-  (: -H+ : -H ℓ (Option Clo) (U 'app 'mon) → (Values -H Boolean))
+  (: -H+ : -H ℓ (U Clo #f -l) (U 'app 'mon) → (Values -H Boolean))
   (define (-H+ H src fn type)
     (match-define (-H:edges edges) H)
-    (define tgt (and fn (Clo-_1 fn)))
+    (define tgt (if (Clo? fn) (Clo-_1 fn) fn))
     (case type
       [(app)
        (define match? : (Edge → Boolean)
@@ -152,6 +152,7 @@
       [(mon) ???]))
 
   (define (looped? [H : H]) (hash-has-key? looped-ctxs H))
+  (define (scope [H : H]) (hash-ref binders H))
 
 
   (define H₀ (mk-H (-H:edges '())))
@@ -163,4 +164,4 @@
 (define-substructs -H
   [-H:edges (Listof Edge)])
 
-(Edge . ::= . (Edge [src : ℓ] [tgt : (Option ⟦E⟧)]))
+(Edge . ::= . (Edge [src : ℓ] [tgt : (U ⟦E⟧ #f -l)]))

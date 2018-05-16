@@ -303,13 +303,10 @@
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
     (define H* (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
-    (define tag (cons #f H*))
-    (define α (αₖ:hv tag))
-    (for ([Tₓ (in-list Wₓ)])
-      (add-leak! tag Σ (T->V Σ Φ^ Tₓ)))
+    (define α (αₖ:hv (mk-HV-Tag #f H*)))
     (⊔ₖ! Σ α Ξ)
-    (define Ξ* (Ξ:co (K '() α) (Ξ:co-mark Ξ) H*))
-    (havoc (mk-HV-Tag #f H*) {set (R Wₓ Φ^)} Ξ* Σ))
+    (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ) H*))
+    {set (ret! (R Wₓ Φ^) Ξ* Σ)})
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TODO

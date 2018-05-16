@@ -75,11 +75,8 @@
        (define R^₀ (Σₐ@ Σ Ξ))
        (cond
          [(set-empty? R^₀) ∅]
-         [(null? Fs) (∪ (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
-                          (ret! R^₀ Ξ₁ Σ))
-                        (match α
-                          [(αₖ:hv tag) (havoc tag R^₀ Ξ Σ)]
-                          [_ ∅]))]
+         [(null? Fs) (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
+                       (ret! (map/set (R↓ Σ (scope (Ξ:co-ctx Ξ₁))) R^₀) Ξ₁ Σ))]
          [else (co R^₀ (car Fs) (Ξ:co (K (cdr Fs) α) M H) Σ)])]
       [_ ∅])) 
 
@@ -326,7 +323,12 @@
                          [V (in-set (T->V Σ Φ^₀ T))] #:when (behavioral? Σ V))
            V))
        (cond [(set-empty? Tₕᵥ) {set (ret! R^₀ Ξ Σ)}]
-             [else (havoc (mk-HV-Tag (ℓ-src ℓ) (Ξ:co-ctx Ξ)) R^₀ Ξ Σ)])]
+             [else
+              (define H* (H+ (Ξ:co-ctx Ξ) ℓ (ℓ-src ℓ) 'app))
+              (define αₖ (αₖ:hv (mk-HV-Tag (ℓ-src ℓ) H*)))
+              (⊔ₖ! Σ αₖ Ξ)
+              (define Ξ* (Ξ:co (K (list (F:Havoc)) αₖ) (Ξ:co-mark Ξ) H*))
+              {set (ret! R^₀ Ξ* Σ)}])]
       [(F:Make-Prim-Range ctx ?rng-wrap ranges cases)
        (define R^₁ (refine-ranges Σ cases R^₀ ranges))
        (define Ξ* (if ?rng-wrap (K+ (F:Mon*:C ctx ?rng-wrap) Ξ) Ξ))
@@ -339,6 +341,10 @@
                (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
                (implement-predicate Σ Φ^ᵢ P Wᵢ)))
            {set (ret! Rₐ Ξ Σ)}))]
+      [(F:Havoc)
+       {set-add (match-let ([(Ξ:co (K _ (αₖ:hv tag)) _ _) Ξ])
+                  (havoc tag R^₀ (K+ (F:Havoc) Ξ) Σ))
+                (ret! (R (list {set (-● ∅)}) (collapse-R^/Φ^ R^₀)) Ξ Σ)}]
       [(F:Absurd) ∅]))
 
   (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
@@ -487,6 +493,17 @@
         (check-inits dom-inits args)))
 
     (map/set go-arg arg-lists))
+
+  (: R↓ : Σ (℘ α) → R → R)
+  (define (R↓ Σ αs)
+    (let ([Φ↓ : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ ($↓ $ αs) (Ψ↓ Ψ αs))])])
+      (match-lambda
+        [(R W Φ^)
+         (define (T^↓ [T^ : T^])
+           (cond [(set? T^) T^]
+                 [(in-scope? T^ αs) T^]
+                 [else (T->V Σ Φ^ T^)]))
+         (R (map T^↓ W) (map/set Φ↓ Φ^))])))
 
   (: ↠ : ⟦E⟧ Ρ Φ^ Ξ:co Σ → (℘ Ξ))
   ;; Skip boring states. Use this for production. Not great for debugging.

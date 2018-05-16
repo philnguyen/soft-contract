@@ -51,9 +51,9 @@
 
   (: havoc : HV-Tag R^ Ξ:co Σ → (℘ Ξ))
   (define (havoc tag R^ Ξ₀ Σ)
-    (define-values (W^ Φ^) (collapse-R^ R^))
     (define α• (tag->leak tag))
-    (for* ([W (in-set W^)] [T (in-list W)])
+    (define Φ^ (collapse-R^/Φ^ R^))
+    (for* ([Rᵢ (in-set R^)] [T (in-list (R-_0 Rᵢ))])
       (add-leak! α• Σ (T->V Σ Φ^ T)))
     (for/union : (℘ Ξ) ([V (in-set (Σᵥ@ Σ α•))] #:unless (seen? V (Σ-val Σ)))
        (havoc-V V Φ^ Ξ₀ Σ)))
@@ -117,7 +117,7 @@
 
   (: tag->leak : HV-Tag → α)
   (define (tag->leak tag)
-    (match-define (cons ?l H) tag)
+    (match-define (mk-HV-Tag ?l H) tag)
     (mk-α (-α:hv (and ?l tag))))
 
   ;; For caching
