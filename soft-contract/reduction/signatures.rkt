@@ -48,13 +48,14 @@
   [F:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V)))]
   [F:Implement-Predicate Symbol]
   [F:Havoc]
+  [F:Restore-Ctx H]
   [F:Absurd]) 
 
 (define-signature alloc^
   ([mutable? : (α → Boolean)]
    [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
    [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end T^] . ->* . T^)]
-   [H+ : (H ℓ (U Clo -l #f) (U 'app 'mon) → H)]
+   [H+ : (H ℓ (U Clo ℓ Symbol #f) → H)]
    [looped? : (H → Boolean)]
    [scope : (H → (℘ α))] ; TODO not used
    [H₀ : H]))

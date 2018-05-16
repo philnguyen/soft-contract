@@ -78,7 +78,7 @@
   (define ((app-clo clo) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match-define (Ξ:co _ ?m H) Ξ₀)
     (match-define (Clo fmls ⟦E⟧ Ρ) clo)
-    (define H* (H+ H ℓ clo 'app))
+    (define H* (H+ H ℓ clo))
 
     (: on-sc-ok : (Option (Pairof Ctx M)) → (℘ Ξ))
     (define (on-sc-ok ?m)
@@ -302,7 +302,7 @@
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
-    (define H* (H+ (Ξ:co-ctx Ξ) ℓ #f 'app))
+    (define H* (H+ (Ξ:co-ctx Ξ) ℓ #f))
     (define α (αₖ:hv (mk-HV-Tag #f H*)))
     (⊔ₖ! Σ α Ξ)
     (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ) H*))

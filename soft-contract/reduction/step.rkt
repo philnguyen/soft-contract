@@ -324,7 +324,7 @@
            V))
        (cond [(set-empty? Tₕᵥ) {set (ret! R^₀ Ξ Σ)}]
              [else
-              (define H* (H+ (Ξ:co-ctx Ξ) ℓ (ℓ-src ℓ) 'app))
+              (define H* (H+ (Ξ:co-ctx Ξ) ℓ (assert (ℓ-src ℓ) symbol?)))
               (define αₖ (αₖ:hv (mk-HV-Tag (ℓ-src ℓ) H*)))
               (⊔ₖ! Σ αₖ Ξ)
               (define Ξ* (Ξ:co (K (list (F:Havoc)) αₖ) (Ξ:co-mark Ξ) H*))

@@ -124,44 +124,44 @@
          {set (Cons αₕ αₜ)}]
         [_ Tₙ])))
 
-  (: H+ : H ℓ (U Clo #f -l) (U 'app 'mon) → H)
-  (define (H+ H₀ src fn type)
-    (define-values (H* looped?) (-H+ (inspect-H H₀) src fn type))
+  (: H+ : H ℓ (U Clo #f Symbol ℓ) → H)
+  (define (H+ H₀ src tgt*)
+    (define tgt (if (Clo? tgt*) (Clo-_1 tgt*) tgt*))
+    (define-values (H* looped?) (-H+ (inspect-H H₀) src tgt))
     (define H₁ (mk-H H*))
     (when looped?
       (hash-set! looped-ctxs H₁ #t))
     (unless (hash-has-key? binders H₁)
       (define αs
-        (cond [(Clo? fn) (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 fn)))])
-                           (mk-α (-α:x x H₁)))]
+        (cond [(Clo? tgt*)
+               (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 tgt*)))])
+                 (mk-α (-α:x x H₁)))]
               [else ∅eq]))
       (hash-set! binders H₁ (∪ αs (hash-ref binders H₀))))
     H₁)
 
-  (: -H+ : -H ℓ (U Clo #f -l) (U 'app 'mon) → (Values -H Boolean))
-  (define (-H+ H src fn type)
-    (match-define (-H:edges edges) H)
-    (define tgt (if (Clo? fn) (Clo-_1 fn) fn))
-    (case type
-      [(app)
-       (define match? : (Edge → Boolean)
-         (match-lambda [(Edge _ tgt*) (equal? tgt* tgt)]))
-       (define ?edges* (memf match? edges))
-       (cond [?edges* (values (-H:edges ?edges*) #t)]
-             [else (values (-H:edges (cons (Edge src tgt) edges)) #f)])]
-      [(mon) ???]))
+  (: -H+ : -H ℓ Tgt → (Values -H Boolean))
+  (define (-H+ H src tgt)
+    (match-define (-H:stack st) H)
+    (define-values (st* looped?)
+      (match (hash-ref st tgt #f)
+        [(and St₀ (cons _ st₀)) (values (hash-set st₀ tgt St₀          ) #t)]
+        [#f                     (values (hash-set st  tgt (cons src st)) #f)]))
+    (values (-H:stack st*) looped?))
 
   (define (looped? [H : H]) (hash-has-key? looped-ctxs H))
   (define (scope [H : H]) (hash-ref binders H))
 
 
-  (define H₀ (mk-H (-H:edges '())))
+  (define H₀ (mk-H (-H:stack (hasheq))))
 
   (define looped-ctxs : (Mutable-HashTable H #t) (make-hasheq))
   (define binders : (Mutable-HashTable H (℘ α)) (make-hasheq (list (cons H₀ ∅eq))))
   )
 
-(define-substructs -H
-  [-H:edges (Listof Edge)])
+(Tgt . ≜ . (U ⟦E⟧ #f Symbol ℓ))
+(Src . ≜ . ℓ)
+(Stack . ≜ . (Immutable-HashTable Tgt (Pairof Src Stack)))
 
-(Edge . ::= . (Edge [src : ℓ] [tgt : (U ⟦E⟧ #f -l)]))
+(define-substructs -H
+  [-H:stack Stack])
