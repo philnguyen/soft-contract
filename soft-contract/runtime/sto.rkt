@@ -67,11 +67,6 @@
       (match-define (Ξ:co (K _ αₛ) _ _) Ξₛ)
       (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)) mk-∅))) 
 
-  (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
-  (define Σᵥ@/ctx
-    (match-lambda**
-     [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))])) 
-
   #|
   (: unalloc : -σ -δσ -V → (℘ (Listof -V^)))
   ;; Convert a list in the object language into list(s) in the meta language

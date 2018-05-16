@@ -244,7 +244,6 @@
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
-   [Σᵥ@/ctx : (Σ Ctx αℓ → (Values V^ Ctx))]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]

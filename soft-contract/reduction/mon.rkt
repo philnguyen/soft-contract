@@ -287,4 +287,9 @@
         (match C
           [(? -b? b) ((app₁ 'equal?) (list T^ {set b}) ℓ Φ^ Ξ* Σ)]
           [_         ((app₁ C) (list T^) ℓ Φ^ Ξ* Σ)]))))
+
+  (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
+  (define Σᵥ@/ctx
+    (match-lambda**
+     [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))]))
   )
