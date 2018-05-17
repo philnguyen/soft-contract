@@ -91,7 +91,7 @@
     (match* ((looped? H*) ?m)
       [(#t (cons (and ctx (Ctx l+ _ lo _)) M))
        (define Tₕ (Clo fmls ⟦E⟧ Ρ))
-       (match (update-call-record M Tₕ Wₓ ℓ Φ^ Σ)
+       (match (update-call-record H* M Tₕ Wₓ ℓ Φ^ Σ)
          [(? values M*) (on-sc-ok (cons ctx M*))]
          [_ {set (Blm (ℓ-with-src ℓ l+) lo '(size-change-terminating/c) (cons {set Tₕ} Wₓ))}])]
       [(_ _) (on-sc-ok ?m)]))

@@ -114,7 +114,7 @@
    [add-leak! : (HV-Tag Σ V^ → Void)]))
 
 (define-signature termination^
-  ([update-call-record : (M Clo W ℓ Φ^ Σ → (Option M))]))
+  ([update-call-record : (H M Clo W ℓ Φ^ Σ → (Option M))]))
 
 (define-signature approx^
   ([collapse-R^-1 : ((U Σ Σᵥ) R^ → (Values T^ Φ^))]

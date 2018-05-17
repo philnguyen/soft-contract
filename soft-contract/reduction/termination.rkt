@@ -21,16 +21,21 @@
 
   (?Ch . ≜ . (Option Ch))
 
-  (: update-call-record : M Clo W ℓ Φ^ Σ → (Option M))
-  (define (update-call-record M₀ Vₕ Wₓ ℓ Φ^ Σ)
+  (: update-call-record : H M Clo W ℓ Φ^ Σ → (Option M))
+  (define (update-call-record H M₀ Vₕ Wₓ ℓ Φ^ Σ)
     (match (hash-ref M₀ Vₕ #f)
-      [(Call-Record W₀ G₀)
-       (define G (make-sc-graph W₀ Wₓ Φ^ Σ))
+      [(? values G₀)
+       (when (-var-rest (Clo-_0 Vₕ))
+         (error 'update-call-record "TODO: handle rest args ~a" (-var-rest (Clo-_0 Vₕ))))
+       (define G
+         (let ([W₀ (for/list : (Listof S:α) ([x (in-list (-var-init (Clo-_0 Vₕ)))])
+                     (S:α (mk-α (-α:x x H))))])
+           (make-sc-graph W₀ Wₓ Φ^ Σ)))
        (and (strict-progress? G)
             (let ([G* (concat-graph G₀ G)])
               (and (strict-progress? G*)
-                   (hash-set M₀ Vₕ (Call-Record Wₓ G*)))))]
-      [#f (hash-set M₀ Vₕ (Call-Record Wₓ (init-sc-graph (T-arity Vₕ))))]))
+                   (hash-set M₀ Vₕ G*))))]
+      [#f (hash-set M₀ Vₕ (init-sc-graph (T-arity Vₕ)))]))
 
   (define/memo (init-sc-graph [a : (U Natural arity-at-least)]) : SCG
     (define n (match a
@@ -39,7 +44,7 @@
     (for/hash : SCG ([i (in-range n)])
       (values (cons i i) '↓)))
 
-  (: make-sc-graph : W W Φ^ Σ → SCG)
+  (: make-sc-graph : (Listof S:α) W Φ^ Σ → SCG)
   (define (make-sc-graph W₀ W₁ Φ^ Σ)
     (unless (= (length W₀) (length W₁))
       (error 'make-sc-graph "TODO: generalize construction of size-change graphs for argument lists of mismatched lengths ~a and ~a" (length W₀) (length W₁)))
@@ -49,10 +54,12 @@
       (values (cons i₀ i₁) ?↓)))
 
   (: cmp : T^ T^ Φ^ Σ → ?Ch)
-  (define (cmp T^₀ T^₁ Φ^ Σ) 
-    (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
+  (define (cmp T^₀ T^₁ Φ^ Σ)
+    (define ans (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
           [(check-≺ Σ Φ^ T^₀ T^₁) '↓]
           [else #f]))
+    (printf "cmp:~nold: ~a~nnew: ~a~nctx: ~ares: ~a~n" T^₀ T^₁ Φ^ ans)
+    ans)
 
   (: concat-graph : SCG SCG → SCG)
   (define (concat-graph G₁ G₂)

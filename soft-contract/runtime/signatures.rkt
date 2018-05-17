@@ -35,7 +35,7 @@
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
 (#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable Ξ:co R^))
-(#|Call history    |# M  . ≜ . (Immutable-HashTable Clo Call-Record))
+(#|Call history    |# M  . ≜ . (Immutable-HashTable Clo SCG))
 (#|Value list      |# W  . ≜ . (Listof T^))
 (#|Sym/Abs value   |# T  . ::= . S V)
 (#|Sym/Abs value   |# T^ . ::= . S V^)
@@ -51,7 +51,6 @@
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 (?R . ≜ . (Option R))
-(Call-Record . ::= . (Call-Record #;[last-args : W] [sc-graph : SCG]))
 (#|Size-change Graph|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (Ch . ::= . '↓ '↧)
 

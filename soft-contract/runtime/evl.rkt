@@ -49,8 +49,8 @@
   (define (Ψ+ x p* xs)
     (define go : (Ψ → Ψ)
       (if (set? p*)
-          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (∪ ps p*)) mk-∅))
-          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (set-add ps p*)) mk-∅))))
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) ((iter-⊔ Ps+) ps p*)) mk-∅))
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (Ps+ ps p*)) mk-∅))))
     (define go-Φ : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ $ (go Ψ))]))
     (cond [(set? x) (map/set go-Φ x)]
           [(Φ? x) (go-Φ x)]
@@ -194,6 +194,20 @@
                   #:break (not cmp))
         (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]
      [(_ _) #f]))
+
+  (: Ps+ : (℘ P) P → (℘ P))
+  ;; FIXME generalize
+  (define (Ps+ Ps Pᵢ)
+    (match Pᵢ
+      [(P:¬ 'zero?)
+       #:when (∋ Ps 'exact-nonnegative-integer?)
+       (set-add (set-remove Ps 'exact-nonnegative-integer?)
+                'exact-positive-integer?)]
+      [(P:≥ 0)
+       #:when (∋ Ps 'exact-integer?)
+       (set-add (set-remove Ps 'exact-integer?)
+                'exact-nonnegative-integer?)]
+      [_ (set-add Ps Pᵢ)]))
 
   (define Φ^⊔ (compact-with ((inst join-by-max Φ) cmp-Φ)))
   (define R^⊔ (compact-with ((inst join-by-max R) cmp-R)))
