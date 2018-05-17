@@ -78,11 +78,17 @@
         [else (wrap R^)]))
 
     (define (wrap [R^ : R^])
-      (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀))))
-      (define V* (let ([V₁ (V^+ (R->V Σ R^) 'procedure?)])
-                   (if C:arity (V^+ V₁ (P:arity-includes C:arity)) V₁)))
-      (⊔ᵥ! Σ α V*)
-      {set (ret! (T->R (X/G ctx C α) (collapse-R^/Φ^ R^)) Ξ₀ Σ)})
+      (: go : Arity → (℘ Ξ:co))
+      (define (go a)
+        (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀) a)))
+        (define V* (V^+ (V^+ (R->V Σ R^) 'procedure?) (P:arity-includes a)))
+        (⊔ᵥ! Σ α V*)
+        {set (ret! (T->R (X/G ctx C α) (collapse-R^/Φ^ R^)) Ξ₀ Σ)})
+      (if C:arity
+          (go C:arity)
+          (match (for/set : (℘ Arity) ([V (in-set (R->V Σ R^))])
+                   (assert (T-arity V)))
+            [{singleton-set a} (go a)])))
     
     (with-check Σ Φ^₀ ctx T^₀ 'procedure? (if (∀/C? C) wrap chk-arity)))
 

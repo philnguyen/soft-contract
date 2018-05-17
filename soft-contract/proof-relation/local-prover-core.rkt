@@ -442,7 +442,9 @@
                    [(P:arity-includes a) a]
                    [_ #f]))]
       [(or (And/C #t _ _) (Or/C #t _ _) (? Not/C?) (St/C #t _ _) (? One-Of/C?)) 1]
-      [(X/G _ (? Fn/C? G) _) (guard-arity G)]
+      [(X/G _ (? Fn/C? G) α) (or (guard-arity G)
+                                 (match-let ([(-α:fn _ _ a) (inspect-α α)])
+                                   a))]
       [(? -st-p?) 1]
       [(-st-mk 𝒾) (count-struct-fields 𝒾)]
       [(? -st-ac?) 1]
@@ -490,7 +492,7 @@
       (match-lambda**
        [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
        [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-       [((-● ps) (? P? p)) (-● (set-add ps p))]
+       [((-● ps) (? P? p)) (-● (Ps+ ps p))]
        [(V _) V]))
 
     (cond [(?concretize p)]

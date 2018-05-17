@@ -51,7 +51,7 @@
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 (?R . ≜ . (Option R))
-(Call-Record . ::= . (Call-Record [last-args : W] [sc-graph : SCG]))
+(Call-Record . ::= . (Call-Record #;[last-args : W] [sc-graph : SCG]))
 (#|Size-change Graph|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (Ch . ::= . '↓ '↧)
 
@@ -192,7 +192,7 @@
                                  (-α:rng ℓ H Natural)
 
                                  ;; for wrapped function
-                                 (-α:fn Ctx H)
+                                 (-α:fn Ctx H Arity)
 
                                  ;; For values wrapped in seals
                                  (-α:sealed Symbol H) ; points to wrapped objects
@@ -291,6 +291,7 @@
    [Ψ+ : (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
                  [Φ (U P (℘ P)) (Listof S) → Φ]
                  [Φ^ (U P (℘ P)) (Listof S) → Φ^])]
+   [Ps+ : ((℘ P) P → (℘ P))]
    [$+ : (case-> [Φ α S → Φ]
                  [Φ^ α S → Φ^])]
    [T->R : ((U T T^) Φ^ → R)]
