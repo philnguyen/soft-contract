@@ -78,6 +78,8 @@
     (if (set? R*) (set-union-map go R*) (go R*)))
 
   (define V^+ l:V^+)
+  (define Ψ+ l:Ψ+)
+  (define Ps+ l:Ps+)
   
   (: with-checker : (Σ Φ T (Listof T) → ?Dec) Σ T R → (Values R^ R^ R^))
   (define (with-checker check Σ P R₀)

@@ -47,6 +47,10 @@
    [R->V : ((U Σ Σᵥ) (U R R^) → V^)]
    [V^+ : (case-> [V^ V → V^]
                   [T^ V → T^])]
+   [Ψ+ : (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
+                 [Φ (U P (℘ P)) (Listof S) → Φ]
+                 [Φ^ (U P (℘ P)) (Listof S) → Φ^])]
+   [Ps+ : ((℘ P) P → (℘ P))]
    #|
    [p⇒p : (-h -h → -R)]
    [V+ : (-σ -φ -V^ (U -h -V) → -V^)]

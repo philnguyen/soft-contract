@@ -41,20 +41,7 @@
     (define m
       (for/fold ([m : (HashTable W Φ^) (hash)]) ([Φ (in-set Φs)])
         (hash-update m (list ($@ Φ α)) (λ ([Φs : Φ^]) (Φ^⊔ Φs Φ)) mk-∅)))
-    (list->set (hash-map m R)))
-
-  (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
-                [Φ (U P (℘ P)) (Listof S) → Φ]
-                [Φ^ (U P (℘ P)) (Listof S) → Φ^]))
-  (define (Ψ+ x p* xs)
-    (define go : (Ψ → Ψ)
-      (if (set? p*)
-          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) ((iter-⊔ Ps+) ps p*)) mk-∅))
-          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (Ps+ ps p*)) mk-∅))))
-    (define go-Φ : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ $ (go Ψ))]))
-    (cond [(set? x) (map/set go-Φ x)]
-          [(Φ? x) (go-Φ x)]
-          [else (go x)]))
+    (list->set (hash-map m R))) 
 
   (: $+ (case-> [Φ α S → Φ]
                 [Φ^ α S → Φ^]))
@@ -193,21 +180,7 @@
                   [Φ₂ (in-set Φ^₂)]
                   #:break (not cmp))
         (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]
-     [(_ _) #f]))
-
-  (: Ps+ : (℘ P) P → (℘ P))
-  ;; FIXME generalize
-  (define (Ps+ Ps Pᵢ)
-    (match Pᵢ
-      [(P:¬ 'zero?)
-       #:when (∋ Ps 'exact-nonnegative-integer?)
-       (set-add (set-remove Ps 'exact-nonnegative-integer?)
-                'exact-positive-integer?)]
-      [(P:≥ 0)
-       #:when (∋ Ps 'exact-integer?)
-       (set-add (set-remove Ps 'exact-integer?)
-                'exact-nonnegative-integer?)]
-      [_ (set-add Ps Pᵢ)]))
+     [(_ _) #f])) 
 
   (define Φ^⊔ (compact-with ((inst join-by-max Φ) cmp-Φ)))
   (define R^⊔ (compact-with ((inst join-by-max R) cmp-R)))

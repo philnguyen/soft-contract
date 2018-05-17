@@ -3,6 +3,7 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
+         set-extras
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
 
@@ -16,7 +17,11 @@
                       [T → (Option Arity)])]
    [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
    [V^+ : (case-> [V^ V → V^]
-                  [T^ V → T^])]))
+                  [T^ V → T^])]
+   [Ψ+ : (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
+                 [Φ (U P (℘ P)) (Listof S) → Φ]
+                 [Φ^ (U P (℘ P)) (Listof S) → Φ^])]
+   [Ps+ : ((℘ P) P → (℘ P))]))
 
 (define-signature ext-prover-core^
   ([check : ((U Σ Σᵥ) Φ T (Listof T) → ?Dec)]))

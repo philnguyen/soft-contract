@@ -226,9 +226,7 @@
            (cond [(and (∋ Ps 'exact-integer?)
                        (for/or : Boolean ([Q (in-set Ps)])
                          (match? Q
-                                 (P:> (? (>/c -1)))
-                                 (P:≥ (? (>=/c 0)))
-                                 (P:≡ (? (>=/c 0))))))
+                                 )))
                   '✓]
                  [(for/or : Boolean ([Q (in-set Ps)])
                     (match? Q
@@ -503,6 +501,38 @@
                [(✗) acc]
                [else (set-add acc (V+ V p))]))]
           [else x]))
+
+  (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
+                [Φ (U P (℘ P)) (Listof S) → Φ]
+                [Φ^ (U P (℘ P)) (Listof S) → Φ^]))
+  (define (Ψ+ x p* xs)
+    (define go : (Ψ → Ψ)
+      (if (set? p*)
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) ((iter-⊔ Ps+) ps p*)) mk-∅))
+          (λ (Ψ₀) (hash-update Ψ₀ xs (λ ([ps : (℘ P)]) (Ps+ ps p*)) mk-∅))))
+    (define go-Φ : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ $ (go Ψ))]))
+    (cond [(set? x) (map/set go-Φ x)]
+          [(Φ? x) (go-Φ x)]
+          [else (go x)])) 
+
+  (define P⊓ : (P P → (Option P))
+    (match-lambda**/symmetry
+     [(P Q) #:when (eq? '✓ (P⊢P P Q)) P]
+     [('exact-integer? (or (P:> (? (>/c -1)))
+                           (P:≥ (? (>=/c 0)))
+                           (P:≡ (? (>=/c 0)))))
+      'exact-nonnegative-integer?]
+     [('exact-nonnegative-integer? (P:¬ (P:≡ 0))) 'exact-positive-integer?]
+     [((or 'exact-integer? 'exact-nonnegative-integer?)
+       (or (P:> (? (>=/c 0)))
+           (P:≥ (? (>/c 0)))
+           (P:≡ (? (>/c 0)))))
+      'exact-positive-integer?]
+     [('exact-integer? (P:> 0)) 'exact-positive-integer?]
+     #:else
+     [(_ _) #f]))
+
+  (define Ps+ (compact-with P⊓))
 
   (define dummy-Σ (⊥Σ))
   ) 
