@@ -560,7 +560,7 @@
            (syntax-parse bnd
              [((x ...) e)
               (define-values (xs ρ*) (parse-formals #'(x ...) #:base ρ))
-              (values (cons (cons xs (parse-e #'e)) bindings-rev) ρ*)])))
+              (values (cons (cons (-var-init xs) (parse-e #'e)) bindings-rev) ρ*)])))
        (-let-values/simp (reverse bindings-rev)
                          (with-env ρ (-begin/simp (parse-es #'(b ...))))
                          (next-ℓ! stx))]
@@ -589,7 +589,7 @@
            (syntax-parse bnd
              [((x ...) _)
               (define-values (lhs ρ*) (parse-formals #'(x ...) #:base ρ))
-              (values (cons lhs lhss-rev) ρ*)])))
+              (values (cons (-var-init lhs) lhss-rev) ρ*)])))
        (-letrec-values
         (for/list ([lhs (in-list (reverse lhss-rev))]
                    [bnd (in-syntax-list #'(bindings ...))])
