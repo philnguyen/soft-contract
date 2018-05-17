@@ -306,7 +306,7 @@
     (define α (αₖ:hv (mk-HV-Tag #f H*)))
     (⊔ₖ! Σ α Ξ)
     (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ) H*))
-    {set (ret! (R Wₓ Φ^) Ξ* Σ)})
+    {set (ret! ((R↓ Σ (scope H*)) (R Wₓ Φ^)) Ξ* Σ)})
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TODO

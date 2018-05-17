@@ -93,12 +93,15 @@
             (define (proc-arity-1? [T : T])
               (and (equal? '✓ (go 'procedure? (list T)))
                    (arity-includes? (assert (T-arity T)) 1)))
-            (: check-among : (T → Boolean) * → ?Dec)
+            (: check-among : (V → Boolean) * → ?Dec)
             (define (check-among . ps)
               (match Vs
                 [(list V)
                  (or (for/or : (Option '✓) ([p (in-list ps)])
-                       (and (p V) '✓))
+                       (and (if (S? V)
+                                (set-andmap p (T->V Σ {set Φ} V))
+                                (p V))
+                            '✓))
                      '✗)]
                 [_ '✗]))
             (with-base-predicates ([not]
@@ -433,7 +436,10 @@
     (match-lambda
       [(Clo xs _ _) (shape xs)]
       [(Case-Clo cases) (normalize-arity (map T-arity cases))]
-      [(Fn:● arity _) arity]
+      [(-● Ps) (for/or : (Option Arity) ([P (in-set Ps)])
+                 (match P
+                   [(P:arity-includes a) a]
+                   [_ #f]))]
       [(or (And/C #t _ _) (Or/C #t _ _) (? Not/C?) (St/C #t _ _) (? One-Of/C?)) 1]
       [(X/G _ (? Fn/C? G) _) (guard-arity G)]
       [(? -st-p?) 1]
@@ -443,7 +449,7 @@
       [(? symbol? o) (prim-arity o)]
       [V
        #:when (not (or (Clo? V) (Case-Clo? V))) ; to convince TR
-       (log-warning "Warning: call `T-arity` on an obviously non-procedure ~a" V)
+       (log-warning "Warning: call `T-arity` on non-procedure ~a" V)
        #f]))
 
   (: T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^))

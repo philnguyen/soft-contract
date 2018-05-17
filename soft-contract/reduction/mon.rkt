@@ -20,7 +20,7 @@
           val^ env^ evl^ sto^
           prover^
           prims^
-          step^ app^ compile^ fc^ approx^)
+          step^ app^ compile^ fc^ approx^ alloc^)
   (export mon^)
 
   (⟦C⟧ . ≜ . (T^ Ctx Φ^ Ξ:co Σ → (℘ Ξ)))
@@ -49,11 +49,12 @@
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) T^₀ ctx Φ^₀ Ξ₀ Σ)
     (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    (define C:arity (guard-arity C))
     
     (define (chk-arity [R^ : R^])
-      (match (guard-arity C)
-        [(? values n)
-         (define grd-arity (-b n))
+      (cond
+        [C:arity
+         (define grd-arity (-b C:arity))
          (for/union : (℘ Ξ) ([Rᵢ (in-set R^)])
            (match-define (R (list Tₕ) Φ^ᵢ) Rᵢ)
            (define Tₕ:arity
@@ -66,7 +67,7 @@
              (λ (R^)
                (wrap {set (R (list Tₕ) (set-union-map R-_1 R^))}))
              (λ _
-               (define C (match n
+               (define C (match C:arity
                            [(? integer? n)
                             (format-symbol "(arity-includes/c ~a)" n)]
                            [(arity-at-least k)
@@ -74,13 +75,14 @@
                            [(list k ...)
                             (string->symbol (format "(arity-one-of/c ~a)" k))]))
                (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list Tₕ)))))]
-        [_ (wrap R^)]))
+        [else (wrap R^)]))
 
     (define (wrap [R^ : R^])
       (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀))))
-      (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
-      (⊔T! Σ Φ^ α T^)
-      {set (ret! (T->R (X/G ctx C α) Φ^) Ξ₀ Σ)})
+      (define V* (let ([V₁ (V^+ (R->V Σ R^) 'procedure?)])
+                   (if C:arity (V^+ V₁ (P:arity-includes C:arity)) V₁)))
+      (⊔ᵥ! Σ α V*)
+      {set (ret! (T->R (X/G ctx C α) (collapse-R^/Φ^ R^)) Ξ₀ Σ)})
     
     (with-check Σ Φ^₀ ctx T^₀ 'procedure? (if (∀/C? C) wrap chk-arity)))
 
@@ -104,8 +106,13 @@
 
   (: mon-X/C : X/C → ⟦C⟧)
   (define ((mon-X/C C) V ctx Φ^ Ξ Σ)
+    (match-define (Ξ:co _ ?m H) Ξ)
     (match-define (X/C α) C)
-    {set (ret! (T->R V Φ^) (K+ (F:Mon:C ctx (Σᵥ@ Σ α)) Ξ) Σ)})
+    (define H* (match-let ([(-α:x/c x _) (inspect-α α)]) (H+ H (Ctx-loc ctx) x)))
+    (define αₖ (αₖ:mon ctx α V))
+    (⊔ₖ! Σ αₖ Ξ)
+    (define Ξ* (Ξ:co (K (list (F:Mon:C ctx (Σᵥ@ Σ α))) αₖ) ?m H*))
+    {set (ret! (T->R V Φ^) Ξ* Σ)})
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) V ctx Φ^ Ξ Σ)

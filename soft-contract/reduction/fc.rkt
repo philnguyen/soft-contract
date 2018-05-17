@@ -20,7 +20,7 @@
 (define-unit fc@
   (import sto^ env^ val^ evl^
           prover^
-          step^ compile^ approx^)
+          step^ compile^ approx^ alloc^)
   (export fc^)
 
   (: fc : T^ T^ ℓ Φ^ Ξ:co Σ → (℘ Ξ))
@@ -87,7 +87,12 @@
 
   (: fc-X/C : α → ⟦FC⟧)
   (define ((fc-X/C α) Vₓ ℓ Φ^ Ξ Σ)
-    {set (ret! (T->R Vₓ Φ^) (K+ (F:Fc:C ℓ (Σᵥ@ Σ α)) Ξ) Σ)})
+    (match-define (Ξ:co _ ?m H) Ξ)
+    (define H* (match-let ([(-α:x/c x _) (inspect-α α)]) (H+ H ℓ x)))
+    (define αₖ (αₖ:fc ℓ α Vₓ))
+    (⊔ₖ! Σ αₖ Ξ)
+    (define Ξ* (Ξ:co (K (list (F:Fc:C ℓ (Σᵥ@ Σ α))) αₖ) ?m H*))
+    {set (ret! (T->R Vₓ Φ^) Ξ* Σ)})
 
   (: fc-b : Base → ⟦FC⟧)
   (define ((fc-b b) Vₓ ℓ Φ^ Ξ Σ)

@@ -43,7 +43,8 @@
    [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]
                       [T → (Option Arity)])]
-   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)] 
+   [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
+   [R->V : ((U Σ Σᵥ) (U R R^) → V^)]
    [V^+ : (case-> [V^ V → V^]
                   [T^ V → T^])]
    #|

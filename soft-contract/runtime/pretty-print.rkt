@@ -71,7 +71,6 @@
       [(? -o? o) (show-o o)]
       [(Clo xs ⟦E⟧ Ρ) `(λ ,(show-formals xs) … ,(show-Ρ Ρ))]
       [(Case-Clo cases) `(case-lambda ,@(map show-V cases))]
-      [(Fn:● arity _) (string->symbol (format "Fn●_~a" arity))]
       [(X/G _ G α) `(,(show-V G) ◃ ,(show-α α))]
       [(St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]
       [(Vect αs) `(vector ,@(map show-α αs))]
@@ -185,7 +184,13 @@
       [(P:≥ r) `(>=/c ,r)]
       [(P:≡ b) (show-b b)]
       [(P:¬ P) `(not/c ,(show-P P))]
-      [(P:arity-includes a) `(arity-includes/c ,a)]))
+      [(P:arity-includes a) `(arity-includes/c ,(show-arity a))]))
+
+  (define show-arity : (Arity → Sexp)
+    (match-lambda
+      [(? integer? n) n]
+      [(arity-at-least k) `(arity-at-least ,k)]
+      [(? list? l) (map show-arity l)]))
 
   (define show-Σ (show-map show-α show-T))
   (define show-Σₖ ((inst show-map αₖ (℘ Ξ:co) Sexp Index) show-αₖ (λ (Ξs) (set-count Ξs))))

@@ -39,9 +39,9 @@
   (define (↝* p)
     (define-values (Ξ₀ Σ) (inj p))
     ;; TODO real versioning
-    (Ver . ≜ . (List Σᵥ Σₖ Σₐ))
+    (Ver . ≜ . (List Σᵥ Σₖ R^))
     (define seen : (Mutable-HashTable Ξ:co Ver) (make-hash))
-    (define (ver) : Ver (list (Σ-val Σ) (Σ-kon Σ) (Σ-evl Σ)))
+    (define (ver [Ξ : Ξ:co]) : Ver (list (Σ-val Σ) (Σ-kon Σ) (hash-ref (Σ-evl Σ) Ξ)))
     (define-set blms : Blm)
     
     (define db? (db:iter?))
@@ -58,7 +58,7 @@
          (for*/set : (℘ Ξ) ([Ξ₀ (in-set front)]
                             [Ξ₁ (in-set (↝ Ξ₀ Σ))]
                             #:unless (and (Blm? Ξ₁) (blms-add! Ξ₁))
-                            [v₁ (in-value (ver))]
+                            [v₁ (in-value (ver Ξ₁))]
                             #:unless (equal? v₁ (hash-ref seen Ξ₁ #f)))
            (hash-set! seen Ξ₁ v₁)
            Ξ₁)
@@ -246,7 +246,7 @@
       [(F:Wrap G Ctx α)
        (with-guarded-single-arity/collapse Σ R^₀ +ℓ₀ ; TODO
          (λ (T^ Φ^)
-           (⊔T! Σ Φ^ α T^)
+           (⊔ᵥ! Σ α (V^+ (T->V Σ Φ^ T^) G))
            {set (ret! (T->R (X/G Ctx G α) Φ^) Ξ Σ)}))]
       [(F:Mon-Or/C ctx Cₗ Cᵣ V)
        (with-arity Σ R^₀

@@ -48,7 +48,6 @@
   [F:Make-Prim-Range Ctx (Option (Listof αℓ)) W (Listof (List (Listof V) (Option V) (Listof V)))]
   [F:Implement-Predicate Symbol]
   [F:Havoc]
-  [F:Restore-Ctx H]
   [F:Absurd]) 
 
 (define-signature alloc^
@@ -93,6 +92,7 @@
    [with-guarded-arity/collapse : (Σ R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-guarded-single-arity/collapse : (Σ R^ ℓ (T^ Φ^ → (℘ Ξ)) → (℘ Ξ))]
    [with-check : (Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))]
+   [R↓ : (Σ (℘ α) → R → R)]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Integer))]))
 

@@ -70,7 +70,12 @@
           [else #f]))
 
   (define T-arity l:T-arity)
-  (define T->V l:T->V) 
+  (define T->V l:T->V)
+
+  (: R->V : (U Σ Σᵥ) (U R R^) → V^)
+  (define (R->V Σ R*)
+    (define go : (R → V^) (match-lambda [(R (list T) Φ^) (T->V Σ Φ^ T)]))
+    (if (set? R*) (set-union-map go R*) (go R*)))
 
   (define V^+ l:V^+)
   

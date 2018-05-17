@@ -21,7 +21,9 @@
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ:clo ⟦E⟧ Ρ)
-                                 (αₖ:hv HV-Tag)
+                                 (αₖ:mon Ctx α T^)
+                                 (αₖ:fc ℓ α T^)
+                                 (αₖ:hv HV-Tag) 
                                  (αₖ:term/c α W))
 (#|Result          |# R . ::= . (R W Φ^))
 (#|Path            |# Φ . ::= . (Φ [alias : $] [condition : Ψ]))
@@ -66,11 +68,10 @@
                      C
                      P #|hack in prim DSL|#) 
 (#|Symbolic value|# S . ::= . -b -o (S:α α) (S:@ S (Listof S)))
-(#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Index))
+(#|Predicates|# P . ::= . -o (P:≤ Real) (P:< Real) (P:≥ Real) (P:> Real) (P:≡ Base) (P:¬ P) (P:arity-includes Arity))
 
 (#|Non-primitive function|# Fn . ::= . (Clo -formals ⟦E⟧ Ρ)
-                                       (Case-Clo (Listof Clo))
-                                       (Fn:● Arity HV-Tag))
+                                       (Case-Clo (Listof Clo)))
 
 (#|Contract|# C . ::= . (And/C [flat? : Boolean] αℓ αℓ)
                         (Or/C [flat? : Boolean] αℓ αℓ)
