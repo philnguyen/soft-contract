@@ -75,6 +75,7 @@
             (match Vs
               [(list (or (St 𝒾* _) (X/G _ (St/C _ 𝒾* _) _)))
                (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
+              [(list (? S? S)) (go-harder P S)]
               [_ '✗])]
            [((One-Of/C bs) _) (check-one-of (car Vs) bs)]
            [((? symbol?) _)
@@ -478,23 +479,28 @@
   (: V^+ (case-> [V^ V → V^]
                  [T^ V → T^]))
   (define (V^+ x p)
+
+    (define ?concretize : (V → (Option V^))
+      (match-lambda
+        ['null? {set -null}]
+        ['not {set -ff}]
+        [_ #f]))
     
     (define V+ : (V V → V)
       (match-lambda**
        [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
        [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-       [(_ 'null?) -null]
-       [(_ 'not) -ff]
        [((-● ps) (? P? p)) (-● (set-add ps p))]
        [(V _) V]))
-    
-    (if (set? x)
-        (for/fold ([acc : V^ ∅]) ([V (in-set x)])
-          (case (check dummy-Σ ⊤Φ p (list V))
-            [(✓) (set-add acc V)]
-            [(✗) acc]
-            [else (set-add acc (V+ V p))]))
-        x))
+
+    (cond [(?concretize p)]
+          [(set? x)
+           (for/fold ([acc : V^ ∅]) ([V (in-set x)])
+             (case (check dummy-Σ ⊤Φ p (list V))
+               [(✓) (set-add acc V)]
+               [(✗) acc]
+               [else (set-add acc (V+ V p))]))]
+          [else x]))
 
   (define dummy-Σ (⊥Σ))
   ) 
