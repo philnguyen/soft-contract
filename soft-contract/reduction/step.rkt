@@ -257,7 +257,7 @@
              (for/fold ([V* : T^ V] [Φ^* : Φ^ Φ^₀])
                        ([Cᵢ (in-set Cₗ)] #:when (P? Cᵢ))
                (define ¬Cᵢ (P:¬ Cᵢ))
-               (values (V^+ V* ¬Cᵢ) (if V:S? (Ψ+ Φ^* Cᵢ (list V)) Φ^*))))
+               (values (V^+ V* ¬Cᵢ) (if V:S? (Ψ+ Φ^* ¬Cᵢ (list V)) Φ^*))))
            (mon Cᵣ V* ctx Φ^* Ξ Σ)]
           [(1 (R (list T) Φ^))
            (define T:S? (S? T))
@@ -394,7 +394,13 @@
   (: with-check : Σ Φ^ Ctx T^ P (R^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-check Σ Φ^ ctx V P exec)
     (with-2-paths (λ () (split-results Σ (R (list V) Φ^) P))
-      exec
+      (λ ([R^ : R^])
+        (exec (map/set
+               (λ ([R₀ : R])
+                 (match R₀
+                   [(R (list T) Φ^) (R (list (V^+ T P)) Φ^)]
+                   [_ R₀]))
+               R^)))
       (λ ([R^ : R^])
         (match-define (Ctx l+ _ lₒ ℓ) ctx)
         (blm (ℓ-with-src ℓ l+) lₒ (list P) (collapse-R^/W^ R^)))))
