@@ -112,16 +112,26 @@
 (define-syntax-class scv-->i
   #:description "hacked dependent contract"
   #:literal-sets (lits)
-  #:attributes (domains range)
+  #:attributes (domains range total?)
   (pattern (~or (begin
-                  (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom)
+                  (#%plain-app (~literal fake:dynamic->i)
+                               (#%plain-app list c:named-dom ...)
+                               d:named-dom
+                               (quote tot?:boolean))
                   _ ...)
                 (let-values ()
-                  (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom)
+                  (#%plain-app (~literal fake:dynamic->i)
+                               (#%plain-app list c:named-dom ...)
+                               d:named-dom
+                               (quote tot?:boolean))
                   _ ...)
-                (#%plain-app (~literal fake:dynamic->i) (#%plain-app list c:named-dom ...) d:named-dom))
+                (#%plain-app (~literal fake:dynamic->i)
+                             (#%plain-app list c:named-dom ...)
+                             d:named-dom
+                             (quote tot?:boolean)))
            #:attr domains (syntax->list #'(c ...))
-           #:attr range #'d))
+           #:attr range #'d
+           #:attr total? (syntax-e #'tot?)))
 
 (define-syntax-class scv-case->
   #:description "hacked case contract"
@@ -153,22 +163,50 @@
 (define-syntax-class scv-->
   #:description "hacked non-dependent function contract"
   #:literal-sets (lits)
-  #:attributes (inits ?rest range)
-  (pattern (let-values ([(_) (~literal fake:dynamic->*)]
-                        [(_) (#%plain-app list cs ...)]
-                        [(_) rst]
-                        [(_) rng])
-             _ ...)
-           #:attr inits (syntax->list #'(cs ...))
-           #:attr ?rest #'rst
-           #:attr range (range-expr #'rng))
-  (pattern (let-values ([(_) (~literal fake:dynamic->*)]
-                        [(_) (#%plain-app list cs ...)]
-                        [(_) rng])
-             _ ...)
-           #:attr inits (syntax->list #'(cs ...))
+  #:attributes (inits ?rest range total?)
+  (pattern (~or (begin
+                  (#%plain-app (~literal fake:dynamic->)
+                               (#%plain-app list c ...)
+                               d
+                               (quote tot?:boolean))
+                  _ ...)
+                (let-values ()
+                  (#%plain-app (~literal fake:dynamic->)
+                               (#%plain-app list c ...)
+                               d
+                               (quote tot?:boolean))
+                  _ ...)
+                (#%plain-app (~literal fake:dynamic->)
+                             (#%plain-app list c ...)
+                             d
+                             (quote tot?:boolean)))
+           #:attr inits (syntax->list #'(c ...))
            #:attr ?rest #f
-           #:attr range (range-expr #'rng)))
+           #:attr range (range-expr #'d)
+           #:attr total? (syntax-e #'tot?))
+  (pattern (~or (begin
+                  (#%plain-app (~literal fake:dynamic->*)
+                               (#%plain-app list c ...)
+                               rst
+                               d
+                               (quote tot?:boolean))
+                  _ ...)
+                (let-values ()
+                  (#%plain-app (~literal fake:dynamic->*)
+                               (#%plain-app list c ...)
+                               rst
+                               d
+                               (quote tot?:boolean))
+                  _ ...)
+                (#%plain-app (~literal fake:dynamic->*)
+                             (#%plain-app list c ...)
+                             rst
+                             d
+                             (quote tot?:boolean)))
+           #:attr inits (syntax->list #'(c ...))
+           #:attr ?rest #'rst
+           #:attr range (range-expr #'d)
+           #:attr total? (syntax-e #'tot?)))
 
 (define-syntax-class scv-struct-decl
   #:description "struct declaration"

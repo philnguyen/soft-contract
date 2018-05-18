@@ -24,7 +24,7 @@
          parametric->/c
          recursive-contract
          dynamic-provide/contract
-         dynamic->i dynamic->* dynamic-case-> dynamic-parametric->/c
+         dynamic->i dynamic-> dynamic->* dynamic-case-> dynamic-parametric->/c
          dynamic-struct/c
          dynamic-recursive-contract
          dynamic-struct-out
@@ -32,8 +32,7 @@
          not/c cons/c
          one-of/c box/c vector/c vectorof
          define/contract dynamic-mon
-         contract?
-         terminating/c)
+         contract?)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -67,7 +66,13 @@
     [(_ name cs ...)
      #`(begin (dynamic-struct/c name cs ...)
               (scv:ignore (c:struct/c name cs ...)))]))
-(define dynamic->* c:dynamic->*)
+#;(define (dynamic->* #:mandatory-domain-contracts inits
+                    #:rest-contract [rest-c #f]
+                    #:range-contracts rng
+                    #:total? [total? #f])
+  (c:dynamic->* #:mandatory-domain-contracts inits
+                #:rest-contract rest-c
+                #:range-contracts rng))
 (define-syntax-rule (parametric->/c (x ...) c) (dynamic-parametric->/c (λ (x ...) c)))
 
 (begin-for-syntax
@@ -83,36 +88,40 @@
 
 (define-syntax ->i
   (syntax-parser
-    [(_ (c:dom ...) d:dom)
+    [(_ (c:dom ...) d:dom (~optional (~seq #:total? total?:boolean)
+                                     #:defaults ([total? #'#f])))
      #'(begin
-         (dynamic->i (list (dom-quote c) ...) (dom-quote d))
+         (dynamic->i (list (dom-quote c) ...) (dom-quote d) total?)
          (scv:ignore (c:->i (c ...) d)))]))
 
-(define terminating/c values)
-
 (define (dynamic->i . _) (void))
+(define (dynamic-> . _) (void))
+(define (dynamic->* . _) (void))
 (define (dynamic-struct/c . _) (void))
 (define (dynamic-struct-out . _) (void))
 (define (dynamic-parametric->/c v) v)
 
 (define-syntax ->
-  (syntax-rules (c:any)
-    [(-> cs ... c:any)
-     (dynamic->* #:mandatory-domain-contracts (list cs ...)
-                 #:range-contracts #f)]
-    [(-> cs ... result-c)
-     (dynamic->* #:mandatory-domain-contracts (list cs ...)
-                 #:range-contracts (list result-c))]))
+  (syntax-parser
+    [(-> cs:expr ... result-c:expr (~optional (~seq #:total? total?:boolean)
+                                              #:defaults ([total? #''#f])))
+     (with-syntax ([rng (syntax-parse #'result-c
+                          [(~literal c:any) #'#f]
+                          [_ #'(list result-c)])])
+       #'(begin
+           (dynamic-> (list cs ...) rng total?)
+           (scv:ignore (c:-> cs ... result-c))))]))
 (define-syntax ->*
-  (syntax-rules (c:any)
-    [(->* (cs ...) #:rest rest-c c:any)
-     (dynamic->* #:mandatory-domain-contracts (list cs ...)
-                 #:rest-contract rest-c
-                 #:range-contracts #f)]
-    [(->* (cs ...) #:rest rest-c result-c)
-     (dynamic->* #:mandatory-domain-contracts (list cs ...)
-                 #:rest-contract rest-c
-                 #:range-contracts (list result-c))]))
+  (syntax-parser
+    [(->* (cs:expr ...) #:rest rest-c:expr result-c:expr
+          (~optional (~seq #:total? total?:boolean)
+                     #:defaults ([total? #'#f])))
+     (with-syntax ([rng (syntax-parse #'result-c
+                          [(~literal c:any) #'#f]
+                          [_ #'(list result-c)])])
+       #'(begin
+           (dynamic->* (list cs ...) rest-c rng total?)
+           (c:->* (cs ...) #:rest rest-c result-c)))]))
 
 (define-syntax case->
   (syntax-rules ()
