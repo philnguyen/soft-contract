@@ -64,10 +64,10 @@
            [('equal? (list (? S? S) (? S? S))) '✓]
            [('equal? (list (St 𝒾 αs₁) (St 𝒾 αs₂))) (check-equal* αs₁ αs₂)]
            [((? P?) (list (-● Ps))) (Ps⊢P Ps P)]
-           [(_ (and (list (S:@ k _)
-                          (app (match-lambda
-                                 [(list (S:@ k _)) (k . check-range-in . P)])
-                               (and d (? values))))))
+           [((? P?) (list (and (S:@ (? -o? k) _)
+                               (app (match-lambda
+                                      [(S:@ k _) (k . check-range-in . P)])
+                                    (? values d)))))
             d]
            [('= (list V V)) '✓]
            [((or (? -st-mk?) (? -st-mut?)) _) '✓]
@@ -176,15 +176,17 @@
                  [_ #f])]
               [(<=)
                (match Vs
-                 [(list (-b (? real? x)) (-b (? real? y))) (bool->Dec (<= x y))]
+                 [(list (-b (? real? x)) (-b (? real? y))) (bool->Dec (<= x y))] 
                  [(list (-b (? real? x)) (-● Ps))
                   (for/or : ?Dec ([P (in-set Ps)])
-                    (match P
-                      [(or (P:≥ y) (P:> y)) #:when (and y (>= y x)) '✓]
-                      [(P:< y) #:when (<= y x) '✗]
-                      ['exact-nonnegative-integer? #:when (<= x 0) '✓]
-                      ['exact-positive-integer? #:when (<= x 1) '✓]
-                      [_ #f]))]
+                   (match P
+                     [(or (P:≥ y) (P:> y)) #:when (and y (>= y x)) '✓]
+                     [(P:< y) #:when (<= y x) '✗]
+                     ['exact-nonnegative-integer? #:when (<= x 0) '✓]
+                     ['exact-positive-integer? #:when (<= x 1) '✓]
+                     [_ #f]))]
+                 [(list (? -b? b) (? S? S))
+                  (⊔*/set (λ ([V : V]) (go '<= (list b V))) (T->V Σ {set Φ} S))]
                  [(list (-● Ps) (-b (? real? y)))
                   (for/or : ?Dec ([P (in-set Ps)])
                     (match P
@@ -194,6 +196,17 @@
                       [(P:≥ x) (and (>  x y) '✗)]
                       [(P:≡ (? real? x)) (bool->Dec (<= x y))]
                       [_ #f]))]
+                 [(list (? S? S) (? -b? b))
+                  (⊔*/set (λ ([V : V]) (go '<= (list V b))) (T->V Σ {set Φ} S))]
+                 ;; More special case to avoid SMT
+                 [(list (S:@ 'sub1 (list S)) S) '✓]
+                 [(list S (S:@ 'sub1 (list S))) '✗]
+                 [(list (S:@ '- (list S (-b (? (>=/c 0))))) S) '✓]
+                 [(list S (S:@ '- (list S (-b (? (>/c 0)))))) '✗]
+                 [(list (S:@ '+ (list S (-b (? (<=/c 0))))) S) '✓]
+                 [(list (S:@ '+ (list (-b (? (<=/c 0))) S)) S) '✓]
+                 [(list S (S:@ '+ (list S (-b (? (</c 0)))))) '✗]
+                 [(list S (S:@ '+ (list (-b (? (</c 0))) S))) '✗]
                  [_ #f])]
               [(<) (neg (go '<= (reverse Vs)))]
               [(>) (neg (go '<= Vs))]
@@ -242,7 +255,7 @@
                                  (P:> (? (>=/c 0)))
                                  (P:≥ (? (>/c 0)))
                                  (P:≡ (? (>/c 0)))
-                                 (P:¬ (P:≡ 0)))))
+                                 (P:¬ (or (P:≡ 0) 'zero?)))))
                   '✓]
                  [(and (∋ Ps 'exact-integer?)
                        (for/or : Boolean ([Q (in-set Ps)])
@@ -347,7 +360,7 @@
          (match* (P Vs)
            [('values (list (S:@ (? -o? P*) Vs*))) (conj  Φ P* Vs*)]
            [('not    (list (S:@ (? -o? P*) Vs*))) (conj¬ Φ P* Vs*)]
-           [(_       _                          ) (Φ+ Φ P Vs)]))
+           [(_       _                          ) (Ψ+ Φ P Vs)]))
        (define (conj¬ Φ P Vs)
          (match* (P Vs)
            [('values (list (S:@ (? -o? P*) Vs*))) (conj¬ Φ P* Vs*)]
@@ -357,17 +370,9 @@
            [((P:> X) _                          ) (conj  Φ (P:≤ X) Vs)]
            [((P:≥ X) _                          ) (conj  Φ (P:< X) Vs)]
            [((P:¬ Q) _                          ) (conj  Φ Q Vs)]
-           [(_       _                          ) (Φ+ Φ (P:¬ P) Vs)])))
+           [(_       _                          ) (Ψ+ Φ (P:¬ P) Vs)])))
     (define ∧ (with-conj conj))
     (define ∧¬ (with-conj conj¬)))
-
-  (: Φ+ : Φ P (Listof S) → Φ)
-  (define (Φ+ Φ₀ Q Vs)
-    (match-define (Φ $ Ψ) Φ₀)
-    (Φ $ (hash-update Ψ Vs (λ ([Ps : (℘ P)]) (P+ Ps Q)) mk-∅)))
-
-  (: P+ : (℘ P) P → (℘ P))
-  (define P+ #|TODO|# set-add)
 
   (splicing-let ([list-excl? ; TODO use prim-runtime
                   (set->predicate
@@ -456,14 +461,19 @@
   (: T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^))
   (define (T->V Σ Φ^ T)
 
+    (: refine₁ : V (℘ P) → (Option V))
+    (define (refine₁ V₀ Ps)
+      (for/fold ([V* : (Option V) V₀])
+                ([P (in-set Ps)] #:break (not V*))
+        (and (not (for/and : Boolean ([Φ (in-set Φ^)])
+                    (eq? '✗ (check Σ Φ P (list (assert V*))))))
+             (V+ (assert V*) P))))
+
     (: refine : V^ (℘ P) → V^)
     (define (refine Vs Ps)
-      (for*/fold ([acc : V^ Vs])
-                 ([P (in-set Ps)]
-                  [Vᵢ (in-set Vs)]
-                  #:when (for/and : Boolean ([Φ : Φ (in-set Φ^)])
-                           (eq? '✗ (check Σ Φ P (list Vᵢ)))))
-        (set-remove acc Vᵢ)))
+      (for*/set : V^ ([V (in-set Vs)]
+                      [V* (in-value (refine₁ V Ps))] #:when V*)
+        V*))
 
     (define S->V : (S → V^)
       (match-lambda
@@ -471,7 +481,7 @@
         [(? -o? o) {set o}]
         [(and S (S:α α)) (refine (Σᵥ@ Σ α) (Ψ@ Φ^ (list S)))]
         [(and S (S:@ Sₕ Sₓs)) {set (-● (Ψ@ Φ^ (list S)))}]))
-    
+
     (cond [(S? T) (S->V T)]
           [(set? T) T]
           [else {set T}]))
@@ -479,20 +489,6 @@
   (: V^+ (case-> [V^ V → V^]
                  [T^ V → T^]))
   (define (V^+ x p)
-
-    (define ?concretize : (V → (Option V^))
-      (match-lambda
-        ['null? {set -null}]
-        ['not {set -ff}]
-        [_ #f]))
-    
-    (define V+ : (V V → V)
-      (match-lambda**
-       [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
-       [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-       [((-● ps) (? P? p)) (-● (Ps+ ps p))]
-       [(V _) V]))
-
     (cond [(?concretize p)]
           [(set? x)
            (for/fold ([acc : V^ ∅]) ([V (in-set x)])
@@ -501,6 +497,19 @@
                [(✗) acc]
                [else (set-add acc (V+ V p))]))]
           [else x]))
+
+  (define V+ : (V V → V)
+    (match-lambda**
+     [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
+     [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
+     [((-● ps) (? P? p)) (-● (Ps+ ps p))]
+     [(V _) V]))
+
+  (define ?concretize : (V → (Option V^))
+    (match-lambda
+      ['null? {set -null}]
+      ['not {set -ff}]
+      [_ #f]))
 
   (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
                 [Φ (U P (℘ P)) (Listof S) → Φ]
@@ -522,7 +531,7 @@
                            (P:≥ (? (>=/c 0)))
                            (P:≡ (? (>=/c 0)))))
       'exact-nonnegative-integer?]
-     [('exact-nonnegative-integer? (P:¬ (P:≡ 0))) 'exact-positive-integer?]
+     [('exact-nonnegative-integer? (P:¬ (or (P:≡ 0) 'zero?))) 'exact-positive-integer?]
      [((or 'exact-integer? 'exact-nonnegative-integer?)
        (or (P:> (? (>=/c 0)))
            (P:≥ (? (>/c 0)))
@@ -532,7 +541,7 @@
      #:else
      [(_ _) #f]))
 
-  (define Ps+ (compact-with P⊓))
+  (define Ps+ : ((℘ P) P → (℘ P)) (compact-with P⊓))
 
   (define dummy-Σ (⊥Σ))
   ) 

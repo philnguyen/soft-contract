@@ -55,11 +55,9 @@
 
   (: cmp : T^ T^ Φ^ Σ → ?Ch)
   (define (cmp T^₀ T^₁ Φ^ Σ)
-    (define ans (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
+    (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
           [(check-≺ Σ Φ^ T^₀ T^₁) '↓]
           [else #f]))
-    (printf "cmp:~nold: ~a~nnew: ~a~nctx: ~ares: ~a~n" T^₀ T^₁ Φ^ ans)
-    ans)
 
   (: concat-graph : SCG SCG → SCG)
   (define (concat-graph G₁ G₂)
@@ -87,8 +85,8 @@
 
   (: check-≺ : Σ Φ^ T^ T^ → Boolean)
   (define (check-≺ Σ Φ^ T^₀ T^₁)
-    (or (and (defly? (λ () (partition-results Σ (R (list (-b 1) T^₀) Φ^) '<)))
-             (defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) '<))))
+    (or (and (defly? (λ () (partition-results Σ (R (list (-b 0) T^₁) Φ^) '<=)))
+             (defly? (λ () (partition-results Σ (R (list T^₁ T^₀) Φ^) '<))))
         (T^₀ . sub-value? . T^₁)))
 
   (: sub-value? : T^ T^ → Boolean)
