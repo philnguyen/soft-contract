@@ -54,7 +54,7 @@
   ([mutable? : (α → Boolean)]
    [bind-args! : (Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))]
    [alloc-rest! : ([(U Symbol ℓ) W H Φ^ Σ] [#:end T^] . ->* . T^)]
-   [H+ : (H ℓ (U Clo ℓ Symbol #f) → H)]
+   [H+ : (H ℓ (U Clo X/C Symbol #f) → H)]
    [looped? : (H → Boolean)]
    [scope : (H → (℘ α))] ; TODO not used
    [H₀ : H]))

@@ -124,9 +124,11 @@
          {set (Cons αₕ αₜ)}]
         [_ Tₙ])))
 
-  (: H+ : H ℓ (U Clo #f Symbol ℓ) → H)
+  (: H+ : H ℓ (U Clo #f Symbol X/C) → H)
   (define (H+ H₀ src tgt*)
-    (define tgt (if (Clo? tgt*) (Clo-_1 tgt*) tgt*))
+    (define tgt (cond [(Clo? tgt*) (Clo-_1 tgt*)]
+                      [(X/C? tgt*) (X/C->binder tgt*)]
+                      [else tgt*]))
     (define-values (H* looped?) (-H+ (inspect-H H₀) src tgt))
     (define H₁ (mk-H H*))
     (when looped?
@@ -136,9 +138,13 @@
         (cond [(Clo? tgt*)
                (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 tgt*)))])
                  (mk-α (-α:x x H₁)))]
+              [(X/C? tgt*) {seteq (mk-α (-α:x (X/C->binder tgt*) H₁))}]
               [else ∅eq]))
       (hash-set! binders H₁ (∪ αs (hash-ref binders H₀))))
     H₁)
+
+  (define X/C->binder : (X/C → Symbol)
+    (match-lambda [(X/C (app inspect-α (-α:x/c x _))) x]))
 
   (: -H+ : -H ℓ Tgt → (Values -H Boolean))
   (define (-H+ H src tgt)
@@ -159,7 +165,7 @@
   (define binders : (Mutable-HashTable H (℘ α)) (make-hasheq (list (cons H₀ ∅eq))))
   )
 
-(Tgt . ≜ . (U ⟦E⟧ #f Symbol ℓ))
+(Tgt . ≜ . (U ⟦E⟧ #f Symbol))
 (Src . ≜ . ℓ)
 (Stack . ≜ . (Immutable-HashTable Tgt (Pairof Src Stack)))
 

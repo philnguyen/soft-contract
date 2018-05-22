@@ -38,7 +38,7 @@
       [(Not/C αℓ) (fc-Not/C αℓ)]
       [(One-Of/C bs) (fc-One-Of/C bs)]
       [(St/C _ 𝒾 αℓs) (fc-St/C 𝒾 αℓs)]
-      [(X/C α) (fc-X/C α)]
+      [(? X/C? C) (fc-X/C C)]
       [(-b b) (fc-b b)]
       [V (fc-p V)]))
 
@@ -85,14 +85,17 @@
         (define Φ^ (collapse-R^/Φ^ R^))
         {set (ret! (R '() Φ^) Ξ Σ)})))
 
-  (: fc-X/C : α → ⟦FC⟧)
-  (define ((fc-X/C α) Vₓ ℓ Φ^ Ξ Σ)
+  (: fc-X/C : X/C → ⟦FC⟧)
+  (define ((fc-X/C C) Vₓ ℓ Φ^ Ξ Σ)
     (match-define (Ξ:co _ ?m H) Ξ)
-    (define H* (match-let ([(-α:x/c x _) (inspect-α α)]) (H+ H ℓ x)))
+    (match-define (X/C α) C)
+    (define H* (H+ H ℓ C))
     (define αₖ (αₖ:fc ℓ α Vₓ))
     (⊔ₖ! Σ αₖ Ξ)
+    (match-define (-α:x/c x _) (inspect-α α))
+    (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list Vₓ) H* Σ))
     (define Ξ* (Ξ:co (K (list (F:Fc:C ℓ (Σᵥ@ Σ α))) αₖ) ?m H*))
-    {set (ret! (T->R Vₓ Φ^) Ξ* Σ)})
+    {set (ret! (R (list (S:α (hash-ref Ρ x))) Φ^*) Ξ* Σ)})
 
   (: fc-b : Base → ⟦FC⟧)
   (define ((fc-b b) Vₓ ℓ Φ^ Ξ Σ)
