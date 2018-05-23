@@ -5,6 +5,7 @@
 (require typed/racket/unit
          racket/match
          racket/set
+         racket/bool
          racket/splicing
          set-extras
          unreachable
@@ -148,13 +149,15 @@
     (match-define (Ξ:co (K Fs α) M H) Ξ)
     (Ξ:co (K (cons F Fs) α) M H))
 
-  (: in-scope? : S (℘ α) → Boolean)
-  (define (in-scope? S₀ αs)
-    (let go ([S : S S₀])
-      (match S
-        [(S:α α) #:when (-α:x? (inspect-α α)) (∋ αs α)]
-        [(S:@ f xs) (and (go f) (andmap go xs))]
-        [_ #t])))
+  (: in-scope? : ((U α S) (℘ α) → Boolean))
+  (define (in-scope? x αs)
+    (if (integer? x)
+        (implies (-α:x? (inspect-α x)) (∋ αs x))
+        (let go ([S : S x])
+          (match S
+            [(S:α α) (in-scope? α αs)]
+            [(S:@ f xs) (and (go f) (andmap go xs))]
+            [_ #t]))))
 
   (define cmp-sets : (?Cmp (℘ Any))
     (λ (s₁ s₂)

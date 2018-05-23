@@ -270,7 +270,7 @@
                    [Fn/C → (Option Arity)])]
    [blm-arity : (ℓ -l Arity W → Blm)]
    [K+ : (F Ξ:co → Ξ:co)]
-   [in-scope? : (S (℘ α) → Boolean)]
+   [in-scope? : ((U α S) (℘ α) → Boolean)]
    [cmp-sets : (?Cmp (℘ Any))]
    [fold-cmp : (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord)]
    [join-by-max : (∀ (X) (?Cmp X) → (?Joiner X))]

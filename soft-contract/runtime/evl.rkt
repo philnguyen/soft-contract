@@ -107,10 +107,10 @@
 
   (: $↓ : $ (℘ α) → $)
   (define ($↓ $₀ αs)
-    (for/fold ([$ : $ $₀]) ([(α S) (in-hash $₀)]
-                            #:unless (∋ αs α)
-                            #:unless (in-scope? S αs))
-      (hash-remove $ α)))
+    (for/fold ([$ : $ $₀]) ([(α S) (in-hash $₀)])
+      (cond [(not (in-scope? α αs)) (hash-remove $ α)]
+            [(not (in-scope? S αs)) (hash-set $ α (S:α α))]
+            [else $])))
 
   (: Φ↓ (case-> [Φ (℘ α) → Φ]
                 [Φ^ (℘ α) → Φ^]))
