@@ -90,7 +90,7 @@
     (match-define (Ξ:co _ ?m H) Ξ)
     (match-define (X/C α) C)
     (define H* (H+ H ℓ C))
-    (define αₖ (αₖ:fc ℓ α Vₓ))
+    (define αₖ (αₖ:fc ℓ α))
     (⊔ₖ! Σ αₖ Ξ)
     (match-define (-α:x/c x _) (inspect-α α))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list Vₓ) H* Σ))
