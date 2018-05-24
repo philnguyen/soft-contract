@@ -151,13 +151,13 @@
          (λ (Val Φ^)
            (match Ctc
              [(EΡ ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
-             [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
+             [(? T^?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon:V Ctx Val)
        (with-guarded-single-arity/collapse Σ R^₀ (Ctx-loc Ctx)
          (λ (Ctc Φ^)
            (match Val
              [(EΡ ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
-             [(? set?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
+             [(? T^?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
        (if rngs
            (with-guarded-arity/collapse Σ R^₀ (length rngs) (Ctx-loc Ctx)
