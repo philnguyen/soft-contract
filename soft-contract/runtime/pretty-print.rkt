@@ -139,7 +139,9 @@
 
   (define show-αₖ : (αₖ → Sexp)
     (match-lambda
-      [(αₖ:clo ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]
+      [(αₖ:exp ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]
+      [(αₖ:mon ctx α) `(mon ,(Ctx-pos ctx) ,α)]
+      [(αₖ:fc ℓ α) `(fc ,(ℓ-src ℓ) ,α)]
       [(αₖ:hv tag) tag]
       [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))]))
 

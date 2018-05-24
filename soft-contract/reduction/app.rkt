@@ -83,7 +83,7 @@
     (: on-sc-ok : (Option (Pairof Ctx M)) → (℘ Ξ))
     (define (on-sc-ok ?m)
       (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ fmls Wₓ H* Σ))
-      (define α* (αₖ:clo ⟦E⟧ Ρ*))
+      (define α* (αₖ:exp ⟦E⟧ Ρ*))
       (⊔ₖ! Σ α* Ξ₀)
       {set (⟦E⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m H*) Σ)})
     

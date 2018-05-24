@@ -20,7 +20,7 @@
                                 Blm)
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
-(#|Stack address   |# αₖ . ::= . (αₖ:clo ⟦E⟧ Ρ)
+(#|Stack address   |# αₖ . ::= . (αₖ:exp ⟦E⟧ Ρ)
                                  (αₖ:mon Ctx α)
                                  (αₖ:fc ℓ α)
                                  (αₖ:hv HV-Tag) 
@@ -242,7 +242,6 @@
    [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
    [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
-   [defined-at? : ((U Σ Σᵥ) α → Boolean)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]

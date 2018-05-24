@@ -54,12 +54,6 @@
   (: Σₐ@ : (U Σ Σₐ) Ξ:co → R^)
   (define (Σₐ@ Σ Ξ:co) (hash-ref (->Σₐ Σ) Ξ:co mk-∅))
 
-  (: defined-at? : (U Σ Σᵥ) α → Boolean)
-  (define (defined-at? Σ α)
-    (match (hash-ref (->Σᵥ Σ) α #f)
-      [(? values V^) (not (∋ V^ -undefined))]
-      [_ #f]))
-
   (: construct-call-graph : (U Σ Σₖ) → CG)
   (define (construct-call-graph Σₖ)
     (for*/fold ([CG : CG (hash)])

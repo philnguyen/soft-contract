@@ -52,8 +52,7 @@
           [⟦C⟧ (↓ₑ l C)]]
       ;; Export same as internal
       [=> (? symbol? x)
-          (begin (assert (defined-at? Σ α))
-                 (⊔ᵥ! Σ α* (Σᵥ@ Σ α))
+          (begin (⊔ᵥ! Σ α* (Σᵥ@ Σ α))
                  (ret! (R '() Φ^) Ξ Σ))
        #:where
        [α  (mk-α (-α:top (-𝒾 x l)))]
@@ -97,19 +96,21 @@
       (match-lambda
         [(-dom xs ?dep e ℓ) (⟦dom⟧ xs ?dep (↓ e) ℓ)]))
 
-    (: init-undefined! : Σ (Assoc (Listof Symbol) -e) H Ρ → Ρ)
-    (define (init-undefined! Σ bnds H Ρ₀)
-      (for*/fold ([Ρ : Ρ Ρ₀]) ([bnd (in-list bnds)] [x (in-list (car bnd))])
+    (: init-undefined! : Σ (Assoc (Listof Symbol) -e) H Φ^ Ρ → (Values Φ^ Ρ))
+    (define (init-undefined! Σ bnds H Φ^₀ Ρ₀)
+      (for*/fold ([Φ^ : Φ^ Φ^₀] [Ρ : Ρ Ρ₀])
+                 ([bnd (in-list bnds)] [x (in-list (car bnd))])
         (define α (mk-α (-α:x x H)))
-        (⊔ᵥ! Σ α -undefined)
-        (Ρ+ Ρ x α)))
+        (⊔ᵥ! Σ α ∅)
+        (values (if (mutable? α) Φ^ ($+ Φ^ α (S:α α)))
+                (Ρ+ Ρ x α))))
 
     (: struct-defined? : -𝒾 → Σ → Boolean)
     (define (struct-defined? 𝒾)
       (if (member 𝒾 (list -𝒾-cons -𝒾-box))
           (λ _ #t)
           (let ([α (mk-α (-α:top 𝒾))])
-            (λ (Σ) (defined-at? Σ α)))))
+            (λ (Σ) (hash-has-key? (Σ-val Σ) α)))))
 
     (define (blm:undefined-struct [𝒾 : -𝒾] [ℓ : ℓ])
       (Blm (strip-ℓ ℓ) 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
@@ -182,8 +183,13 @@
           #:recur E]
       [(-letrec-values '() E _) (↓ E)]
       [=> (-letrec-values bnds E ℓ)
-          (let ([Ρ* (init-undefined! Σ bnds (Ξ:co-ctx Ξ) Ρ)])
-            (⟦E⟧ₓ Ρ* Φ^ (K+ (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*) Ξ) Σ))
+          (match-let* ([(Ξ:co _ ?m H) Ξ]
+                       [fmls (-var (append-map (inst car (Listof Symbol) Any) bnds) #f)]
+                       [H* (H+ H ℓ #|HACK|# (Clo fmls ⟦E⟧ Ρ))])
+            (define-values (Φ^* Ρ*) (init-undefined! Σ bnds H* Φ^ Ρ))
+            (define α* (αₖ:exp ⟦E⟧ Ρ*))
+            (⊔ₖ! Σ α* Ξ)
+            (⟦E⟧ₓ Ρ* Φ^* (Ξ:co (K (list (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*)) α*) ?m H*) Σ))
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [=> (-set! x E)

@@ -31,7 +31,7 @@
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
   (define (inj x)
     (define ⟦E⟧ (->⟦E⟧ x))
-    (define αₖ₀ (αₖ:clo ⟦E⟧ ⊥Ρ))
+    (define αₖ₀ (αₖ:exp ⟦E⟧ ⊥Ρ))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
     (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f H₀) Σ₀) Σ₀))
 
@@ -110,9 +110,14 @@
              [(cons (cons xs* ⟦E⟧) binds*)
               {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
+              (match-define (Ξ:co _ ?m H) Ξ)
               (define-values (xs Vs) (unzip bounds*))
-              (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ (-var xs #f) Vs (Ξ:co-ctx Ξ) Σ))
-              {set (⟦body⟧ Ρ* Φ^* Ξ Σ)}])))]
+              (define fmls (-var xs #f))
+              (define H* (H+ H ℓ #|HACK|# (Clo fmls ⟦body⟧ Ρ)))
+              (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ fmls Vs H* Σ))
+              (define α* (αₖ:exp ⟦body⟧ Ρ*))
+              (⊔ₖ! Σ α* Ξ)
+              {set (⟦body⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m H*) Σ)}])))]
       [(F:Letrec ℓ xs binds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse Σ R^₀ (length xs) ℓ
          (λ (W Φ^)
