@@ -475,12 +475,22 @@
                       [V* (in-value (refine₁ V Ps))] #:when V*)
         V*))
 
+    (: ac : -𝒾 Index V^ → V^)
+    (define (ac 𝒾 k Vs)
+      (define go : (V → V^)
+        (match-lambda
+          [(St (== 𝒾) αs) (Σᵥ@ Σ (list-ref αs k))]
+          [(-● Ps) {set (-● ∅)}]
+          [_ ∅]))
+      (set-union-map go Vs))
+
     (define S->V : (S → V^)
       (match-lambda
         [(? -b? b) {set b}]
         [(? -o? o) {set o}]
         [(and S (S:α α)) (refine (Σᵥ@ Σ α) (Ψ@ Φ^ (list S)))]
-        [(and S (S:@ Sₕ Sₓs)) {set (-● (Ψ@ Φ^ (list S)))}]))
+        [(and S (S:@ (-st-ac 𝒾 k) (list S*))) (refine (ac 𝒾 k (S->V S*)) (Ψ@ Φ^ (list S)))]
+        [S {set (-● (Ψ@ Φ^ (list S)))}]))
 
     (cond [(S? T) (S->V T)]
           [(set? T) T]
