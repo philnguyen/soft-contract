@@ -111,7 +111,7 @@
               {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
               (define-values (xs Vs) (unzip bounds*))
-              (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ (-var xs #f) Vs H₀ Σ))
+              (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ (-var xs #f) Vs (Ξ:co-ctx Ξ) Σ))
               {set (⟦body⟧ Ρ* Φ^* Ξ Σ)}])))]
       [(F:Letrec ℓ xs binds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse Σ R^₀ (length xs) ℓ
@@ -177,7 +177,7 @@
       [(F:Μ/C x)
        (with-guarded-single-arity/collapse Σ R^₀ +ℓ₀ ; TODO
          (λ (C-body Φ^)
-           (define α (mk-α (-α:x/c x H₀)))
+           (define α (mk-α (-α:x/c x (Ξ:co-ctx Ξ))))
            (⊔T! Σ Φ^ α C-body)
            {set (ret! (T->R (X/C α) Φ^) Ξ Σ)}))]
       [(F:==>:Dom inits↓ inits↑ ?rst rng Ρ ℓ)
@@ -196,7 +196,7 @@
            {set (rng Ρ Φ^ (K+ (F:==>:Rng inits Vᵣ ℓ) Ξ) Σ)}))]
       [(F:==>:Rng inits ?rst ℓ)
        (define-values (D^ Φ^) (collapse-R^ R^₀))
-       (define V (mk-==>! Σ Φ^ H₀ inits ?rst D^ ℓ))
+       (define V (mk-==>! Σ Φ^ (Ξ:co-ctx Ξ) inits ?rst D^ ℓ))
        {set (ret! (T->R V Φ^) Ξ Σ)}]
       [(F:==>i Ρ doms↓ (cons x ℓ) doms↑)
        (with-guarded-single-arity/collapse Σ R^₀ ℓ
@@ -220,7 +220,7 @@
                   [(cons ⟦C⟧ ⟦C⟧s*)
                    (⟦C⟧ Ρ Φ^ (K+ (F:St/C ℓ 𝒾 Cs* ⟦C⟧s* Ρ) Ξ) Σ)]
                   [_
-                   (define flds (mk-αℓ*! Σ Φ^ (-𝒾-name 𝒾) (curry -α:struct/c 𝒾) H₀ ℓ (reverse Cs*)))
+                   (define flds (mk-αℓ*! Σ Φ^ (-𝒾-name 𝒾) (curry -α:struct/c 𝒾) (Ξ:co-ctx Ξ) ℓ (reverse Cs*)))
                    (define flat? (andmap C^-flat? Cs*))
                    (ret! (T->R (St/C flat? 𝒾 flds) Φ^) Ξ Σ)])}))]
       [(F:Def l lhs)
