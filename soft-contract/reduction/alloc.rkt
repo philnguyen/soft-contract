@@ -144,7 +144,10 @@
     H₁)
 
   (define X/C->binder : (X/C → Symbol)
-    (match-lambda [(X/C (app inspect-α (-α:x/c x _))) x]))
+    (match-lambda [(X/C α)
+                   (match (inspect-α α)
+                     ;; TODO other cases
+                     [(-α:x/c x _) x])]))
 
   (: -H+ : -H ℓ Tgt → (Values -H Boolean))
   (define (-H+ H src tgt)

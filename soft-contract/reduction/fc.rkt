@@ -18,7 +18,8 @@
          "signatures.rkt")
 
 (define-unit fc@
-  (import sto^ env^ val^ evl^
+  (import meta-functions^
+          sto^ env^ val^ evl^
           prover^
           step^ compile^ approx^ alloc^)
   (export fc^)
@@ -87,14 +88,14 @@
 
   (: fc-X/C : X/C → ⟦FC⟧)
   (define ((fc-X/C C) Vₓ ℓ Φ^ Ξ Σ)
-    (match-define (Ξ:co _ ?m H) Ξ)
+    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
     (match-define (X/C α) C)
     (define H* (H+ H ℓ C))
-    (define αₖ (αₖ:fc ℓ α))
-    (⊔ₖ! Σ αₖ Ξ)
+    (define α* (αₖ H* (βₖ:fc ℓ α)))
+    (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
     (match-define (-α:x/c x _) (inspect-α α))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list Vₓ) H* Σ))
-    (define Ξ* (Ξ:co (K (list (F:Fc:C ℓ (Σᵥ@ Σ α))) αₖ) ?m H*))
+    (define Ξ* (Ξ:co (K (list (F:Fc:C ℓ (Σᵥ@ Σ α))) α*) ?m))
     {set (ret! (R (list (S:α (hash-ref Ρ x))) Φ^*) Ξ* Σ)})
 
   (: fc-b : Base → ⟦FC⟧)

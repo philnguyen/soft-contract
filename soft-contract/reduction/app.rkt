@@ -18,7 +18,7 @@
          "signatures.rkt")
 
 (define-unit app@
-  (import static-info^ ast-pretty-print^
+  (import static-info^ ast-pretty-print^ meta-functions^
           env^ val^ sto^ evl^
           prims^
           prover^
@@ -76,16 +76,24 @@
 
   (: app-clo : Clo → ⟦F⟧^)
   (define ((app-clo clo) Wₓ ℓ Φ^ Ξ₀ Σ)
-    (match-define (Ξ:co _ ?m H) Ξ₀)
+    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ₀)
     (match-define (Clo fmls ⟦E⟧ Ρ) clo)
     (define H* (H+ H ℓ clo))
 
     (: on-sc-ok : (Option (Pairof Ctx M)) → (℘ Ξ))
     (define (on-sc-ok ?m)
       (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ fmls Wₓ H* Σ))
-      (define α* (αₖ:exp ⟦E⟧ Ρ*))
-      (⊔ₖ! Σ α* Ξ₀)
-      {set (⟦E⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m H*) Σ)})
+      (define fmls:addrs (set-filter (compose1 not mutable?) (list->seteq (hash-values Ρ*))))
+      (define fix-up : (Φ → Φ) (match-lambda [(Φ $ Ψ) (Φ (fix-up-$ $) Ψ)]))
+      (define fix-up-$
+        (λ ([$₀ : $])
+          (for/fold ([acc : $ $₀]) ([α : α (in-set fmls:addrs)]
+                                    #:unless (hash-has-key? acc α))
+            (hash-set acc α (S:α α)))))
+      (define Φ^** (map/set fix-up Φ^*))
+      (define α* (αₖ H* (βₖ:exp ⟦E⟧ Ρ*)))
+      (⊔ₖ! Σ α* (Rt Φ^ fmls:addrs Ξ₀))
+      {set (⟦E⟧ Ρ* Φ^** (Ξ:co (K '() α*) ?m) Σ)})
     
     ;; FIXME guard arity
     (match* ((looped? H*) ?m)
@@ -171,10 +179,10 @@
                           (K+ F:Mon (K+ F:Set Ξ₀))))
                       (ret! (T->R Tᵥ Φ^ᵢ) Ξ* Σ)]
                      [_
-                      (add-leak! (cons #f (Ξ:co-ctx Ξ₀)) Σ (T->V Σ Φ^ᵢ Tᵥ))
+                      (add-leak! Σ (T->V Σ Φ^ᵢ Tᵥ))
                       (ret! (T->R -void Φ^ᵢ) Ξ₀ Σ)])))
               (begin
-                (add-leak! (cons #f (Ξ:co-ctx Ξ₀)) Σ (T->V Σ Φ^ᵢ Tᵥ))
+                (add-leak! Σ (T->V Σ Φ^ᵢ Tᵥ))
                 (set-add acc (ret! (T->R -void Φ^ᵢ) Ξ₀ Σ))))))
       (λ ([R^ : R^])
         (blm ℓ (-𝒾-name 𝒾) (list P) (collapse-R^/W^ R^)))))
@@ -293,20 +301,30 @@
   (splicing-local ((define M₀ : M (hash)))
     (: app-Terminating/C : Ctx α → ⟦F⟧^)
     (define ((app-Terminating/C ctx α) Wₓ ℓ Φ^ Ξ Σ)
-      (define αₖ (αₖ:term/c α Wₓ))
-      (⊔ₖ! Σ αₖ Ξ)
-      (define Ξ* (match-let* ([(Ξ:co K₀ ?m H₀) Ξ]
-                              [m* (cons ctx (if ?m (cdr ?m) M₀))])
-                   (Ξ:co (K '() αₖ) m* H₀)))
+      (match-define (Ξ:co (K _ (αₖ H₀ _)) ?m) Ξ)
+      (define α* (αₖ H₀ (βₖ:term/c α Wₓ)))
+      (⊔ₖ! Σ α* (Rt Φ^ ∅eq Ξ))
+      (define Ξ* (Ξ:co (K '() α*) (cons ctx (if ?m (cdr ?m) M₀))))
       (app (Σᵥ@ Σ α) Wₓ ℓ Φ^ Ξ* Σ)))
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
-    (define H* (H+ (Ξ:co-ctx Ξ) ℓ #f))
-    (define α (αₖ:hv (mk-HV-Tag #f H*)))
-    (⊔ₖ! Σ α Ξ)
-    (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ) H*))
-    {set (ret! ((R↓ Σ (scope H*)) (R Wₓ Φ^)) Ξ* Σ)})
+    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
+
+    (define (on-sc-ok)
+      (define H* (H+ H ℓ #f))
+      (define α (αₖ H* (βₖ:hv #f)))
+      (⊔ₖ! Σ α (Rt Φ^ ∅eq Ξ))
+      (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ)))
+      {set (ret! ((R↓ Σ (scope H*)) (R Wₓ Φ^)) Ξ* Σ)})
+
+    (match ?m
+      [(cons (Ctx l+ _ lo _) _)
+       #:when (transparent-module? l+)
+       (set-add (on-sc-ok)
+                (Blm (ℓ-with-src ℓ l+) lo '(size-change-terminating/c)
+                     (list {set (-● ∅)})))]
+      [_ (on-sc-ok)]))
 
   (: app-sym : S → ⟦F⟧^)
   (define (app-sym S) app-opq) ; TODO

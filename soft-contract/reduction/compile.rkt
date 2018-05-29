@@ -183,13 +183,18 @@
           #:recur E]
       [(-letrec-values '() E _) (↓ E)]
       [=> (-letrec-values bnds E ℓ)
-          (match-let* ([(Ξ:co _ ?m H) Ξ]
+          (match-let* ([(Ξ:co (K _ (αₖ H _)) ?m) Ξ]
                        [fmls (-var (append-map (inst car (Listof Symbol) Any) bnds) #f)]
                        [H* (H+ H ℓ #|HACK|# (Clo fmls ⟦E⟧ Ρ))])
             (define-values (Φ^* Ρ*) (init-undefined! Σ bnds H* Φ^ Ρ))
-            (define α* (αₖ:exp ⟦E⟧ Ρ*))
-            (⊔ₖ! Σ α* Ξ)
-            (⟦E⟧ₓ Ρ* Φ^* (Ξ:co (K (list (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*)) α*) ?m H*) Σ))
+            (define α* (αₖ H* (βₖ:exp ⟦E⟧ Ρ*)))
+            (define bnds:addrs
+              (list->seteq
+               (append-map (λ ([bnd : (Pairof (Listof Symbol) Any)])
+                             (map (λ ([x : Symbol]) (Ρ@ Ρ* x)) (car bnd)))
+                           bnds)))
+            (⊔ₖ! Σ α* (Rt Φ^ bnds:addrs Ξ))
+            (⟦E⟧ₓ Ρ* Φ^* (Ξ:co (K (list (F:Letrec ℓ x ⟦bnd⟧s ⟦E⟧ Ρ*)) α*) ?m) Σ))
           #:where [(cons (cons x ⟦E⟧ₓ) ⟦bnd⟧s) (map ↓-bnd bnds)]
           #:recur E]
       [=> (-set! x E)
@@ -302,8 +307,8 @@
   (define (rn ⟦E⟧ x)
     #;⟦E⟧
     (let ([s (cond [(-e? x) (format "⟦~a⟧"(show-e x))]
-                   [(-prog? x) (format "⟦~a⟧" (map show-module (-prog-_0 x)))]
-                   [(-module? x) (format "⟦~a⟧" (show-module x))]
+                   [(-prog? x) (format "⟦p ~a⟧" (map -module-path (-prog-_0 x)))]
+                   [(-module? x) (format "⟦m ~a⟧" (-module-path x))]
                    [else (format "⟦w ~a⟧" (map show-T x))])])
       (procedure-rename ⟦E⟧ (string->symbol s))))
   )

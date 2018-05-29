@@ -77,9 +77,9 @@
                        (if (set? V) ((iter-⊔ V^⊔) V₀ V) (V^⊔ V₀ V)))
                  mk-∅))
 
-  (: ⊔ₖ : Σₖ αₖ Ξ:co → Σₖ)
-  (define (⊔ₖ Σ α Ξ)
-    (hash-update Σ α (λ ([Ξs : (℘ Ξ:co)]) (Ξ^⊔ Ξs Ξ)) mk-∅))
+  (: ⊔ₖ : Σₖ αₖ Rt → Σₖ)
+  (define (⊔ₖ Σ α Rt)
+    (hash-update Σ α (λ ([Rts : Rt^]) (Rt^⊔ Rts Rt)) mk-∅))
 
   (: ⊔ₐ : Σₐ Ξ:co (U R R^) → Σₐ)
   (define (⊔ₐ Σ Ξ R)
@@ -106,13 +106,25 @@
   (: ⊔ₐ! : Σ Ξ:co (U R R^) → Void)
   (define (⊔ₐ! Σ Ξ R) (set-Σ-evl! Σ (⊔ₐ (Σ-evl Σ) Ξ R)))
   
-  (: ⊔ₖ! : Σ αₖ Ξ:co → Void)
-  (define (⊔ₖ! Σ αₖ Ξ) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Ξ))) 
+  (: ⊔ₖ! : Σ αₖ Rt → Void)
+  (define (⊔ₖ! Σ αₖ Rt) (set-Σ-kon! Σ (⊔ₖ (Σ-kon Σ) αₖ Rt)))
+
+  (define cmp-Rt : (?Cmp Rt)
+    (match-lambda**
+     [((Rt Φ^₁ αs₁ Ξ₁) (Rt Φ^₂ αs₂ Ξ₂))
+      (and (equal? αs₁ αs₂)
+           (Ord:* (cmp-Ξ Ξ₁ Ξ₂)
+                  (cond [(equal? Φ^₁ Φ^₂) '=]
+                        [else
+                         (define Φ^* ((iter-⊔ Φ^⊔) Φ^₁ Φ^₂))
+                         (cond [(equal? Φ^* Φ^₁) '>]
+                               [(equal? Φ^* Φ^₂) '<]
+                               [else #f])])))]))
 
   ;; FIXME: could have avoided this if all fields on the stack are allocated
   (define cmp-Ξ : (?Cmp Ξ:co)
     (match-lambda**
-     [((Ξ:co K₁ m H) (Ξ:co K₂ m H)) (cmp-K K₁ K₂)]
+     [((Ξ:co K₁ m) (Ξ:co K₂ m)) (cmp-K K₁ K₂)]
      [(_ _) #f]))
 
   (define cmp-K : (?Cmp K)
@@ -178,6 +190,7 @@
 
   (define (cmp-W [W₁ : W] [W₂ : W]) (fold-cmp cmp-T^ W₁ W₂))
   (define cmp-T^ (cmp-T^/$ #f #f))
-  (define Ξ^⊔ (compact-with ((inst join-by-max Ξ:co) cmp-Ξ))) 
+  (define Ξ^⊔ (compact-with ((inst join-by-max Ξ:co) cmp-Ξ)))
+  (define Rt^⊔ (compact-with ((inst join-by-max Rt) cmp-Rt)))
   )
 

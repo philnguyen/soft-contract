@@ -36,26 +36,36 @@
         (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
     (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
   
-  (: add-leak! : ((U HV-Tag α) Σ V^ → Void))
-  (define (add-leak! tag Σ V)
-    (define (keep-behavioral [V : V^]) : V^
-      (for/fold ([V : V^ V])
-                ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
-        (set-remove V Vᵢ)))
-    (define leaks
-      (cond [(set? V) (keep-behavioral V)]
-            [else
-             (for/fold ([V : V^ ∅]) ([Vᵢ (in-list V)])
-               (∪ V (keep-behavioral Vᵢ)))]))
-    (⊔ᵥ! Σ (if (pair? tag) (tag->leak tag) tag) leaks))
+  (splicing-local
+      ((: do-add-leak! : α Σ V^ → Void)
+       (define (do-add-leak! α Σ V)
+         (define (keep-behavioral [V : V^]) : V^
+           (for/fold ([V : V^ V])
+                     ([Vᵢ (in-set V)] #:unless (behavioral? (Σ-val Σ) Vᵢ))
+             (set-remove V Vᵢ)))
+         (define leaks
+           (cond [(set? V) (keep-behavioral V)]
+                 [else
+                  (for/fold ([V : V^ ∅]) ([Vᵢ (in-list V)])
+                    (∪ V (keep-behavioral Vᵢ)))]))
+         (⊔ᵥ! Σ α leaks)))
+    (: add-leak! (case-> [Σ V^ → Void]
+                         [Σ V^ α → Void]
+                         [Σ V^ -l H → Void]))
+    (define add-leak!
+      (case-lambda
+        [(Σ V^    ) (do-add-leak! (mk-α (-α:hv #f        )) Σ V^)]
+        [(Σ V^ α  ) (do-add-leak! α                         Σ V^)]
+        [(Σ V^ l H) (do-add-leak! (mk-α (-α:hv (cons l H))) Σ V^)])))
 
   (: havoc : HV-Tag R^ Ξ:co Σ → (℘ Ξ))
-  (define (havoc tag R^ Ξ₀ Σ)
-    (define α• (tag->leak tag))
+  (define (havoc ?l R^ Ξ₀ Σ)
+    (define α• (mk-α (-α:hv (and ?l (cons ?l (Ξ:co-ctx Ξ₀))))))
     (define Φ^ (collapse-R^/Φ^ R^))
     (for* ([Rᵢ (in-set R^)] [T (in-list (R-_0 Rᵢ))])
-      (add-leak! α• Σ (T->V Σ Φ^ T)))
+      (add-leak! Σ (T->V Σ Φ^ T) α•))
     (for/union : (℘ Ξ) ([V (in-set (Σᵥ@ Σ α•))] #:unless (seen? V (Σ-val Σ)))
+       (remember! V (Σ-val Σ))
        (havoc-V V Φ^ Ξ₀ Σ)))
 
   (: havoc-V : V Φ^ Ξ:co Σ → (℘ Ξ))
@@ -114,11 +124,6 @@
       ;; Apply contract to unknowns
       [(? C?) #|TODO|# ∅]
       [_ ∅]))
-
-  (: tag->leak : HV-Tag → α)
-  (define (tag->leak tag)
-    (match-define (mk-HV-Tag ?l H) tag)
-    (mk-α (-α:hv (and ?l tag))))
 
   ;; For caching
   (splicing-local

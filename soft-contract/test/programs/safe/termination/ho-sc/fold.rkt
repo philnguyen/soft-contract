@@ -10,8 +10,8 @@
 
 (provide
  (contract-out
-  [foldr ((any/c any/c . -> . any/c) any/c list? . -> . any/c #:total? #t)]
-  [foldl ((any/c any/c . -> . any/c) any/c list? . -> . any/c #:total? #t)]
-  [reverse (list? . -> . list? #:total? #t)]
+  [foldr ((any/c any/c . -> . any/c #:total? #t) any/c list? . -> . any/c #:total? #t)]
+  [foldl ((any/c any/c . -> . any/c #:total? #t) any/c list? . -> . any/c #:total? #t)]
+  [reverse (list? . -> . any/c #:total? #t)]
   [@ (list? list? . -> . list? #:total? #t)]
   [concat ((listof list?) . -> . list? #:total? #t)]))

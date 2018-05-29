@@ -4,7 +4,7 @@
 
 (define (a m n)
   (cond [(zero? m) (+ 1 n)]
-        [(zero? m) (a (- m 1) 1)]
+        [(zero? n) (a (- m 1) 1)]
         [else (a (- m 1) (a m (- n 1)))]))
 
 (provide

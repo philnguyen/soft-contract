@@ -14,17 +14,16 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [frames : K]
-                                      [mark : (Option (Pairof Ctx M))]
-                                      [ctx : H])
+(#|State sans store|# Ξ . ::= . (Ξ:co [frames : K] [mark : (Option (Pairof Ctx M))])
                                 Blm)
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
-(#|Stack address   |# αₖ . ::= . (αₖ:exp ⟦E⟧ Ρ)
-                                 (αₖ:mon Ctx α)
-                                 (αₖ:fc ℓ α)
-                                 (αₖ:hv HV-Tag) 
-                                 (αₖ:term/c α W))
+(#|Stack address   |# αₖ . ::= . (αₖ [ctx : H] [ext : βₖ]))
+(#|Stack addr. ext.|# βₖ . ::= . (βₖ:exp ⟦E⟧ Ρ)
+                                 (βₖ:mon Ctx α)
+                                 (βₖ:fc ℓ α)
+                                 (βₖ:hv HV-Tag)
+                                 (βₖ:term/c α W))
 (#|Result          |# R . ::= . (R W Φ^))
 (#|Path            |# Φ . ::= . (Φ [alias : $] [condition : Ψ]))
 (#|Path alias      |# $ . ≜ . (Immutable-HashTable α S))
@@ -33,7 +32,7 @@
 (struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
 #;(#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:mutable)
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
-(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Ξ:co^))
+(#|Kont. store     |# Σₖ . ≜ . (Immutable-HashTable αₖ Rt^))
 (#|Eval. store     |# Σₐ . ≜ . (Immutable-HashTable Ξ:co R^))
 (#|Call history    |# M  . ≜ . (Immutable-HashTable Clo SCG))
 (#|Value list      |# W  . ≜ . (Listof T^))
@@ -43,11 +42,13 @@
 (#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ Ξ:co Σ → Ξ))
 (#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ))) ; FIXME obsolete
 (#|Kont. frame     |# F . ::= . #:TBD)
+(#|Annotated stack |# Rt . ::= . (Rt Φ^ (℘ α) Ξ:co))
 ;; Approximated versions of things
 (Φ^ . ≜ . (℘ Φ))
 (V^ . ≜ . (℘ V))
 (R^ . ≜ . (℘ R))
 (Ξ:co^ . ≜ . (℘ Ξ:co))
+(Rt^ . ≜ .  (℘ Rt))
 (W^ . ≜ . (℘ W))
 (⟦F⟧^ . ≜ . (W ℓ Φ^ Ξ:co Σ → (℘ Ξ)))
 (?R . ≜ . (Option R))
@@ -101,7 +102,7 @@
                                           [dependency : (Option (Listof Symbol))]
                                           [ctx : ⟦E⟧]
                                           [src : ℓ]))
-(#|Context tag for havoc|# HV-Tag . ≜ . (mk-HV-Tag (Option -l) H) #:ad-hoc)
+(#|Context tag for havoc|# HV-Tag . ≜ . (Option -l))
 (#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)
@@ -140,7 +141,6 @@
   
                                  ; for binding
                                  (-α:x Symbol H)
-                                 (-α:dummy H)
                                  ; for struct field
                                  (-α:fld -𝒾 ℓ H Index)
                                  ; for Cons/varargs
@@ -220,6 +220,9 @@
     [(=) o₁]
     [else #f]))
 
+(define Ξ:co-ctx : (Ξ:co → H)
+  (match-lambda [(Ξ:co (K _ (αₖ H _)) _) H]))
+
 (define-syntax Ord:*
   (syntax-rules ()
     [(_) '=]
@@ -239,7 +242,7 @@
    [⊥Σₖ : Σₖ]
    [⊥Σₐ : Σₐ]
    [Σᵥ@ : ((U Σ Σᵥ) α  → V^)] 
-   [Σₖ@ : ((U Σ Σₖ) αₖ → Ξ:co^)]
+   [Σₖ@ : ((U Σ Σₖ) αₖ → Rt^)]
    [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
    [construct-call-graph : ((U Σ Σₖ) → CG)]
@@ -271,6 +274,7 @@
    [K+ : (F Ξ:co → Ξ:co)]
    [in-scope? : ((U α S) (℘ α) → Boolean)]
    [cmp-sets : (?Cmp (℘ Any))]
+   [set-lift-cmp : (∀ (X) (?Cmp X) → (?Cmp (℘ X)))]
    [fold-cmp : (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord)]
    [join-by-max : (∀ (X) (?Cmp X) → (?Joiner X))]
    [compact-with : (∀ (X) (?Joiner X) → (℘ X) X → (℘ X))]

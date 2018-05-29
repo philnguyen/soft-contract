@@ -16,7 +16,7 @@
          "signatures.rkt")
 
 (define-unit mon@
-  (import static-info^
+  (import static-info^ meta-functions^
           val^ env^ evl^ sto^
           prover^
           prims^
@@ -61,6 +61,7 @@
              (cond [(set? Tₕ) (for/set : V^ ([Vᵢ (in-set Tₕ)])
                                 (cond [(T-arity Vᵢ) => -b]
                                       [else (-● {set 'procedure-arity?})]))]
+                   [(and (S? Tₕ) (T-arity Tₕ)) => -b]
                    [else (S:@ 'procedure-arity (list Tₕ))]))
            ((inst with-2-paths Ξ)
              (λ () (split-results Σ (R (list Tₕ:arity grd-arity) Φ^ᵢ) 'arity-includes?))
@@ -81,7 +82,7 @@
       (: go : Arity → (℘ Ξ:co))
       (define (go a)
         (define α (mk-α (-α:fn ctx (Ξ:co-ctx Ξ₀) a)))
-        (define V* (V^+ (V^+ (R->V Σ R^) 'procedure?) (P:arity-includes a)))
+        (define V* (V^+ Σ (V^+ Σ (R->V Σ R^) 'procedure?) (P:arity-includes a)))
         (⊔ᵥ! Σ α V*)
         {set (ret! (T->R (X/G ctx C α) (collapse-R^/Φ^ R^)) Ξ₀ Σ)})
       (if C:arity
@@ -112,14 +113,14 @@
 
   (: mon-X/C : X/C → ⟦C⟧)
   (define ((mon-X/C C) V ctx Φ^ Ξ Σ)
-    (match-define (Ξ:co _ ?m H) Ξ)
+    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
     (match-define (X/C α) C)
     (define H* (H+ H (Ctx-loc ctx) C))
-    (define αₖ (αₖ:mon ctx α))
-    (⊔ₖ! Σ αₖ Ξ)
+    (define α* (αₖ H* (βₖ:mon ctx α)))
+    (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
     (match-define (-α:x/c x _) (inspect-α α))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list V) H* Σ))
-    (define Ξ* (Ξ:co (K (list (F:Mon:C ctx (Σᵥ@ Σ α))) αₖ) ?m H*))
+    (define Ξ* (Ξ:co (K (list (F:Mon:C ctx (Σᵥ@ Σ α))) α*) ?m))
     {set (ret! (R (list (S:α (hash-ref Ρ x))) Φ^*) Ξ* Σ)})
 
   (: mon-And/C : And/C → ⟦C⟧)
@@ -298,7 +299,8 @@
       -blm
       (λ ([R^ : R^])
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
-        (define Ξ* (let ([T* (V^+ T^ C)]) (K+ (F:If:Flat/C T* (-blm R^)) Ξ₀)))
+        (define Ξ* (let ([T* (V^+ Σ T^ C)])
+                     (K+ (F:If:Flat/C T* (-blm R^)) Ξ₀)))
         (match C
           [(? -b? b) ((app₁ 'equal?) (list T^ {set b}) ℓ Φ^ Ξ* Σ)]
           [_         ((app₁ C) (list T^) ℓ Φ^ Ξ* Σ)]))))

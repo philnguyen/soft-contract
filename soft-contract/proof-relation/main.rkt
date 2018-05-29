@@ -79,6 +79,7 @@
 
   (define V^+ l:V^+)
   (define Ψ+ l:Ψ+)
+  (define Ps⊢P l:Ps⊢P)
   (define Ps+ l:Ps+)
   
   (: with-checker : (Σ Φ T (Listof T) → ?Dec) Σ T R → (Values R^ R^ R^))

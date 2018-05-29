@@ -43,6 +43,7 @@
 
     (: go-harder : P S → ?Dec)
     (define (go-harder P S)
+      (assert (not (V? S))) ; internally maintained
       (⊔*/set (λ ([V : V]) (go P (list V))) (T->V Σ {set Φ} S)))
 
     (: go : T (Listof T) → ?Dec)
@@ -75,7 +76,8 @@
             (match Vs
               [(list (or (St 𝒾* _) (X/G _ (St/C _ 𝒾* _) _)))
                (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
-              [(list (? S? S)) (go-harder P S)]
+              [(list (? V?)) '✗]
+              [(list (? S? S)) #:when (not (-b? S)) (go-harder P S)]
               [_ '✗])]
            [((One-Of/C bs) _) (check-one-of (car Vs) bs)]
            [((? symbol?) _)
@@ -87,6 +89,7 @@
                    [(list V)
                     (match V
                       [(-b (and b (? g) ...)) (bool->Dec (o? b))]
+                      [(? V?) '✗]
                       [(? S? S) (go-harder 'o? S)]
                       [_ '✗])]
                    [_ '✗])] ...
@@ -227,121 +230,101 @@
            [((P:≤ r) _) (go '<= (list (car Vs) (-b r)))]
            [((P:< r) _) (go '<  (list (car Vs) (-b r)))]
            [((P:≡ b) _) (go 'equal? (cons (-b b) Vs))]
+           [((P:arity-includes a) (list V))
+            (match (T-arity V)
+              [(? values V:arity) (bool->Dec (arity-includes? V:arity a))]
+              [_ #f])]
            [(_ _) #f])]))
 
     (go P₀ Ts₀))
 
   (: Ps⊢P : (℘ P) P → ?Dec)
-  (define (Ps⊢P Ps P)
-    (or (for/or : ?Dec ([Q (in-set Ps)]) (P⊢P Q P))
-        (case P ;; Tmp. hack when `p` is implied by 2+ predicates
-          [(exact-nonnegative-integer?)
-           (cond [(and (∋ Ps 'exact-integer?)
-                       (for/or : Boolean ([Q (in-set Ps)])
-                         (match? Q
-                                 )))
-                  '✓]
-                 [(for/or : Boolean ([Q (in-set Ps)])
-                    (match? Q
-                            (P:< (? (<=/c 0)))
-                            (P:≤ (? (</c 0)))
-                            (P:≡ (? (</c 0)))))
-                  '✗]
-                 [else #f])]
-          [(exact-positive-integer?)
-           (cond [(and (∋ Ps 'exact-nonnegative-integer?)
-                       (for/or : Boolean ([Q (in-set Ps)])
-                         (match? Q
-                                 (P:> (? (>=/c 0)))
-                                 (P:≥ (? (>/c 0)))
-                                 (P:≡ (? (>/c 0)))
-                                 (P:¬ (or (P:≡ 0) 'zero?)))))
-                  '✓]
-                 [(and (∋ Ps 'exact-integer?)
-                       (for/or : Boolean ([Q (in-set Ps)])
-                         (match? Q
-                                 (P:> (? (>=/c 0)))
-                                 (P:≥ (? (>/c 0)))
-                                 (P:≡ (? (>/c 0))))))
-                  '✓]
-                 [else #f])]
-          [(any/c) '✓]
-          [(none/c) '✗]
-          [else #f])))
+  (define (Ps⊢P Ps Q)
+    (define (go [Ps : (℘ P)] [Q : P])
+      (or (match Q ;; Tmp. hack when `Q` is implied by 2+ predicates
+            [(== -cons?)
+             (and (∋ Ps (P:¬ 'null?)) (∋ Ps 'list?) '✓)]
+            ['none/c '✗]
+            ['any/c '✓]
+            [_ #f])
+          (for/or : ?Dec ([P (in-set Ps)])
+            (P⊢P P Q))))
+    (define Q* (canonicalize Q))
+    (if (set? Q*)
+        (go/conj go Ps Q*)
+        (go Ps Q*)))
 
   (: P⊢P : P P → ?Dec)
   (splicing-local
       ((define (base-only? [P : P]) ; whether predicate only covers base types
          (and (symbol? P) (not (memq P '(list? struct?)))))
-       (define (canon-P [P : P]) : P
-         (case P
-           [(positive?) (P:> 0)]
-           [(negative?) (P:< 0)]
-           [(zero?) (P:≡ 0)] ; FIXME no, subtlety with `0.0`
-           [else P])))
+       (define go : (P P → ?Dec)
+         (match-lambda**
+          ;; Base
+          [(_ 'any/c) '✓]
+          [('none/c _) '✓]
+          [(_ 'none/c) '✗]
+          [('any/c _) #f]
+          [(P P) '✓]
+          [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
+          [(P 'values) (if (eq? P 'not) '✗ '✓)]
+          [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
+          [((? base-only?) (? -st-p?)) '✗]
+          [((? -st-p?) (? base-only?)) '✗]
+          ;; Negate
+          [((P:¬ P) (P:¬ Q)) (case (go Q P)
+                               [(✓) '✓]
+                               [else #f])]
+          [((? P? P) (P:¬ Q)) (neg (go P Q))]
+          [((P:¬ P) (? P? Q)) (case (go Q P)
+                                [(✓) '✗]
+                                [else #f])]
+          ;; Special rules for real numbers
+          ; < and <
+          [((P:≤ a)              (P:< b)             ) (and     (<  a b) '✓)]
+          [((or (P:< a) (P:≤ a)) (or (P:< b) (P:≤ b))) (and a b (<= a b) '✓)]
+          ; > and >
+          [((P:≥ a)              (P:> b)             ) (and     (>  a b) '✓)]
+          [((or (P:> a) (P:≥ a)) (or (P:> b) (P:≥ b))) (and a b (>= a b) '✓)]
+          ; < and >
+          [((P:≤ a)              (P:≥ b)             ) (and     (<  a b) '✗)]
+          [((or (P:< a) (P:≤ a)) (or (P:> b) (P:≥ b))) (and a b (<= a b) '✗)]
+          ; > and <
+          [((P:≥ a)              (P:≤ b)             ) (and (>  a b) '✗)]
+          [((or (P:> a) (P:≥ a)) (or (P:< b) (P:≤ b))) (and a b (>= a b) '✗)]
+          ; _ -> real?
+          [((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?)) (or 'real? 'number?)) '✓]
+          [((P:≡ b) (? P? Q)) (check dummy-Σ ⊤Φ Q (list (-b b)))]
+          ; equal?
+          [((P:≡ b₁) (P:≡ b₂)) (bool->Dec (equal? b₁ b₂))]
+          [((P:< a) (P:≡ (? real? b))) #:when (<= a b) '✗]
+          [((P:≤ a) (P:≡ (? real? b))) #:when (<  a b) '✗]
+          [((P:> a) (P:≡ (? real? b))) #:when (>= a b) '✗]
+          [((P:≥ a) (P:≡ (? real? b))) #:when (>  a b) '✗]
+          [((P:≡ (? real? a)) (P:< b)) (bool->Dec (<  a b))]
+          [((P:≡ (? real? a)) (P:≤ b)) (bool->Dec (<= a b))]
+          [((P:≡ (? real? a)) (P:> b)) (bool->Dec (>  a b))]
+          [((P:≡ (? real? a)) (P:≥ b)) (bool->Dec (>= a b))]
+          ;; Default
+          [(_ _) #f])))
     (define (P⊢P P Q)
-      (match* ((canon-P P) (canon-P Q))
-       ;; Base
-       [(_ 'any/c) '✓]
-       [('none/c _) '✓]
-       [(_ 'none/c) '✗]
-       [('any/c _) #f]
-       [(P P) '✓]
-       [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
-       [(P 'values) (if (eq? P 'not) '✗ '✓)]
-       [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
-       [((? base-only?) (? -st-p?)) '✗]
-       [((? -st-p?) (? base-only?)) '✗]
-       ;; Negate
-       [((P:¬ P) (P:¬ Q)) (case (P⊢P Q P)
-                            [(✓) '✓]
-                            [else #f])]
-       [(P (P:¬ Q)) (neg (P⊢P P Q))]
-       [((P:¬ P) Q) (case (P⊢P Q P)
-                      [(✓) '✗]
-                      [else #f])]
-       ;; Special rules for real numbers
-       ; < and <
-       [((P:≤ a)              (P:< b)             ) (and     (<  a b) '✓)]
-       [((or (P:< a) (P:≤ a)) (or (P:< b) (P:≤ b))) (and a b (<= a b) '✓)]
-       ; > and >
-       [((P:≥ a)              (P:> b)             ) (and     (>  a b) '✓)]
-       [((or (P:> a) (P:≥ a)) (or (P:> b) (P:≥ b))) (and a b (>= a b) '✓)]
-       ; < and >
-       [((P:≤ a)              (P:≥ b)             ) (and     (<  a b) '✗)]
-       [((or (P:< a) (P:≤ a)) (or (P:> b) (P:≥ b))) (and a b (<= a b) '✗)]
-       ; > and <
-       [((P:≥ a)              (P:≤ b)             ) (and (>  a b) '✗)]
-       [((or (P:> a) (P:≥ a)) (or (P:< b) (P:≤ b))) (and a b (>= a b) '✗)]
-       ; exact-nonnegative-integer?
-       [('exact-nonnegative-integer? (P:< r)) (and (<= r 0) '✗)]
-       [('exact-nonnegative-integer? (P:≤ r)) (and (<  r 0) '✗)]
-       [('exact-nonnegative-integer? (P:> r)) (and (<  r 0) '✓)]
-       [('exact-nonnegative-integer? (P:≥ r)) (and (<= r 0) '✓)]
-       [((P:< r) 'exact-nonnegative-integer?) (and (<= r 0) '✗)]
-       [((P:≤ r) 'exact-nonnegative-integer?) (and (<  r 0) '✗)]
-       ; exact-positive-integer?
-       [('exact-positive-integer? (P:< r)) (and (<  r 1) '✗)]
-       [('exact-positive-integer? (P:≤ r)) (and (<  r 1) '✗)]
-       [('exact-positive-integer? (P:> r)) (and (<  r 1) '✓)]
-       [('exact-positive-integer? (P:≥ r)) (and (<= r 1) '✓)]
-       [((P:< r) 'exact-positive-integer?) (and (<= r 1) '✗)]
-       [((P:≤ r) 'exact-positive-integer?) (and (<  r 1) '✗)]
-       ; _ -> real?
-       [((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?)) (or 'real? 'number?)) '✓]
-       [((P:≡ b) Q) (check dummy-Σ ⊤Φ Q (list (-b b)))]
-       ; equal?
-       [((P:≡ b₁) (P:≡ b₂)) (bool->Dec (equal? b₁ b₂))]
-       [((P:< a) (P:≡ (? real? b))) #:when (<= a b) '✗]
-       [((P:≤ a) (P:≡ (? real? b))) #:when (<  a b) '✗]
-       [((P:> a) (P:≡ (? real? b))) #:when (>= a b) '✗]
-       [((P:≥ a) (P:≡ (? real? b))) #:when (>  a b) '✗]
-       [((P:≡ (? real? a)) (P:< b)) (bool->Dec (<  a b))]
-       [((P:≡ (? real? a)) (P:≤ b)) (bool->Dec (<= a b))]
-       [((P:≡ (? real? a)) (P:> b)) (bool->Dec (>  a b))]
-       [((P:≡ (? real? a)) (P:≥ b)) (bool->Dec (>= a b))]
-       ;; Default
-       [(_ _) #f]))) 
+      (define P* (canonicalize P))
+      (define Q* (canonicalize Q))
+      (cond [(and (set? P*) (set? Q*)) (go/conj Ps⊢P P* Q*)]
+            [(set? Q*)                 (go/conj go   P* Q*)]
+            [(set? P*)                 (Ps⊢P P* Q*)]
+            [else                      (go P* Q*)])))
+
+  (: go/conj (∀ (X) (X P → ?Dec) X (℘ P) → ?Dec))
+  (define (go/conj step LHS RHS)
+    ;; ✓ if all RHS ✓
+    ;; ? if all RHS ✓ and ?
+    ;; ✗ if any RHS ✗
+    (for/fold ([d : ?Dec '✓]) ([Pᵢ (in-set RHS)] #:break (eq? d '✗))
+      (case (step LHS Pᵢ)
+        [(✓ ) d ]
+        [(✗ ) '✗]
+        [(#f) #f])))
 
   (splicing-local
       ((: with-conj : (Φ P (Listof S) → Φ) → R T → R)
@@ -360,6 +343,16 @@
          (match* (P Vs)
            [('values (list (S:@ (? -o? P*) Vs*))) (conj  Φ P* Vs*)]
            [('not    (list (S:@ (? -o? P*) Vs*))) (conj¬ Φ P* Vs*)]
+           [('>      (list (-b (? real? x)) (and S (not (? -b?))))) (Ψ+ Φ (P:< x) (list S))]
+           [('>=     (list (-b (? real? x)) (and S (not (? -b?))))) (Ψ+ Φ (P:≤ x) (list S))]
+           [('<      (list (-b (? real? x)) (and S (not (? -b?))))) (Ψ+ Φ (P:> x) (list S))]
+           [('<=     (list (-b (? real? x)) (and S (not (? -b?))))) (Ψ+ Φ (P:≥ x) (list S))]
+           [('>      (list (and S (not (? -b?))) (-b (? real? x)))) (Ψ+ Φ (P:> x) (list S))]
+           [('>=     (list (and S (not (? -b?))) (-b (? real? x)))) (Ψ+ Φ (P:≥ x) (list S))]
+           [('<      (list (and S (not (? -b?))) (-b (? real? x)))) (Ψ+ Φ (P:< x) (list S))]
+           [('<=     (list (and S (not (? -b?))) (-b (? real? x)))) (Ψ+ Φ (P:≤ x) (list S))]
+           [((or '= 'equal? 'eq? 'eqv? 'char=? 'string=?)  (list (-b x) (and S (not (? -b?))))) (Ψ+ Φ (P:≡ x) (list S))]
+           [((or '= 'equal? 'eq? 'eqv? 'char=? 'string=?)  (list (and S (not (? -b?))) (-b x))) (Ψ+ Φ (P:≡ x) (list S))]
            [(_       _                          ) (Ψ+ Φ P Vs)]))
        (define (conj¬ Φ P Vs)
          (match* (P Vs)
@@ -370,6 +363,12 @@
            [((P:> X) _                          ) (conj  Φ (P:≤ X) Vs)]
            [((P:≥ X) _                          ) (conj  Φ (P:< X) Vs)]
            [((P:¬ Q) _                          ) (conj  Φ Q Vs)]
+           [('>      _                          ) (conj Φ '<= Vs)]
+           [('>=     _                          ) (conj Φ '<  Vs)]
+           [('<      _                          ) (conj Φ '>= Vs)]
+           [('<=     _                          ) (conj Φ '>  Vs)]
+           [((or '= 'equal? 'eq? 'eqv? 'char=? 'string=?) (list (-b x) (and S (not (? -b?))))) (Ψ+ Φ (P:¬ (P:≡ x)) (list S))]
+           [((or '= 'equal? 'eq? 'eqv? 'char=? 'string=?) (list (and S (not (? -b?))) (-b x))) (Ψ+ Φ (P:¬ (P:≡ x)) (list S))]
            [(_       _                          ) (Ψ+ Φ (P:¬ P) Vs)])))
     (define ∧ (with-conj conj))
     (define ∧¬ (with-conj conj¬)))
@@ -480,8 +479,10 @@
       (define go : (V → V^)
         (match-lambda
           [(St (== 𝒾) αs) (Σᵥ@ Σ (list-ref αs k))]
-          [(-● Ps) {set (-● ∅)}]
-          [_ ∅]))
+          [(-● Ps) {set (-● (if (and (∋ Ps 'list?) (equal? 𝒾 -𝒾-cons) (equal? k 1))
+                                {set 'list?}
+                                ∅))}]
+          [_ absurd!]))
       (set-union-map go Vs))
 
     (define S->V : (S → V^)
@@ -496,13 +497,13 @@
           [(set? T) T]
           [else {set T}]))
 
-  (: V^+ (case-> [V^ V → V^]
-                 [T^ V → T^]))
-  (define (V^+ x p)
+  (: V^+ (case-> [Σ V^ V → V^]
+                 [Σ T^ V → T^]))
+  (define (V^+ Σ x p)
     (cond [(?concretize p)]
           [(set? x)
            (for/fold ([acc : V^ ∅]) ([V (in-set x)])
-             (case (check dummy-Σ ⊤Φ p (list V))
+             (case (check Σ ⊤Φ p (list V))
                [(✓) (set-add acc V)]
                [(✗) acc]
                [else (set-add acc (V+ V p))]))]
@@ -534,24 +535,36 @@
           [(Φ? x) (go-Φ x)]
           [else (go x)])) 
 
-  (define P⊓ : (P P → (Option P))
-    (match-lambda**/symmetry
-     [(P Q) #:when (eq? '✓ (P⊢P P Q)) P]
-     [('exact-integer? (or (P:> (? (>/c -1)))
-                           (P:≥ (? (>=/c 0)))
-                           (P:≡ (? (>=/c 0)))))
-      'exact-nonnegative-integer?]
-     [('exact-nonnegative-integer? (P:¬ (or (P:≡ 0) 'zero?))) 'exact-positive-integer?]
-     [((or 'exact-integer? 'exact-nonnegative-integer?)
-       (or (P:> (? (>=/c 0)))
-           (P:≥ (? (>/c 0)))
-           (P:≡ (? (>/c 0)))))
-      'exact-positive-integer?]
-     [('exact-integer? (P:> 0)) 'exact-positive-integer?]
-     #:else
-     [(_ _) #f]))
+  (define P⊓ : (?Joiner P)
+    ((inst join-by-max P)
+     ;; remember that it's reversed.
+     ;; FIXME The names `max` and `join` are misleading
+     (λ (P Q)
+       (define P→Q? (eq? '✓ (P⊢P P Q)))
+       (define Q→P? (eq? '✓ (P⊢P Q P)))
+       (or (and P→Q? Q→P? '=)
+           (and P→Q? '>)
+           (and Q→P? '<)))))
 
-  (define Ps+ : ((℘ P) P → (℘ P)) (compact-with P⊓))
+  (: Ps+ : (℘ P) P → (℘ P))
+  (define Ps+
+    (let ([step : ((℘ P) P → (℘ P)) (compact-with P⊓)])
+      (λ (Ps P)
+        (define Q (canonicalize P))
+        (if (set? Q) ((iter-⊔ step) Ps Q) (step Ps Q)))))
+
+  (: canonicalize : P → (U P (℘ P)))
+  (define canonicalize
+    (match-lambda
+      ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ 0)}]
+      ['exact-positive-integer? {set 'exact? 'integer? (P:≥ 0) (P:¬ (P:≡ 0))}]
+      ['exact-integer? {set 'exact? 'integer?}]
+      ['positive? {set (P:≥ 0) (P:¬ (P:≡ 0))}] ; FIXME no, subtlety with `0.0`
+      ['negative? (P:¬ (P:≥ 0))]
+      ['zero? (P:≡ 0)] ; FIXME no, subtlety with `0.0`
+      [(P:> x) {set (P:≥ x) (P:¬ (P:≡ x))}] ; FIXME subtlety with exactness
+      [(P:< x) (P:¬ (P:≥ x))]
+      [P P]))
 
   (define dummy-Σ (⊥Σ))
   ) 

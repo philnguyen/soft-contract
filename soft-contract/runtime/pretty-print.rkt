@@ -139,11 +139,11 @@
 
   (define show-αₖ : (αₖ → Sexp)
     (match-lambda
-      [(αₖ:exp ⟦E⟧ Ρ) `(αₖ … ,(show-Ρ Ρ))]
-      [(αₖ:mon ctx α) `(mon ,(Ctx-pos ctx) ,α)]
-      [(αₖ:fc ℓ α) `(fc ,(ℓ-src ℓ) ,α)]
-      [(αₖ:hv tag) tag]
-      [(αₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))]))
+      [(αₖ _ (βₖ:exp ⟦E⟧ Ρ)) `(… ,(show-Ρ Ρ))]
+      [(αₖ _ (βₖ:mon ctx α)) `(mon ,(Ctx-pos ctx) ,α)]
+      [(αₖ _ (βₖ:fc ℓ α)) `(fc ,(ℓ-src ℓ) ,α)]
+      [(αₖ _ (βₖ:hv tag)) tag]
+      [(αₖ _ (βₖ:term/c α W)) `(term/c ,(show-α α) ,@(map show-T W))]))
 
   (: show-α : α → Sexp)
   (define (show-α α)
@@ -155,7 +155,6 @@
              [else 'αₕᵥ])]
       [(-α:mon-x/c x H _) (show-α:x x H)]
       [(-α:fc-x/c x H) (show-α:x x H)]
-      [(-α:dummy H) (show-α:x 'dummy H)]
       [(-α:top (-𝒾 x _)) x]
       [(-α:wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
       [(-α:sealed x H) (format-symbol "~a*" (show-α:x x H))]
@@ -163,8 +162,6 @@
       [(-α:imm:listof x C _) (string->symbol (format "(listof ~a)" (show-V C)))]
       [(-α:imm:ref-listof x C _) (string->symbol (format "(ref ~a)" x))]
       [_ (format-symbol "α~a" (n-sub α))]))
-
-  
 
   (: dump-Σᵥ ([Σᵥ] [#:tag Any #:appendix? Boolean] . ->* . Void))
   (define (dump-Σᵥ Σᵥ #:tag [tag 'store] #:appendix? [appendix? #f])

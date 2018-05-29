@@ -133,9 +133,10 @@
   (define cmp-Ψ : (?Cmp Ψ)
     (λ (Ψ₁ Ψ₂)
       (define-values (cmp₁ Ψ₂:rest)
-        (for/fold ([cmp : ?Ord '=] [Ψ₂:rest : Ψ ⊤Ψ])
+        (for/fold ([cmp : ?Ord '=] [Ψ₂:rest : Ψ Ψ₂])
                   ([(args Ps₁) (in-hash Ψ₁)] #:break (not cmp))
-          (values (cmp-sets (Ψ@ Ψ₂ args) Ps₁) (hash-remove Ψ₂ args))))
+          (values (concat-ord (assert cmp) (cmp-sets (Ψ@ Ψ₂:rest args) Ps₁))
+                  (hash-remove Ψ₂:rest args))))
       (and cmp₁
            (if (hash-empty? Ψ₂:rest)
                cmp₁
@@ -144,6 +145,8 @@
   (define cmp-Φ : (?Cmp Φ)
     (match-lambda**
      [((Φ $₁ Ψ₁) (Φ $₂ Ψ₂)) (Ord:* (cmp-$ $₁ $₂) (cmp-Ψ Ψ₁ Ψ₂))]))
+
+  (define cmp-Φ^ (set-lift-cmp cmp-Φ))
 
   (: cmp-T^/$ : (Option (℘ $)) (Option (℘ $)) → (?Cmp T^))
   (define (cmp-T^/$ $^₁ $^₂)
@@ -175,11 +178,7 @@
       (define W₁-vs-W₂ (foldl (λ ([T₁ : T^] [T₂ : T^] [o : ?Ord])
                                 (and o (concat-ord o (cmp-T^ T₁ T₂))))
                               '= W₁ W₂))
-      (for*/fold ([cmp : ?Ord W₁-vs-W₂])
-                 ([Φ₁ (in-set Φ^₁)]
-                  [Φ₂ (in-set Φ^₂)]
-                  #:break (not cmp))
-        (concat-ord (assert cmp) (cmp-Φ Φ₁ Φ₂)))]
+      (Ord:* W₁-vs-W₂ (cmp-Φ^ Φ^₁ Φ^₂))]
      [(_ _) #f])) 
 
   (define Φ^⊔ (compact-with ((inst join-by-max Φ) cmp-Φ)))

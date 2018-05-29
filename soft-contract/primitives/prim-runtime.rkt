@@ -207,15 +207,21 @@
       (and (null? refinements)
            (equal? 'boolean? (hash-ref range-table o #f))
            (andmap symbol? (map (inst car V Any) doms))))
+
+    (define (args:behavioral?)
+      (for*/or ([Φ^₀ (in-value (R-_1 args))]
+                [T (in-list (R-_0 args))]
+                [V (in-set (T->V Σ Φ^₀ T))])
+        (behavioral? Σ V)))
+
+    (define (mk-rng)
+      (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements))
     
     (define Ξ:gen-rng
-      (cond
-        [(no-return?) (K+ (F:Absurd) Ξ)]
-        [(simple-pred?) (K+ (F:Implement-Predicate o) Ξ)]
-        [else
-         (define Mk-Rng (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements))
-         (define Havoc (F:Havoc-Prim-Args ℓ o))
-         (K+ Havoc (K+ Mk-Rng Ξ))]))
+      (cond [(no-return?)       (K+ (F:Absurd) Ξ)]
+            [(simple-pred?)     (K+ (F:Implement-Predicate o) Ξ)]
+            [(args:behavioral?) (K+ (F:Havoc-Prim-Args ℓ o) (K+ (mk-rng) Ξ))]
+            [else               (K+ (mk-rng) Ξ)]))
     
     (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:gen-rng))
     (ret! args Ξ:chk-args Σ))

@@ -21,7 +21,7 @@
 (provide step@)
 
 (define-unit step@
-  (import static-info^
+  (import static-info^ meta-functions^
           val^ env^ sto^ evl^
           prover^
           prims^
@@ -31,9 +31,9 @@
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
   (define (inj x)
     (define ⟦E⟧ (->⟦E⟧ x))
-    (define αₖ₀ (αₖ:exp ⟦E⟧ ⊥Ρ))
+    (define αₖ₀ (αₖ H₀ (βₖ:exp ⟦E⟧ ⊥Ρ)))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
-    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f H₀) Σ₀) Σ₀))
+    (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f) Σ₀) Σ₀))
 
   (: ↝* : (U -prog ⟦E⟧) → (Values (℘ Blm) Σ))
   (define (↝* p)
@@ -71,14 +71,15 @@
   (: ↝ : Ξ Σ → (℘ Ξ))
   (define (↝ Ξ Σ)
     (match Ξ
-      [(Ξ:co (K Fs α) M H)
+      [(Ξ:co (K Fs α) M)
        (define R^₀ (Σₐ@ Σ Ξ))
        (cond
          [(set-empty? R^₀) ∅]
-         [(null? Fs) (for/set : (℘ Ξ:co) ([Ξ₁ (in-set (Σₖ@ Σ α))])
-                       (ret! (map/set (R↓ Σ (scope (Ξ:co-ctx Ξ₁))) R^₀) Ξ₁ Σ))]
-         [else (co R^₀ (car Fs) (Ξ:co (K (cdr Fs) α) M H) Σ)])]
-      [_ ∅])) 
+         [(null? Fs) (for/set : (℘ Ξ:co) ([Rtᵢ (in-set (Σₖ@ Σ α))])
+                       (match-define (Rt Φ^ᵢ αs Ξᵢ) Rtᵢ)
+                       (ret! (adjust R^₀ Σ Φ^ᵢ αs Ξᵢ) Ξᵢ Σ))]
+         [else (co R^₀ (car Fs) (Ξ:co (K (cdr Fs) α) M) Σ)])]
+      [_ ∅]))
 
   (: co : R^ F Ξ:co Σ → (℘ Ξ))
   (define (co R^₀ F Ξ Σ)
@@ -110,14 +111,15 @@
              [(cons (cons xs* ⟦E⟧) binds*)
               {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
-              (match-define (Ξ:co _ ?m H) Ξ)
+              (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
               (define-values (xs Vs) (unzip bounds*))
               (define fmls (-var xs #f))
               (define H* (H+ H ℓ #|HACK|# (Clo fmls ⟦body⟧ Ρ)))
               (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ fmls Vs H* Σ))
-              (define α* (αₖ:exp ⟦body⟧ Ρ*))
-              (⊔ₖ! Σ α* Ξ)
-              {set (⟦body⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m H*) Σ)}])))]
+              (define α* (αₖ H* (βₖ:exp ⟦body⟧ Ρ*)))
+              (define αs (list->seteq (map (λ ([x : Symbol]) (Ρ@ Ρ* x)) xs)))
+              (⊔ₖ! Σ α* (Rt Φ^ αs Ξ))
+              {set (⟦body⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m) Σ)}])))]
       [(F:Letrec ℓ xs binds ⟦body⟧ Ρ)
        (with-guarded-arity/collapse Σ R^₀ (length xs) ℓ
          (λ (W Φ^)
@@ -251,7 +253,7 @@
       [(F:Wrap G Ctx α)
        (with-guarded-single-arity/collapse Σ R^₀ +ℓ₀ ; TODO
          (λ (T^ Φ^)
-           (⊔ᵥ! Σ α (V^+ (T->V Σ Φ^ T^) G))
+           (⊔ᵥ! Σ α (V^+ Σ (T->V Σ Φ^ T^) G))
            {set (ret! (T->R (X/G Ctx G α) Φ^) Ξ Σ)}))]
       [(F:Mon-Or/C ctx Cₗ Cᵣ V)
        (with-arity Σ R^₀
@@ -262,12 +264,13 @@
              (for/fold ([V* : T^ V] [Φ^* : Φ^ Φ^₀])
                        ([Cᵢ (in-set Cₗ)] #:when (P? Cᵢ))
                (define ¬Cᵢ (P:¬ Cᵢ))
-               (values (V^+ V* ¬Cᵢ) (if V:S? (Ψ+ Φ^* ¬Cᵢ (list V)) Φ^*))))
+               (values (V^+ Σ V* ¬Cᵢ)
+                       (if V:S? (Ψ+ Φ^* ¬Cᵢ (list V)) Φ^*))))
            (mon Cᵣ V* ctx Φ^* Ξ Σ)]
           [(1 (R (list T) Φ^))
            (define T:S? (S? T))
            (define R* (for/set : R^ ([Cᵢ (in-set Cₗ)])
-                        (R (list (V^+ T Cᵢ))
+                        (R (list (V^+ Σ T Cᵢ))
                            (if (and T:S? (P? Cᵢ)) (Ψ+ Φ^ Cᵢ (list T)) Φ^))))
            {set (ret! R* Ξ Σ)}]))]
       [(F:If:Flat/C T^ Blm^)
@@ -320,40 +323,72 @@
          (match-lambda**
           [(2 (R (list Vₑ) Φ^))
            ((app₁ 'set-add) (list (Σᵥ@ Σ α) Vₑ) ℓ Φ^ Ξ Σ)]))]
-      [(F:Havoc-Prim-Args ℓ Symbol)
-       (define Tₕᵥ
-         (for*/set : V^ ([R₀ (in-set R^₀)]
-                         [Φ^₀ (in-value (R-_1 R₀))]
-                         [T (in-list (R-_0 R₀))]
-                         [V (in-set (T->V Σ Φ^₀ T))] #:when (behavioral? Σ V))
-           V))
-       (cond [(set-empty? Tₕᵥ) {set (ret! R^₀ Ξ Σ)}]
-             [else
-              (define H* (H+ (Ξ:co-ctx Ξ) ℓ (assert (ℓ-src ℓ) symbol?)))
-              (define αₖ (αₖ:hv (mk-HV-Tag (ℓ-src ℓ) H*)))
-              (⊔ₖ! Σ αₖ Ξ)
-              (define Ξ* (Ξ:co (K (list (F:Havoc)) αₖ) (Ξ:co-mark Ξ) H*))
-              {set (ret! R^₀ Ξ* Σ)}])]
+      [(F:Havoc-Prim-Args ℓ o)
+       (define H* (H+ (Ξ:co-ctx Ξ) ℓ (assert (ℓ-src ℓ) symbol?)))
+       (define α* (αₖ H* (βₖ:hv o)))
+       (⊔ₖ! Σ α* (Rt (collapse-R^/Φ^ R^₀) ∅eq Ξ))
+       (define Ξ* (Ξ:co (K (list (F:Havoc)) α*) (Ξ:co-mark Ξ)))
+       {set (ret! R^₀ Ξ* Σ)}]
       [(F:Make-Prim-Range ctx ?rng-wrap ranges cases)
        (define R^₁ (refine-ranges Σ cases R^₀ ranges))
        (define Ξ* (if ?rng-wrap (K+ (F:Mon*:C ctx ?rng-wrap) Ξ) Ξ))
        {set (ret! R^₁ Ξ* Σ)}]
       [(F:Implement-Predicate P)
-       (with-guarded-arity R^₀ 1 +ℓ₀
-         (λ (R^₀)
-           (define Rₐ
-             (for*/union : R^ ([Rᵢ (in-set R^₀)])
-               (match-define (R Wᵢ Φ^ᵢ) Rᵢ)
-               (implement-predicate Σ Φ^ᵢ P Wᵢ)))
-           {set (ret! Rₐ Ξ Σ)}))]
+       (define Rₐ (set-union-map
+                   (match-lambda
+                     [(R Wᵢ Φ^ᵢ) (implement-predicate Σ Φ^ᵢ P Wᵢ)])
+                   R^₀))
+       {set (ret! Rₐ Ξ Σ)}]
       [(F:Havoc)
-       {set-add (match-let ([(Ξ:co (K _ (αₖ:hv tag)) _ _) Ξ])
+       {set-add (match-let ([(Ξ:co (K _ (αₖ _ (βₖ:hv tag))) _) Ξ])
                   (havoc tag R^₀ (K+ (F:Havoc) Ξ) Σ))
                 (ret! (R (list {set (-● ∅)}) (collapse-R^/Φ^ R^₀)) Ξ Σ)}]
       [(F:Absurd) ∅]))
 
   (: ret! : (U R R^) Ξ:co Σ → Ξ:co)
   (define (ret! R Ξ Σ) (⊔ₐ! Σ Ξ R) Ξ)
+
+  (splicing-local
+      ((: restrict : R^ Σ (℘ α) → R^)
+       (define (restrict R^ₑₑ Σ αs) (map/set (R↓ Σ αs) R^ₑₑ))
+       (: restore : R^ Σ Φ^ → R^)
+       (define (restore R^ₑₑ Σ Φ^ₑᵣ)
+         (define (go-Φ [Φₑₑ : Φ])
+           (for/set : Φ^ ([Φₑᵣ (in-set Φ^ₑᵣ)] #:when (compat? Φₑₑ Φₑᵣ))
+             (refine-Φ Φₑₑ Φₑᵣ)))
+         (for*/set : R^ ([Rₑₑ (in-set R^ₑₑ)]
+                         [Φ^ₑₑ (in-value (R-_1 Rₑₑ))]
+                         [Φ^ₑₑ* (in-value (set-union-map go-Φ Φ^ₑₑ))]
+                         #:unless (set-empty? Φ^ₑₑ*))
+           (R (R-_0 Rₑₑ) Φ^ₑₑ*)))
+       (define compat? : (Φ Φ → Boolean)
+         (match-lambda**
+          [((Φ $ₑₑ Ψₑₑ) (Φ $ₑᵣ Ψₑᵣ)) (and (compat-$? $ₑₑ $ₑᵣ) (compat-Ψ? Ψₑₑ Ψₑᵣ))]))
+       (define (compat-$? [$ₑₑ : $] [$ₑᵣ : $])
+         (for/and : Boolean ([(α S) (in-hash $ₑₑ)]) (equal? S (hash-ref $ₑᵣ α))))
+       (define (compat-Ψ? [Ψₑₑ : Ψ] [Ψₑᵣ : Ψ])
+         (for/and : Boolean ([(args Ps) (in-hash Ψₑₑ)])
+           (not (for/or : Boolean ([Q (in-set (Ψ@ Ψₑᵣ args))])
+                  (equal? (Ps⊢P Ps Q) '✗)))))
+       (define refine-Φ : (Φ Φ → Φ)
+         (match-lambda**
+          [((Φ $ₑₑ Ψₑₑ) (Φ $ₑᵣ Ψₑᵣ))
+           (define $*
+             (for/fold ([$* : $ $ₑₑ])
+                       ([(α S) (in-hash $ₑᵣ)]
+                        #:unless (hash-has-key? $ₑₑ α))
+               (hash-set $* α S)))
+           (define Ψ*
+             (for*/fold ([Ψ* : Ψ Ψₑₑ])
+                        ([(args Qs) (in-hash Ψₑᵣ)]
+                         [Ps (in-value (Ψ@ Ψₑₑ args))]
+                         #:unless (equal? Qs Ps))
+               (hash-set Ψ* args ((iter-⊔ Ps+) Ps Qs))))
+           (Φ $* Ψ*)])))
+    (: adjust : R^ Σ Φ^ (℘ α) Ξ:co → R^)
+    (define (adjust R^ₑₑ Σ Φ^ₑᵣ binders Ξₑᵣ)
+      (restore (restrict R^ₑₑ Σ (set-subtract (scope (Ξ:co-ctx Ξₑᵣ)) binders)) Σ Φ^ₑᵣ)))
+  
 
   (: blm : ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))
   (define (blm ℓ+ lo C Wₓ)
@@ -403,7 +438,7 @@
         (exec (map/set
                (λ ([R₀ : R])
                  (match R₀
-                   [(R (list T) Φ^) (R (list (V^+ T P)) Φ^)]
+                   [(R (list T) Φ^) (R (list (V^+ Σ T P)) Φ^)]
                    [_ R₀]))
                R^)))
       (λ ([R^ : R^])
@@ -495,7 +530,7 @@
             (for/fold ([rng-rev : (Listof T^) '()] [Φ^ : Φ^ (R-_1 R*)])
                       ([rngᵢ (in-list (R-_0 R*))]
                        [refᵢ (in-list refinements)])
-              (values (cons (V^+ rngᵢ refᵢ) rng-rev)
+              (values (cons (V^+ Σ rngᵢ refᵢ) rng-rev)
                       (if (and (P? refᵢ) (S? rngᵢ))
                           (Ψ+ Φ^ refᵢ (list rngᵢ))
                           Φ^))))

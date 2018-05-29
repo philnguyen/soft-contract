@@ -15,7 +15,8 @@
          "signatures.rkt")
 
 (define-unit termination@
-  (import val^
+  (import static-info^
+          val^
           prover^)
   (export termination^)
 
@@ -56,7 +57,7 @@
   (: cmp : T^ T^ Φ^ Σ → ?Ch)
   (define (cmp T^₀ T^₁ Φ^ Σ)
     (cond [(defly? (λ () (partition-results Σ (R (list T^₀ T^₁) Φ^) 'equal?))) '↧]
-          [(check-≺ Σ Φ^ T^₀ T^₁) '↓]
+          [(check-≺ Σ Φ^ T^₁ T^₀) '↓]
           [else #f]))
 
   (: concat-graph : SCG SCG → SCG)
@@ -85,18 +86,26 @@
 
   (: check-≺ : Σ Φ^ T^ T^ → Boolean)
   (define (check-≺ Σ Φ^ T^₀ T^₁)
-    (or (and (defly? (λ () (partition-results Σ (R (list (-b 0) T^₁) Φ^) '<=)))
-             (defly? (λ () (partition-results Σ (R (list T^₁ T^₀) Φ^) '<))))
-        (T^₀ . sub-value? . T^₁)))
+    (: must-be? : P T^ * → Boolean)
+    (define (must-be? P . T^s) (defly? (λ () (partition-results Σ (R T^s Φ^) P))))
+    (or (T^₀ . sub-value? . T^₁)
+        (and (must-be? 'integer? T^₀)
+             (must-be? 'integer? T^₁)
+             (must-be? '<= -zero T^₀)
+             (must-be? '< T^₀ T^₁))))
 
   (: sub-value? : T^ T^ → Boolean)
   (define (x . sub-value? . y)
+    (define sub-ac? : (S → Boolean)
+      (match-lambda [(-st-ac 𝒾 i) (not (struct-mutable? 𝒾 i))]
+                    [_ #f]))
+    
     (match* (x y)
-      [((S:@ (? -st-ac?) (list x*)) (? S? y))
+      [((S:@ (? sub-ac?) (list x*)) (? S? y))
        (let loop ([x : S x*])
          (match x
            [(== y) #t]
-           [(S:@ (? -st-ac?) (list x*)) (loop x*)]
+           [(S:@ (? sub-ac?) (list x*)) (loop x*)]
            [_ #f]))]
       [(_ _) #f]))
 

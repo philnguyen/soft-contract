@@ -146,8 +146,8 @@
 
   (: K+ : F Ξ:co → Ξ:co)
   (define (K+ F Ξ)
-    (match-define (Ξ:co (K Fs α) M H) Ξ)
-    (Ξ:co (K (cons F Fs) α) M H))
+    (match-define (Ξ:co (K Fs α) M) Ξ)
+    (Ξ:co (K (cons F Fs) α) M))
 
   (: in-scope? : ((U α S) (℘ α) → Boolean))
   (define (in-scope? x αs)
@@ -166,6 +166,32 @@
       (or (and s₁⊆s₂ s₂⊆s₁ '=)
           (and s₁⊆s₂ '<)
           (and s₂⊆s₁ '>))))
+
+  (: set-lift-cmp (∀ (X) (?Cmp X) → (?Cmp (℘ X))))
+  (define ((set-lift-cmp cmp*) xs ys)
+    (define cache : (Mutable-HashTable X (Mutable-HashTable X ?Ord)) (make-hasheq))
+    (for ([x (in-set xs)])
+      (define x:cmp : (Mutable-HashTable X ?Ord) (make-hasheq))
+      (hash-set! cache x x:cmp)
+      (for ([y (in-set ys)])
+        (hash-set! x:cmp y (cmp* x y))))
+    (define (flip [o : ?Ord]) : ?Ord
+      (case o [(>) '<] [(<) '>] [else o]))
+    (define (cmp [x : X] [y : X]) : ?Ord
+      (match (hash-ref cache x #f)
+        [(? values x:cmp) (hash-ref x:cmp y (λ () (flip (cmp y x))))]
+        [#f (flip (cmp y x))]))
+    (define (⊑ [s₁ : (℘ X)] [s₂ : (℘ X)])
+      (for/and : Boolean ([x (in-set s₁)])
+        (for/or : Boolean ([y (in-set s₂)])
+          (case (cmp x y)
+            [(< =) #t]
+            [else  #f]))))
+    (define xs⊑ys (xs . ⊑ . ys))
+    (define ys⊑ys (ys . ⊑ . xs))
+    (or (and xs⊑ys ys⊑ys '=)
+        (and xs⊑ys '<)
+        (and ys⊑ys '>)))
 
   (: fold-cmp (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord))
   (define (fold-cmp cmp xs ys)

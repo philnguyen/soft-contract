@@ -16,11 +16,12 @@
                       [Case-Clo → Arity]
                       [T → (Option Arity)])]
    [T->V : ((U Σ Σᵥ) Φ^ (U T T^) → V^)]
-   [V^+ : (case-> [V^ V → V^]
-                  [T^ V → T^])]
+   [V^+ : (case-> [Σ V^ V → V^]
+                  [Σ T^ V → T^])]
    [Ψ+ : (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]
                  [Φ (U P (℘ P)) (Listof S) → Φ]
                  [Φ^ (U P (℘ P)) (Listof S) → Φ^])]
+   [Ps⊢P : ((℘ P) P → ?Dec)]
    [Ps+ : ((℘ P) P → (℘ P))]))
 
 (define-signature ext-prover-core^

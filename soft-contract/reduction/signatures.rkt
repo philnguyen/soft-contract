@@ -111,7 +111,8 @@
 (define-signature havoc^
   ([havoc : (HV-Tag R^ Ξ:co Σ → (℘ Ξ))]
    [gen-havoc-expr : ((Listof -module) → -e)]
-   [add-leak! : (HV-Tag Σ V^ → Void)]))
+   [add-leak! : (case-> [Σ V^ → Void]
+                        [Σ V^ -l H → Void])]))
 
 (define-signature termination^
   ([update-call-record : (H M Clo W ℓ Φ^ Σ → (Option M))]))
@@ -123,7 +124,7 @@
    [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]
    [⊔ᵥ*! : (Σ (Listof α) (Listof V^) → Void)]
-   [⊔ₖ! : (Σ αₖ Ξ:co → Void)]
+   [⊔ₖ! : (Σ αₖ Rt → Void)]
    [⊔T! : (Σ Φ^ α (U T T^) → Void)]
    [⊔T*! : (Σ Φ^ (Listof α) (Listof T^) → Void)]))
 

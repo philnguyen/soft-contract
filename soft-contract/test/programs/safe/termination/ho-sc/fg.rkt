@@ -7,4 +7,4 @@
 
 (provide
  (contract-out
-  [f (exact-nonnegative-integer? . -> . any/c #:total? #t)]))
+  [f (exact-nonnegative-integer? . -> . (number? . -> . number?) #:total? #t)]))
