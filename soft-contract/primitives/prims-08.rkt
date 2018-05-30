@@ -103,7 +103,7 @@
     #:rest [W (listof any/c)]
     (define vals
       (map (match-lambda
-             [(singleton-set (-b b)) b]
+             [(or (singleton-set (-b b)) (-b b)) b]
              [V^ (error 'one-of/c "only support simple values for not, got ~a" V^)])
            W))
     {set (ret! (T->R (One-Of/C vals) Φ^) Ξ Σ)})
