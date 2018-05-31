@@ -562,6 +562,8 @@
       ['positive? {set (P:≥ 0) (P:¬ (P:≡ 0))}] ; FIXME no, subtlety with `0.0`
       ['negative? (P:¬ (P:≥ 0))]
       ['zero? (P:≡ 0)] ; FIXME no, subtlety with `0.0`
+      ['odd? (P:¬ 'even?)]
+      [(P:¬ 'odd?) 'even?]
       [(P:> x) {set (P:≥ x) (P:¬ (P:≡ x))}] ; FIXME subtlety with exactness
       [(P:< x) (P:¬ (P:≥ x))]
       [P P]))

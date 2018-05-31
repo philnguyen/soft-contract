@@ -108,6 +108,7 @@
     #:refinements
     ((real?) #:rest (listof real?) . ->* . real?)
     (((not/c zero?)) #:rest list? . ->* . (not/c zero?))
+    (even? (=/c 2) . -> . exact-integer?)
     #:volatile? #f)
   (def* (quotient remainder modulo) ; FIXME: only error on exact 0
     (integer? (and/c integer? (not/c zero?)) . -> . integer?))

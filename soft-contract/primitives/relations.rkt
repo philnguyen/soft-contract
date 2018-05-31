@@ -94,6 +94,7 @@
    [number? string? boolean? keyword? symbol? void? char? eof-object? null? procedure?
             vector? port? regexp? pregexp? byte-regexp? byte-pregexp? generic-set? hash? exn?]
    [positive? negative? zero?]
+   [even? odd?]
    [values not])
 
   (dec-partitions
