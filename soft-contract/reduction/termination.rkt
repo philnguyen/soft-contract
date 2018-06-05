@@ -96,9 +96,16 @@
 
   (: sub-value? : T^ T^ → Boolean)
   (define (x . sub-value? . y)
-    (define sub-ac? : (S → Boolean)
-      (match-lambda [(-st-ac 𝒾 i) (not (struct-mutable? 𝒾 i))]
-                    [_ #f]))
+    (define (sub-ac? [S : S]) : Boolean
+      (case S
+        [(caar cdar cadr cddr
+          caaar caadr cadar caddr cdaar cdadr cddar cdddr
+          caaaar caaadr caadar caaddr cadaar cadadr caddar cadddr
+          cdaaar cdaadr cdadar cdaddr cddaar cddadr cdddar cddddr) #t]
+        [else
+         (match S
+           [(-st-ac 𝒾 i) (not (struct-mutable? 𝒾 i))]
+           [_ #f])]))
     
     (match* (x y)
       [((S:@ (? sub-ac?) (list x*)) (? S? y))

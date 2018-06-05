@@ -24,7 +24,15 @@
 
   (: Ψ@ : (U Φ Φ^ Ψ) (Listof T) → (℘ P))
   (define (Ψ@ x Ts)
-    (define (go [Ψ : Ψ]) (hash-ref Ψ Ts mk-∅))
+    (define (go [Ψ : Ψ]) 
+      (define Ps (hash-ref Ψ Ts mk-∅))
+      (match Ts
+        [(list (S:@ (? P? P) Xs))
+         (define Xs:abs (hash-ref Ψ Xs mk-∅))
+         (cond [(∋ Xs:abs P      ) (set-add Ps 'values)]
+               [(∋ Xs:abs (P:¬ P)) (set-add Ps 'not)]
+               [else Ps])]
+        [_ Ps]))
     (define (go-Φ [Φ : Φ]) (go (Φ-condition Φ)))
     (cond [(set? x) (for/fold ([acc : (℘ P) (go-Φ (set-first x))])
                                ([Φᵢ (in-set (set-rest x))])

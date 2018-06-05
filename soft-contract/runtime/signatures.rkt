@@ -18,8 +18,9 @@
                                 Blm)
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
 (#|Instrumentation |# -H . ::= . #:TBD)
-(#|Stack address   |# αₖ . ::= . (αₖ [ctx : H] [ext : βₖ]))
+(#|Stack address   |# αₖ . ::= . (αₖ [ctx : H] [path : Φ^] [ext : βₖ]))
 (#|Stack addr. ext.|# βₖ . ::= . (βₖ:exp ⟦E⟧ Ρ)
+                                 (βₖ:app Symbol W)
                                  (βₖ:mon Ctx α)
                                  (βₖ:fc ℓ α)
                                  (βₖ:hv HV-Tag)
@@ -220,8 +221,7 @@
     [(=) o₁]
     [else #f]))
 
-(define Ξ:co-ctx : (Ξ:co → H)
-  (match-lambda [(Ξ:co (K _ (αₖ H _)) _) H]))
+(define Ξ:co-ctx : (Ξ:co → H) (compose1 αₖ-ctx (compose1 K-rest Ξ:co-frames)))
 
 (define-syntax Ord:*
   (syntax-rules ()
@@ -281,6 +281,7 @@
    [iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
    [Ctx-flip : (Ctx → Ctx)]
    [Ctx-with-ℓ : (Ctx ℓ → Ctx)]
+   [X/C->binder : (X/C → Symbol)]
    #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
    ))
 

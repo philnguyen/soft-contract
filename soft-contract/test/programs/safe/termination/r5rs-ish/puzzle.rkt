@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         puzzle.sch
@@ -167,10 +168,5 @@
 
 ;;; call:  (start)
 
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 5) (v 0))
-          (if (zero? n)
-              v
-              (loop (- n 1)
-                    (start))))))
+(provide
+ (contract-out [start (-> any/c #:total? #t)]))

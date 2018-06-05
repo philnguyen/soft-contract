@@ -31,7 +31,7 @@
   (: inj : (U -prog ⟦E⟧) → (Values Ξ Σ))
   (define (inj x)
     (define ⟦E⟧ (->⟦E⟧ x))
-    (define αₖ₀ (αₖ H₀ (βₖ:exp ⟦E⟧ ⊥Ρ)))
+    (define αₖ₀ (αₖ H₀ ⊥Φ^ (βₖ:exp ⟦E⟧ ⊥Ρ)))
     (define Σ₀ (Σ ⊥Σᵥ ⊥Σₖ ⊥Σₐ))
     (values (⟦E⟧ ⊥Ρ ⊥Φ^ (Ξ:co (K '() αₖ₀) #f) Σ₀) Σ₀))
 
@@ -111,12 +111,12 @@
              [(cons (cons xs* ⟦E⟧) binds*)
               {set (⟦E⟧ Ρ Φ^ (K+ (F:Let ℓ xs* binds* bounds* ⟦body⟧ Ρ) Ξ) Σ)}]
              ['()
-              (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
+              (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ)
               (define-values (xs Vs) (unzip bounds*))
               (define fmls (-var xs #f))
               (define H* (H+ H ℓ #|HACK|# (Clo fmls ⟦body⟧ Ρ)))
               (define-values (Φ^* Ρ*) (bind-args! Φ^ Ρ fmls Vs H* Σ))
-              (define α* (αₖ H* (βₖ:exp ⟦body⟧ Ρ*)))
+              (define α* (αₖ H* Φ^* (βₖ:exp ⟦body⟧ Ρ*)))
               (define αs (list->seteq (map (λ ([x : Symbol]) (Ρ@ Ρ* x)) xs)))
               (⊔ₖ! Σ α* (Rt Φ^ αs Ξ))
               {set (⟦body⟧ Ρ* Φ^* (Ξ:co (K '() α*) ?m) Σ)}])))]
@@ -324,9 +324,10 @@
           [(2 (R (list Vₑ) Φ^))
            ((app₁ 'set-add) (list (Σᵥ@ Σ α) Vₑ) ℓ Φ^ Ξ Σ)]))]
       [(F:Havoc-Prim-Args ℓ o)
-       (define H* (H+ (Ξ:co-ctx Ξ) ℓ (assert (ℓ-src ℓ) symbol?)))
-       (define α* (αₖ H* (βₖ:hv o)))
-       (⊔ₖ! Σ α* (Rt (collapse-R^/Φ^ R^₀) ∅eq Ξ))
+       (define H* (H+ (Ξ:co-ctx Ξ) ℓ o))
+       (define Φ^₀ (collapse-R^/Φ^ R^₀))
+       (define α* (αₖ H* Φ^₀ (βₖ:hv o)))
+       (⊔ₖ! Σ α* (Rt Φ^₀ ∅eq Ξ))
        (define Ξ* (Ξ:co (K (list (F:Havoc)) α*) (Ξ:co-mark Ξ)))
        {set (ret! R^₀ Ξ* Σ)}]
       [(F:Make-Prim-Range ctx ?rng-wrap ranges cases)
@@ -340,7 +341,7 @@
                    R^₀))
        {set (ret! Rₐ Ξ Σ)}]
       [(F:Havoc)
-       {set-add (match-let ([(Ξ:co (K _ (αₖ _ (βₖ:hv tag))) _) Ξ])
+       {set-add (match-let ([(Ξ:co (K _ (αₖ _ _ (βₖ:hv tag))) _) Ξ])
                   (havoc tag R^₀ (K+ (F:Havoc) Ξ) Σ))
                 (ret! (R (list {set (-● ∅)}) (collapse-R^/Φ^ R^₀)) Ξ Σ)}]
       [(F:Absurd) ∅]))

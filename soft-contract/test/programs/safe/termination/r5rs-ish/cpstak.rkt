@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         cpstak.sch
 ; Description:  continuation-passing version of TAK
@@ -31,12 +33,6 @@
                              (tak v1 v2 v3 k)))))))))
   (tak x y z (lambda (a) a)))
  
-;;; call: (cpstak 18 12 6)
-
-(require "../main.rkt")
-(time (begin/termination ; can't, CPS conflat return with call
-        (let loop ((n 20) (v 0))
-          (if (zero? n)
-              v
-              (loop (- n 1)
-                    (cpstak 18 12 6))))))
+(provide
+ (contract-out
+  [cpstak (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))

@@ -48,6 +48,14 @@
       (hash-set! memo-data 'f m)
       (λ (x) (hash-ref! m x (λ () : Y e ...))))))
 
+(define-simple-macro (define-thunk/memo (f) (~literal :) T e ...)
+  (define f : (→ T)
+    (let ([memo : (Option T) #f])
+      (λ ()
+        (unless memo
+          (set! memo (let () e ...)))
+         (assert memo)))))
+
 (: memoize (∀ (X Y) (X → Y) → X → Y))
 (define (memoize f)
   (let ([m : (HashTable X Y) (make-hash)])

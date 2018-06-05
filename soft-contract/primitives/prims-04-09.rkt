@@ -71,7 +71,10 @@
   (def map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))) ; FIXME uses
   (def andmap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #t β)))) ; FIXME uses
   (def ormap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #f β)))) ; FIXME uses
-  (def for-each (∀/c (α _) ((α . -> . _) (listof α) . -> . void?))) ; FIXME uses
+  (def for-each (∀/c (α β _)
+                     (case->
+                      [(α . -> . _) (listof α) . -> . void?]
+                      [(α β . -> . _) (listof α) (listof β) . -> . void?]))) ; FIXME uses
   (def foldl (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
   (def foldr (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
 
@@ -124,6 +127,22 @@
   (def cdadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ α) _)) . -> . α)))
   (def cddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ α)) _) . -> . α)))
   (def cdddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ α))) . -> . α)))
+  (def caaaar (∀/c (α _) ((cons/c (cons/c (cons/c (cons/c α _) _) _) _) . -> . α)))
+  (def caaadr (∀/c (α _) ((cons/c _ (cons/c (cons/c (cons/c α _) _) _)) . -> . α)))
+  (def caadar (∀/c (α _) ((cons/c (cons/c _ (cons/c (cons/c α _) _)) _) . -> . α)))
+  (def caaddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c (cons/c α _) _))) . -> . α)))
+  (def cadaar (∀/c (α _) ((cons/c (cons/c (cons/c _ (cons/c α _)) _) _) . -> . α)))
+  (def cadadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ (cons/c α _)) _)) . -> . α)))
+  (def caddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ (cons/c α _))) _) . -> . α)))
+  (def cadddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c α _)))) . -> . α)))
+  (def cdaaar (∀/c (α _) ((cons/c (cons/c (cons/c (cons/c _ α) _) _) _) . -> . α)))
+  (def cdaadr (∀/c (α _) ((cons/c _ (cons/c (cons/c (cons/c _ α) _) _)) . -> . α)))
+  (def cdadar (∀/c (α _) ((cons/c (cons/c _ (cons/c (cons/c _ α) _)) _) . -> . α)))
+  (def cdaddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c (cons/c _ α) _))) . -> . α)))
+  (def cddaar (∀/c (α _) ((cons/c (cons/c (cons/c _ (cons/c _ α)) _) _) . -> . α)))
+  (def cddadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ (cons/c _ α)) _)) . -> . α)))
+  (def cdddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ (cons/c _ α))) _) . -> . α)))
+  (def cddddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ α)))) . -> . α)))
   ; TODO rest of them
 
   ;; 4.9.7 Additional List Functions and Synonyms

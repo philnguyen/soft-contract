@@ -135,19 +135,15 @@
       (hash-set! looped-ctxs H₁ #t))
     (unless (hash-has-key? binders H₁)
       (define αs
-        (cond [(Clo? tgt*)
-               (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 tgt*)))])
-                 (mk-α (-α:x x H₁)))]
-              [(X/C? tgt*) {seteq (mk-α (-α:x (X/C->binder tgt*) H₁))}]
-              [else ∅eq]))
+        (let ([mk (λ ([x : Symbol]) (mk-α (-α:x x H₁)))])
+          (cond [(Clo? tgt*)
+                 (∪ (for/seteq : (℘ α) ([x (in-set (formals->names (Clo-_0 tgt*)))])
+                      (mk x))
+                    (list->seteq (hash-values (Clo-_2 tgt*))))]
+                [(X/C? tgt*) {seteq (mk (X/C->binder tgt*))}]
+                [else ∅eq])))
       (hash-set! binders H₁ (∪ αs (hash-ref binders H₀))))
-    H₁)
-
-  (define X/C->binder : (X/C → Symbol)
-    (match-lambda [(X/C α)
-                   (match (inspect-α α)
-                     ;; TODO other cases
-                     [(-α:x/c x _) x])]))
+    H₁) 
 
   (: -H+ : -H ℓ Tgt → (Values -H Boolean))
   (define (-H+ H src tgt)

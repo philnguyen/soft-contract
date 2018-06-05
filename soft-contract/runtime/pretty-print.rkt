@@ -138,12 +138,15 @@
       [(_ _) `(blame ,(show-ℓ ℓ) ,lo ,(map show-blm-reason Cs) ,(map show-T Vs))]))
 
   (define show-αₖ : (αₖ → Sexp)
-    (match-lambda
-      [(αₖ _ (βₖ:exp ⟦E⟧ Ρ)) `(… ,(show-Ρ Ρ))]
-      [(αₖ _ (βₖ:mon ctx α)) `(mon ,(Ctx-pos ctx) ,α)]
-      [(αₖ _ (βₖ:fc ℓ α)) `(fc ,(ℓ-src ℓ) ,α)]
-      [(αₖ _ (βₖ:hv tag)) tag]
-      [(αₖ _ (βₖ:term/c α W)) `(term/c ,(show-α α) ,@(map show-T W))]))
+    (let ([show-βₖ : (βₖ → Sexp)
+           (match-lambda
+             [(βₖ:exp ⟦E⟧ Ρ) `(… ,(show-Ρ Ρ))]
+             [(βₖ:app o W) `(,o ,@(map show-T W))]
+             [(βₖ:mon ctx α) `(mon ,(Ctx-pos ctx) ,α)]
+             [(βₖ:fc ℓ α) `(fc ,(ℓ-src ℓ) ,α)]
+             [(βₖ:hv tag) tag]
+             [(βₖ:term/c α W) `(term/c ,(show-α α) ,@(map show-T W))])])
+      (compose1 show-βₖ αₖ-ext)))
 
   (: show-α : α → Sexp)
   (define (show-α α)

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         deriv.sch
@@ -47,7 +48,8 @@
     (else 'error)))
  
 (define (run)
-  (do ((i 0 (+ i 1)))
+  (deriv '(+ (* 3 x x) (* a x x) (* b x) 5))
+  #;(do ((i 0 (+ i 1)))
       ((= i 1000000))
     (deriv '(+ (* 3 x x) (* a x x) (* b x) 5))
     (deriv '(+ (* 3 x x) (* a x x) (* b x) 5))
@@ -57,5 +59,6 @@
  
 ;;; call:  (run)
 
-(require "../main.rkt")
-(time (begin/termination (run)))
+(provide
+ (contract-out
+  [run (-> any/c #:total? #t)]))

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         takl.sch
@@ -38,12 +39,12 @@
            (shorterp (cdr x)
                      (cdr y)))))
 
-(require racket/splicing
-         "../main.rkt")
-(splicing-local
+(provide
+ (contract-out
+  [mas (list? list? list? . -> . any/c #:total? #t)]))
+
+#;(splicing-local
     ((define-syntax-rule (#%app f x ...) (#%plain-app f x ...)))
   (define (≺ l r)
     (cond [(and (pair? l) (pair? r)) (< (car l) (car r))]
           [else (and (null? l) (pair? r))])))
-(time (with-custom-< ≺
-        (begin/termination (mas l18l l12l l6l))))

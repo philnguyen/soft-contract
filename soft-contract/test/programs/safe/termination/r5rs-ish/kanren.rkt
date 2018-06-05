@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;; smashed into benchmark form by Matthew
 
@@ -6487,5 +6488,6 @@
   (mirror-equ-tests)
   (pure-bin-arith-tests))
 
-(require "../main.rkt")
-(time (begin/termination (all-tests)))
+(provide
+ (contract-out
+  [all-tests (-> any/c #:total? #t)]))

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         triangle.sch
@@ -79,11 +80,6 @@
 (vector-set! *board* 5 0)
  
 ;;; call:  (gogogo 22))
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 10000))
-          (if (zero? n)
-              'done
-              (begin
-                (gogogo 22)
-                (loop (- n 1)))))))
+(provide
+ (contract-out
+  [gogogo (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;; MAZEFUN -- Constructs a maze in a purely functional way,
 ;;; written by Marc Feeley.
@@ -200,10 +201,6 @@
                       '())))))))
 
 
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 100) (v 0))
-          (if (zero? n)
-              v
-              (loop (- n 1)
-                    (make-maze 11 11))))))
+(provide
+ (contract-out
+  [make-maze (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))

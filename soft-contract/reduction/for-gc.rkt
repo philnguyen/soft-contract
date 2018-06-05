@@ -21,7 +21,7 @@
     (match-lambda
       [(St _ αs) (list->seteq αs)]
       [(Vect αs) (list->seteq αs)]
-      [(Vect^ α V) (set-add (set-union-map V-root V) α)]
+      [(Vect^ α V) (set-add (set-union-map V-root V ∅eq) α)]
       [(Hash^ αₖ αᵥ _) {seteq αₖ αᵥ}]
       [(Set^ α _) {seteq α}]
       [(Clo _ _ Ρ) (Ρ-root Ρ)]

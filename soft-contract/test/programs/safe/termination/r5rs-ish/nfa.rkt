@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ; The recursive-nfa benchmark.  (Figure 45, page 143.)
 
@@ -15,7 +16,7 @@
          (or (and (char=? (car input) #\a)
                   (state1 (cdr input)))
              (and (char=? (car input) #\c)
-                  (state1 input))
+                  (state1 (cdr input)))
              (state2 input))))
   
   (define (state2 input)
@@ -43,14 +44,8 @@
   (or (state0 input)
       'fail))
 
-(require "../main.rkt")
-(time (begin/termination
-        (let ((input (string->list (string-append (make-string 133 #\a) "bc"))))
-          (let loop ((n 2000000))
-            (if (zero? n)
-                'done
-                (begin
-                  (recursive-nfa input)
-                  (loop (- n 1))))))))
+(provide
+ (contract-out
+  [recursive-nfa ((listof char?) . -> . any/c #:total? #t)]))
 
 

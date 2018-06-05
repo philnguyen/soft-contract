@@ -183,11 +183,11 @@
           #:recur E]
       [(-letrec-values '() E _) (↓ E)]
       [=> (-letrec-values bnds E ℓ)
-          (match-let* ([(Ξ:co (K _ (αₖ H _)) ?m) Ξ]
+          (match-let* ([(Ξ:co (K _ (αₖ H _ _)) ?m) Ξ]
                        [fmls (-var (append-map (inst car (Listof Symbol) Any) bnds) #f)]
                        [H* (H+ H ℓ #|HACK|# (Clo fmls ⟦E⟧ Ρ))])
             (define-values (Φ^* Ρ*) (init-undefined! Σ bnds H* Φ^ Ρ))
-            (define α* (αₖ H* (βₖ:exp ⟦E⟧ Ρ*)))
+            (define α* (αₖ H* Φ^* (βₖ:exp ⟦E⟧ Ρ*)))
             (define bnds:addrs
               (list->seteq
                (append-map (λ ([bnd : (Pairof (Listof Symbol) Any)])

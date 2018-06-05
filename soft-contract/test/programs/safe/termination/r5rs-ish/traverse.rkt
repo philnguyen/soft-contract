@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 (require r5rs)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -155,6 +156,8 @@
  
 ;;; to initialize, call:  (init-traverse)
 ;;; to run traverse, call:  (run-traverse)
- 
-(time (init-traverse))
-(time (run-traverse))
+
+(provide
+ (contract-out
+  [init-traverse (-> any/c #:total? #t)]
+  [run-traverse (-> any/c #:total? #t)]))

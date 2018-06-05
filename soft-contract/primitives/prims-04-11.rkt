@@ -22,6 +22,7 @@
          unreachable
          "../utils/debug.rkt"
          "../utils/patterns.rkt"
+         "../utils/function.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
          "../reduction/signatures.rkt"
@@ -40,9 +41,9 @@
 
 (define-unit prims-04-11@
   (import prim-runtime^
-          evl^
+          evl^ val^ sto^
           prover^
-          step^ approx^)
+          step^ approx^ mon^ app^)
   (export)
   
   (def-pred vector?)
@@ -93,78 +94,63 @@
 
   (def (vector-ref W ℓ Φ^ Ξ₀ Σ)
     #:init ([Tᵥ vector?] [Tᵢ integer?])
-    (define with (inst with-2-paths Ξ))
-    (with (λ () (split-results Σ (R (list Tᵥ) Φ^) 'vector? #:fast? #t))
-      (λ (R^)
-        ???)
-      (λ (R^)
-        (r:blm ℓ 'vector-ref '(vector?) (collapse-R^/W^ R^))))
-    #;(for/union : (℘ Ξ) ([Tᵥ (in-set Tᵥ^)])
-      (match Tᵥ
-        [(Vect αs)
-         (define Vₐ^
-           (for/fold ([Vₐ^ : -V^ ∅])
-                     ([α : ⟪α⟫ (in-list ⟪α⟫s)]
-                      [i : Natural (in-naturals)]
-                      #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
-             (V⊕ φ Vₐ^ (σ@ Σ (-φ-cache φ) α))))
-         (⟦k⟧ (list Vₐ^) H φ Σ)]
-        [(-Vector^ α n)
-         (⟦k⟧ (list (σ@ Σ (-φ-cache φ) α)) H φ Σ)]
-        [(-Vector/guard grd αᵥ ctx)
-         (define lo (-ctx-src ctx))
-         (match grd
-           [(-Vector/C ⟪α⟫ℓs)
-            (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
-                                 [i : Natural (in-naturals)]
-                                 #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
-                       (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) ⟪α⟫ℓ)
-                       (define ⟦k⟧* (let ([Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ)])
-                                      (mon.c∷ (ctx-with-ℓ ctx ℓᵢ) Cᵢ^ ⟦k⟧)))
-                       (define Tᵥ^* (σ@ Σ (-φ-cache φ) αᵥ))
-                       (.vector-ref ℓ (list Tᵥ^* Tᵢ) H φ Σ ⟦k⟧*))]
-           [(-Vectorof ⟪α⟫ℓ)
-            (match-define (-⟪α⟫ℓ α* ℓ*) ⟪α⟫ℓ)
-            (define ⟦k⟧* (let ([C*^ (σ@ Σ (-φ-cache φ) α*)])
-                           (mon.c∷ (ctx-with-ℓ ctx ℓ*) C*^ ⟦k⟧)))
-            (define Tᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
-            (.vector-ref ℓ (list Tᵥ*^ Tᵢ) H φ Σ ⟦k⟧*)])]
-        [_
-         (⟦k⟧ (list {set (-● ∅)}) H φ Σ)])))
+    (set-union-map
+     (match-lambda
+       [(Vect αs)
+        (define Vₐ^
+          (for/fold ([acc : V^ ∅])
+                    ([α (in-list αs)]
+                     [i : Natural (in-naturals)]
+                     #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+            ((iter-⊔ V^⊔) acc (Σᵥ@ Σ α))))
+        {set (ret! (T->R Vₐ^ Φ^) Ξ₀ Σ)}]
+       [(Vect^ α n)
+        {set (ret! (T->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)}]
+       [(X/G ctx G αᵥ)
+        (define lo (Ctx-src ctx))
+        (define Tᵥ* (Σᵥ@ Σ αᵥ))
+        (match G
+          [(Vect/C αℓs)
+           (for/union : (℘ Ξ) ([αℓᵢ (in-list αℓs)]
+                               [i : Natural (in-naturals)]
+                               #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
+             (define Ξ* (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
+             ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
+          [(Vectof αℓ*)
+           (match-define (αℓ α* ℓ*) αℓ*)
+           (define Ξ* (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓ*) (Σᵥ@ Σ α*)) Ξ₀))
+           ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ)])]
+       [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])
+     (T->V Σ Φ^ Tᵥ)))
   
-  #;(def (vector-set! ℓ Vs H φ Σ ⟦k⟧)
-    #:init ([Tᵥ^ vector?] [Tᵢ integer?] [Vᵤ any/c])
-    (for/union : (℘ -ς) ([Tᵥ (in-set Tᵥ^)])
-      (match Tᵥ
-        [(-Vector αs)
-         (define φ*
-           (for/fold ([φ : -φ φ])
-                     ([α (in-list αs)]
-                      [i : Natural (in-naturals)]
-                      #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
-             (mut! Σ φ α Vᵤ)))
-         (⟦k⟧ (list {set -void}) H φ* Σ)]
-        [(-Vector^ α n)
-         (⟦k⟧ (list {set -void}) H (mut! Σ φ α Vᵤ) Σ)]
-        [(-Vector/guard grd αᵥ ctx)
-         (define ctx* (ctx-neg ctx))
-         (define Tᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
-         (match grd
-           [(-Vector/C ⟪α⟫ℓs)
-            (for/union : (℘ -ς) ([⟪α⟫ℓ (in-list ⟪α⟫ℓs)]
-                                 [i : Natural (in-naturals)]
-                                 #:when (plausible-index? (-Σ-σ Σ) φ Tᵢ i))
-               (match-define (-⟪α⟫ℓ αᵢ ℓᵢ) ⟪α⟫ℓ)
-               (define Cᵢ^ (σ@ Σ (-φ-cache φ) αᵢ))
-               (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓᵢ) (mk-A (list Cᵢ^)) (mk-A (list Vᵤ))))
-               (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Tᵢ Tᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧)))]
-           [(-Vectorof ⟪α⟫ℓ)
-            (match-define (-⟪α⟫ℓ α* ℓ*) ⟪α⟫ℓ)
-            (define C*^ (σ@ Σ (-φ-cache φ) α*))
-            (define ⟦chk⟧ (mk-mon (ctx-with-ℓ ctx* ℓ*) (mk-A (list C*^)) (mk-A (list Vᵤ))))
-            (⟦chk⟧ ⊥ρ H φ Σ (ap∷ (list Tᵢ Tᵥ*^ {set 'vector-set!}) '() ⊥ρ ℓ ⟦k⟧))])]
-        [_
-         (⟦k⟧ (list {set -void}) H φ Σ)])))
+  (def (vector-set! W ℓ Φ^ Ξ₀ Σ)
+    #:init ([Tᵥ^ vector?] [Tᵢ integer?] [Tᵤ any/c])
+    (define-thunk/memo (done) : (℘ Ξ) {set (ret! (T->R {set -void} Φ^) Ξ₀ Σ)})
+    (set-union-map
+     (match-lambda
+       [(Vect αs)
+        (for ([α (in-list αs)]
+              [i (in-naturals)] #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+          (⊔T! Σ Φ^ α Tᵤ))
+        (done)]
+       [(Vect^ α n) (⊔T! Σ Φ^ α Tᵤ) (done)]
+       [(X/G ctx G αᵥ)
+        (define ctx* (Ctx-flip ctx))
+        (define Tᵥ*^ (Σᵥ@ Σ αᵥ))
+        (match G
+          [(Vect/C αℓs)
+           (for/union : (℘ Ξ) ([(αℓᵢ i) (in-indexed αℓs)]
+                               #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
+             (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
+             (mon (Σᵥ@ Σ αᵢ) Tᵤ (Ctx-with-ℓ ctx* ℓᵢ) Φ^ Ξ* Σ))]
+          [(Vectof αℓ*)
+           (match-define (αℓ α* ℓ*) αℓ*)
+           (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
+           (mon (Σᵥ@ Σ α*) Tᵤ (Ctx-with-ℓ ctx* ℓ*) Φ^ Ξ* Σ)])]
+       [_ (done)])
+     (T->V Σ Φ^ Tᵥ^)))
   
   (def vector->list (∀/c (α) ((vectorof α) . -> . (listof α))))
   (def list->vector (∀/c (α) ((listof α) . -> . (vectorof α))))

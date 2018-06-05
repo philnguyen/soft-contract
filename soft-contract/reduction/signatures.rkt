@@ -120,6 +120,7 @@
 (define-signature approx^
   ([collapse-R^-1 : ((U Σ Σᵥ) R^ → (Values T^ Φ^))]
    [collapse-value-lists : ((U Σ Σᵥ) R^ Natural → R)]
+   [V^⊔ : (V^ V → V^)]
    [R⊕ : ((U Σ Σᵥ) R R → R)]
    [⊔ₐ! : (Σ Ξ:co (U R R^) → Void)]
    [⊔ᵥ! : (Σ α (U V V^) → Void)]

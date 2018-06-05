@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         fft.cl
 ; Description:  FFT benchmark from the Gabriel tests.
@@ -116,5 +118,6 @@
       (fft *re* *im*)))
  
 ;;; call:  (fft-bench)
-(require "../main.rkt") 
-(time (begin/termination (fft-bench)))
+(provide
+ (contract-out
+  [fft-bench (-> any/c #:total? #t)]))

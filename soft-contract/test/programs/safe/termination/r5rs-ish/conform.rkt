@@ -1,5 +1,6 @@
 #lang racket/base
-(require (except-in r5rs #%app))
+(require (except-in r5rs #%app)
+         soft-contract/fake-contract)
 
 ;
 ; conform.scm   [portable/R^399RS version]
@@ -615,11 +616,6 @@
 ;(go)
 ;(exit)
 
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 1))
-          (if (zero? n)
-              'done
-              (begin
-                (go)
-                (loop (- n 1)))))))
+(provide
+ (contract-out
+  [go (-> any/c #:total? #t)]))

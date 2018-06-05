@@ -113,13 +113,13 @@
 
   (: mon-X/C : X/C → ⟦C⟧)
   (define ((mon-X/C C) V ctx Φ^ Ξ Σ)
-    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
+    (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ)
     (match-define (X/C α) C)
+    (define x (X/C->binder C))
     (define H* (H+ H (Ctx-loc ctx) C))
-    (define α* (αₖ H* (βₖ:mon ctx α)))
-    (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
-    (match-define (-α:x/c x _) (inspect-α α))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list V) H* Σ))
+    (define α* (αₖ H* Φ^* (βₖ:mon ctx α)))
+    (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
     (define Ξ* (Ξ:co (K (list (F:Mon:C ctx (Σᵥ@ Σ α))) α*) ?m))
     {set (ret! (R (list (S:α (hash-ref Ρ x))) Φ^*) Ξ* Σ)})
 

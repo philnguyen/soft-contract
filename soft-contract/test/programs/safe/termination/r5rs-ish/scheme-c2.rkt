@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;; A closure-compiling Scheme interpreter running
 ;;  a Y-combinator countdown
@@ -69,17 +70,6 @@
        '())
  '())
 
-(require "../main.rkt")
-(time (begin/termination
-        ((comp '(let ((Y (lambda (m)
-                           ((lambda (f) (m (lambda (a) ((f f) a))))
-                            (lambda (f) (m (lambda (a) ((f f) a))))))))
-                  (let ((count
-                         (Y (lambda (count)
-                              (lambda (n)
-                                (if (zero? n)
-                                    0
-                                    (+ 1 (count (- n 1)))))))))
-                    (count 500000)))
-               '())
-         '())))
+(provide
+ (contract-out
+  [comp (any/c . -> . any/c #:total? #t)]))

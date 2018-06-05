@@ -174,7 +174,12 @@
   (def log (number? . -> . number?))
 
   ;; 4.2.2.4 Trigonometric Functions
-  (def* (sin cos tan asin acos atan) (number? . -> . number?)
+  (def* (sin cos tan asin acos) (number? . -> . number?)
+    #:refinements
+    (real? . -> . real?))
+  (def atan
+    (case-> [number? . -> . number?]
+            [real? real? . -> . real?])
     #:refinements
     (real? . -> . real?))
 

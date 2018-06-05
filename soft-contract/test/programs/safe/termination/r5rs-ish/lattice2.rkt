@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;; Like "lattice.sch", but uses `reverse' instead of
 ;; defining `reverse!' (to avoid `set-cdr!')
 
@@ -204,5 +206,6 @@
     (count-maps l3 l2)
     (count-maps l4 l4)))
 
-(require "../main.rkt")
-(time (begin/termination (run)))
+(provide
+ (contract-out
+  [run (-> any/c #:total? #t)]))

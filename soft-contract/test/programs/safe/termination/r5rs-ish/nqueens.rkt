@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;; NQUEENS -- Compute number of solutions to 8-queens problem.
 ;; 2006/08 -- renamed `try' to `try-it' to avoid Bigloo collision (mflatt)
@@ -31,10 +32,6 @@
 
   (try-it (one-to n) '() '()))
 
-(require "../main.rkt")
-(time
- (begin/termination
-   (let loop ((n 100) (v 0))
-     (if (zero? n)
-         v
-         (loop (- n 1) (nqueens 8))))))
+(provide
+ (contract-out
+  [nqueens (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

@@ -56,7 +56,7 @@
       [(-st-p 𝒾) (app-st-p 𝒾)]
       [(-st-ac 𝒾 i) (app-st-ac 𝒾 i)]
       [(-st-mut 𝒾 i) (app-st-mut 𝒾 i)]
-      [(? symbol? o) (get-prim o)]
+      [(? symbol? o) (app-prim o)]
       [(X/G ctx (? Fn/C? G) α)
        (cond [(==>? G) (app-==> ctx G α)]
              [(==>i? G) (app-==>i ctx G α)]
@@ -74,9 +74,16 @@
   (define (app/rest/unsafe Tₕ Wₓ Vᵣ ℓ Φ^ Ξ Σ)
     ???)
 
+  (: app-prim : Symbol → ⟦F⟧^)
+  (define ((app-prim o) Wₓ ℓ Φ^ Ξ₀ Σ)
+    (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ₀)
+    (define α* (αₖ (H+ H ℓ o) Φ^ (βₖ:app o Wₓ)))
+    (⊔ₖ! Σ α* (Rt Φ^ ∅eq Ξ₀))
+    ((get-prim o) Wₓ ℓ Φ^ (Ξ:co (K '() α*) ?m) Σ))
+
   (: app-clo : Clo → ⟦F⟧^)
   (define ((app-clo clo) Wₓ ℓ Φ^ Ξ₀ Σ)
-    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ₀)
+    (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ₀)
     (match-define (Clo fmls ⟦E⟧ Ρ) clo)
     (define H* (H+ H ℓ clo))
 
@@ -91,7 +98,7 @@
                                     #:unless (hash-has-key? acc α))
             (hash-set acc α (S:α α)))))
       (define Φ^** (map/set fix-up Φ^*))
-      (define α* (αₖ H* (βₖ:exp ⟦E⟧ Ρ*)))
+      (define α* (αₖ H* Φ^** (βₖ:exp ⟦E⟧ Ρ*)))
       (⊔ₖ! Σ α* (Rt Φ^ fmls:addrs Ξ₀))
       {set (⟦E⟧ Ρ* Φ^** (Ξ:co (K '() α*) ?m) Σ)})
     
@@ -249,22 +256,24 @@
   (define ((app-==>i ctx G αₕ) Wₓ ℓ Φ^ Ξ Σ)
     (define ctx* (Ctx-flip ctx))
     (match-define (==>i Doms Rng) G)
-    (define x->⟦x⟧
-      (for/hasheq : (Immutable-HashTable Symbol ⟦E⟧) ([D (in-list Doms)])
-        (match-define (Dom x _ ℓₓ) D)
-        (values x (↓ₓ x ℓₓ))))
+    (define x->⟦x⟧ : (Symbol → ⟦E⟧)
+      (let ([m (for/hasheq : (HashTable Symbol ⟦E⟧) ([D (in-list Doms)])
+                 (match-define (Dom x _ ℓₓ) D)
+                 (values x (↓ₓ x ℓₓ)))])
+        (λ (x) (hash-ref m x))))
     (define C->⟦E⟧ : ((U Clo α) → ⟦E⟧)
       (match-lambda
-        [(and Cₓ (Clo (-var zs _) _ _))
-         (define ⟦z⟧s : (Listof ⟦E⟧) (for/list ([z (in-list zs)]) (hash-ref x->⟦x⟧ z)))
-         (mk-app ℓ (mk-T Cₓ) ⟦z⟧s)]
+        [(Clo (-var zs #|TODO|# #f) ⟦E⟧ₓ Ρₓ)
+         (unless (hash-empty? Ρₓ)
+           (error '->i "temporary restriction: domain cannot capture refer to lexical variables apart from those in dependency list"))
+         ⟦E⟧ₓ]
         [(? integer? α) (mk-T (Σᵥ@ Σ αₕ))]))
     (define-values (xs ⟦x⟧s ⟦mon-x⟧s)
       (for/lists ([xs : (Listof Symbol)] [⟦x⟧s : (Listof ⟦E⟧)] [⟦mon⟧s : (Listof ⟦E⟧)])
                  ([D (in-list Doms)] [Vₓ (in-list Wₓ)])
         (match-define (Dom x Cₓ ℓₓ) D)
         (values x
-                (hash-ref x->⟦x⟧ x)
+                (x->⟦x⟧ x)
                 (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (C->⟦E⟧ Cₓ) (mk-T Vₓ)))))
     (define ⟦inner-app⟧
       (let ([ℓ* (ℓ-with-src ℓ (Ctx-src ctx))])
@@ -301,19 +310,19 @@
   (splicing-local ((define M₀ : M (hash)))
     (: app-Terminating/C : Ctx α → ⟦F⟧^)
     (define ((app-Terminating/C ctx α) Wₓ ℓ Φ^ Ξ Σ)
-      (match-define (Ξ:co (K _ (αₖ H₀ _)) ?m) Ξ)
-      (define α* (αₖ H₀ (βₖ:term/c α Wₓ)))
+      (match-define (Ξ:co (K _ (αₖ H₀ _ _)) ?m) Ξ)
+      (define α* (αₖ H₀ Φ^ (βₖ:term/c α Wₓ)))
       (⊔ₖ! Σ α* (Rt Φ^ ∅eq Ξ))
       (define Ξ* (Ξ:co (K '() α*) (cons ctx (if ?m (cdr ?m) M₀))))
       (app (Σᵥ@ Σ α) Wₓ ℓ Φ^ Ξ* Σ)))
 
   (: app-opq : ⟦F⟧^)
   (define (app-opq Wₓ ℓ Φ^ Ξ Σ)
-    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
+    (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ)
 
     (define (on-sc-ok)
       (define H* (H+ H ℓ #f))
-      (define α (αₖ H* (βₖ:hv #f)))
+      (define α (αₖ H* Φ^ (βₖ:hv #f)))
       (⊔ₖ! Σ α (Rt Φ^ ∅eq Ξ))
       (define Ξ* (Ξ:co (K (list (F:Havoc)) α) (Ξ:co-mark Ξ)))
       {set (ret! ((R↓ Σ (scope H*)) (R Wₓ Φ^)) Ξ* Σ)})

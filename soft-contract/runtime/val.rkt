@@ -230,4 +230,11 @@
   (define Ctx-with-ℓ : (Ctx ℓ → Ctx)
     (match-lambda**
      [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
+
+  (define X/C->binder : (X/C → Symbol)
+    (match-lambda [(X/C α)
+                   (match (inspect-α α)
+                     ;; TODO other cases
+                     [(-α:x/c x _) x]
+                     [(-α:imm:listof x _ _) x])]))
   )

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         nboyer.sch
@@ -757,5 +758,6 @@
                 rewrite-count
                 #f)))))
 
-(require "../main.rkt")
-(begin/termination (nboyer-benchmark 4))
+(provide
+ (contract-out
+  [nboyer-benchmark (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

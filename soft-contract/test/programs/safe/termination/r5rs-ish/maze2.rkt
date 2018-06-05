@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;; Like "maze.sch", but avoids `set-car!'  and `set-cdr!' by using
 ;;  vectors for mutable records.
@@ -686,8 +687,11 @@
 ;;; \_/ \_/ \_/
 
 ;------------------------------------------------------------------------------
-(require "../main.rkt")
-(module order racket/base
+
+(provide
+ (contract-out
+  [pmaze (exact-nonnegative-integer? exact-nonnegative-integer? . -> . any/c #:total? #t)]))
+#;(module order racket/base
   (provide ≺)
   (define (≺ l r)
     (cond [(and (vector? l) (vector? r) (= (vector-length l) (vector-length r)))
@@ -698,13 +702,4 @@
              (or (equal? l r*) (≺ l r*)))]
           [(and (integer? l) (integer? r)) (< -1 l r)]
           [else #f])))
-(require 'order)
-(time (with-custom-< ≺
-        (begin/termination
-          (let loop ((n 250) (v 0))
-            (if (zero? n)
-                v
-                (begin
-                  (set! output '())
-                  (pmaze 20 7)
-                  (loop (- n 1) output)))))))
+

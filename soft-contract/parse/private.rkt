@@ -20,6 +20,7 @@
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
          (prefix-in rt: "../induction.rkt")
+         (prefix-in r5: r5rs)
          "../signatures.rkt"
          "signatures.rkt"
          (for-syntax racket/base
@@ -480,7 +481,7 @@
        (define cs (map parse-named-domain (attribute e.domains)))
        (define d (parse-named-domain (attribute e.range)))
        (cond [(first-forward-ref `(,@cs ,d)) =>
-              (λ (x) (error 'scv "forward reference to `~a` in `->i` not yet supported" x))])
+              (λ (x) (error 'scv "forward reference to `~a` in `->i` is not yet supported, probably never will be" x))])
        (define ctc (-->i cs d))
        (if (attribute e.total?)
            (-@ 'and/c (list ctc 'scv:terminating/c) (next-ℓ! #'c))
@@ -639,6 +640,26 @@
       [(~literal rt:trivial) 'trivial]
       [(~literal fake:dynamic-mon) 'scv:mon]
       [(~literal fake:contract?) 'contract?]
+
+      ;; FIX Tmp. Hacks for Scheme programs
+      [(~literal r5:pair?) -cons?]
+      [(~literal r5:cdr) -cdr]
+      [(~literal r5:car) -car]
+      [(~literal r5:cons) -cons]
+      [(~literal r5:set-car!) -set-car!]
+      [(~literal r5:set-cdr!) -set-cdr!]
+      [(~literal r5:memq) 'memq]
+      [(~literal r5:list->mlist) 'list]
+      [(~literal r5:vector->list) 'vector->list]
+      [(~literal r5:list->vector) 'list->vector]
+      [(~literal r5:display) 'display]
+      [(~literal r5:length) 'length]
+      [(~literal r5:assq) 'assq]
+      [(~literal r5:map) 'map]
+      [(~literal r5:caddr) 'caddr]
+      [(~literal r5:caaaar) 'caaaar]
+      [(~literal r5:append) 'append]
+      
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 
 ;; Imperative body:
@@ -59,13 +60,6 @@
                                         (loop5 (+ i5 1) result)
                                         (loop6 (+ i6 1) (+ result 1)))))))))))))))
 
-(require "../main.rkt")
-(let ((cnt 18))
-  (time (begin/termination
-          (let loop ((n 2) (v 0))
-            (if (zero? n)
-                v
-                (loop (- n 1)
-                      (list
-                       (loops cnt)
-                       (func-loops cnt))))))))
+(provide
+ (contract-out
+  [loops (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

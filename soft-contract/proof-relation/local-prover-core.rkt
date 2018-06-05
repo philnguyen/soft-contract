@@ -57,11 +57,16 @@
          (match* (P Vs)
            [('values (list (S:@ Q Vs*))) (go Q Vs*)]
            [('not    (list (S:@ Q Vs*))) (neg (go Q Vs*))]
-           [('equal? (or (list (? S? S) (? -b? b)) (list (? -b? b) (? S? S))))
+           [('equal? (or (list (? S? S) (-b b)) (list (-b b) (? S? S))))
             #:when (and S b)
-            (match (go 'boolean? (list S))
-              [✓ (go (if b 'values 'not) (list S))]
-              [d d])]
+            (case b
+              [(#t) (go 'values (list S))]
+              [(#f) (go 'not (list S))]
+              [else (case (go 'boolean? (list S))
+                      [(✗) (match S
+                             [(-b b₁) (bool->Dec (equal? b b₁))]
+                             [else #f])]
+                      [else #f])])]
            [('equal? (list (? S? S) (? S? S))) '✓]
            [('equal? (list (St 𝒾 αs₁) (St 𝒾 αs₂))) (check-equal* αs₁ αs₂)]
            [((? P?) (list (-● Ps))) (Ps⊢P Ps P)]
@@ -138,6 +143,7 @@
               [(values)
                (match Vs
                  [(list (-b b)) (if b '✓ '✗)]
+                 [(list (? S? S)) (go-harder 'values S)]
                  [_ '✗])]
               [(procedure?)
                (check-among -o? Fn? Not/C? One-Of/C?
@@ -482,7 +488,7 @@
           [(-● Ps) {set (-● (if (and (∋ Ps 'list?) (equal? 𝒾 -𝒾-cons) (equal? k 1))
                                 {set 'list?}
                                 ∅))}]
-          [_ absurd!]))
+          [_ #|can happen|# ∅]))
       (set-union-map go Vs))
 
     (define S->V : (S → V^)
@@ -491,7 +497,7 @@
         [(? -o? o) {set o}]
         [(and S (S:α α)) (refine (Σᵥ@ Σ α) (Ψ@ Φ^ (list S)))]
         [(and S (S:@ (-st-ac 𝒾 k) (list S*))) (refine (ac 𝒾 k (S->V S*)) (Ψ@ Φ^ (list S)))]
-        [S {set (-● (Ψ@ Φ^ (list S)))}]))
+        [S (refine {set (-● ∅)} (Ψ@ Φ^ (list S)))]))
 
     (cond [(S? T) (S->V T)]
           [(set? T) T]
@@ -513,7 +519,9 @@
     (match-lambda**
      [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
      [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
-     [((-● ps) (? P? p)) (-● (Ps+ ps p))]
+     [((-● Ps) (? P? P))
+      (define Ps* (set-add Ps P))
+      (if (and (∋ Ps* 'boolean?) (∋ Ps* 'values)) -tt (-● Ps*))]
      [(V _) V]))
 
   (define ?concretize : (V → (Option V^))

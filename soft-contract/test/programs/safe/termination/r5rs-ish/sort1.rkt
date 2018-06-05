@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 (require (except-in r5rs #%app))
 
 ; This benchmark uses the code for Larceny's standard sort procedure.
@@ -146,6 +147,7 @@
   (let ((l (rgen n 1000000)))
     (time (length (sorter l <)))))
 
-(require "../main.rkt")
-(begin/termination
-  (sort-benchmark sort1 1000000))
+(define (bm) (sort-benchmark sort1 1000000))
+(provide
+ (contract-out
+  [bm (-> any/c #:total? #t)]))

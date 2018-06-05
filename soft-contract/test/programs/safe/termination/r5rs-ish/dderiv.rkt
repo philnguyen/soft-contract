@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         dderiv.sch
@@ -76,7 +77,8 @@
                (else 'error))))))
  
 (define (run)
-  (do ((i 0 (+ i 1)))
+  (dderiv '(+ (* 3 x x) (* a x x) (* b x) 5))
+  #;(do ((i 0 (+ i 1)))
       ((= i 1000000))
     (dderiv '(+ (* 3 x x) (* a x x) (* b x) 5))
     (dderiv '(+ (* 3 x x) (* a x x) (* b x) 5))
@@ -93,5 +95,6 @@
 (put '/ 'dderiv /dderiv)    ; install procedure on the property list
  
 ;;; call:  (run)
-(require "../main.rkt")
-(time (begin/termination (run)))
+(provide
+ (contract-out
+  [run (-> any/c #:total? #t)]))

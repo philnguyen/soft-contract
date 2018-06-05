@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;; PARAFFINS -- Compute how many paraffins exist with N carbon atoms.
 
@@ -169,10 +170,6 @@
     (+ (length (vector-ref x 0))
        (length (vector-ref x 1)))))
 
-(require "../main.rkt")
-(time
- (begin/termination
-   (let loop ((n 40) (v 0))
-     (if (zero? n)
-         v
-         (loop (- n 1) (nb 17))))))
+(provide
+ (contract-out
+  [nb (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

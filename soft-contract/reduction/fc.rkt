@@ -88,13 +88,13 @@
 
   (: fc-X/C : X/C → ⟦FC⟧)
   (define ((fc-X/C C) Vₓ ℓ Φ^ Ξ Σ)
-    (match-define (Ξ:co (K _ (αₖ H _)) ?m) Ξ)
+    (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ)
     (match-define (X/C α) C)
     (define H* (H+ H ℓ C))
-    (define α* (αₖ H* (βₖ:fc ℓ α)))
     (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
-    (match-define (-α:x/c x _) (inspect-α α))
+    (define x (X/C->binder C))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list Vₓ) H* Σ))
+    (define α* (αₖ H* Φ^* (βₖ:fc ℓ α)))
     (define Ξ* (Ξ:co (K (list (F:Fc:C ℓ (Σᵥ@ Σ α))) α*) ?m))
     {set (ret! (R (list (S:α (hash-ref Ρ x))) Φ^*) Ξ* Σ)})
 

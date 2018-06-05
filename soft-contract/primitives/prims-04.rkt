@@ -29,9 +29,9 @@
          )
 
 (define-compound-unit/infer prims-04@
-  (import prim-runtime^ evl^ val^
+  (import prim-runtime^ evl^ val^ sto^
           prover^
-          mon^ step^ approx^)
+          mon^ step^ approx^ app^)
   (export)
   (link prims-04-01@
         prims-04-02@

@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 (require racket/flonum)
 (define-struct point (x y z))
@@ -114,10 +115,7 @@
 (define (pixel x y)
   (round (inexact->exact (* 255.0 (/ (g x y) (* ss ss))))))
 
-(require "../main.rkt"
-         racket/splicing)
-
-(splicing-local
+#;(splicing-local
     ((define-syntax-rule (#%app f x ...) (#%plain-app f x ...))
      (define (scene-depth s)
        (+ 1 (apply max 0 (map scene-depth (scene-scenes s))))))
@@ -128,7 +126,10 @@
           [(and (list? l) (scene? r))
            (equal? l (scene-scenes r))]
           [else #f])))
-(time (with-custom-< ≺
+(provide
+ (contract-out
+  [pixel (integer? integer? . -> . any/c #:total? #t)]))
+#;(time (with-custom-< ≺
         (begin/termination
           (for* ([y (in-range n)])
             (for* ([x (in-range n)])

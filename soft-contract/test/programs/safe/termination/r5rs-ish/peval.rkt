@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 (require (except-in r5rs #%app))
 
 ;;; PEVAL -- A simple partial evaluator for Scheme, written by Marc Feeley.
@@ -628,10 +629,5 @@
          example8
          (list '(a b c d e f g h i j k l m n o p q r s t u v w x y z)))))
 
-(require "../main.rkt")
-(time
- (begin/termination
-   (let loop ((n 600) (v 0))
-     (if (zero? n)
-         v
-         (loop (- n 1) (test 0))))))
+(provide
+ (contract-out [test (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

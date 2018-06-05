@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         ctak.sch
@@ -53,10 +54,6 @@
                              y))))))))
 
 ;;; call: (ctak 18 12 6)
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 25) (v 0))
-          (if (zero? n)
-              v
-              (loop (- n 1)
-                    (ctak 18 12 6))))))
+(provide
+ (contract-out
+  [ctak (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))

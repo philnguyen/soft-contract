@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;;; EARLEY -- Earley's parser, written by Marc Feeley.
 
 ; $Id: earley.sch,v 1.2 1999/07/12 18:05:19 lth Exp $
@@ -666,5 +668,6 @@
     (let ((x (p (vector->list (make-vector k 'a)))))
       (length (parse->trees x 's 0 k)))))
 
-(require "../main.rkt")
-(time (begin/termination (test 14)))
+(provide
+ (contract-out
+  [test (exact-nonnegative-integer? . -> . any/c #:total? #t)]))

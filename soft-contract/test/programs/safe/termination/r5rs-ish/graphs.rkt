@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ; Modified 2 March 1997 by Will Clinger to add graphs-benchmark
 ; and to expand the four macros below.
 ; Modified 11 June 1997 by Will Clinger to eliminate assertions
@@ -637,14 +639,6 @@
 ;      2 
 ;      cons
 ;      '())))
-(require "../main.rkt")
-(time
- (begin/termination
-   (let loop ((n 4) (v 0))
-     (if (zero? n)
-         v
-         (loop (- n 1)
-               (fold-over-rdg 6
-                              2 
-                              cons
-                              '()))))))
+(provide
+ (contract-out
+  [fold-over-rdg (exact-nonnegative-integer? exact-nonnegative-integer? (any/c list? . -> . list?) list? . -> . any/c #:total? #t)]))

@@ -38,7 +38,8 @@
 (define-signature prover^
   ([split-results : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^))]
    [partition-results : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^ R^))]
-   [check-plausible-index : ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^))]
+   [defntly? : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . Boolean)]
+   [possbly? : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . Boolean)]
    [check-one-of : (Φ^ T^ (Listof Base) → ?Dec)]
    [T-arity : (case-> [Clo → (U Natural arity-at-least)]
                       [Case-Clo → Arity]

@@ -130,6 +130,7 @@
 (define -car (-st-ac -𝒾-cons 0))
 (define -cdr (-st-ac -𝒾-cons 1))
 (define -set-cdr! (-st-mut -𝒾-cons 1)) ; HACK for running some scheme programs
+(define -set-car! (-st-mut -𝒾-cons 0)) ; HACK for running nsome scheme programs
 (define -cons? (-st-p -𝒾-cons))
 
 (define -mcons (-st-mk -𝒾-mcons))

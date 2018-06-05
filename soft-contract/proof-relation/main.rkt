@@ -54,15 +54,6 @@
         (go R₀)
         (for/collect ∪ [∅ : R^] (R✓ R✗ R?) ([Rᵢ (in-set R₀)]) (go Rᵢ))))
 
-  (: check-plausible-index ([Σ (U R R^) Natural] [#:fast? Boolean] . ->* . (Values R^ R^)))
-  (define (check-plausible-index Σ Rᵥ i #:fast? [fast? #f])
-    (define Vᵢ {set (-b i)})
-    (define go : ((U R R^) → (Values R^ R^))
-      (match-lambda
-        [(R (list Vᵥ) Φ^) (split-results Σ (R (list Vᵥ Vᵢ) Φ^) '= #:fast? fast?)]
-        [(? set? Rs) (for/collect ∪ [∅ : R^] (Rs₁ Rs₂) ([R (in-set Rs)]) (go R))]))
-    (go Rᵥ))
-
   (: check-one-of : Φ^ T^ (Listof Base) → ?Dec)
   (define (check-one-of Φ^ T^ bs)
     (cond [(set? T^) (⊔*/set (λ ([V : V]) (l:check-one-of V bs)) T^)]
@@ -81,6 +72,15 @@
   (define Ψ+ l:Ψ+)
   (define Ps⊢P l:Ps⊢P)
   (define Ps+ l:Ps+)
+
+  ;; TODO optimize
+  (:* defntly? possbly? : ([Σ (U R R^)] [T #:fast? Boolean] . ->* . Boolean))
+  (define (defntly? Σ R [P 'values] #:fast? [fast? #f])
+    (define-values (R✓ R✗ R?) (partition-results Σ R P #:fast? fast?))
+    (and (set-empty? R✗) (set-empty? R?)))
+  (define (possbly? Σ R [P 'values] #:fast? [fast? #f])
+    (define-values (R✓ R✗ R?) (partition-results Σ R P #:fast? fast?))
+    (not (and (set-empty? R✓) (set-empty? R?))))
   
   (: with-checker : (Σ Φ T (Listof T) → ?Dec) Σ T R → (Values R^ R^ R^))
   (define (with-checker check Σ P R₀)

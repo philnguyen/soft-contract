@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         tak.sch
@@ -21,7 +22,6 @@
            (tak (- z 1) x y))))
  
 #;(time (tak 18 12 6))
-
-(begin
-  (require "../main.rkt")
-  (time (begin/termination (tak 18 12 6))))
+(provide
+ (contract-out
+  [tak (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))

@@ -16,7 +16,10 @@
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import prim-runtime^ evl^)
+  (import static-info^
+          evl^ sto^ val^
+          prim-runtime^ prover^
+          step^ app^ approx^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,32 +51,33 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  #;(def (unsafe-struct-ref W ℓ Φ^ Ξ Σ)
-    #:init ([Vᵥ^ any/c] [Vᵢ integer?])
-    (for/union : (℘ -ς) ([Vᵥ (in-set Vᵥ^)])
-      (match Vᵥ
-        [(-St 𝒾 ⟪α⟫s)
+  (def (unsafe-struct-ref W ℓ Φ^ Ξ₀ Σ)
+    #:init ([Tᵥ any/c] [Tᵢ integer?])
+    (set-union-map
+     (match-lambda
+       [(St 𝒾 αs)
          (define Vₐ^
-           (for/fold ([Vₐ^ : -V^ ∅])
-                     ([αᵢ (in-list ⟪α⟫s)]
+           (for/fold ([acc : V^ ∅])
+                     ([αᵢ (in-list αs)]
                       [i : Natural (in-naturals)]
-                      #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
-             (V⊕ φ Vₐ^ (σ@ Σ (-φ-cache φ) αᵢ))))
-         (⟦k⟧ (list Vₐ^) H φ Σ)]
-        [(-St* (-St/C _ 𝒾 γℓs) αᵥ ctx)
+                      #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+             ((iter-⊔ V^⊔) acc (Σᵥ@ Σ αᵢ))))
+         {set (ret! (T->R Vₐ^ Φ^) Ξ₀ Σ)}]
+        [(X/G ctx (St/C _ 𝒾 αℓs) αᵥ)
          (define n (count-struct-fields 𝒾))
-         (match-define (-ctx l+ l- lo _) ctx)
-         (define Vᵥ*^ (σ@ Σ (-φ-cache φ) αᵥ))
-         (for/union : (℘ -ς) ([γℓᵢ (in-list γℓs)]
-                              [i : Natural (in-naturals)]
-                              #:when (plausible-index? (-Σ-σ Σ) φ Vᵢ i))
-            (define Cᵢ^ (σ@ Σ (-φ-cache φ) (-⟪α⟫ℓ-addr γℓᵢ)))
-            (define ⟦k⟧* (if (struct-mutable? 𝒾 (assert i index?))
-                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert γℓᵢ))) Cᵢ^ ⟦k⟧)
-                             ⟦k⟧))
-            (app₁ ℓ 'unsafe-struct-ref (list Vᵥ*^ Vᵢ) H φ Σ ⟦k⟧*))]
-        [_
-         (⟦k⟧ (list {set (-● ∅)}) H φ Σ)])))
+         (match-define (Ctx l+ l- lo _) ctx)
+         (define Tᵥ* (Σᵥ@ Σ αᵥ))
+         (for/union : (℘ Ξ) ([αℓᵢ (in-list αℓs)]
+                             [i : Natural (in-naturals)]
+                             #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
+            (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
+            (define Ξ*
+              (if (struct-mutable? 𝒾 (assert i index?))
+                  (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀)
+                  Ξ₀))
+            ((app₁ 'unsafe-struct-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
+        [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])
+     (T->V Σ Φ^ Tᵥ)))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

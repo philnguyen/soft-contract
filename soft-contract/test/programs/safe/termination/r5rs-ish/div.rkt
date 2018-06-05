@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         div.sch
 ; Description:  DIV benchmarks
@@ -49,12 +51,10 @@
 ;;; for the iterative test call: (test-1 *ll*)
 ;;; for the recursive test call: (test-2 *ll*)
 
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 200) (v 0))
-          (if (zero? n)
-              v
-              (loop (- n 1)
-                    (cons
-                     (test-1 *ll*)
-                     (test-2 *ll*)))))))
+(define even-list/c
+  (or/c null? (cons/c any/c (cons/c any/c (recursive-contract even-list/c #:flat)))))
+
+(provide
+ (contract-out
+  [iterative-div2 (even-list/c . -> . any/c #:total? #t)]
+  [recursive-div2 (even-list/c . -> . any/c #:total? #t)]))

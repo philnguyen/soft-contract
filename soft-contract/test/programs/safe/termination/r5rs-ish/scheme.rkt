@@ -1,4 +1,5 @@
 #lang racket/base
+(require soft-contract/fake-contract)
 
 ;; Like "scheme.ss", but avoids `set-cdr!'. The main change is that
 ;;  a global variable is a 1-slot vector instead of a pair. (The
@@ -1082,10 +1083,11 @@
                         "seven" "eight" "nine" "ten" "eleven" "twelve")
                 string<?)))
 
-(require racket/match
-         racket/splicing
-         "../main.rkt")
-(splicing-local
+(provide
+ (contract-out
+  [scheme-eval (any/c . -> . any/c #:total? #t)]))
+
+#;(splicing-local
     ((define-syntax-rule (#%app f x ...) (#%plain-app f x ...))
      (define (e≺ e₁ e₂) (< (node-count e₁) (node-count e₂)))
      (define node-count
@@ -1098,5 +1100,3 @@
            (for/or ([x (in-vector l)] [y (in-vector r)])
              (≺ x y))]
           [else (e≺ l r)])))
-(time (with-custom-< ≺
-        (begin/termination (scheme-eval expr1))))

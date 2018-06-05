@@ -1,5 +1,6 @@
 #lang racket/base
-(require (except-in r5rs #%app))
+(require (except-in r5rs #%app)
+         soft-contract/fake-contract)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; File:         destruct.sch
@@ -64,10 +65,6 @@
  
 ;;; call:  (destructive 600 50)
 
-(require "../main.rkt")
-(time (begin/termination
-        (let loop ((n 100) (v 0))
-          (if (zero? n)
-              'v
-              (loop (- n 1)
-                    (destructive 600 500))))))
+(provide
+ (contract-out
+  [destructive (exact-nonnegative-integer? exact-nonnegative-integer? . -> . any/c #:total? #t)]))

@@ -1,5 +1,7 @@
 #lang racket/base
 
+(require soft-contract/fake-contract)
+
 ;; version of "dynamic.sch" that uses vectors instead of pairs
 ;; to implement mutable records, thus avoiding set-car!
 ;; and set-cdr!
@@ -2346,4 +2348,6 @@
       (tag-ast*-show foo)
       (counters-show))))
 
-(time (doit))
+(provide
+ (contract-out
+  [doit (-> any/c #:total? #t)]))
