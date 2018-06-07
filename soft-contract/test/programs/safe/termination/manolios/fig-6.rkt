@@ -11,4 +11,4 @@
 
 (provide
  (contract-out
-  [f (integer? . -> . integer? #:total? #t)]))
+  [f (exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))

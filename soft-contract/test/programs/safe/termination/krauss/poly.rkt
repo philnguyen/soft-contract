@@ -3,22 +3,6 @@
 (require racket/match
          soft-contract/fake-contract)
 
-(define (p m n r)
-  (cond [(< 0 r) (p m (- r 1) n)]
-        [(< 0 n) (p r (- n 1) m)]
-        [else m]))
-
-(define (foo flag? n m)
-  (cond [(and flag? (> n 0)) (foo #t (sub1 n) (add1 m))]
-        [(and flag? (zero? n)) (foo #f 0 m)]
-        [(and (not flag?) (> m 0)) (foo #f (add1 n) (sub1 m))]
-        [else n]))
-
-(define (bar v n m)
-  (cond [(and (zero? v) (> n 0)) (bar m m m)]
-        [(> v 0) 0]
-        [else 0]))
-
 (struct Pc (c) #:transparent)
 (struct Pinj (i P) #:transparent)
 (struct PX (P i Q) #:transparent)
@@ -54,9 +38,10 @@
    [((PX P i Q) (Pc c)) #|permute|# (add (Pc c) (PX P i Q))]
    [((PX Q y R) (Pinj x P)) #|permute|# (add (Pinj x P) (PX Q y R))]))
 
+(define (run)
+  (add (Pinj 42 (Pc 0)) (Pc 42)))
+
 (provide
  (contract-out
-  [p (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]
-  [foo (boolean? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]
-  [bar (exact-nonnegative-integer? exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]
-  [add (P/c P/c . -> . P/c #:total? #t)]))
+  [run (-> any/c #:total? #t)]
+  #;[add (P/c P/c . -> . P/c #:total? #t)]))

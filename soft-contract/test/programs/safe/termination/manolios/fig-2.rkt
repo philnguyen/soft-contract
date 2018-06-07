@@ -16,5 +16,5 @@
 
 (provide
  (contract-out
-  [f (integer? . -> . integer? #:total? #t)]
-  [foo (integer? . -> . integer? #:total? #t)]))
+  [f (exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]
+  [foo (exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)]))
