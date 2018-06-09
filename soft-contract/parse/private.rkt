@@ -80,6 +80,7 @@
                    [modules-to-parse (list->set fns)]
                    [id-occurence-count (make-hasheq)])
       (define stxs (map do-expand-file fns))
+      (pretty-print (syntax->datum (car stxs)))
       (for-each figure-out-aliases! stxs)
 
       (for-each figure-out-alternate-aliases!

@@ -15,6 +15,11 @@
 (define-literal-set lits
   (let-values #%plain-lambda #%plain-app begin quote if #%variable-reference values list call-with-values))
 
+(define (first-prefix ids s)
+  (define s:str (symbol->string s))
+  (for/or ([id (in-list ids)] #:when (string-prefix? s:str (symbol->string id)))
+    id))
+
 (splicing-local
     ((define names '(call-with-input-file
                       call-with-output-file
@@ -25,11 +30,7 @@
                       with-input-from-file
                       with-output-to-file
                       string-join))
-     (define (?recognized-name name)
-       (define name-str (symbol->string name))
-       (for/first ([s (in-list names)]
-                   #:when (string-prefix? name-str (symbol->string s)))
-         s)))
+     (define (?recognized-name name) (first-prefix names name)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"
     #:literal-sets (lits)
@@ -43,24 +44,26 @@
              #:attr args #'(x ...))))
 
 (splicing-local
-    ((define names {seteq 'make-sequence
-                          'in-list
-                          'in-range
-                          'in-hash
-                          'in-hash-keys
-                          'in-hash-values
-                          'in-set
-                          'in-vector
-                          'in-naturals
-                          })
+    ((define names '(make-sequence
+                     in-list
+                     in-range
+                     in-hash
+                     in-hash-keys
+                     in-hash-values
+                     in-set
+                     in-vector
+                     in-naturals
+                     call-with-input-file
+                     call-with-output-file
+                     open-input-file
+                     open-output-file))
      (define aliases (hasheq 'default-in-hash 'in-hash
                              'default-in-hash-keys 'in-hash-keys
                              'default-in-hash-values 'in-hash-values
-                             'real-set/c-name 'set/c))
+                             'real-set/c-name 'set/c
+                             'new-apply-proc 'apply))
      (define (?private-id-name id)
-       (if (set-member? names id)
-           id
-           (hash-ref aliases id #f))))
+       (or (hash-ref aliases id #f) (first-prefix names id))))
   (define-syntax-class private-id
     #:description "hack pattern for some private identifiers"
     (pattern x:id
