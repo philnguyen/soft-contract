@@ -20,7 +20,7 @@
 (#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ [ctx : H] [path : Φ^] [ext : βₖ]))
 (#|Stack addr. ext.|# βₖ . ::= . (βₖ:exp ⟦E⟧ Ρ)
-                                 (βₖ:app Symbol W)
+                                 Symbol
                                  (βₖ:mon Ctx α)
                                  (βₖ:fc ℓ α)
                                  (βₖ:hv HV-Tag)

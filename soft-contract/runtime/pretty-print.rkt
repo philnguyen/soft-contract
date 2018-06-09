@@ -141,7 +141,7 @@
     (let ([show-βₖ : (βₖ → Sexp)
            (match-lambda
              [(βₖ:exp ⟦E⟧ Ρ) `(… ,(show-Ρ Ρ))]
-             [(βₖ:app o W) `(,o ,@(map show-T W))]
+             [(? symbol? o) o]
              [(βₖ:mon ctx α) `(mon ,(Ctx-pos ctx) ,α)]
              [(βₖ:fc ℓ α) `(fc ,(ℓ-src ℓ) ,α)]
              [(βₖ:hv tag) tag]

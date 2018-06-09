@@ -77,7 +77,7 @@
   (: app-prim : Symbol → ⟦F⟧^)
   (define ((app-prim o) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ₀)
-    (define α* (αₖ (H+ H ℓ o) Φ^ (βₖ:app o Wₓ)))
+    (define α* (αₖ (H+ H ℓ o) Φ^ o))
     (⊔ₖ! Σ α* (Rt Φ^ ∅eq Ξ₀))
     ((get-prim o) Wₓ ℓ Φ^ (Ξ:co (K '() α*) ?m) Σ))
 
