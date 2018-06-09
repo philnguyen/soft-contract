@@ -282,7 +282,7 @@
    [Ctx-flip : (Ctx → Ctx)]
    [Ctx-with-ℓ : (Ctx ℓ → Ctx)]
    [X/C->binder : (X/C → Symbol)]
-   #;[estimate-list-lengths : (Σᵥ V → (℘ (U #f Arity)))]
+   [estimate-list-lengths : ((U Σ Σᵥ) V → (℘ (U #f Arity)))]
    ))
 
 (define-signature evl^

@@ -114,9 +114,11 @@
 
   (define ⊥T : T^ ∅)
 
-  #;(: estimate-list-lengths : -σ -δσ -V → (℘ (U #f Arity)))
+  (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list
-  #;(define (estimate-list-lengths σ δσ V)
+  (define (estimate-list-lengths Σ V)
+    ???
+    #|
     (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
     (define maybe-non-proper-list? : Boolean #f)
 
@@ -142,7 +144,8 @@
       (match (normalize-arity (set->list (go! V)))
         [(? list? l) (list->set l)]
         [a {set a}]))
-      (if maybe-non-proper-list? (set-add res #f) res))
+      (if maybe-non-proper-list? (set-add res #f) res)
+    |#)
 
   (: K+ : F Ξ:co → Ξ:co)
   (define (K+ F Ξ)
