@@ -134,7 +134,7 @@
       (syntax-parser
         #:literals (define-values #%plain-app quote)
         [(~and stx (define-values (wrapper:id _:id)
-           (#%plain-app f _ _ (quote name:id) _ _)))
+           (#%plain-app f _ _ (quote name:id) _ _ _ ...)))
          #:when (eq? (syntax-e #'f) 'do-partial-app)
          (define m (cur-mod))
          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) m) (-𝒾 (syntax-e #'name) m))]
