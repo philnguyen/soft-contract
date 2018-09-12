@@ -25,7 +25,7 @@
 (define-unit prims-zo@
   (import prim-runtime^)
   (export)
-
+  #|
   ;;;;; 7.1 API for Decompiling
   (def decompile (compilation-top? . -> . any/c))
 
@@ -296,5 +296,5 @@
       #:extra-constructor-name make-property-accessor-shape)
     (def-struct struct-other-shape ()
       #:extra-constructor-name make-struct-other-shape))
-  
+  |#
   )
