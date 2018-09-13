@@ -47,6 +47,10 @@
 
   (def (scv:mon W ℓ Φ^ Ξ Σ)
     #:init ([src symbol?] [C contract?] [V any/c])
-    (match-define {singleton-set (-b (and (? symbol?) (app symbol->string l)))} src)
-    (mon C V (Ctx l (format "user-of-~a" l) l ℓ) Φ^ Ξ Σ))
+    (match src
+      [(or {singleton-set (-b (and (? symbol?) (app symbol->string l)))}
+           (-b (and (? symbol?) (app symbol->string l))))
+       #:when l
+       (mon C V (Ctx l (string->symbol (format "user-of-~a" l)) l ℓ) Φ^ Ξ Σ)]
+      [_ (error 'scv:mon "internal error")]))
   )

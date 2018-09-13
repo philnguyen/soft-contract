@@ -54,13 +54,6 @@
   (: Σₐ@ : (U Σ Σₐ) Ξ:co → R^)
   (define (Σₐ@ Σ Ξ:co) (hash-ref (->Σₐ Σ) Ξ:co mk-∅))
 
-  (: construct-call-graph : (U Σ Σₖ) → CG)
-  (define (construct-call-graph Σₖ)
-    (for*/fold ([CG : CG (hash)])
-               ([(α Ξₛs) (in-hash (->Σₖ Σₖ))] [Ξₛ (in-set Ξₛs)])
-      (match-define (Ξ:co (K _ αₛ) _) Ξₛ)
-      (hash-update CG αₛ (λ ([αₜs : (℘ αₖ)]) (set-add αₜs α)) mk-∅))) 
-
   #|
   (: unalloc : -σ -δσ -V → (℘ (Listof -V^)))
   ;; Convert a list in the object language into list(s) in the meta language

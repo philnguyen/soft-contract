@@ -301,9 +301,9 @@
         (define-values (T^ Φ^) (collapse-R^-1 Σ R^))
         (define Ξ* (let ([T* (V^+ Σ T^ C)])
                      (K+ (F:If:Flat/C T* (-blm R^)) Ξ₀)))
-        (match C
-          [(? -b? b) ((app₁ 'equal?) (list T^ {set b}) ℓ Φ^ Ξ* Σ)]
-          [_         ((app₁ C) (list T^) ℓ Φ^ Ξ* Σ)]))))
+        (if (-b? C)
+            ((app₁ 'equal?) (list T^ {set C}) ℓ Φ^ Ξ* Σ)
+            ((app₁ C      ) (list T^        ) ℓ Φ^ Ξ* Σ)))))
 
   (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
   (define Σᵥ@/ctx

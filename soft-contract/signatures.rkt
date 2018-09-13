@@ -16,8 +16,7 @@
    [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Blm) Σ))]
-   [viz : (Runnable → Σ)]
-   [viz-call-graph : (Runnable → Void)]))
+   [viz : (Runnable → Σ)]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]

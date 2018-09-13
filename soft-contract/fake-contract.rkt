@@ -13,7 +13,8 @@
                      racket/string
                      racket/syntax
                      syntax/parse)
-         racket/list)
+         racket/list
+         syntax/parse/define)
 (require (prefix-in c: racket/contract/base)
          (prefix-in c: (only-in racket/set set/c))
          (prefix-in r: racket/base))
@@ -32,11 +33,23 @@
          not/c cons/c
          one-of/c box/c vector/c vectorof
          define/contract dynamic-mon
-         contract?)
+         contract?
+         --> forall
+         (rename-out [--> ⇒] [forall ∀]))
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
     [(_ s) (syntax-property #'s 'scv:ignore #t)]))
+
+(begin-for-syntax
+  (define (with-syntax-source src stx)
+    (datum->syntax src
+                   (syntax-e stx)
+                   (list (syntax-source src)
+                         (syntax-line src)
+                         (syntax-column src)
+                         (syntax-position src)
+                         (syntax-span src)))))
 
 (define contract? c:contract?)
 (define flat-contract c:flat-contract)
@@ -88,48 +101,52 @@
 
 (define-syntax ->i
   (syntax-parser
-    [(_ (c:dom ...) d:dom (~optional (~seq #:total? total?:boolean)
-                                     #:defaults ([total? #'#f])))
-     #'(begin
-         (dynamic->i (list (dom-quote c) ...) (dom-quote d) total?)
-         (scv:ignore (c:->i (c ...) d)))]))
+    [(~and stx (_ (c:dom ...) d:dom (~optional (~seq #:total? total?:boolean)
+                                               #:defaults ([total? #'#f]))))
+     (with-syntax-source #'stx
+       #'(begin
+           (dynamic->i (list (dom-quote c) ...) (dom-quote d) total?)
+           (scv:ignore (c:->i (c ...) d))))]))
 
 (define (dynamic->i . _) (void))
 (define (dynamic-> . _) (void))
 (define (dynamic->* . _) (void))
 (define (dynamic-struct/c . _) (void))
 (define (dynamic-struct-out . _) (void))
-(define (dynamic-parametric->/c v) v)
+(define (dynamic-parametric->/c v) v) 
 
 (define-syntax ->
   (syntax-parser
-    [(-> cs:expr ... result-c:expr (~optional (~seq #:total? total?:boolean)
-                                              #:defaults ([total? #''#f])))
+    [(~and stx (-> cs:expr ... result-c:expr (~optional (~seq #:total? total?:boolean)
+                                                        #:defaults ([total? #''#f]))))
      (with-syntax ([rng (syntax-parse #'result-c
                           [(~literal c:any) #'#f]
                           [_ #'(list result-c)])])
-       #'(begin
-           (dynamic-> (list cs ...) rng total?)
-           (scv:ignore (c:-> cs ... result-c))))]))
+       (with-syntax-source #'stx
+         #'(begin
+             (dynamic-> (list cs ...) rng total?)
+             (scv:ignore (c:-> cs ... result-c)))))]))
 (define-syntax ->*
   (syntax-parser
-    [(->* (cs:expr ...) #:rest rest-c:expr result-c:expr
-          (~optional (~seq #:total? total?:boolean)
-                     #:defaults ([total? #'#f])))
+    [(~and stx (->* (cs:expr ...) #:rest rest-c:expr result-c:expr
+                    (~optional (~seq #:total? total?:boolean)
+                               #:defaults ([total? #'#f]))))
      (with-syntax ([rng (syntax-parse #'result-c
                           [(~literal c:any) #'#f]
                           [_ #'(list result-c)])])
-       #'(begin
-           (dynamic->* (list cs ...) rest-c rng total?)
-           (c:->* (cs ...) #:rest rest-c result-c)))]))
+       (with-syntax-source #'stx
+         #'(begin
+             (dynamic->* (list cs ...) rest-c rng total?)
+             (c:->* (cs ...) #:rest rest-c result-c))))]))
 
 (define-syntax case->
-  (syntax-rules ()
-    [(_ clauses ...)
-     (begin
-       (case->/acc () (clauses ...))
-       ;; TODO can't enable below yet, because hacky expansion replaces `->` and `->*`
-       #;(scv:ignore (c:case-> clauses ...)))]))
+  (syntax-parser
+    [(~and stx (_ clauses ...))
+     (with-syntax-source #'stx
+       #'(begin
+           (case->/acc () (clauses ...))
+           ;; TODO can't enable below yet, because hacky expansion replaces `->` and `->*`
+           #;(scv:ignore (c:case-> clauses ...))))]))
 
 (define-syntax case->/acc
   (syntax-rules (c:any)
@@ -199,3 +216,11 @@
   (begin (dynamic-recursive-contract x '(type ...))
          (scv:ignore (c:recursive-contract x type ...))))
 (define (dynamic-recursive-contract . _) (void))
+
+;; Syntactic sugar for theorem proving
+(define-simple-macro
+  (--> ([x:id c] ...) d)
+  (->i ([x c] ...) (res (x ...) (λ _ d)) #:total? #t))
+(define-simple-macro
+  (forall (α:id ...) e)
+  (c:parametric->/c (α ...) e))

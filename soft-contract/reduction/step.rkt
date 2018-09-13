@@ -63,7 +63,7 @@
            (hash-set! seen Ξ₁ v₁)
            Ξ₁)
          (add1 iter))))
-    (values blms Σ)) 
+    (values blms Σ))
 
   (: ->⟦E⟧ : (U -prog ⟦E⟧) → ⟦E⟧)
   (define (->⟦E⟧ x) (if (-prog? x) (↓ₚ x) x))

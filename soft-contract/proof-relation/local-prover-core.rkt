@@ -273,7 +273,10 @@
           [('any/c _) #f]
           [(P P) '✓]
           [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
-          [(P 'values) (if (eq? P 'not) '✗ '✓)]
+          [(P 'values) (match P ; TODO generalize
+                         [(or 'not (P:¬ 'values)) '✗]
+                         [(? -o?) '✓]
+                         [_ #f])]
           [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
           [((? base-only?) (? -st-p?)) '✗]
           [((? -st-p?) (? base-only?)) '✗]
@@ -497,6 +500,7 @@
         [(? -o? o) {set o}]
         [(and S (S:α α)) (refine (Σᵥ@ Σ α) (Ψ@ Φ^ (list S)))]
         [(and S (S:@ (-st-ac 𝒾 k) (list S*))) (refine (ac 𝒾 k (S->V S*)) (Ψ@ Φ^ (list S)))]
+        [(and S (S:@ (? symbol? o) _)) (refine {set (-● {set (get-conservative-range o)})} (Ψ@ Φ^ (list S)))]
         [S (refine {set (-● ∅)} (Ψ@ Φ^ (list S)))]))
 
     (cond [(S? T) (S->V T)]
@@ -506,7 +510,7 @@
   (: V^+ (case-> [Σ V^ V → V^]
                  [Σ T^ V → T^]))
   (define (V^+ Σ x p)
-    (cond [(?concretize p)]
+    (cond [(?concretize p) => set]
           [(set? x)
            (for/fold ([acc : V^ ∅]) ([V (in-set x)])
              (case (check Σ ⊤Φ p (list V))
@@ -517,6 +521,7 @@
 
   (define V+ : (V V → V)
     (match-lambda**
+     [(_ (app ?concretize (? values V))) V]
      [(V (St/C _ 𝒾 _)) (V+ V (-st-p 𝒾))]
      [(V (-st-p 𝒾)) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
      [((-● Ps) (? P? P))
@@ -524,10 +529,10 @@
       (if (and (∋ Ps* 'boolean?) (∋ Ps* 'values)) -tt (-● Ps*))]
      [(V _) V]))
 
-  (define ?concretize : (V → (Option V^))
+  (define ?concretize : (V → (Option V))
     (match-lambda
-      ['null? {set -null}]
-      ['not {set -ff}]
+      ['null? -null]
+      ['not -ff]
       [_ #f]))
 
   (: Ψ+ (case-> [Ψ (U P (℘ P)) (Listof S) → Ψ]

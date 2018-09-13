@@ -25,20 +25,21 @@
 (define-unit prims-zo@
   (import prim-runtime^)
   (export)
-
+  ;; FIXME: things seem to have changed with Racket 7.0
+  #|
   ;;;;; 7.1 API for Decompiling
-  (def decompile (compilation-top? . -> . any/c))
+  (def decompile ((or/c linkl-directory? linkl-bundle? linkl?) . -> . any/c))
 
   ;;;;; 7.2 API for Parsing Bytecode
   (def zo-parse
     (case->
-     [-> compilation-top?]
-     [input-port? . -> . compilation-top?]))
+     [-> (or/c linkl-directory? linkl-bundle?)]
+     [input-port? . -> . (or/c linkl-directory? linkl-bundle?)]))
   (def decode-module-binding (module-binding? symbol? . -> . decoded-module-binding?))
 
   ;;;;; 7.3 API for Marshalling Bytecode
-  (def zo-marshal-to (compilation-top? output-port? . -> . void?))
-  (def zo-marshal (compilation-top? . -> . bytes?))
+  (def zo-marshal-to ((or/c linkl-directory? linkl-bundle?) output-port? . -> . void?))
+  (def zo-marshal ((or/c linkl-directory? linkl-bundle?) . -> . bytes?))
 
   ;;;;; 7.4 Bytecode Representation
   (def-struct zo ()
@@ -296,5 +297,5 @@
       #:extra-constructor-name make-property-accessor-shape)
     (def-struct struct-other-shape ()
       #:extra-constructor-name make-struct-other-shape))
-  
+  |#
   )

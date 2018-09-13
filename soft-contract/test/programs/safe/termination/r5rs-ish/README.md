@@ -6,7 +6,7 @@
 - [o] ctak
 - [x] dderiv (pozes)
 - [o] deriv
-- [x] destruct
+- [o] destruct
 - [x] div
 - [ ] ~~dynamic~~
 - [ ] dynamic2 (exn:missing)

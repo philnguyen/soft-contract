@@ -35,9 +35,13 @@
   (: split-results ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^)))
   (define (split-results Σ R₀ [P 'values] #:fast? [fast? #f])
     (define-values (R✓ R✗ R?) (partition-results Σ R₀ P #:fast? fast?))
-    (for/fold ([R✓* : R^ R✓] [R✗* : R^ R✗]) ([R (in-set R?)])
-      (values (set-add R✓* (l:∧  R P))
-              (set-add R✗* (l:∧¬ R P)))))
+    (define (refine+ [R : R]) (l:∧  R P))
+    (define (refine- [R : R]) (l:∧¬ R P))
+    (for/fold ([R✓* : R^ (map/set refine+ R✓)]
+               [R✗* : R^ (map/set refine- R✗)])
+              ([R (in-set R?)])
+      (values (set-add R✓* (refine+ R))
+              (set-add R✗* (refine- R)))))
 
   (: partition-results ([Σ (U R R^)] [T #:fast? Boolean] . ->* . (Values R^ R^ R^)))
   (define (partition-results Σ R₀ [P 'values] #:fast? [fast? #f])

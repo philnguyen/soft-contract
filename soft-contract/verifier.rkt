@@ -18,10 +18,14 @@
          "reduction/signatures.rkt"
          )
 
+(require (only-in typed/racket/unsafe unsafe-require/typed))
+(unsafe-require/typed redex/gui
+  [reduction-steps-cutoff (Parameterof Natural)])
+
 (define-interner Ver-V Σᵥ)
 (define-interner Ver-K Σₖ)
 (define-interner Ver-A Σₐ)
-(Ξ* . ::= . (Ξ* Ξ Ver-V Ver-K R^))
+(Ξ* . ::= . (Ξ* Ξ Σᵥ Ver-K R^))
 
 (define-unit verifier@
   (import parser^
@@ -64,7 +68,7 @@
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Visualization
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   (: viz : Runnable → Σ)
   (define (viz x)
@@ -73,31 +77,35 @@
     (define (Ξ->Ξ* [Ξ : Ξ]) : Ξ*
       ;; depending on mutable state Σ₀
       (match-define (Σ Σᵥ Σₖ Σₐ) Σ₀)
-      (Ξ* Ξ (Ver-V-of Σᵥ) (Ver-K-of Σₖ) (hash-ref Σₐ Ξ (λ () ∅))))
+      (Ξ* Ξ Σᵥ (Ver-K-of Σₖ) (hash-ref Σₐ Ξ (λ () ∅))))
 
     (define Ξ*->Ξ : (Ξ* → Ξ)
       (match-lambda [(Ξ* Ξ _ _ _) Ξ]))
     
     (define ↝₁ : (Ξ* → (℘ Ξ*))
       (λ (Ξ*) (map/set Ξ->Ξ* (↝ (Ξ*->Ξ Ξ*) Σ₀))))
-    
-    (parameterize ([print-graph #f])
-      (function-traces ↝₁ (Ξ->Ξ* Ξ₀)))
-    Σ₀)
 
-  (: viz-call-graph : Runnable → Void)
-  (define (viz-call-graph x)
-    (match-define-values (_ (Σ _ Σₖ _)) (run x))
-    (cond
-      [(hash-empty? Σₖ) (printf "Empty call graph~n")]
-      [else
-       (define CG (construct-call-graph Σₖ))
-       (define entry
-         (assert (for/or : (Option αₖ) ([αₖ (in-hash-keys CG)]
-                                        #:when (set-empty? (Σₖ@ Σₖ αₖ)))
-                   αₖ)))
-       (parameterize ([print-graph #t])
-         (hash-traces CG entry))]))
+    (define tagger
+      (let ([cache:co->sym : (Mutable-HashTable Ξ* Symbol) (make-hash)]
+            [cache:blm->sym : (Mutable-HashTable Ξ* Symbol) (make-hash)]
+            [cache:sym->Ξ* : (Mutable-HashTable Symbol Ξ*) (make-hasheq)])
+        (define (Ξ*->sym [Ξ* : Ξ*])
+          (define-values (m prefix)
+            (if (Ξ:co? (Ξ*-_0 Ξ*))
+                (values cache:co->sym 'c)
+                (values cache:blm->sym 'b)))
+          (hash-ref! m Ξ* (λ ()
+                            (define s (format-symbol "~a~a" prefix (hash-count m)))
+                            (hash-set! cache:sym->Ξ* s Ξ*)
+                            s)))
+        (define (sym->Ξ* [s : Symbol]) (hash-ref cache:sym->Ξ* s))
+        (cons Ξ*->sym sym->Ξ*)))
+    
+    (parameterize ([print-graph #f]
+                   [reduction-steps-cutoff 9999])
+      (function-traces/tag ↝₁ (Ξ->Ξ* Ξ₀) tagger))
+    
+    Σ₀)
 
   (: comp ([Runnable] [#:havoc? Boolean] . ->* . ⟦E⟧))
   (define (comp x #:havoc? [havoc? #f])

@@ -14,22 +14,35 @@
          "../ast/signatures.rkt"
          )
 
-(#|State sans store|# Ξ . ::= . (Ξ:co [frames : K] [mark : (Option (Pairof Ctx M))])
+;; A configuration (state sans store) consists of the continuation frames and mark.
+(#|Configurations  |# Ξ . ::= . (Ξ:co [frames : K] [mark : (Option (Pairof Ctx M))])
                                 Blm)
+;; A continuation (K) consists of frames (F) and an address (αₖ) to the rest of the continuation
+;; The continuation address (αₖ) stores allocation context (H), path set (Φ^), as well as
+;; tags (βₖ) marking the type of current context (e.g. function body, contract monitoring, havoc, etc.)
 (#|Local kont.     |# K . ::= . (K [init : (Listof F)] [rest : αₖ]))
-(#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack address   |# αₖ . ::= . (αₖ [ctx : H] [path : Φ^] [ext : βₖ]))
+(#|Instrumentation |# -H . ::= . #:TBD)
 (#|Stack addr. ext.|# βₖ . ::= . (βₖ:exp ⟦E⟧ Ρ)
-                                 Symbol
+                                 (βₖ:app Symbol W)
                                  (βₖ:mon Ctx α)
                                  (βₖ:fc ℓ α)
                                  (βₖ:hv HV-Tag)
                                  (βₖ:term/c α W))
+;; A result (R) is a pair of value list (W) and set of paths (Φ) under which it was computed
 (#|Result          |# R . ::= . (R W Φ^))
+;; A path (Φ) consists of:
+;; - A path condition (Ψ) remembering assumptions
+;; - A path alias ($) tracking alias between symbolic values
+;; A configuration (state sans store) consists of the continuation frames and mark.
 (#|Path            |# Φ . ::= . (Φ [alias : $] [condition : Ψ]))
 (#|Path alias      |# $ . ≜ . (Immutable-HashTable α S))
 (#|Path condition  |# Ψ . ≜ . (Immutable-HashTable (Listof S) (℘ P)))
 (#|Environment     |# Ρ . ≜ . (Immutable-HashTable Symbol α))
+;; There are 3 stores:
+;; - The value store (Σᵥ) mapping each address to a set of values
+;; - The continuation store (Σₖ) mapping each address to a set of (return) continuations
+;; - The result store (Σₐ) mapping each continuation to a set of results on top of it
 (struct Σ ([val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:transparent #:mutable)
 #;(#|Store           |# Σ  . ::= . (Σ [val : Σᵥ] [kon : Σₖ] [evl : Σₐ]) #:mutable)
 (#|Value store     |# Σᵥ . ≜ . (Immutable-HashTable α V^))
@@ -41,7 +54,6 @@
 (#|Sym/Abs value   |# T^ . ::= . S V^)
 (#|Compiled expr   |# ⟦E⟧ . ≜ . (  Ρ Φ^ Ξ:co Σ → Ξ))
 (#|Application     |# ⟦F⟧ . ≜ . (W ℓ Φ^ Ξ:co Σ → Ξ))
-(#|Call graph      |# CG . ≜ . (Immutable-HashTable αₖ (℘ αₖ))) ; FIXME obsolete
 (#|Kont. frame     |# F . ::= . #:TBD)
 (#|Annotated stack |# Rt . ::= . (Rt Φ^ (℘ α) Ξ:co))
 ;; Approximated versions of things
@@ -245,7 +257,6 @@
    [Σₖ@ : ((U Σ Σₖ) αₖ → Rt^)]
    [Σₐ@ : ((U Σ Σₐ) Ξ:co → R^)]
    [Σᵥ@* : ((U Σ Σᵥ) (Listof α) → W)]
-   [construct-call-graph : ((U Σ Σₖ) → CG)]
    ;; Old
    #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
    #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]

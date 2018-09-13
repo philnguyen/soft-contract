@@ -86,15 +86,14 @@
               [_ (format "~a values: ~a" (length Vs) (map show-T Vs))])))
 
   (: print-blames : (℘ Blm) → Void)
-  (define (print-blames blames) 
+  (define (print-blames blames)
+    (define maybe-plural (match-lambda [1 ""] [_ "s"]))
     (match (set-count blames)
       [0 (printf "Safe~n")]
-      [1 (printf "Found 1 possible contract violation:~n")
-         (print-blame (set-first blames) "")]
       [n
-       (printf "Found ~a possible contract violations~n" n)
+       (printf "Found ~a possible contract violation~a~n" n (maybe-plural n))
        (for ([b (in-set blames)] [i (in-naturals)])
-         (print-blame b (format "(~a)" i)))]))
+         (print-blame b (format "(~a)" (+ 1 i))))]))
 
   (: go : (Listof Path-String) → Void)
   (define (go fnames)
@@ -113,8 +112,7 @@
         [(light) (run-with run fnames)]
         [(havoc) (run-with havoc fnames)]
         [(havoc-last) (run-with havoc-last fnames)]
-        [(debug) (void (viz fnames))]
-        [(debug-cg) (viz-call-graph fnames)])))
+        [(debug) (void (viz fnames))])))
 
   (go (map canonicalize-path fnames)))
 

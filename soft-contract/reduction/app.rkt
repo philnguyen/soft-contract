@@ -77,7 +77,7 @@
   (: app-prim : Symbol → ⟦F⟧^)
   (define ((app-prim o) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ₀)
-    (define α* (αₖ (H+ H ℓ o) Φ^ o))
+    (define α* (αₖ (H+ H ℓ o) Φ^ (βₖ:app o Wₓ)))
     (⊔ₖ! Σ α* (Rt Φ^ ∅eq Ξ₀))
     ((get-prim o) Wₓ ℓ Φ^ (Ξ:co (K '() α*) ?m) Σ))
 
@@ -265,9 +265,9 @@
       (match-lambda
         [(Clo (-var zs #|TODO|# #f) ⟦E⟧ₓ Ρₓ)
          (unless (hash-empty? Ρₓ)
-           (error '->i "temporary restriction: domain cannot capture refer to lexical variables apart from those in dependency list"))
+           (error '->i "temporary restriction: domain cannot refer to lexical variables apart from those in dependency list"))
          ⟦E⟧ₓ]
-        [(? integer? α) (mk-T (Σᵥ@ Σ αₕ))]))
+        [(? integer? α) (mk-T (Σᵥ@ Σ α))]))
     (define-values (xs ⟦x⟧s ⟦mon-x⟧s)
       (for/lists ([xs : (Listof Symbol)] [⟦x⟧s : (Listof ⟦E⟧)] [⟦mon⟧s : (Listof ⟦E⟧)])
                  ([D (in-list Doms)] [Vₓ (in-list Wₓ)])

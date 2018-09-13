@@ -80,6 +80,7 @@
                    [modules-to-parse (list->set fns)]
                    [id-occurence-count (make-hasheq)])
       (define stxs (map do-expand-file fns))
+
       (for-each figure-out-aliases! stxs)
 
       (for-each figure-out-alternate-aliases!
@@ -137,7 +138,7 @@
       (syntax-parser
         #:literals (define-values #%plain-app quote)
         [(~and stx (define-values (wrapper:id _:id)
-           (#%plain-app f _ _ (quote name:id) _ _)))
+           (#%plain-app f _ _ (quote name:id) _ _ _ ...)))
          #:when (eq? (syntax-e #'f) 'do-partial-app)
          (define m (cur-mod))
          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) m) (-𝒾 (syntax-e #'name) m))]
@@ -459,7 +460,8 @@
       ;; Parametric contract
       [ctc:scv-parametric->/c
        (define-values (xs ρ) (parse-formals (attribute ctc.params)))
-       (-∀/c xs (with-env ρ (parse-e (attribute ctc.body))))]
+       (match-define (-var xs₀ #f) xs)
+       (-∀/c xs₀ (with-env ρ (parse-e (attribute ctc.body))))]
       ;; Non-dependent function contract
       [c:scv-->
        (define dom

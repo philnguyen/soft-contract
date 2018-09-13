@@ -40,7 +40,7 @@
   (define (C^-flat? C^)
     (if (set? C^)
         (for/and : Boolean ([C (in-set C^)]) (C-flat? C))
-        #f))
+        (-o? C^)))
 
   (:* with-negative-party with-positive-party : -l V → V)
   (define with-negative-party

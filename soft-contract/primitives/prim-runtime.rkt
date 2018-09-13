@@ -25,14 +25,14 @@
   (export prim-runtime^)
 
   (splicing-let ([TT (list {set -tt})]
-                 [FF (list {set -ff})]
-                 [?? (list {set (-● {set 'boolean?})})])
+                 [FF (list {set -ff})])
     (: implement-predicate : Σ Φ^ -o W → R^)
     (define (implement-predicate Σ Φ^₀ o W)
-      ((inst with-3-paths/collapse R) (λ () (partition-results Σ (R W Φ^₀) o))
-        (λ (Φ^) {set (R TT Φ^)})
-        (λ (Φ^) {set (R FF Φ^)})
-        (λ (Φ^) {set (R (if (andmap S? W) (list (S:@ o W)) ??) Φ^)}))))
+      (define-values (R+ R-) (split-results Σ (R W Φ^₀) o))
+      (define ?res (and (andmap S? W) (list (S:@ o W))))
+      ((inst with-2-paths/collapse R) (λ () (split-results Σ (R W Φ^₀) o))
+       (λ (Φ^) {set (R (or ?res TT) Φ^)})
+       (λ (Φ^) {set (R (or ?res FF) Φ^)}))))
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
