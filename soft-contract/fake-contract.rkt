@@ -96,8 +96,12 @@
 
 (define-syntax dom-quote
   (syntax-parser
-    [(_ (name:id (dep:id ...) ctc:expr)) #'(list #t 'name (λ (dep ...) ctc))]
-    [(_ (name:id              ctc:expr)) #'(list #f 'name              ctc )]))
+    [(_ (~and stx (name:id (dep:id ...) ctc:expr)))
+     (with-syntax-source #'stx
+       #'(list #t 'name (λ (dep ...) ctc)))]
+    [(_ (~and stx (name:id              ctc:expr)))
+     (with-syntax-source #'stx
+       #'(list #f 'name              ctc ))]))
 
 (define-syntax ->i
   (syntax-parser
