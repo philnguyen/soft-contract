@@ -45,12 +45,13 @@
           [_ (error 'scv:make-case-> "Internal invariant violated")])))
     {set (ret! (T->R (Case-=> cases) Φ^) Ξ Σ)})
 
+  (define ℓ:mon (loc->ℓ (loc 'scv:mon 0 0 '())))
   (def (scv:mon W ℓ Φ^ Ξ Σ)
     #:init ([src symbol?] [C contract?] [V any/c])
     (match src
       [(or {singleton-set (-b (and (? symbol?) (app symbol->string l)))}
            (-b (and (? symbol?) (app symbol->string l))))
        #:when l
-       (mon C V (Ctx l (string->symbol (format "user-of-~a" l)) l ℓ) Φ^ Ξ Σ)]
+       (mon C V (Ctx l (string->symbol (format "user-of-~a" l)) ℓ:mon ℓ) Φ^ Ξ Σ)]
       [_ (error 'scv:mon "internal error")]))
   )

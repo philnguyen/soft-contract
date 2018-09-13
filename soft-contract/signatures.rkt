@@ -13,6 +13,7 @@
 (define-signature verifier^
   ([run : (Runnable → (Values (℘ Blm) Σ))]
    [havoc : ((Listof Path-String) → (Values (℘ Blm) Σ))]
+   [optimize : (-module (℘ Blm) → -module)]
    [havoc-last : ((Listof Path-String) → (Values (℘ Blm) Σ))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Blm) Σ))]

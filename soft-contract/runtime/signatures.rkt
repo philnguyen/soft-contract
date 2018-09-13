@@ -105,8 +105,9 @@
                                  (Case-=> (Listof ==>))
                                  'scv:terminating/c)
 
-(#|Blame|# Blm . ::= . (Blm [violator : ℓ]
-                            [origin : -l]
+(#|Blame|# Blm . ::= . (Blm [violator : -l]
+                            [site : ℓ]
+                            [origin : ℓ]
                             [ctc : (Listof (U V P V^))]
                             [val : W]))
 (#|Contract field access|# αℓ . ::= . (αℓ α ℓ))
@@ -116,7 +117,7 @@
                                           [ctx : ⟦E⟧]
                                           [src : ℓ]))
 (#|Context tag for havoc|# HV-Tag . ≜ . (Option -l))
-(#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [src : -l] [loc : ℓ]))
+(#|Monitor context|# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [origin : ℓ] [site : ℓ]))
 (Cardinality . ::= . 0 1 'N)
 (Dec . ::= . '✓ '✗)
 (?Dec . ≜ . (Option Dec))
@@ -281,7 +282,7 @@
    [guard-arity : (case->
                    [==> → Arity]
                    [Fn/C → (Option Arity)])]
-   [blm-arity : (ℓ -l Arity W → Blm)]
+   [blm-arity : (-l ℓ ℓ Arity W → Blm)]
    [K+ : (F Ξ:co → Ξ:co)]
    [in-scope? : ((U α S) (℘ α) → Boolean)]
    [cmp-sets : (?Cmp (℘ Any))]
@@ -291,7 +292,8 @@
    [compact-with : (∀ (X) (?Joiner X) → (℘ X) X → (℘ X))]
    [iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
    [Ctx-flip : (Ctx → Ctx)]
-   [Ctx-with-ℓ : (Ctx ℓ → Ctx)]
+   [Ctx-with-site : (Ctx ℓ → Ctx)]
+   [Ctx-with-origin : (Ctx ℓ → Ctx)]
    [X/C->binder : (X/C → Symbol)]
    [estimate-list-lengths : ((U Σ Σᵥ) V → (℘ (U #f Arity)))]
    ))

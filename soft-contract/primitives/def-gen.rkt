@@ -83,7 +83,7 @@
     (list
      #`(match #,(-W)
          #,@cases
-         [_ (r:blm #,(-ℓ) '#,(-o) (list 'error-msg) #,(-W))])))
+         [_ (r:blm #,(-ℓ) (loc->ℓ (loc '#,(-o) 0 0 '())) (list 'error-msg) #,(-W))])))
 
   (define/contract (gen-case dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
@@ -239,7 +239,7 @@
     (hack:make-available (-o) r:blm)
     (cons
      #`(define (blm [ctc : V] [val : T^])
-         (r:blm #,(-ℓ) '#,(-o) (list {set ctc}) (list val)))
+         (r:blm #,(-ℓ) (loc->ℓ (loc '#,(-o) 0 0 '())) (list {set ctc}) (list val)))
      (gen-inits doms (-Vⁿ))))
 
   ;; See if range needs to go through general contract monitoring

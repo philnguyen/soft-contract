@@ -149,26 +149,26 @@
               [_ (let ([R^ (for/set : R^ ([W (in-set W^)]) (R W Φ^))])
                    (ret! R^ Ξ Σ))])}]
       [(F:Mon:C Ctx Ctc)
-       (with-guarded-single-arity/collapse Σ R^₀ (Ctx-loc Ctx)
+       (with-guarded-single-arity/collapse Σ R^₀ (Ctx-site Ctx)
          (λ (Val Φ^)
            (match Ctc
              [(EΡ ⟦C⟧ Ρ) {set (⟦C⟧ Ρ Φ^ (K+ (F:Mon:V Ctx Val) Ξ) Σ)}]
              [(? T^?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon:V Ctx Val)
-       (with-guarded-single-arity/collapse Σ R^₀ (Ctx-loc Ctx)
+       (with-guarded-single-arity/collapse Σ R^₀ (Ctx-site Ctx)
          (λ (Ctc Φ^)
            (match Val
              [(EΡ ⟦V⟧ Ρ) {set (⟦V⟧ Ρ Φ^ (K+ (F:Mon:C Ctx Ctc) Ξ) Σ)}]
              [(? T^?) (mon Ctc Val Ctx Φ^ Ξ Σ)])))]
       [(F:Mon*:C Ctx rngs)
        (if rngs
-           (with-guarded-arity/collapse Σ R^₀ (length rngs) (Ctx-loc Ctx)
+           (with-guarded-arity/collapse Σ R^₀ (length rngs) (Ctx-site Ctx)
              (λ (W Φ^)
                (define-values (βs ℓs) (unzip-by αℓ-_0 αℓ-_1 rngs))
                (match* ((Σᵥ@* Σ βs) W ℓs)
                  [((cons C₁ Cs) (cons V₁ Vs) (cons ℓ₁ ℓs))
                   (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs '()) Ξ))
-                  (mon C₁ V₁ (Ctx-with-ℓ Ctx ℓ₁) Φ^ Ξ* Σ)]
+                  (mon C₁ V₁ (Ctx-with-origin Ctx ℓ₁) Φ^ Ξ* Σ)]
                  [('() '() '())
                   {set (ret! (R '() Φ^) Ξ Σ)}])))
            {set (ret! R^₀ Ξ Σ)})]
@@ -178,7 +178,7 @@
        (match* (Cs Vs ℓs)
          [((cons C Cs) (cons V Vs) (cons ℓ ℓs))
           (define Ξ* (K+ (F:Mon* Ctx Cs Vs ℓs Res-rev*) Ξ))
-          (mon C V (Ctx-with-ℓ Ctx ℓ) Φ^ Ξ* Σ)]
+          (mon C V (Ctx-with-origin Ctx ℓ) Φ^ Ξ* Σ)]
          [('() '() '())
           {set (ret! (R (reverse Res-rev*) Φ^) Ξ Σ)}])]
       [(F:Μ/C x)
@@ -247,7 +247,8 @@
            (define α* (mk-α (-α:wrp 𝒾)))
            (define T^ (Σᵥ@ Σ α))
            (define Φ^* ($+ Φ^ α* (S:α α*)))
-           (mon C^ T^ (Ctx l 'dummy- l ℓ) Φ^* (K+ (F:Def l (list α*)) Ξ) Σ)))]
+           (define ℓ:o (loc->ℓ (loc l (ℓ-line ℓ) (ℓ-col ℓ) '(ctc))))
+           (mon C^ T^ (Ctx l 'dummy- ℓ:o ℓ) Φ^* (K+ (F:Def l (list α*)) Ξ) Σ)))]
       
       ;; Specific helpers
       [(F:Wrap G Ctx α)
@@ -391,10 +392,10 @@
       (restore (restrict R^ₑₑ Σ (set-subtract (scope (Ξ:co-ctx Ξₑᵣ)) binders)) Σ Φ^ₑᵣ)))
   
 
-  (: blm : ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))
-  (define (blm ℓ+ lo C Wₓ)
-    (define (go [W : W]) (Blm (strip-ℓ ℓ+) lo C W))
-    (cond [(not (transparent-module? (ℓ-src ℓ+))) ∅]
+  (: blm : -l ℓ ℓ (Listof (U V V^)) (U W W^) → (℘ Blm))
+  (define (blm l+ ℓ:site ℓ:origin C Wₓ)
+    (define (go [W : W]) (Blm l+ ℓ:site ℓ:origin C W))
+    (cond [(not (transparent-module? l+)) ∅]
           [(set? Wₓ) {map/set go Wₓ}]
           [else {set (go Wₓ)}]))
 
@@ -412,13 +413,13 @@
   (define (with-guarded-arity/W W n ℓ exec)
     (if (= n (length W))
         (exec W)
-        {set (Blm ℓ 'Λ (list 'arity (-b n)) W)}))
+        {set (Blm (ℓ-src ℓ) ℓ ℓ:Λ (list 'arity (-b n)) W)}))
 
   (: with-guarded-arity : R^ Natural ℓ (R^ → (℘ Ξ)) → (℘ Ξ))
   (define (with-guarded-arity R^ n ℓ exec)
     (define-values (R^-goods W-bads) (filter/arity R^ n))
     (define blms (for/set : (℘ Blm) ([W (in-set W-bads)])
-                   (Blm ℓ 'Λ (list 'arity (-b n)) W)))
+                   (Blm (ℓ-src ℓ) ℓ ℓ:Λ (list 'arity (-b n)) W)))
     (∪ blms (if (set-empty? R^-goods) ∅ (exec R^-goods))))
   
   (: with-guarded-arity/collapse : Σ R^ Natural ℓ (W Φ^ → (℘ Ξ)) → (℘ Ξ))
@@ -443,8 +444,8 @@
                    [_ R₀]))
                R^)))
       (λ ([R^ : R^])
-        (match-define (Ctx l+ _ lₒ ℓ) ctx)
-        (blm (ℓ-with-src ℓ l+) lₒ (list P) (collapse-R^/W^ R^)))))
+        (match-define (Ctx l+ _ ℓ:o ℓ) ctx)
+        (blm l+ ℓ ℓ:o (list P) (collapse-R^/W^ R^)))))
 
   (: mk-==>! : Σ Φ^ H W (Option T^) W^ ℓ → (℘ ==>))
   (define (mk-==>! Σ Φ^ H₀ doms-rev ?rst rngs ℓ₀)
@@ -560,4 +561,5 @@
 
   (define db:iter? : (Parameterof Boolean) (make-parameter #f))
   (define db:max-steps : (Parameterof (Option Integer)) (make-parameter #f))
+  (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
   )

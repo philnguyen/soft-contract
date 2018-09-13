@@ -36,6 +36,7 @@
 
   (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
     (λ (o)
+      (define ℓ:o (loc->ℓ (loc o 0 0 '())))
       (λ (W ℓ Φ^ Ξ Σ)
         (cond
           [(equal? n (length W))
@@ -43,10 +44,10 @@
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
            (define ?er
              (match ((inst findf T^) (λ (T^) (and (set? T^) (set-ormap Sealed? T^))) W)
-               [(? set? T^) (r:blm ℓ o '(any/c) (list T^))]
+               [(? set? T^) (r:blm ℓ ℓ:o '(any/c) (list T^))]
                [#f ∅]))
            {set-add ?er ok}]
-          [else (r:blm ℓ o (list (-b n) 'values) W)]))))
+          [else (r:blm ℓ ℓ:o (list (-b n) 'values) W)]))))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
@@ -197,8 +198,9 @@
            #:refinements refinements
            #:args args)
     (define l (ℓ-src ℓ))
-    (define ctx* (Ctx l o o ℓ))
-    (define ctx (Ctx o l o ℓ))
+    (define ℓ:o (loc->ℓ (loc o 0 0 '())))
+    (define ctx* (Ctx l o ℓ:o ℓ))
+    (define ctx (Ctx o l ℓ:o ℓ))
 
     (define (no-return?)
       (ormap (match-λ? {singleton-set (-● (singleton-set 'none/c))}) ranges))
@@ -265,14 +267,14 @@
 
   ;; Eta-expand to get aroudn undefined and init-depend
   (: r:ret! : ((U R R^) Ξ:co Σ → Ξ:co))
-  (: r:blm : (ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm)))
+  (: r:blm : (ℓ ℓ (Listof (U V V^)) (U W W^) → (℘ Blm)))
   (: r:split-results : Σ R P → (Values R^ R^))
   (: r:with-2-paths/collapse
      (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
   (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
   (define (r:with-2-paths/collapse e t f) (with-2-paths/collapse e t f))
   (define (r:split-results Σ R P) (split-results Σ R P))
-  (define (r:blm ℓ+ lo C V) (blm ℓ+ lo C V))
+  (define (r:blm ℓ+ ℓo C V) (blm (ℓ-src ℓ+) ℓ+ ℓo C V))
 
   #|
   (: t.@/simp : -o (Listof -t) → -t)

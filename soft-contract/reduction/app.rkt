@@ -29,6 +29,7 @@
   (: app : T^ W ℓ Φ^ Ξ:co Σ → (℘ Ξ))
   (define (app Tₕ^ Wₓ ℓ Φ^ Ξ₀ Σ)
     (define with (inst with-2-paths Ξ))
+    (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
     (with (λ () (split-results Σ (R (list (T->V Σ Φ^ Tₕ^)) Φ^) 'procedure? #:fast? #t))
       (λ (R^)
         (define n {set (-b (length Wₓ))})
@@ -42,9 +43,9 @@
                 ((app₁ Vₕ) Wₓ ℓ Φ^* Ξ₀ Σ)))
             (λ (Rs)
               (define msg (string->symbol (format "(arity-includes/c ~a)" (length Wₓ))))
-              (blm ℓ 'Λ (list msg) (list Vₕ^))))))
+              (blm (ℓ-src ℓ) ℓ ℓ:Λ (list msg) (list Vₕ^))))))
       (λ (R^)
-        (blm ℓ 'Λ '(procedure?) (list Tₕ^)))))
+        (blm (ℓ-src ℓ) ℓ ℓ:Λ '(procedure?) (list Tₕ^)))))
 
   (: app₁ : V → ⟦F⟧^)
   ;; Apply single function, assuming function-ness and arity has been checked
@@ -104,11 +105,11 @@
     
     ;; FIXME guard arity
     (match* ((looped? H*) ?m)
-      [(#t (cons (and ctx (Ctx l+ _ lo _)) M))
+      [(#t (cons (and ctx (Ctx l+ _ ℓ:o _)) M))
        (define Tₕ (Clo fmls ⟦E⟧ Ρ))
        (match (update-call-record H* M Tₕ Wₓ ℓ Φ^ Σ)
          [(? values M*) (on-sc-ok (cons ctx M*))]
-         [_ {set (Blm (ℓ-with-src ℓ l+) lo '(size-change-terminating/c) (cons {set Tₕ} Wₓ))}])]
+         [_ {set (Blm l+ ℓ ℓ:o '(size-change-terminating/c) (cons {set Tₕ} Wₓ))}])]
       [(_ _) (on-sc-ok ?m)]))
 
   (: app-case-clo : (Listof Clo) → ⟦F⟧^)
@@ -134,6 +135,7 @@
   (define ((app-st-ac 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
     (define P (-st-p 𝒾))
     (define Ac (-st-ac 𝒾 i))
+    (define ℓ:ac (loc->ℓ (loc (-𝒾-name 𝒾) 0 0 '())))
     (with-2-paths (λ () (split-results Σ (R Wₓ Φ^) P))
       (λ ([R^ : R^])
         (for*/fold ([acc : (℘ Ξ) ∅])
@@ -150,20 +152,21 @@
                       (define Ξ* ; mutable field should be wrapped
                         (if (struct-mutable? 𝒾 i)
                             (match-let ([(αℓ αᵢ ℓᵢ) (list-ref αℓs i)])
-                              (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
+                              (K+ (F:Mon:C (Ctx-with-site (Ctx-with-origin ctx ℓᵢ) ℓ) (Σᵥ@ Σ αᵢ)) Ξ₀))
                             Ξ₀))
                       (define F:Ac (F:Ap (list {set Ac}) '() (ℓ-with-id ℓ 'unwrap)))
                       (ret! (T->R T^* Φ^ᵢ) (K+ F:Ac Ξ*) Σ)]
                      [_ (ret! (T->R (-● ∅) Φ^ᵢ) Ξ₀ Σ)])))
               (set-add acc (ret! (T->R (S:@ Ac (list T^ᵢ)) Φ^ᵢ) Ξ₀ Σ)))))
       (λ ([R^ : R^])
-        (blm ℓ (-𝒾-name 𝒾) (list P) (collapse-R^/W^ R^)))))
+        (blm (ℓ-src ℓ) ℓ ℓ:ac (list P) (collapse-R^/W^ R^)))))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧^)
   (define ((app-st-mut 𝒾 i) Wₓ ℓ Φ^ Ξ₀ Σ)
     (match-define (list Tₛ Tᵥ) Wₓ)
     (define P (-st-p 𝒾))
     (define Mut (-st-mut 𝒾 i))
+    (define ℓ:mut (loc->ℓ (loc (-𝒾-name 𝒾) 0 0 '())))
     (with-2-paths (λ () (split-results Σ (R (list Tₛ) Φ^) P))
       (λ ([R^ : R^])
         (for*/fold ([acc : (℘ Ξ) ∅])
@@ -182,7 +185,7 @@
                       (define Tₛ* (Σᵥ@ Σ α))
                       (define Ξ*
                         (let ([F:Set (F:Ap (list Tₛ* {set Mut}) '() (ℓ-with-id ℓ 'unwrap))]
-                              [F:Mon (F:Mon:C (Ctx-with-ℓ (Ctx-flip ctx) ℓᵢ) (Σᵥ@ Σ αᵢ))])
+                              [F:Mon (F:Mon:C (Ctx-with-site (Ctx-with-origin (Ctx-flip ctx) ℓᵢ) ℓ) (Σᵥ@ Σ αᵢ))])
                           (K+ F:Mon (K+ F:Set Ξ₀))))
                       (ret! (T->R Tᵥ Φ^ᵢ) Ξ* Σ)]
                      [_
@@ -192,7 +195,7 @@
                 (add-leak! Σ (T->V Σ Φ^ᵢ Tᵥ))
                 (set-add acc (ret! (T->R -void Φ^ᵢ) Ξ₀ Σ))))))
       (λ ([R^ : R^])
-        (blm ℓ (-𝒾-name 𝒾) (list P) (collapse-R^/W^ R^)))))
+        (blm (ℓ-src ℓ) ℓ ℓ:mut (list P) (collapse-R^/W^ R^)))))
 
   (:* app-And/C app-Or/C : α α → ⟦F⟧^)
   (define-values (app-And/C app-Or/C)
@@ -226,17 +229,17 @@
 
   (: app-==> : Ctx ==> α → ⟦F⟧^)
   (define ((app-==> ctx G α) Wₓ ℓ Φ^ Ξ Σ)
-    (define ctx* (Ctx-flip ctx))
+    (define ctx* (Ctx-with-site (Ctx-flip ctx) ℓ))
     (match-define (==> (-var Doms₀ Domᵣ) Rng) G)
-    (define Ξ* (K+ (F:Mon*:C (Ctx-with-ℓ ctx ℓ) Rng) Ξ))
-    (define ℓ* (ℓ-with-src ℓ (Ctx-src ctx)))
+    (define Ξ* (K+ (F:Mon*:C (Ctx-with-site ctx ℓ) Rng) Ξ))
+    (define ℓ* (Ctx-origin ctx))
     (define Tₕ^ (Σᵥ@ Σ α))
     (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms₀)))
     (define ⟦X⟧s : (Listof EΡ)
       (for/list ([Vₓ^ (in-list W₀)] [Domₓ (in-list Doms₀)])
         (match-define (αℓ αₓ ℓₓ) Domₓ)
         (define Cₓ (Σᵥ@ Σ αₓ))
-        (EΡ (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (mk-T Cₓ) (mk-T Vₓ^)) ⊥Ρ)))
+        (EΡ (mk-mon (Ctx-with-origin ctx* ℓₓ) (mk-T Cₓ) (mk-T Vₓ^)) ⊥Ρ)))
     (match* (Doms₀ Domᵣ)
       [('() #f) (app Tₕ^ '() ℓ* Φ^ Ξ* Σ)]
       [((? pair?) #f)
@@ -244,7 +247,7 @@
          {set (⟦X⟧ Ρ Φ^ (K+ (F:Ap (list Tₕ^) ⟦X⟧s ℓ*) Ξ*) Σ)})]
       [(_ (αℓ αᵣ ℓᵣ))
        (define Tᵣ (alloc-rest! ℓ Wᵣ (Ξ:co-ctx Ξ) Φ^ Σ))
-       (define ⟦X⟧ᵣ (mk-mon (Ctx-with-ℓ ctx* ℓᵣ) (mk-T (Σᵥ@ Σ αᵣ)) (mk-T Tᵣ)))
+       (define ⟦X⟧ᵣ (mk-mon (Ctx-with-origin ctx* ℓᵣ) (mk-T (Σᵥ@ Σ αᵣ)) (mk-T Tᵣ)))
        (define Fn (list Tₕ^ {set 'apply}))
        (match ⟦X⟧s
          [(cons (cons ⟦X⟧ Ρ) ⟦X⟧s)
@@ -254,7 +257,7 @@
 
   (: app-==>i : Ctx ==>i α → ⟦F⟧^)
   (define ((app-==>i ctx G αₕ) Wₓ ℓ Φ^ Ξ Σ)
-    (define ctx* (Ctx-flip ctx))
+    (define ctx* (Ctx-with-site (Ctx-flip ctx) ℓ))
     (match-define (==>i Doms Rng) G)
     (define x->⟦x⟧ : (Symbol → ⟦E⟧)
       (let ([m (for/hasheq : (HashTable Symbol ⟦E⟧) ([D (in-list Doms)])
@@ -274,13 +277,13 @@
         (match-define (Dom x Cₓ ℓₓ) D)
         (values x
                 (x->⟦x⟧ x)
-                (mk-mon (Ctx-with-ℓ ctx* ℓₓ) (C->⟦E⟧ Cₓ) (mk-T Vₓ)))))
+                (mk-mon (Ctx-with-origin ctx* ℓₓ) (C->⟦E⟧ Cₓ) (mk-T Vₓ)))))
     (define ⟦inner-app⟧
-      (let ([ℓ* (ℓ-with-src ℓ (Ctx-src ctx))])
-        (mk-app ℓ* (mk-T (Σᵥ@ Σ αₕ)) ⟦x⟧s)))
+      (let (#;[ℓ* (ℓ-with-src ℓ (Ctx-src ctx))])
+        (mk-app (Ctx-origin ctx) (mk-T (Σᵥ@ Σ αₕ)) ⟦x⟧s)))
     (define ⟦mon-app⟧
       (match-let ([(Dom _ D ℓᵣ) Rng])
-        (mk-mon (Ctx-with-ℓ ctx ℓᵣ) (C->⟦E⟧ D) ⟦inner-app⟧)))
+        (mk-mon (Ctx-with-origin ctx ℓᵣ) (C->⟦E⟧ D) ⟦inner-app⟧)))
     (define ⟦comp⟧ (mk-let* ℓ (map (inst cons Symbol ⟦E⟧) xs ⟦mon-x⟧s) ⟦mon-app⟧))
     {set (⟦comp⟧ ⊥Ρ Φ^ Ξ Σ)})
 
@@ -328,11 +331,10 @@
       {set (ret! ((R↓ Σ (scope H*)) (R Wₓ Φ^)) Ξ* Σ)})
 
     (match ?m
-      [(cons (Ctx l+ _ lo _) _)
+      [(cons (Ctx l+ _ ℓ:o _) _)
        #:when (transparent-module? l+)
        (set-add (on-sc-ok)
-                (Blm (ℓ-with-src ℓ l+) lo '(size-change-terminating/c)
-                     (list {set (-● ∅)})))]
+                (Blm l+ ℓ ℓ:o '(size-change-terminating/c) (list {set (-● ∅)})))]
       [_ (on-sc-ok)]))
 
   (: app-sym : S → ⟦F⟧^)

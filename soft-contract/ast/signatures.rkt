@@ -201,7 +201,9 @@
    [in-var : (∀ (X) (-var X) → (Sequenceof X))]
    [shape : (∀ (X) (-var X) → (U Index arity-at-least))]
    [+x! : ((U Symbol Integer) * → Symbol)]
-   [+x!/memo : ((U Symbol Integer) * → Symbol)]))
+   [+x!/memo : ((U Symbol Integer) * → Symbol)]
+   [optimize-contracts : ((℘ ℓ) -module → -module)]
+   [optimize-uses : ((℘ ℓ) -module → -module)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

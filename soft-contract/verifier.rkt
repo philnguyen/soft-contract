@@ -29,6 +29,7 @@
 
 (define-unit verifier@
   (import parser^
+          meta-functions^
           static-info^
           sto^
           step^ compile^ (prefix hv: havoc^))
@@ -47,6 +48,17 @@
   (define (havoc ps)
     (with-initialized-static-info
       (↝* (comp ps #:havoc? #t))))
+
+  (: optimize : -module (℘ Blm) → -module)
+  (define (optimize m blms)
+    ;; Collect potential sites and contract sources of violation
+    (define-values (origins sites)
+      (for/fold ([origins : (℘ ℓ) ∅eq] [sites : (℘ ℓ) ∅eq])
+                ([blm (in-set blms)])
+        (values (set-add origins (Blm-origin blm))
+                (set-add sites   (Blm-site blm)))))
+    ;; Split out optimized module
+    (optimize-uses sites (optimize-contracts origins m)))
 
   (: havoc/profile ([(Listof Path-String)]
                     [#:delay Positive-Real]

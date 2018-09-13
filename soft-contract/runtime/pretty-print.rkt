@@ -132,10 +132,10 @@
       [(S:@ S Ss) `(,(show-S S) ,@(map show-S Ss))]))
 
   (define (show-Blm [blm : Blm]) : Sexp
-    (match-define (Blm ℓ lo Cs Vs) blm)
+    (match-define (Blm l+ ℓ:site ℓ:src Cs Vs) blm)
     (match* (Cs Vs)
       [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
-      [(_ _) `(blame ,(show-ℓ ℓ) ,lo ,(map show-blm-reason Cs) ,(map show-T Vs))]))
+      [(_ _) `(blame ,l+ ,(show-ℓ ℓ:site) ,(show-ℓ ℓ:src) ,(map show-blm-reason Cs) ,(map show-T Vs))]))
 
   (define show-αₖ : (αₖ → Sexp)
     (let ([show-βₖ : (βₖ → Sexp)

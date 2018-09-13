@@ -186,7 +186,7 @@
                                            (syntax->list #'(e ...)))]
                       [_
                        (define msg '(#,(string->symbol (format "~v" arity))))
-                       (r:blm ℓ 'o msg W)])]))))
+                       (r:blm ℓ (loc->ℓ (loc 'o 0 0 '())) msg W)])]))))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n

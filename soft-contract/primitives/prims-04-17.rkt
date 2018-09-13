@@ -45,7 +45,7 @@
   (export)
 
   (def-pred procedure?)
-
+  (define ℓ:apply (loc->ℓ (loc 'apply 0 0 '())))
   (def (apply Ts ℓ Φ^₀ Ξ₀ Σ)
     #:init ()
     #:rest [Ts (listof any/c)] ; manual arity check instead
@@ -58,7 +58,7 @@
       
       (define (blm-arity)
         (define msg (string->symbol (format "~a argument(s)" Vₕ:arity)))
-        {set (Blm ℓ 'apply (list msg) (append Tₓs (list Tᵣ)))})
+        {set (Blm (ℓ-src ℓ) ℓ ℓ:apply (list msg) (append Tₓs (list Tᵣ)))})
 
       (define (go-with-rest [Vᵣ : V]) (app/rest/unsafe Vₕ Tₓs Vᵣ ℓ Φ^₀ Ξ₀ Σ))
 
@@ -113,9 +113,9 @@
                                 [Φ^ᵢ (in-value (R-_1 Rᵢ))]
                                 [Vₕ (in-set (assert (car (R-_0 Rᵢ)) set?))])
              (check-fun-arity Vₕ Tₓs* Tᵣ Φ^ᵢ)))
-         (λ (R^) (blm ℓ 'Λ '(procedure?) (list Tₕ))))]
+         (λ (R^) (blm (ℓ-src ℓ) ℓ ℓ:Λ '(procedure?) (list Tₕ))))]
       [_
-       (blm ℓ 'apply (list (string->symbol "(arity-at-least/c 2)")) Ts)]))
+       (blm (ℓ-src ℓ) ℓ ℓ:apply (list (string->symbol "(arity-at-least/c 2)")) Ts)]))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
@@ -179,5 +179,5 @@
     (procedure-arity? . -> . normalized-arity?))
   (def-pred arity=? (procedure-arity? procedure-arity?))
   (def-pred arity-includes? (procedure-arity? procedure-arity?))
-  
+  (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
   )

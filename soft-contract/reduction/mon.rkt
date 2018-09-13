@@ -48,7 +48,7 @@
 
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) T^₀ ctx Φ^₀ Ξ₀ Σ)
-    (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    (match-define (Ctx l+ _ ℓ:o ℓ) ctx)
     (define C:arity (guard-arity C))
     
     (define (chk-arity [R^ : R^])
@@ -75,7 +75,7 @@
                             (format-symbol "(arity-at-least/c ~a)" k)]
                            [(list k ...)
                             (string->symbol (format "(arity-one-of/c ~a)" k))]))
-               (blm (ℓ-with-src ℓ l+) lₒ (list {set C}) (list Tₕ)))))]
+               (blm l+ ℓ ℓ:o (list {set C}) (list Tₕ)))))]
         [else (wrap R^)]))
 
     (define (wrap [R^ : R^])
@@ -105,7 +105,7 @@
             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
             (define ⟦Vᵢ⟧ (let ([ℓ* (ℓ-with-id ℓ (list 'mon-struct/c 𝒾 i))])
                            (mk-app ℓ* (mk-T (-st-ac 𝒾 i)) (list (mk-T T^)))))
-            (mk-mon (Ctx-with-ℓ ctx ℓᵢ) (mk-T (Σᵥ@ Σ αᵢ)) ⟦Vᵢ⟧)))
+            (mk-mon (Ctx-with-origin ctx ℓᵢ) (mk-T (Σᵥ@ Σ αᵢ)) ⟦Vᵢ⟧)))
         (define ⟦reconstr⟧ (mk-app ℓ (mk-T (-st-mk 𝒾)) ⟦mon⟧s))
         (define Ξ* (cond [(struct-all-immutable? 𝒾) Ξ₀]
                          [else (K+ (F:Wrap C ctx (mk-α (-α:st 𝒾 ctx (Ξ:co-ctx Ξ₀)))) Ξ₀)]))
@@ -116,7 +116,7 @@
     (match-define (Ξ:co (K _ (αₖ H _ _)) ?m) Ξ)
     (match-define (X/C α) C)
     (define x (X/C->binder C))
-    (define H* (H+ H (Ctx-loc ctx) C))
+    (define H* (H+ H (Ctx-origin ctx) C))
     (define-values (Φ^* Ρ) (bind-args! Φ^ ⊥Ρ (-var (list x) #f) (list V) H* Σ))
     (define α* (αₖ H* Φ^* (βₖ:mon ctx α)))
     (⊔ₖ! Σ α* (Rt Φ^ {seteq α} Ξ))
@@ -137,9 +137,9 @@
 
     (: chk : V^ Ctx V^ Ctx → (℘ Ξ))
     (define (chk C-fl ctx-fl C-ho ctx-ho)
-      (match-define (Ctx _ _ lₒ-fl ℓ-fl) ctx-fl)
+      (match-define (Ctx _ _ ℓ:o-fl ℓ:site-fl) ctx-fl)
       (define Ξ* (K+ (F:Mon-Or/C ctx-ho C-fl C-ho V) Ξ₀))
-      (fc C-fl V (ℓ-with-src ℓ-fl lₒ-fl) Φ^ Ξ* Σ))
+      (fc C-fl V #|TODO confirm|# (ℓ-with-src ℓ:site-fl (ℓ-src ℓ:o-fl)) Φ^ Ξ* Σ))
 
     (define-values (C₁ ctx₁) (Σᵥ@/ctx Σ ctx αℓ₁))
     (define-values (C₂ ctx₂) (Σᵥ@/ctx Σ ctx αℓ₂))
@@ -149,20 +149,20 @@
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) V ctx Φ^ Ξ Σ)
-    (match-define (Ctx l+ _ lₒ ℓₘ) ctx)
+    (match-define (Ctx l+ _ ℓₒ ℓₘ) ctx)
     (match-define (Not/C (αℓ α ℓ)) C)
     (define C* (Σᵥ@ Σ α))
     (define Ξ*
       (let ([⟦ok⟧ (mk-W (list V))]
-            [⟦er⟧ (mk-Blm (Blm (ℓ-with-src ℓₘ l+) lₒ (list {set C}) (list V)))])
-        (K+ (F:If lₒ ⟦er⟧ ⟦ok⟧ ⊥Ρ) Ξ)))
+            [⟦er⟧ (mk-Blm (Blm l+ ℓₘ ℓₒ (list {set C}) (list V)))])
+        (K+ (F:If (ℓ-src ℓₒ) ⟦er⟧ ⟦ok⟧ ⊥Ρ) Ξ)))
     (app C* (list V) ℓ Φ^ Ξ* Σ))
 
   (: mon-One-Of/C : One-Of/C → ⟦C⟧)
   (define ((mon-One-Of/C C) V ctx Φ^ Ξ Σ)
     (match-define (One-Of/C bs) C)
-    (define (er) (match-let ([(Ctx l+ _ lo ℓ) ctx])
-                   (blm (ℓ-with-src ℓ l+) lo (list C) (list V))))
+    (define (er) (match-let ([(Ctx l+ _ ℓ:o ℓ) ctx])
+                   (blm l+ ℓ ℓ:o (list C) (list V))))
     (case (check-one-of Φ^ V bs)
       [(✓) {set (ret! (T->R V Φ^) Ξ Σ)}]
       [(✗) (er)]
@@ -179,7 +179,7 @@
           (let ([ℓ* (ℓ-with-id ℓ '(mon-vectorof))]
                 [Idx (mk-T (-● {set 'exact-nonnegative-integer?}))])
             (mk-app ℓ* (mk-T 'vector-ref) (list (mk-T T^) Idx))))
-        (define ⟦mon⟧ (mk-mon (Ctx-with-ℓ ctx ℓ*) (mk-T (Σᵥ@ Σ α*)) ⟦elem⟧))
+        (define ⟦mon⟧ (mk-mon (Ctx-with-origin ctx ℓ*) (mk-T (Σᵥ@ Σ α*)) ⟦elem⟧))
         (define Ξ*
           (let ([F:wrap (F:Wrap C ctx (mk-α (-α:unvct ctx (Ξ:co-ctx Ξ₀))))]
                 [F:mk (F:Ap (list (vec-len T^) {set 'make-vector}) '() ℓ)])
@@ -188,7 +188,7 @@
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define ((mon-Vect/C C) V ctx Φ^₀ Ξ₀ Σ)
-    (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    (match-define (Ctx l+ _ ℓ:o ℓ) ctx)
     (match-define (Vect/C αℓs) C)
     (define n (length αℓs))
 
@@ -200,7 +200,7 @@
             (mk-app (ℓ-with-id ℓ (list 'mon-vector/c i))
                     (mk-T 'vector-ref)
                     (list (mk-T T^) (mk-T (-b i)))))
-          (EΡ (mk-mon (Ctx-with-ℓ ctx ℓᵢ) (mk-T (Σᵥ@ Σ αᵢ)) ⟦elem⟧) ⊥Ρ)))
+          (EΡ (mk-mon (Ctx-with-origin ctx ℓᵢ) (mk-T (Σᵥ@ Σ αᵢ)) ⟦elem⟧) ⊥Ρ)))
       {set (match ⟦mon⟧s
              ['() (ret! (T->R (Vect '()) Φ^) Ξ₀ Σ)]
              [(cons (EΡ ⟦mon⟧ _) ⟦mon⟧s)
@@ -216,11 +216,11 @@
           (chk-elems T^)
           (λ _
             (define P (format-symbol "(vector-length/c ~a)" n))
-            (blm (ℓ-with-src ℓ l+) lₒ (list P) (list V)))))))
+            (blm l+ ℓ ℓ:o (list P) (list V)))))))
 
   (: mon-Hash/C : Hash/C → ⟦C⟧)
   (define ((mon-Hash/C C) V ctx Φ^ Ξ₀ Σ)
-    (match-define (Ctx l+ _ lₒ ℓ) ctx)
+    (match-define (Ctx l+ _ ℓ:o ℓ) ctx)
     (match-define (Hash/C (αℓ αₖ ℓₖ) (αℓ αᵥ ℓᵥ)) C)
     (with-check Σ Φ^ ctx V 'hash?
       (λ (R^)
@@ -233,7 +233,7 @@
             (cond ;; FIXME hack for now
               [(or (set-empty? Vₖ) (set-empty? Vᵥ)) {set (⟦wrap⟧ ⊥Ρ Φ^ᵢ Ξ₀ Σ)}]
               [else
-               (define ⟦mon⟧ (mk-mon (Ctx-with-ℓ ctx ℓᵥ) (mk-T (Σᵥ@ Σ αᵥ)) (mk-T Vᵥ)))
+               (define ⟦mon⟧ (mk-mon (Ctx-with-origin ctx ℓᵥ) (mk-T (Σᵥ@ Σ αᵥ)) (mk-T Vᵥ)))
                (define Ξ* (K+ (F:Bgn (list ⟦mon⟧ ⟦wrap⟧) ⊥Ρ) Ξ₀))
                (mon (Σᵥ@ Σ αₖ) Vₖ ctx Φ^ᵢ Ξ* Σ)]))
           (match Vᵤ
@@ -260,7 +260,7 @@
               [(set-empty? V^) {set (⟦wrap⟧ ⊥Ρ Φ^ᵢ Ξ₀ Σ)}]
               [else
                (define Ξ* (K+ (F:Bgn (list ⟦wrap⟧) ⊥Ρ) Ξ₀))
-               (mon (Σᵥ@ Σ αₑ) V^ (Ctx-with-ℓ ctx ℓₑ) Φ^ᵢ Ξ* Σ)]))
+               (mon (Σᵥ@ Σ αₑ) V^ (Ctx-with-origin ctx ℓₑ) Φ^ᵢ Ξ* Σ)]))
           (match Vᵤ
             [(X/G _ (? Set/C?) _)
              ;; TODO havoc would be expensive. Just wrap for now
@@ -272,14 +272,14 @@
   (: mon-Seal/C : Seal/C → ⟦C⟧)
   (define ((mon-Seal/C C) V ctx Φ^ Ξ₀ Σ)
     (match-define (Seal/C x H l) C)
-    (match-define (Ctx l+ l- lo ℓ) ctx)
+    (match-define (Ctx l+ l- ℓ:o ℓ) ctx)
     (define α (mk-α (-α:sealed x H)))
     (cond
       [(equal? l l+) ; seal
        (⊔T! Σ Φ^ α V)
        {set (ret! (T->R (Sealed α) Φ^) Ξ₀ Σ)}]
       [(equal? l l-) ; unseal
-       (define (er) (blm (ℓ-with-src ℓ l+) lo (list {set C}) (list V)))
+       (define (er) (blm l+ ℓ ℓ:o (list {set C}) (list V)))
        (define (ok) {set (ret! (T->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)})
        (set-union-map
         (match-lambda
@@ -287,13 +287,13 @@
           [(-● _) {∪ (ok) (er)}]
           [_ (er)])
         (T->V Σ Φ^ V))]
-      [else (error 'mon-seal/c "seal label ~a in context ~a, ~a, ~a" l l+ l- lo)]))
+      [else (error 'mon-seal/c "seal label ~a in context ~a, ~a, ~a" l l+ l- ℓ:o)]))
 
   (: mon-Flat/C : V → ⟦C⟧)
   (define ((mon-Flat/C C) V ctx Φ^₀ Ξ₀ Σ)
-    (match-define (Ctx l+ _ lo ℓ) ctx)
+    (match-define (Ctx l+ _ ℓ:o ℓ) ctx)
     (define (-blm [R^ : R^])
-      (blm (ℓ-with-src ℓ l+) lo (list {set C}) (collapse-R^/W^ R^)))
+      (blm l+ ℓ ℓ:o (list {set C}) (collapse-R^/W^ R^)))
     (with-3-paths (λ () (partition-results Σ (R (list V) Φ^₀) C))
       (λ ([R^ : R^]) {set (ret! R^ Ξ₀ Σ)})
       -blm
@@ -308,5 +308,5 @@
   (: Σᵥ@/ctx : Σ Ctx αℓ → (Values V^ Ctx))
   (define Σᵥ@/ctx
     (match-lambda**
-     [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-ℓ ctx ℓ))]))
+     [(Σ ctx (αℓ α ℓ)) (values (Σᵥ@ Σ α) (Ctx-with-origin ctx ℓ))]))
   )

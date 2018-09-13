@@ -113,7 +113,7 @@
             (λ (Σ) (hash-has-key? (Σ-val Σ) α)))))
 
     (define (blm:undefined-struct [𝒾 : -𝒾] [ℓ : ℓ])
-      (Blm (strip-ℓ ℓ) 'Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
+      (Blm (ℓ-src ℓ) ℓ ℓ:Λ '(struct-defined?) (list {set (-𝒾-name 𝒾)})))
 
     (define (↓/rn [E : -e]) : ⟦E⟧ (rn (↓ E) E))
     
@@ -204,7 +204,7 @@
                        (λ ([Ρ : Ρ]) (Ρ@ Ρ x))
                        (λ _ (mk-α (-α:top x))))]
           #:recur E]
-      [(-error msg ℓ) (mk-Blm (Blm (strip-ℓ ℓ) 'Λ '(not-reached) (list (set (-b msg)))))]
+      [(-error msg ℓ) (mk-Blm (Blm (ℓ-src ℓ) ℓ ℓ:Λ '(not-reached) (list (set (-b msg)))))]
       [=> (-μ/c x C)
           (⟦C⟧ (Ρ+ Ρ x (mk-α (-α:x/c x (Ξ:co-ctx Ξ)))) Φ^ (K+ (F:Μ/C x) Ξ) Σ)
           #:recur C]
@@ -232,7 +232,7 @@
     (rn (↓ e) e)) 
 
   (define/memo (↓ₓ [x : Symbol] [ℓₓ : ℓ]) : ⟦E⟧
-    (define blm:undefined (Blm (strip-ℓ ℓₓ) 'Λ '(defined?) (list {set -undefined})))
+    (define blm:undefined (Blm (ℓ-src ℓₓ) ℓₓ ℓ:Λ '(defined?) (list {set -undefined})))
     (define mut? (assignable? x))
     (λ (Ρ Φ^ Ξ Σ)
       (define α (Ρ@ Ρ x))
@@ -311,4 +311,6 @@
                    [(-module? x) (format "⟦m ~a⟧" (-module-path x))]
                    [else (format "⟦w ~a⟧" (map show-T x))])])
       (procedure-rename ⟦E⟧ (string->symbol s))))
+
+  (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
   )

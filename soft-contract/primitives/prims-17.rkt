@@ -73,7 +73,7 @@
             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
             (define Ξ*
               (if (struct-mutable? 𝒾 (assert i index?))
-                  (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀)
+                  (K+ (F:Mon:C (Ctx-with-origin ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀)
                   Ξ₀))
             ((app₁ 'unsafe-struct-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
         [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])

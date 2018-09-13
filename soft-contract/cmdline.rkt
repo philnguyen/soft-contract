@@ -15,7 +15,8 @@
          "main.rkt")
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last 'debug 'debug-cg)
-(define mode : Mode 'havoc) 
+(define mode : Mode 'havoc)
+(define opt? ((inst make-parameter Boolean) #f))
 
 (define fnames
   (cast
@@ -35,6 +36,9 @@
     [("-p" "--progress")
      "Dump progress"
      (db:iter? #t)]
+    [("-o" "--optimize")
+     "Dump optimized programs after verification"
+     (opt? #t)]
     [("-d" "--debug")
      "Show graph"
      (set! mode 'debug)]
@@ -49,13 +53,14 @@
     (cons first-module other-modules)]
    (Listof Path-String)))
 
-(: main : (Listof Path-String) → Void)
+(: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: run-with : ((Listof Path-String) → (Values (℘ Blm) Σ)) (Listof Path-String) → Void)
+  (: run-with : ((Listof Path-String) → (Values (℘ Blm) Σ)) (Listof Path-String) → (℘ Blm))
   (define (run-with f files)
     (define-values (blms _) (f files))
-    (print-blames blms))
+    (print-blames blms)
+    blms)
 
   (: print-blame : Blm String → Void)
   (define (print-blame blm idx)
@@ -71,9 +76,10 @@
                               #:after-last "}"))]
             [else (format "~a" s)]))
     
-    (match-define (Blm ℓ lo Cs Vs) blm)
-    (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))
-    (printf "    - Contract from: ~a~n" lo)
+    (match-define (Blm l+ ℓ:site ℓ:origin Cs Vs) blm)
+    (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ:site) (ℓ-line ℓ:site) (ℓ-col ℓ:site))
+    (printf "    - Blaming: ~a~n" l+)
+    (printf "    - Contract from: ~a:~a:~a @ ~a ~n" (ℓ-src ℓ:origin) (ℓ-line ℓ:origin) (ℓ-col ℓ:origin) (ℓ-id ℓ:origin))
     (printf "    - Expected: ~a~n"
             (match Cs
               [(list C) (show-set show-blm-reason C)]
@@ -95,7 +101,7 @@
        (for ([b (in-set blames)] [i (in-naturals)])
          (print-blame b (format "(~a)" (+ 1 i))))]))
 
-  (: go : (Listof Path-String) → Void)
+  (: go : (Listof Path-String) → Any)
   (define (go fnames)
     (with-handlers ([exn:missing?
                      (match-lambda
@@ -110,7 +116,12 @@
            (pretty-write (show-module m))
            (printf "~n"))]
         [(light) (run-with run fnames)]
-        [(havoc) (run-with havoc fnames)]
+        [(havoc) (define blms (run-with havoc fnames))
+                 (when (opt?)
+                   (printf "~nOptimized modules:~n")
+                   (for ([m (in-list (parse-files fnames))])
+                     (pretty-write (show-module (optimize m blms)))
+                     (printf "~n")))]
         [(havoc-last) (run-with havoc-last fnames)]
         [(debug) (void (viz fnames))])))
 

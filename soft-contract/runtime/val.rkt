@@ -98,7 +98,7 @@
        (arity-at-least 0)]
       ['scv:terminating/c #f]))
 
-  (: blm-arity : ℓ -l Arity W → Blm)
+  (: blm-arity : -l ℓ ℓ Arity W → Blm)
   (define blm-arity
     (let ([arity->msg
            (match-lambda
@@ -109,8 +109,8 @@
                              n)]
              [(arity-at-least n)
               (format-symbol "~a+ values" n)])])
-      (λ (ℓ lo arity Vs)
-        (Blm (strip-ℓ ℓ) lo (list (arity->msg arity)) Vs)))) 
+      (λ (l+ ℓ:site ℓ:src arity Vs)
+        (Blm l+ ℓ:site ℓ:src (list (arity->msg arity)) Vs))))
 
   (define ⊥T : T^ ∅)
 
@@ -230,9 +230,12 @@
   (define Ctx-flip : (Ctx → Ctx)
     (match-lambda
       [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
-  (define Ctx-with-ℓ : (Ctx ℓ → Ctx)
+  (define Ctx-with-site : (Ctx ℓ → Ctx)
     (match-lambda**
-     [((Ctx l+ l- lo _) ℓ) (Ctx l+ l- lo ℓ)]))
+     [((Ctx l+ l- ℓ:o _) ℓ) (Ctx l+ l- ℓ:o ℓ)]))
+  (define Ctx-with-origin : (Ctx ℓ → Ctx)
+    (match-lambda**
+     [((Ctx l+ l- _ ℓ) ℓ:o) (Ctx l+ l- ℓ:o ℓ)]))
 
   (define X/C->binder : (X/C → Symbol)
     (match-lambda [(X/C α)

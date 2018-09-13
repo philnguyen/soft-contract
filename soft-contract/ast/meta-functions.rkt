@@ -10,6 +10,7 @@
          racket/bool
          typed/racket/unit
          set-extras
+         unreachable
          "../utils/main.rkt"
          "signatures.rkt")
 
@@ -294,4 +295,166 @@
     (let ([m : (HashTable (Listof (U Symbol Integer)) Symbol) (make-hash)])
       (λ [xs : (U Symbol Integer) *]
         (hash-ref! m xs (λ () (apply +x! xs))))))
+
+  (: optimize-contracts : (℘ ℓ) -module → -module)
+  (define (optimize-contracts ℓs m)
+    
+    (define go-module-level-form : (-module-level-form → -module-level-form)
+      (match-lambda ; only optimize at `provide` clause
+        [(-provide specs) (-provide (map go-spec specs))]
+        [form form]))
+
+    (define go-spec : (-provide-spec → -provide-spec)
+      (match-lambda
+        [(-p/c-item x e ℓ)
+         (-p/c-item x ((go-c #t ℓ) e) ℓ)]
+        [(? symbol? s) s]))
+
+    (define locs (set-map ℓs ℓ->loc))
+    (: opt? : Boolean (Option ℓ) → Boolean)
+    (define (opt? pos? ℓ)
+      (and pos?
+           ℓ
+           ;; TODO clean up. This hack is to counter `unique` tag in `next-ℓ!`
+           (match-let ([(loc s l c id) (ℓ->loc ℓ)])
+             (not (ormap
+                   (match-lambda
+                     [(loc (== s) (== l) (== c) idᵢ) (list-prefix? idᵢ id)]
+                     [_ #f])
+                   locs)))
+           #t))
+
+    (: go-c : Boolean (Option ℓ) → -e → -e)
+    (define ((go-c pos? ℓ*) e)
+      (match e
+        [(-@ 'and/c es ℓ)
+         (opt-and/c
+          (let go ([i : Natural 0] [es : (Listof -e) es])
+            (match es
+              [(list e₁ e₂)
+               (list ((go-c pos? (ℓ-with-id (ℓ-with-id ℓ i) 'left-conj)) e₁)
+                     ((go-c pos? (ℓ-with-id (ℓ-with-id ℓ i) 'right-conj)) e₂))]
+              [(cons e es*)
+               (cons ((go-c pos? (ℓ-with-id ℓ (list 'left-conj i))) e)
+                     (go (+ 1 i) es*))]
+              ['() '()]))
+          ℓ)]
+        [(-@ 'or/c es ℓ) e]
+        [(-μ/c x e) (-μ/c x ((go-c pos? #f) e))]
+        [(--> (-var dom-init dom-rest) rng ℓ)
+         (--> (-var (for/list : (Listof -e) ([(d i) (in-indexed dom-init)])
+                      ((go-c (not pos?) (ℓ-with-id ℓ (cons 'dom i))) d))
+                    (and dom-rest ((go-c (not pos?) (ℓ-with-id ℓ 'rest)) dom-rest)))
+              ;; FIXME: generalize with multiple-values range
+              (let ([ℓ* (ℓ-with-id ℓ (cons 'rng 0))])
+                (match ((go-c pos? ℓ*) rng)
+                  ['any/c #:when (opt? pos? ℓ*) 'any]
+                  [r r]))
+              ℓ)]
+        [(-->i doms rng)
+         (-->i (map (go-dom (not pos?)) doms)
+               ((go-dom pos?) rng))]
+        [(-struct/c 𝒾 es ℓ)
+         (define tag (-𝒾-name 𝒾))
+         (define es* : (Listof -e)
+           (for/list ([(e i) (in-indexed es)])
+             ((go-c pos? (ℓ-with-id ℓ (cons tag i))) e)))
+         (-struct/c 𝒾 es* ℓ)]
+        [_ #:when (opt? pos? ℓ*) 'any/c]
+        [_ e]))
+
+    (: go-dom : Boolean → -dom → -dom)
+    (define ((go-dom pos?) dom)
+      (match-define (-dom x xs e ℓ) dom)
+      (-dom x xs ((go-c pos? ℓ) e) ℓ))
+
+    (: go-rng : Boolean → -dom → -dom)
+    (define ((go-rng pos?) rng)
+      (match ((go-dom pos?) rng)
+        ['any/c #:when (opt? pos? (-dom-loc rng)) 'any]
+        [r r]))
+
+    (: opt-and/c : (Listof -e) ℓ → -e)
+    (define (opt-and/c cs ℓ)
+      (match (filter-not (λ (x) (equal? x 'any/c)) cs)
+        [(list) 'any/c]
+        [(list c) c]
+        [cs* (-@ 'and/c cs* ℓ)]))
+    
+    (match-define (-module l body) m)
+    (-module l (map go-module-level-form body)))
+
+  (: optimize-uses : (℘ ℓ) -module → -module)
+  (define (optimize-uses ℓs m)
+
+    (define go-module-level-form : (-module-level-form → -module-level-form)
+      (match-lambda
+        [(? -e? e) (go-e e)]
+        [(-define-values xs e) (-define-values xs (go-e e))]
+        [(? -require? r) r]
+        [(-provide specs) (-provide (map go-spec specs))]
+        [(? -submodule-form? m) m]))
+
+    (define go-spec : (-provide-spec → -provide-spec)
+      (match-lambda
+        [(-p/c-item x e ℓ) (-p/c-item x (go-e e) ℓ)]
+        [(? symbol? s) s]))
+
+    (define go-e : (-e → -e)
+      (match-lambda
+        [(-λ xs e) (-λ xs (go-e e))]
+        [(-@ e es ℓ)
+         (define es* (map go-e es))
+         (if (and (-prim? e) (not (∋ ℓs ℓ)))
+             (-@/unsafe e es* ℓ)
+             (-@ (go-e e) es* ℓ))]
+        [(-if e e₁ e₂) (-if (go-e e) (go-e e₁) (go-e e₂))]
+        [(-wcm k v b) (-wcm (go-e k) (go-e v) (go-e b))]
+        [(-begin es) (-begin (map go-e es))]
+        [(-begin0 e es) (-begin0 (go-e e) (map go-e es))]
+        [(-let-values bs e ℓ)
+         (-let-values (map go-Binding bs) (go-e e) ℓ)]
+        [(-letrec-values bs e ℓ)
+         (-letrec-values (map go-Binding bs) (go-e e) ℓ)]
+        [(-set! x e) (-set! x (go-e e))]
+        [(-μ/c x e) (-μ/c x (go-e e))]
+        [(--> doms rng ℓ) (--> (var-map go-e doms) (go-e rng) ℓ)]
+        [(-->i doms rng) (-->i (map go-dom doms) (go-dom rng))]
+        [(-struct/c 𝒾 es ℓ) (-struct/c 𝒾 (map go-e es) ℓ)]
+        [(-∀/c xs e) (-∀/c xs (go-e e))]
+        [e e]))
+
+    (define go-Binding : (Binding → Binding)
+      (match-lambda [(cons xs e) (cons xs (go-e e))]))
+
+    (define go-dom : (-dom → -dom)
+      (match-lambda [(-dom x xs e ℓ) (-dom x xs (go-e e) ℓ)]))
+
+    (: -@/unsafe : -prim (Listof -e) ℓ → -e)
+    (define (-@/unsafe o xs ℓ)
+      (match o
+        [(app unsafe-op (? values o*)) (-@ o* xs ℓ)]
+        [(-st-ac _ i ) (-@ 'unsafe-struct-ref  (append xs (list (-b i))) ℓ)]
+        [(-st-mut _ i) (-@ 'unsafe-struct-set! (append xs (list (-b i))) ℓ)]
+        [o (-@ o xs ℓ)]))
+
+    (define unsafe-op : (-prim → (Option -prim))
+      (match-lambda
+        [(== -car) 'unsafe-car]
+        [(== -cdr) 'unsafe-cdr]
+        [(== -set-mcar!) 'unsafe-set-mcar!]
+        [(== -set-mcdr!) 'unsafe-set-mcdr!]
+        [(== -unbox) 'unsafe-unbox]
+        [(== -set-box!) 'unsafe-set-box!]
+        ['string-length 'unsafe-string-length]
+        ['string-ref 'unsafe-string-ref]
+        ['string-set! 'unsafe-string-set!]
+        ['vector-length 'unsafe-vector-length]
+        ['vector-ref 'unsafe-vector-ref]
+        ['vector-set! 'unsafe-vector-set!]
+        [o #|TODO more|# #f]))
+    
+    (match-define (-module l body) m)
+    (-module l (map go-module-level-form body)))
+  
   )

@@ -83,7 +83,7 @@
    [↝* : ((U -prog ⟦E⟧) → (Values (℘ Blm) Σ))]
    [↝  : (Ξ Σ → (℘ Ξ))]
    [ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
-   [blm : (ℓ -l (Listof (U V V^)) (U W W^) → (℘ Blm))]
+   [blm : (-l ℓ ℓ (Listof (U V V^)) (U W W^) → (℘ Blm))]
    [K+/And : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [K+/Or  : (-l (Listof ⟦E⟧) Ρ Ξ:co → Ξ:co)]
    [with-arity : (Σ R^ (Index R → (℘ Ξ)) → (℘ Ξ))]

@@ -107,7 +107,6 @@
        [(Vect^ α n)
         {set (ret! (T->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)}]
        [(X/G ctx G αᵥ)
-        (define lo (Ctx-src ctx))
         (define Tᵥ* (Σᵥ@ Σ αᵥ))
         (match G
           [(Vect/C αℓs)
@@ -115,11 +114,11 @@
                                [i : Natural (in-naturals)]
                                #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
              (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
-             (define Ξ* (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
+             (define Ξ* (K+ (F:Mon:C (Ctx-with-origin ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
              ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
           [(Vectof αℓ*)
            (match-define (αℓ α* ℓ*) αℓ*)
-           (define Ξ* (K+ (F:Mon:C (Ctx-with-ℓ ctx ℓ*) (Σᵥ@ Σ α*)) Ξ₀))
+           (define Ξ* (K+ (F:Mon:C (Ctx-with-origin ctx ℓ*) (Σᵥ@ Σ α*)) Ξ₀))
            ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ)])]
        [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])
      (T->V Σ Φ^ Tᵥ)))
@@ -144,11 +143,11 @@
                                #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
              (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
              (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
-             (mon (Σᵥ@ Σ αᵢ) Tᵤ (Ctx-with-ℓ ctx* ℓᵢ) Φ^ Ξ* Σ))]
+             (mon (Σᵥ@ Σ αᵢ) Tᵤ (Ctx-with-origin ctx* ℓᵢ) Φ^ Ξ* Σ))]
           [(Vectof αℓ*)
            (match-define (αℓ α* ℓ*) αℓ*)
            (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
-           (mon (Σᵥ@ Σ α*) Tᵤ (Ctx-with-ℓ ctx* ℓ*) Φ^ Ξ* Σ)])]
+           (mon (Σᵥ@ Σ α*) Tᵤ (Ctx-with-origin ctx* ℓ*) Φ^ Ξ* Σ)])]
        [_ (done)])
      (T->V Σ Φ^ Tᵥ^)))
   
