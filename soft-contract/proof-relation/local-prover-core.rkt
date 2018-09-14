@@ -143,6 +143,7 @@
               [(values)
                (match Vs
                  [(list (-b b)) (if b '✓ '✗)]
+                 [(list (? -o?)) '✓]
                  [(list (? S? S)) (go-harder 'values S)]
                  [_ '✗])]
               [(procedure?)
