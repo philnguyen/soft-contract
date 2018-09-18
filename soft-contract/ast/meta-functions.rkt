@@ -298,7 +298,25 @@
 
   (: optimize-contracts : (℘ ℓ) -module → -module)
   (define (optimize-contracts ℓs m)
+    (match-define (-module l body) m) 
     
+    ;; collect all top-level mappings
+    (define top-maps
+      (for/fold ([acc : (HashTable Symbol -e) (hasheq)])
+                ([form (in-list body)])
+        (match form
+          [(-define-values (list x) e) (hash-set acc x e)]
+          [(-define-values xs (-@ 'values es _))
+           (for/fold ([acc : (HashTable Symbol -e) acc])
+                     ([x (in-list xs)] [e (in-list es)])
+             (hash-set acc x e))]
+          [_ acc])))
+    
+    (define extra-defns : (Mutable-HashTable Symbol -e) (make-hasheq))
+
+    ;; A cache for optimization of contract references
+    (define cache : (Mutable-HashTable (Pairof Boolean Symbol) -e) (make-hash))
+
     (define go-module-level-form : (-module-level-form → -module-level-form)
       (match-lambda ; only optimize at `provide` clause
         [(-provide specs) (-provide (map go-spec specs))]
@@ -325,21 +343,27 @@
            #t))
 
     (: go-c : Boolean (Option ℓ) → -e → -e)
-    (define ((go-c pos? ℓ*) e)
+    (define ((go-c pos? ℓ*) e) 
+      
+      (: map-opt : (Listof -e) ℓ Symbol Symbol → (Listof -e))
+      (define (map-opt es ℓ lid rid)
+        (let go ([i : Natural 0] [es : (Listof -e) es])
+          (match es
+            [(list e₁ e₂)
+             (define ℓ* (ℓ-with-id ℓ i))
+             (list ((go-c pos? (ℓ-with-id ℓ* lid)) e₁)
+                   ((go-c pos? (ℓ-with-id ℓ* rid)) e₂))]
+            [(cons e es*)
+             (cons ((go-c pos? (ℓ-with-id ℓ (list lid i))) e)
+                   (go (+ 1 i) es*))]
+            ['() '()])))
+      
       (match e
         [(-@ 'and/c es ℓ)
-         (opt-and/c
-          (let go ([i : Natural 0] [es : (Listof -e) es])
-            (match es
-              [(list e₁ e₂)
-               (list ((go-c pos? (ℓ-with-id (ℓ-with-id ℓ i) 'left-conj)) e₁)
-                     ((go-c pos? (ℓ-with-id (ℓ-with-id ℓ i) 'right-conj)) e₂))]
-              [(cons e es*)
-               (cons ((go-c pos? (ℓ-with-id ℓ (list 'left-conj i))) e)
-                     (go (+ 1 i) es*))]
-              ['() '()]))
-          ℓ)]
-        [(-@ 'or/c es ℓ) e]
+         (opt-and/c (map-opt es ℓ 'left-conj 'right-conj) ℓ)]
+        [(-@ 'or/c es ℓ)
+         ;; Can optimize `or/c` if all of its disjuncts can be optimized
+         (if (andmap any/c? (map-opt es ℓ 'left-disj 'right-disj)) 'any/c e)]
         [(-μ/c x e) (-μ/c x ((go-c pos? #f) e))]
         [(--> (-var dom-init dom-rest) rng ℓ)
          (--> (-var (for/list : (Listof -e) ([(d i) (in-indexed dom-init)])
@@ -359,9 +383,39 @@
          (define es* : (Listof -e)
            (for/list ([(e i) (in-indexed es)])
              ((go-c pos? (ℓ-with-id ℓ (cons tag i))) e)))
-         (-struct/c 𝒾 es* ℓ)]
-        [_ #:when (opt? pos? ℓ*) 'any/c]
+         (if (and (andmap any/c? es*) (opt? pos? ℓ))
+             'any/c
+             (-struct/c 𝒾 es* ℓ))]
+        [(-if e e₁ e₂) (-if e ((go-c pos? #f) e₁) ((go-c pos? #f) e₂))]
+        [(-wcm k v b) (-wcm k v ((go-c pos? #f) b))]
+        [(-begin es) (match-let-values ([(es₀ (list eₙ)) (split-at es (sub1 (length es)))])
+                       (-begin (append es₀ (list ((go-c pos? #f) eₙ)))))]
+        [(-begin0 e es) (-begin0 ((go-c pos? #f) e) es)]
+        [(-let-values bs e ℓ)
+         (-let-values (map (go-Binding pos? #f) bs) ((go-c pos? #f) e) ℓ)]
+        [(-letrec-values bs e ℓ)
+         (-letrec-values (map (go-Binding pos? #f) bs) ((go-c pos? #f) e) ℓ)]
+        [(? -v?) #:when (opt? pos? ℓ*) 'any/c]
+        [(-x (-𝒾 (and s
+                      (app (λ (s) (hash-ref top-maps s #f)) (? values c)))
+                 (== l))
+             ℓ)
+         (hash-ref! cache (cons pos? s)
+                    (λ ()
+                      (define c* ((go-c pos? #f) c))
+                      ;; keep reference if optimization does nothing
+                      (cond
+                        [(equal? c* c) e]
+                        [(-o? c*) c*]
+                        [else
+                         (define x* (gensym s))
+                         (hash-set! extra-defns x* c*)
+                         (-x (-𝒾 x* l) ℓ)])))]
         [_ e]))
+
+    (: go-Binding : Boolean (Option ℓ) → Binding → Binding)
+    (define (go-Binding pos? ℓ)
+      (match-lambda [(cons xs e) (cons xs ((go-c pos? ℓ) e))]))
 
     (: go-dom : Boolean → -dom → -dom)
     (define ((go-dom pos?) dom)
@@ -376,13 +430,14 @@
 
     (: opt-and/c : (Listof -e) ℓ → -e)
     (define (opt-and/c cs ℓ)
-      (match (filter-not (λ (x) (equal? x 'any/c)) cs)
+      (match (filter-not any/c? cs)
         [(list) 'any/c]
         [(list c) c]
         [cs* (-@ 'and/c cs* ℓ)]))
     
-    (match-define (-module l body) m)
-    (-module l (map go-module-level-form body)))
+    (-module l (append (map go-module-level-form body)
+                       (for/list : (Listof -module-level-form) ([(x e) (in-hash extra-defns)])
+                         (-define-values (list x) e)))))
 
   (: optimize-uses : (℘ ℓ) -module → -module)
   (define (optimize-uses ℓs m)
@@ -456,5 +511,7 @@
     
     (match-define (-module l body) m)
     (-module l (map go-module-level-form body)))
+
+  (define (any/c? x) (equal? x 'any/c))
   
   )

@@ -135,8 +135,8 @@
 
   (define (show-module [m : -module]) : (Listof Sexp)
     (match-define (-module path forms) m)
-    `(module ,path
-         ,@(map show-module-level-form forms)))
+    `(module ,path scv:lang
+       ,@(map show-module-level-form forms)))
 
   (define show-module-level-form : (-module-level-form → Sexp)
     (match-lambda
