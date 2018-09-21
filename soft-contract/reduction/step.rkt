@@ -303,7 +303,7 @@
           [(0 R₀) {set (ret! R₀ Ξ Σ)}]
           [(1 (and R₁ (R (list V) Φ^)))
            {set (match EΡs
-                  [(cons (cons ⟦E⟧ Ρ) EΡs)
+                  [(cons (EΡ ⟦E⟧ Ρ) EΡs)
                    (⟦E⟧ Ρ Φ^ (K+ (F:Fc-Struct/C ℓ 𝒾 (cons V W-rev) EΡs) Ξ) Σ)]
                   ['()
                    (define F:mk (F:Ap `(,@W-rev ,{set (-st-mk 𝒾)}) '() ℓ))
