@@ -96,7 +96,7 @@
 
   (define (mod-path->mod-name p)
     (match p ; hacks
-      ['#%kernel 'Λ]
+      [(or '#%kernel #|Racket 7|# '#%runtime) 'Λ]
       ['#%unsafe 'unsafe]
       [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
