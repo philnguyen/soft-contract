@@ -24,6 +24,7 @@
          -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
          parametric->/c
          recursive-contract
+         (rename-out [c:any any])
          dynamic-provide/contract
          dynamic->i dynamic-> dynamic->* dynamic-case-> dynamic-parametric->/c
          dynamic-struct/c
