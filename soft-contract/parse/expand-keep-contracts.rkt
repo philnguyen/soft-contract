@@ -33,6 +33,8 @@
   (add! #'case-> #'f:case->)
   (add! #'any/c #'f:any/c)
   (add! #'any #'f:any)
+  (add! #'hash/c #'f:hash/c)
+  (add! #'set/c #'f:set/c)
   (add! #'none/c #'f:none/c)
   (add! #'false/c #'f:false/c)
   (add! #'and/c #'f:and/c)

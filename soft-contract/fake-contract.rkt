@@ -21,10 +21,12 @@
 
 (provide (all-from-out racket/contract/base) provide
          flat-contract
-         -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c hash/c set/c
+         -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract contract-out false/c
          parametric->/c
          recursive-contract
-         (rename-out [c:any any])
+         (rename-out [c:any any]
+                     [c:hash/c hash/c]
+                     [c:set/c set/c])
          dynamic-provide/contract
          dynamic->i dynamic-> dynamic->* dynamic-case-> dynamic-parametric->/c
          dynamic-struct/c
@@ -73,8 +75,6 @@
 (define vector/c c:vector/c)
 (define vectorof c:vectorof)
 (define false/c c:false/c)
-(define hash/c c:hash/c)
-(define set/c c:set/c)
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)
