@@ -176,6 +176,8 @@
                (unless (hash-has-key? (-Σ-σ Σ) ⟪α⟫ₒₚ) ; HACK
                  (σ⊕V! Σ ⟪α⟫ₒₚ (+●)))
                (cond
+                 [(set-empty? (σ@ Σ ⟪α⟫))
+                  (⟦k⟧ (blm/simp l 'Λ (list 'defined?) (list x) ℓₓ) $ Γ H Σ)]
                  [?loc
                   (define-values (Ws $*) ($@! Σ Γ ⟪α⟫ $ ?loc ℓₓ))
                   (for/union : (℘ -ς) ([W (in-set Ws)])
@@ -308,21 +310,6 @@
          [(-x/c x)
           (λ (ρ $ Γ H Σ ⟦k⟧)
             (⟦k⟧ (-W (list (-x/C (ρ@ ρ x))) #f) $ Γ H Σ))]
-         [(-struct/c 𝒾 cs ℓ)
-          (define α (-α->⟪α⟫ 𝒾))
-          (define blm (blm/simp l 'Λ '(struct-defined?) (list (-𝒾-name 𝒾)) ℓ))
-          (define builtin-struct-tag? (match? 𝒾 (== -𝒾-cons) (== -𝒾-box)))
-          (match (map ↓ cs)
-            ['()
-             (define W (-W (list (-St/C #t 𝒾 '())) (-t.@ (-st/c.mk 𝒾) '())))
-             (λ (ρ $ Γ H Σ ⟦k⟧)
-               (define A (if (or builtin-struct-tag? (defined-at? Σ α)) W blm))
-               (⟦k⟧ A $ Γ H Σ))]
-            [(cons ⟦c⟧ ⟦c⟧s)
-             (λ (ρ $ Γ H Σ ⟦k⟧)
-               (if (or builtin-struct-tag? (defined-at? Σ α))
-                   (⟦c⟧ ρ $ Γ H Σ (struct/c∷ ℓ 𝒾 '() ⟦c⟧s ρ ⟦k⟧))
-                   (⟦k⟧ blm $ Γ H Σ)))])]
          [_ (error '↓ₑ "unhandled: ~a" (show-e e))])))
 
     )

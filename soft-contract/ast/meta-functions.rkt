@@ -58,9 +58,6 @@
       [(-->i cs mk-d _) (apply ∪ (fv mk-d) (map fv cs))]
       [(-case-> cases)
        (apply ∪ ∅eq (map fv cases))]
-      [(-struct/c _ cs _)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
-         (∪ xs (fv c)))]
       [(? list? l)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
          (∪ xs (fv e)))]
@@ -100,9 +97,6 @@
       [(-->i cs mk-d _) (apply ∪ (bv mk-d) (map bv cs))]
       [(-case-> cases)
        (apply ∪ ∅eq (map bv cases))]
-      [(-struct/c _ cs _)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
-         (∪ xs (bv c)))]
       [(? list? l)
        (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
          (∪ xs (bv e)))]
@@ -139,7 +133,6 @@
            [(? list? cs) (∪ (go* cs) (go d))])]
         [(-->i cs mk-d _) (∪ (go* cs) (go mk-d))]
         [(-case-> cases) (go* cases)]
-        [(-struct/c t cs _) (go* cs)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
     
@@ -170,7 +163,6 @@
       [(-->i doms _ ℓ)
        (apply ∪ {seteq ℓ} (map locs doms))]
       [(-case-> cases) (apply ∪ ∅eq (map locs cases))]
-      [(-struct/c 𝒾 cs ℓ) (apply ∪ {seteq ℓ} (map locs cs))]
       [(-∀/c _ e) (locs e)]
       [_ ∅eq]))
 
@@ -259,8 +251,6 @@
               [(-->i cs mk-d ℓ)
                (-->i (go-list m cs) (assert (go m mk-d) -λ?) ℓ)]
               [(-case-> cases) (-case-> (cast (go-list m cases) (Listof -->)))]
-              [(-struct/c t cs ℓ)
-               (-struct/c t (go-list m cs) ℓ)]
               [_
                ;(printf "unchanged: ~a @ ~a~n" (show-e e) (show-subst m))
                e])]))

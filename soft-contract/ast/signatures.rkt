@@ -114,7 +114,6 @@
             (-case-> [cases : (Listof -->)])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
-            (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
             (-∀/c (Listof Symbol) -e)
             )
 

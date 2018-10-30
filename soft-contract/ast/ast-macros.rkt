@@ -37,11 +37,11 @@
 
   (: -cons/c : -e -e ℓ → -e)
   (define (-cons/c c d ℓ)
-    (-struct/c -𝒾-cons (list c d) ℓ))
+    (-@ 'scv:struct/c (list -cons c d) ℓ))
 
   (: -box/c : -e ℓ → -e)
   (define (-box/c c ℓ)
-    (-struct/c -𝒾-box (list c) ℓ))
+    (-@ 'scv:struct/c (list -box c) ℓ))
 
   (: -list/c : (Listof (Pairof ℓ -e)) → -e)
   (define (-list/c args)

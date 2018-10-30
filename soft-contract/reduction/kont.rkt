@@ -478,38 +478,6 @@
         [(cons ⟦c⟧* ⟦c⟧s*)
          (⟦c⟧* ρ $ Γ H Σ (case->∷ ℓ Clauses Cs* ⟦c⟧s* ⟦clause⟧s ρ ⟦k⟧))])))
 
-  ;; struct/c contract
-  (define-frame (struct/c∷ [ℓ₁ : ℓ]
-                           [𝒾 : -𝒾]
-                           [Cs : (Listof -W¹)]
-                           [⟦c⟧s : (Listof -⟦e⟧)]
-                           [ρ : -ρ]
-                           [⟦k⟧ : -⟦k⟧])
-    (make-frame (⟦k⟧ A $ Γ H Σ) #:roots (#;Cs ρ)
-      (match-define (-W (list C) c) A)
-      (define Cs* (cons (-W¹ C c) Cs))
-      (match ⟦c⟧s
-        ['()
-         (define-values (αs cs flat?) ; with side effect widening store
-           (for/fold ([αs : (Listof ⟪α⟫) '()]
-                      [cs : (Listof -?t) '()]
-                      [flat? : Boolean #t])
-                     ([(W i) (in-indexed Cs*)])
-             (match-define (-W¹ C c) W)
-             (define α
-               (-α->⟪α⟫ (-α.struct/c 𝒾 ℓ₁ H (assert i exact-nonnegative-integer?))))
-             (σ⊕V! Σ α C)
-             (values (cons α αs)
-                     (cons c cs)
-                     (and flat? (C-flat? C)))))
-         (define αℓs : (Listof -⟪α⟫ℓ)
-           (for/list ([α : ⟪α⟫ (in-list αs)] [i : Natural (in-naturals)])
-             (-⟪α⟫ℓ α (ℓ-with-id ℓ₁ i))))
-         (define W (-W (list (-St/C flat? 𝒾 αℓs)) (apply ?t@ (-st/c.mk 𝒾) cs)))
-         (⟦k⟧ W $ Γ H Σ)]
-        [(cons ⟦c⟧ ⟦c⟧s*)
-         (⟦c⟧ ρ $ Γ H Σ (struct/c∷ ℓ₁ 𝒾 Cs* ⟦c⟧s* ρ ⟦k⟧))])))
-
   ;; define
   (define-frame (def∷ [l : -l]
                   [αs : (Listof ⟪α⟫)]

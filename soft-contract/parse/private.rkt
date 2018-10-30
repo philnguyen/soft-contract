@@ -226,7 +226,7 @@
        (define 𝒾 (-𝒾 s-name (cur-mod)))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (define st-p (-struct/c 𝒾 st-doms ℓ))
+       (define st-p (-@ 'scv:struct/c (cons (-st-mk 𝒾) st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
@@ -494,8 +494,7 @@
       [(#%plain-app (~literal fake:vectorof) c)
        (-@ 'vectorof (list (parse-e #'c)) (next-ℓ! stx))]
       [c:scv-struct/c
-       (define 𝒾 (-𝒾 (attribute c.name) (cur-mod)))
-       (-struct/c 𝒾 (map parse-e (attribute c.fields)) (next-ℓ! #'c))]
+       (-@ 'scv:struct/c (map parse-e (cons (attribute c.name) (attribute c.fields))) (next-ℓ! #'c))]
       [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (next-ℓ! stx))]
