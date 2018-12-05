@@ -96,7 +96,7 @@
                             [(-M _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
                             [(-F _ _ _ _ C V _) (∪ (->⟪α⟫s C) (->⟪α⟫s V))]
                             [(-HV $ tag) {seteq (-α->⟪α⟫ (-α.hv tag))}]))
-                        (σ-equal?/spanning-root σ₀ σ root)])]
+                        (σ-equal?/spanning-root σ₀ σ (∪ root (escaped-field-addresses σ)))])]
                     [else #f]))
 
             (: ς↓-seen? : -ς↓ → Boolean)
@@ -105,7 +105,7 @@
                 {set (⟦k⟧->αₖ (-κ-rest κ))})
               (cond [(hash-ref seen ς #f) =>
                      (match-lambda
-                       [(cons σ₀ σₖ₀)
+                       [(cons σ₀ σₖ₀) 
                         (map-equal?/spanning-root σₖ₀ σₖ {set (-ς-block ς)} κ->αₖs)])]
                     [else #f]))
 
@@ -232,7 +232,7 @@
               ([ς (in-set ςs)])
       (cond [(-ς↑? ς) (values (cons ς ς↑s) ς↓s ς!s)]
             [(-ς↓? ς) (values ς↑s (cons ς ς↓s) ς!s)]
-            [else     (values ς↑s ς↓s (cons (assert ς -ς!?) ς!s))])))
+            [else     (values ς↑s ς↓s (cons (assert ς -ς!?) ς!s))]))) 
   )
 
 (define-compound-unit/infer reduction@

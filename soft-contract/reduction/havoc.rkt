@@ -28,7 +28,9 @@
          (cond [(hash-ref cache V #f) =>
                 (λ ([mσ₀ : (HashTable ⟪α⟫ (℘ -V))])
                   (define mσ (-Σ-σ Σ))
-                  (map-equal?/spanning-root mσ₀ mσ (V->⟪α⟫s V) V->⟪α⟫s mutable?))]
+                  ;; TODO less conservative in root set?
+                  (define root (∪ (V->⟪α⟫s V) (escaped-field-addresses mσ)))
+                  (map-equal?/spanning-root mσ₀ mσ root V->⟪α⟫s mutable?))]
                [else #f]))
 
        (define (update-cache! [V : -V] [Σ : -Σ]) : Void
@@ -142,6 +144,8 @@
       (printf "gen-havoc-expr: ~a~n" (show-e ans))))
 
   (: +ℓ/memo : Natural Natural → ℓ)
-  (define (+ℓ/memo arity ith) (loc->ℓ (loc 'havoc-opq arity ith '()))))
+  (define (+ℓ/memo arity ith) (loc->ℓ (loc 'havoc-opq arity ith '()))) 
+  
+  )
 
 

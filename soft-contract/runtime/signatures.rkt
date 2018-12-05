@@ -291,6 +291,9 @@
             ;; indirection for `listof` to keep in-sync with regular listof contracts
             (-α.imm-listof Symbol #|elem, ok with care|# -V ℓ)
             (-α.imm-ref-listof Symbol #|elem, ok with care|# -V ℓ)
+
+            ;; Escaped fields
+            (-α.escaped -𝒾 Integer)
             )
 
 (-α.rec-ref . ::= . -α.x/c -α.imm-listof)
@@ -400,6 +403,7 @@
    [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
    [hack:α->loc : (⟪α⟫ → (Option -loc))]
    [mutable? : (⟪α⟫ → Boolean)]
+   [escaped-field-addresses : (-σ → (℘ ⟪α⟫))]
    ))
 
 (define-signature val^

@@ -13,7 +13,7 @@
          "../signatures.rkt")
 
 (define-unit memoize@
-  (import for-gc^ pretty-print^)
+  (import for-gc^ sto^ pretty-print^)
   (export memoize^)
   
   (define/memoeq (memoize-⟦e⟧ [⟦e⟧ : -⟦e⟧]) : -⟦e⟧
@@ -35,7 +35,9 @@
                      (cond [(hash-ref m key #f) =>
                             (λ ([rec : Rec])
                               (match-define (list σ₀ ςs₀) rec)
-                              (cond [(map-equal?/spanning-root σ₀ σ (ρ->⟪α⟫s ρ) V->⟪α⟫s)
+                              ;; TODO less conservative in root set?
+                              (define root (∪ (ρ->⟪α⟫s ρ) (escaped-field-addresses σ)))
+                              (cond [(map-equal?/spanning-root σ₀ σ root V->⟪α⟫s)
                                      #;(printf "hit-e: ~a~n" (show-⟦e⟧ ⟦e⟧))
                                      ςs₀]
                                     [else (recompute!)]))]

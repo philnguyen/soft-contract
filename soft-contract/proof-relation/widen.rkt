@@ -399,7 +399,15 @@
   (define (add-leak! [tag : HV-Tag] [Σ : -Σ] [V : -V]) : Void
     (define α (-α->⟪α⟫ (-α.hv tag)))
     (when (behavioral? (-Σ-σ Σ) V)
-      (σ⊕V! Σ α V)))
+      (σ⊕V! Σ α V))
+    (when (equal? tag '†)
+      (match V
+        [(-St 𝒾 αs)
+         ;; Bucket values by fields, breaking correlation between fields
+         (for ([αᵢ : ⟪α⟫ (in-list αs)] [i (in-naturals)])
+           (σ⊕Vs! Σ (-α->⟪α⟫ (-α.escaped 𝒾 i)) (σ@ Σ αᵢ)))]
+        [(-St* C α _) (void)] ; TODO
+        [_ (void)])))
 
   (: alloc-init-args! :
      -Σ -$ -Γ -ρ -H (Listof Symbol) (Listof -W¹) Boolean

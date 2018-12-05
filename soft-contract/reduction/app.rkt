@@ -478,11 +478,15 @@
                  (⟦ac⟧ ℓ (list (-W¹ V* s)) $ Γ H Σ ⟦k⟧))])]
            [(-● ps)
             (with-Γ+/- ([(Γₒₖ Γₑᵣ) (Γ+/-oW (-Σ-σ Σ) Γ p W)])
-              #:true  (⟦k⟧ (-W (if (and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
-                                   (list (-● {set 'list?}))
-                                   (list (+●)))
-                               (?t@ ac s))
-                       $ Γₒₖ H Σ)
+              #:true  (cond
+                        ;; Special case for rest of `list?`. TODO reduce hack
+                        [(and (equal? 𝒾 -𝒾-cons) (equal? i 1) (∋ ps 'list?))
+                         (⟦k⟧ (-W (list (-● {set 'list?})) (?t@ ac s)) $ Γₒₖ H Σ)]
+                        ;; User-defined structs
+                        [(not (member 𝒾 (list -𝒾-cons -𝒾-box)))
+                         (for/union : (℘ -ς) ([V (in-set (σ@ Σ (-α->⟪α⟫ (-α.escaped 𝒾 i))))])
+                           (⟦k⟧ (-W (list V) (?t@ ac s)) $ Γₒₖ H Σ))]
+                        [else (⟦k⟧ (-W (list (+●)) (?t@ ac s)) $ Γₒₖ H Σ)]) 
               #:false (⟦k⟧ (blm) $ Γₑᵣ H Σ))]
            [_ (⟦k⟧ (blm) $ Γ H Σ)])]
         [_

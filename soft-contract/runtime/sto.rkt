@@ -82,6 +82,10 @@
   (define ⟪α⟫ₒₚ (-α->⟪α⟫ (-α.imm (-● ∅))))
   (define ⊥σ : -σ (hasheq))
 
+  (: escaped-field-addresses : -σ → (℘ ⟪α⟫))
+  (define (escaped-field-addresses σ)
+    (list->seteq (filter (λ ([α : ⟪α⟫]) (-α.escaped? (⟪α⟫->-α α))) (hash-keys σ))))
+
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; Kontinuation store
@@ -208,6 +212,7 @@
       [(-α.x x _ _) (assignable? x)]
       [(-α.fld 𝒾 _ _ i) (struct-mutable? 𝒾 i)]
       [(? -α.idx?) #t]
+      [(? -α.escaped?) #t]
       [_ #f]))
   
   )
