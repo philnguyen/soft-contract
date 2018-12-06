@@ -37,13 +37,13 @@
     (define t (-t.@ 'case-> (cast ts (Listof -t))))
     (⟦k⟧ (-W (list (-Case-> (cast cases (Listof -=>)))) t) $ Γ H Σ))
 
-  (def (scv:struct/c ℓ Ws $ Γ H Σ ⟦k⟧)
+  (def (scv:struct/c ℓ _ $ Γ H Σ ⟦k⟧)
     #:init ([Wₖ any/c])
     #:rest [Wᵣs (listof contract?)]
     (match Wₖ
       [(-W¹ (-st-mk 𝒾) _)
        (define-values (Cs cs) (unzip-by -W¹-V -W¹-t Wᵣs))
-       (define αs ((inst build-list ⟪α⟫) (length Ws) (λ (i) (-α->⟪α⟫ (-α.struct/c 𝒾 ℓ H i)))))
+       (define αs ((inst build-list ⟪α⟫) (length Wᵣs) (λ (i) (-α->⟪α⟫ (-α.struct/c 𝒾 ℓ H i)))))
        (for ([α (in-list αs)] [C (in-list Cs)])
          (σ⊕V! Σ α C))
        (define αℓs : (Listof -⟪α⟫ℓ)
