@@ -24,7 +24,8 @@
                       file->value
                       with-input-from-file
                       with-output-to-file
-                      string-join))
+                      string-join
+                      sort))
      (define (?recognized-name name)
        (define name-str (symbol->string name))
        (for/first ([s (in-list names)]
@@ -66,6 +67,14 @@
     (pattern x:id
              #:attr name (?private-id-name (syntax-e #'x))
              #:when (attribute name))))
+
+(define-syntax-class scv-ignored
+  #:description "non-sense ignored by scv"
+  #:literal-sets (lits)
+  (pattern (if (#%plain-app (~literal variable-reference-from-unsafe?)
+                            (#%variable-reference))
+               (#%plain-app void)
+               (let-values () (#%plain-app check-list _ ...)))))
 
 
 (define-syntax-class scv-provide
