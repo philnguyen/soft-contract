@@ -10,6 +10,7 @@
          "../utils/list.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
+         "../reduction/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -18,9 +19,10 @@
                      syntax/parse))
 
 (define-unit prims-scv@
-  (import prim-runtime^
+  (import static-info^
+          prim-runtime^
           val^ pc^
-          widening^)
+          widening^ kont^)
   (export)
 
   (def (scv:make-case-lambda ℓ Ws $ Γ H Σ ⟦k⟧)
@@ -36,6 +38,15 @@
     (define-values (cases ts) (unzip-by -W¹-V -W¹-t Ws))
     (define t (-t.@ 'case-> (cast ts (Listof -t))))
     (⟦k⟧ (-W (list (-Case-> (cast cases (Listof -=>)))) t) $ Γ H Σ))
+
+  (def (scv:dynamic-mon ℓ Ws $ Γ H Σ ⟦k⟧)
+    #:init ([V+ any/c] [V- any/c] [C contract?] [V any/c])
+    (match-define (-W¹ _ (-b (? symbol? l+))) V+)
+    #;(match-define (-W¹ _ (-b (? symbol? l-))) V-)
+    (define l- (ℓ-src ℓ)) ; FIXME figure out write negative party
+    (printf "mon: ~a ~a ~a ~a~n" l+ l- C V)
+    (add-transparent-module! l+) ; HACK
+    ((mon.c∷ (-ctx l+ l- l+ ℓ) C ⟦k⟧) (W¹->W V) $ Γ H Σ))
 
   (def (scv:struct/c ℓ _ $ Γ H Σ ⟦k⟧)
     #:init ([Wₖ any/c])

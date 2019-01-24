@@ -6,7 +6,7 @@
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
                     recursive-contract)
          (except-in racket/set set/c)
-         (for-syntax racket/base racket/string)
+         (for-syntax racket/base racket/string racket/syntax syntax/parse)
          racket/list)
 (require (prefix-in c: racket/contract/base)
          (prefix-in c: (only-in racket/set set/c))
@@ -26,7 +26,9 @@
          dynamic-struct-out
          =/c >/c >=/c </c <=/c between/c
          not/c cons/c
-         one-of/c box/c vector/c vectorof)
+         one-of/c box/c vector/c vectorof
+         define/contract
+         dynamic-mon)
 
 (define-syntax (scv:ignore stx)
   (syntax-case stx ()
@@ -118,6 +120,15 @@
 (define-syntax-rule (provide/contract [id ctc] ...)
   (begin (dynamic-provide/contract (list id ctc) ...)
          (scv:ignore (c:provide/contract [id ctc] ...))))
+
+(define-syntax define/contract
+  (syntax-parser
+    [(_ x:id c:expr e:expr)
+     #'(define x (dynamic-mon 'x 'module c e))]
+    [(_ (f:id x:id ...) c:expr e:expr ...)
+     #'(define/contract f c (λ (x ...) e ...))]))
+
+(define (dynamic-mon . xs) (void))
 
 (require (for-syntax syntax/parse))
 

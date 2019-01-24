@@ -21,7 +21,7 @@
 ;; Otherwise at the time of requiring `soft-contract/fake-contract`,
 ;; expansion will have already resolved them to those the original `racket/contract`.
 (define swap-table (make-free-id-table #:phase #f))
-(let ([add! (λ (i1 i2) (free-id-table-set! swap-table i1 i2))])
+(let ([add! (λ (i1 i2) (free-id-table-set! swap-table i1 i2))]) 
   (add! #'provide #'f:provide)
   (add! #'provide/contract #'f:provide/contract)
   (add! #'contract-out #'f:contract-out)
@@ -55,6 +55,7 @@
   (add! #'recursive-contract #'f:recursive-contract)
   (add! #'between/c #'f:between/c)
   (add! #'flat-contract #'f:flat-contract)
+  (add! #'define/contract #'f:define/contract)
   )
 
 (define (expand/high-level-contracts stx)

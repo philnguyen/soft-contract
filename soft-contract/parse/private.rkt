@@ -267,7 +267,7 @@
     (syntax-parser
       #:literals (define-syntaxes define-values #%require let-values #%plain-app values
                    call-with-values #%plain-lambda quote list)
-      [;; Handled by pass that figured-out aliases
+      [;; Handled by pass that figured out aliases
        (define-values (ex:id _) (#%plain-app do-partial-app _ in:id _ ...))
        #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
        #f]
@@ -625,7 +625,8 @@
       [(~literal fake:list/c) 'list/c]
       [(~literal fake:between/c) 'between/c]
       [(~literal fake:flat-contract) 'values]
-      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work      
+      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      [(~literal fake:dynamic-mon) 'scv:dynamic-mon]
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")
