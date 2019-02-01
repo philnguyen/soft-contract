@@ -83,8 +83,6 @@
                 (parameterize ([expander expand])
                   (map do-expand-file fns)))
 
-      (pretty-print (syntax->datum (car stxs)))
-      
       (define ms (map parse-module stxs))
 
       ;; Re-order the modules for an appropriate initilization order,
