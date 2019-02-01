@@ -47,7 +47,7 @@
      (set! mode 'debug-cg)]
     [("-s" "--max-steps") n
      "Set maximum steps to explore"
-     (db:max-steps (assert (string->number (assert n string?)) exact-nonnegative-integer?))]
+     (db:max-steps (assert (string->number (assert n string?)) index?))]
 
     #:args (first-module . other-modules) ; TODO re-enable file list
     (cons first-module other-modules)]
@@ -56,42 +56,58 @@
 (: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: run-with : ((Listof Path-String) → (Values (℘ Blm) Σ)) (Listof Path-String) → (℘ Blm))
+  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → (℘ Err))
   (define (run-with f files)
     (define-values (blms _) (f files))
     (print-blames blms)
     blms)
 
-  (: print-blame : Blm String → Void)
+  (: print-blame : Err String → Void)
   (define (print-blame blm idx)
+    (match blm
+      [(Blm l+ ℓ:site ℓ:origin Cs Vs)
+       (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ:site) (ℓ-line ℓ:site) (ℓ-col ℓ:site))
+       (printf "    - Blaming: ~a~n" l+)
+       (printf "    - Contract from: ~a:~a:~a @ ~a ~n"
+               (ℓ-src ℓ:origin) (ℓ-line ℓ:origin) (ℓ-col ℓ:origin) (ℓ-id ℓ:origin))
+       (printf "    - Expected: ~a~n"
+               (match Cs
+                 [(list C) (show-V^ C)]
+                 ['() "no value"]
+                 [_ (format "~a values: ~a" (length Cs) (show-W Cs))]))
+       (printf "    - Given: ~a~n"
+               (match Vs
+                 [(list V) (show-V^ V)]
+                 ['() "(values)"]
+                 [_ (format "~a values: ~a" (length Vs) (show-W Vs))]))]
+      [(Err:Raised s ℓ)
+       (printf "~a Error: ~a~n" idx s)
+       (printf "    - At: ~a:~a:~a~n" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))]
+      [(Err:Undefined x ℓ)
+       (printf "~a Undefined `~a`~n" idx x)
+       (printf "    - At: ~a:~a:~a~n" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))]
+      [(Err:Values n E W ℓ)
+       (printf "~a Expected ~a values, given ~a:~n" n (length W))
+       (for ([Vs (in-list W)])
+         (printf "    - ~a~n" (show-V^ Vs)))
+       (printf "    - At: ~a:~a:~a~n" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))]
+      [(Err:Arity f xs ℓ)
+       (printf "~a Function applied with wrong arity~n" idx)
+       (if (V? f)
+           (printf "    - Function: ~a~n" (show-V f))
+           (printf "    - Function defined at ~a:~a:~a" (ℓ-src f) (ℓ-line f) (ℓ-col f)))
+       (if (integer? xs)
+           (printf "    - Given ~a arguments~n" xs)
+           (begin
+             (printf "    - Given ~a arguments:~n" (length xs))
+             (for ([Vs (in-list xs)])
+               (printf "        + ~a~n" (show-V^ Vs)))))
+       (printf "    - At: ~a:~a:~a~n" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))]
+      [(Err:Sealed x ℓ)
+       (printf "~a Attempt to inspect value sealed in ~a~n" x)
+       (printf "    - At: ~a:~a:~a~n" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))]))
 
-    (: show-set (∀ (X) (X → Sexp) X → String))
-    (define (show-set f x)
-      (define s (f x))
-      (cond [(and (set? x) (list? s))
-             (if (= 1 (set-count x))
-                 (format "~a" (car s))
-                 (string-join (map (λ (x) (format "~a" x)) s)
-                              #:before-first "{"
-                              #:after-last "}"))]
-            [else (format "~a" s)]))
-    
-    (match-define (Blm l+ ℓ:site ℓ:origin Cs Vs) blm)
-    (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ:site) (ℓ-line ℓ:site) (ℓ-col ℓ:site))
-    (printf "    - Blaming: ~a~n" l+)
-    (printf "    - Contract from: ~a:~a:~a @ ~a ~n" (ℓ-src ℓ:origin) (ℓ-line ℓ:origin) (ℓ-col ℓ:origin) (ℓ-id ℓ:origin))
-    (printf "    - Expected: ~a~n"
-            (match Cs
-              [(list C) (show-set show-blm-reason C)]
-              ['() "no value"]
-              [_ (format "~a values: ~a" (length Cs) (map show-blm-reason Cs))]))
-    (printf "    - Given: ~a~n"
-            (match Vs
-              [(list V) (show-set show-T V)]
-              ['() "(values)"]
-              [_ (format "~a values: ~a" (length Vs) (map show-T Vs))])))
-
-  (: print-blames : (℘ Blm) → Void)
+  (: print-blames : (℘ Err) → Void)
   (define (print-blames blames)
     (define maybe-plural (match-lambda [1 ""] [_ "s"]))
     (match (set-count blames)
@@ -123,7 +139,7 @@
                      (pretty-write (show-module (optimize m blms)))
                      (printf "~n")))]
         [(havoc-last) (run-with havoc-last fnames)]
-        [(debug) (void (viz fnames))])))
+        #;[(debug) (void (viz fnames))])))
 
   (go (map canonicalize-path fnames)))
 

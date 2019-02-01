@@ -4,13 +4,13 @@
 
 (require typed/racket/unit
          "primitives/signatures.rkt"
-         "reduction/signatures.rkt"
+         "execution/signatures.rkt"
          
          "ast/main.rkt"
          "runtime/main.rkt"
          "verifier.rkt"
-         "proof-relation/main.rkt"
-         "reduction/main.rkt"
+         "prover/main.rkt"
+         "execution/main.rkt"
          "primitives/main.rkt"
          "parse/main.rkt"
          "signatures.rkt"
@@ -18,14 +18,14 @@
 
 (define-values/invoke-unit/infer
   (export ast-pretty-print^
-          pretty-print^ val^ sto^ evl^
+          pretty-print^ val^ sto^
           prim-runtime^
           prover^
-          step^
+          exec^
           parser^ verifier^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
         prims@ parser@
-        env@ sto@ val@ evl@ pretty-print@
+        cache@ sto@ val@ pretty-print@
         prover@
-        reduction@
+        exec@
         verifier@))

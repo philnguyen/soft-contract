@@ -3,6 +3,7 @@
 (provide prim-runtime@)
 (require racket/match
          (except-in racket/set for/set for*/set for/seteq for*/seteq)
+         (only-in racket/list split-at make-list)
          racket/sequence
          racket/splicing
          syntax/parse/define
@@ -13,57 +14,118 @@
          "../utils/main.rkt"
          "../ast/main.rkt"
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prim-runtime@
-  (import val^ env^ evl^
-          alloc^ compile^
+  (import cache^ val^ sto^
           prover^
-          step^ approx^)
+          exec^ mon^ hv^)
   (export prim-runtime^)
 
-  (splicing-let ([TT (list {set -tt})]
-                 [FF (list {set -ff})])
-    (: implement-predicate : Σ Φ^ -o W → R^)
-    (define (implement-predicate Σ Φ^₀ o W)
-      (define-values (R+ R-) (split-results Σ (R W Φ^₀) o))
-      (define ?res (and (andmap S? W) (list (S:@ o W))))
-      ((inst with-2-paths/collapse R) (λ () (split-results Σ (R W Φ^₀) o))
-       (λ (Φ^) {set (R (or ?res TT) Φ^)})
-       (λ (Φ^) {set (R (or ?res FF) Φ^)}))))
-
-  (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦F⟧^)
+  (define/memoeq (make-total-pred [n : Index]) : (Symbol → ⟦O⟧)
     (λ (o)
       (define ℓ:o (loc->ℓ (loc o 0 0 '())))
-      (λ (W ℓ Φ^ Ξ Σ)
+      (λ (Σ ℓ W)
         (cond
           [(equal? n (length W))
-           (define ok (ret! (implement-predicate Σ Φ^ o W) Ξ Σ))
+           (define-values (r es₀) (implement-predicate Σ o W))
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
-           (define ?er
-             (match ((inst findf T^) (λ (T^) (and (set? T^) (set-ormap Sealed? T^))) W)
-               [(? set? T^) (r:blm ℓ ℓ:o '(any/c) (list T^))]
-               [#f ∅]))
-           {set-add ?er ok}]
-          [else (r:blm ℓ ℓ:o (list (-b n) 'values) W)]))))
+           (define es₁
+             (for*/set: : (℘ Err) ([Vs (in-list W)] [V (in-set Vs)] #:when (Sealed? V))
+               (match-define (Sealed (α:dyn (β:sealed x) _)) V)
+               (Err:Sealed x ℓ)))
+           (values r (∪ es₀ es₁))]
+          [else (err (Err:Arity o n ℓ))]))))
+
+  (: implement-predicate : Σ -o W → (Values R (℘ Err)))
+  (define (implement-predicate Σ o W)
+    (with-split-Σ Σ o W
+      (λ (_ ΔΣ) (just -tt ΔΣ))
+      (λ (_ ΔΣ) (just -ff ΔΣ))))
+
+  (: W->bs : W → (Option (Listof Base)))
+  (define W->bs
+    (match-lambda
+      ['() '()]
+      [(cons {singleton-set (-b b)} W)
+       (match (W->bs W)
+         [(? values bs) (cons b bs)]
+         [#f #f])]
+      [_ #f]))
+
+  (: exec-prim :
+     Σ ℓ Symbol
+     #:volatile? Boolean
+     #:dom (-var V)
+     #:rng W
+     #:rng-wrap (Option (Listof V))
+     #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
+     #:args W
+     → (Values R (℘ Err)))
+  (define (exec-prim
+           Σ₀ ℓ o
+           #:volatile? volatile?
+           #:dom doms
+           #:rng ranges
+           #:rng-wrap ?range-wraps
+           #:refinements refinements
+           #:args args)
+    (define l (ℓ-src ℓ))
+    (define ℓ:o (loc->ℓ (loc o 0 0 '())))
+    (define ctx* (Ctx l o ℓ:o ℓ))
+    (define ctx (Ctx o l ℓ:o ℓ))
+    (match-define (-var doms:init doms:rest) doms)
+
+    (define (no-return?) (ormap (match-λ? {singleton-set (-● (singleton-set 'none/c))}) ranges))
+
+    (define (simple-pred?)
+      (and (null? refinements)
+           (equal? 'boolean? (hash-ref range-table o #f))
+           (not doms:rest)
+           (andmap symbol? doms:init)))
+
+    (define (args:behavioral?)
+      (match (for*/set: : V^ ([Vs (in-list args)] [V (in-set Vs)] #:when (behavioral? V Σ₀))
+               V)
+        [(? set-empty?) #f]
+        [Vs Vs]))
+
+    (define (mk-rng [Σ : Σ])
+      (define-values (Wₐ ΔΣ) (refine-ranges Σ refinements args ranges))
+      (if ?range-wraps
+          (with-pre ΔΣ (mon* (⧺ Σ ΔΣ) ctx (map {inst set V} ?range-wraps) Wₐ))
+          (values (hash ΔΣ {set Wₐ}) ∅)))
+
+    (with-collapsing/R [(ΔΣ₀ args*)
+                        (if doms:rest
+                            (let-values ([(args:init args:rest)
+                                          (split-at args (length doms:init))])
+                              (with-collapsing/R [(ΔΣ₀ args:init*)
+                                                  (mon* Σ₀ ctx* (map (inst set V) doms:init) args:init)]
+                                (with-collapsing/R [(ΔΣ₁ args:rest*)
+                                                    (mon* (⧺ Σ₀ ΔΣ₀) ctx* (make-list (length args:rest) {set doms:rest}) args:rest)]
+                                  (just (append (collapse-W^ args:init*) (collapse-W^ args:rest*)) (⧺ ΔΣ₀ ΔΣ₁)))))
+                            (mon* Σ₀ ctx* (map (inst set V) doms:init) args))]
+      (cond [(no-return?) (values ⊥R ∅)]
+            [(simple-pred?) (with-pre ΔΣ₀ (implement-predicate (⧺ Σ₀ ΔΣ₀) o (collapse-W^ args*)))]
+            [(args:behavioral?)
+             =>
+             (λ (Vs)
+               (define αₕᵥ (γ:hv #f))
+               (define ΔΣ₁ (alloc αₕᵥ Vs))
+               (define Σ₁ (⧺ Σ₀ ΔΣ₀ ΔΣ₁))
+               (with-collapsing/R [(ΔΣ₂ _) (hv Σ₁ αₕᵥ)]
+                 (with-pre (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂) (mk-rng (⧺ Σ₁ ΔΣ₂)))))]
+            [else (with-pre ΔΣ₀ (mk-rng (⧺ Σ₀ ΔΣ₀)))])))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
-  (define prim-table  : (HashTable Symbol ⟦F⟧^) (make-hasheq))
+  (define prim-table  : (HashTable Symbol ⟦O⟧) (make-hasheq))
   (define opq-table   : (HashTable Symbol -●) (make-hasheq))
   (define debug-table : (HashTable Symbol Any) (make-hasheq))
 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Helpers for some of the primitives
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (: W->bs : W → (Option (Listof Base)))
-  (define (W->bs W) (and (andmap -b? W) (map -b-unboxed W)))
-
-  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Implication and Exclusion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -156,139 +218,92 @@
                     (syntax-e x) (syntax-e y₀) (syntax-e y)))]
           [else (alias-table-set! alias-table x y)]))
 
-  (: make-listof : Boolean V ℓ → V)
-  (define (make-listof flat? Cₕ ℓ)
-    (define x (format-symbol "gen-listof-~a" (mk-α (-α:imm Cₕ))))
-    (X/C (mk-α (-α:imm:listof x Cₕ ℓ))))
+  (: make-listof : V ℓ → V)
+  (define (make-listof Cₕ ℓ)
+    (define x (format-symbol "gen-listof-~a" ℓ))
+    (γ:imm:listof x Cₕ ℓ))
 
-  (: make-static-listof : Symbol (→ (Values Boolean V ℓ)) → V)
+  (: make-static-listof : Symbol (→ (Values V ℓ)) → V)
   (define make-static-listof
     (let ([cache : (Mutable-HashTable Symbol V) (make-hasheq)])
       (λ (tag mk-V)
         (hash-ref! cache tag (λ () (call-with-values mk-V make-listof))))))
 
-  (: make-∀/c : Symbol (Listof Symbol) -e Ρ → V)
-  (define make-∀/c
-    (let ([e-cache : (Mutable-HashTable -e ⟦E⟧) (make-hash)])
-      (λ (src xs e Ρ)
-        (define ⟦E⟧ (hash-ref! e-cache e (λ () (↓ₑ src e))))
-        (∀/C xs ⟦E⟧ Ρ))))
+  (: vec-len : V^ → V^)
+  (define (vec-len V^)
+    (match V^
+      [{singleton-set (? T? T)} {set (T:@ 'vector-length (list T))}]
+      [_
+       (set-union-map
+        (match-lambda
+          [(Vect αs) {set (-b (length αs))}]
+          [(Vect-Of _ αₙ) αₙ]
+          [(Guarded _ (Vect/C αs _) _) {set (-b (length αs))}]
+          [_ {set (-● {set 'exact-nonnegative-integer?})}])
+        V^)]))
 
-  (: make-static-∀/c : Symbol Symbol (Listof Symbol) (→ -e) → V)
-  (define make-static-∀/c
-    (let ([cache : (Mutable-HashTable Symbol V) (make-hasheq)])
-      (λ (tag src xs mk-e)
-        (hash-ref! cache tag (λ () (make-∀/c src xs (mk-e) ⊥Ρ))))))
+  (: refine-ranges : Σ (Listof (List (Listof V) (Option V) (Listof V))) W W → (Values W ΔΣ))
+  (define (refine-ranges Σ cases args rng)
 
-  (: exec-prim :
-     ℓ Symbol Ξ:co Σ
-     #:volatile? Boolean
-     #:dom (Listof (Pairof V ℓ))
-     #:rng W
-     #:rng-wrap (Option (Listof (Pairof V ℓ)))
-     #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
-     #:args R
-     → Ξ)
-  (define (exec-prim
-           ℓ o Ξ Σ
-           #:volatile? volatile?
-           #:dom doms
-           #:rng ranges
-           #:rng-wrap ?range-wraps
-           #:refinements refinements
-           #:args args)
-    (define l (ℓ-src ℓ))
-    (define ℓ:o (loc->ℓ (loc o 0 0 '())))
-    (define ctx* (Ctx l o ℓ:o ℓ))
-    (define ctx (Ctx o l ℓ:o ℓ))
+    (: obvious? : V V^ → Boolean)
+    ;; Fast local check if `Vs` definitely satisfies `P`
+    (define (obvious? P Vs)
+      (define go : (V → ?Dec)
+        (match-lambda
+          [(Not/C (γ:imm P) _)
+           (case (go P)
+             [(✓) '✗]
+             [(✗) '✓]
+             [else #f])]
+          [(? P? P) (sat Σ P Vs)]
+          [_ #f]))
+      (eq? (go P) '✓))
 
-    (define (no-return?)
-      (ormap (match-λ? {singleton-set (-● (singleton-set 'none/c))}) ranges))
+    ;; For each refinement case, if args satisfy domain, refine result with range
+    (for/fold ([rng* : W rng] [ΔΣ* : ΔΣ ⊥ΔΣ]) ([kase (in-list cases)])
+      (match-define (list dom-inits ?dom-rst refinements) kase)
 
-    (define (simple-pred?)
-      (and (null? refinements)
-           (equal? 'boolean? (hash-ref range-table o #f))
-           (andmap symbol? (map (inst car V Any) doms))))
+      (: check-inits : (Listof V) W → (Values W ΔΣ))
+      (define check-inits
+        (match-lambda**
+         [((cons dom doms*) (cons arg args*))
+          (if (obvious? dom arg) (check-inits doms* args*) (values rng* ΔΣ*))]
+         [('() args) (check-rest args)]
+         [((cons _ _) '()) (values rng* ΔΣ*)]))
 
-    (define (args:behavioral?)
-      (for*/or ([Φ^₀ (in-value (R-_1 args))]
-                [T (in-list (R-_0 args))]
-                [V (in-set (T->V Σ Φ^₀ T))])
-        (behavioral? Σ V)))
+      (: check-rest : W → (Values W ΔΣ))
+      (define (check-rest args)
+        (cond [?dom-rst
+               (let go ([args : W args])
+                 (match args
+                   ['() (refine-rng)]
+                   [(cons arg args*) (if (obvious? ?dom-rst arg)
+                                         (go args*)
+                                         (values rng* ΔΣ*))]))]
+              [else (if (null? args) (refine-rng) (values rng* ΔΣ*))]))
 
-    (define (mk-rng)
-      (F:Make-Prim-Range ctx (and ?range-wraps (map mk-αℓ ?range-wraps)) ranges refinements))
-    
-    (define Ξ:gen-rng
-      (cond [(no-return?)       (K+ (F:Absurd) Ξ)]
-            [(simple-pred?)     (K+ (F:Implement-Predicate o) Ξ)]
-            [(args:behavioral?) (K+ (F:Havoc-Prim-Args ℓ o) (K+ (mk-rng) Ξ))]
-            [else               (K+ (mk-rng) Ξ)]))
-    
-    (define Ξ:chk-args (K+ (F:Mon*:C ctx* (map mk-αℓ doms)) Ξ:gen-rng))
-    (ret! args Ξ:chk-args Σ))
+      (define (refine-rng) : (Values W ΔΣ)
+        (define-values (rng-rev ΔΣ**)
+          (for/fold ([rng-rev : W '()] [ΔΣ* : ΔΣ ΔΣ*])
+                    ([rngᵢ (in-list rng*)] [refᵢ (in-list refinements)])
+            (define-values (rngᵢ* ΔΣᵢ) (refine rngᵢ refᵢ Σ))
+            (values (cons rngᵢ rng-rev) (⧺ ΔΣ* ΔΣᵢ))))
+        (values (reverse rng-rev) ΔΣ**))
 
-  (: vec-len : T^ → T^)
-  (define (vec-len T^)
-    (if (set? T^)
-        (set-union-map
-         (match-lambda
-           [(Vect αs) {set (-b (length αs))}]
-           [(Vect^ _ Vₙ) Vₙ]
-           [(X/G (Vect/C αs) _ _) {set (-b (length αs))}] 
-           [_ {set (-● {set 'exact-nonnegative-integer?})}])
-         T^)
-        (S:@ 'vector-length (list T^))))
-
-  (: mk-res : Φ^ (Listof (℘ P)) -o W → (Values W Φ^))
-  (define (mk-res Φ^₀ Ps-list o Wₓ)
-    (if (andmap S? Wₓ)
-        (let ([Sₐ (S:@ o Wₓ)])
-          (match (length Ps-list)
-            [1 (values (list Sₐ) (Ψ+ Φ^₀ (car Ps-list) (list Sₐ)))]
-            [n (define Sᵢs (for/list : (Listof S) ([i (in-range n)])
-                             (S:@ (-st-ac -𝒾-values (assert i index?)) (list Sₐ))))
-               (define Φ^* (for/fold ([acc : Φ^ Φ^₀])
-                                     ([Sᵢ (in-list Sᵢs)] [Ps (in-list Ps-list)])
-                             (Ψ+ acc Ps (list Sᵢ))))
-               (values Sᵢs Φ^*)]))
-        (values (for/list : (Listof V^) ([Ps (in-list Ps-list)])
-                  {set (-● Ps)})
-                Φ^₀)))
-
-  (: add-seal : Σ Symbol H -l → Seal/C)
-  (define (add-seal Σ x H l)
-    (define C (Seal/C x H l))
-    (⊔ᵥ! Σ (mk-α (-α:sealed x H)) ∅)
-    C)
-
-  (define mk-αℓ : ((Pairof V ℓ) → αℓ)
-    (match-lambda [(cons V ℓ) (αℓ (mk-α (-α:imm V)) ℓ)]))
+      (check-inits dom-inits args)))
 
   ;; Eta-expand to get aroudn undefined and init-depend
-  (: r:ret! : ((U R R^) Ξ:co Σ → Ξ:co))
-  (: r:blm : (ℓ ℓ (Listof (U V V^)) (U W W^) → (℘ Blm)))
-  (: r:split-results : Σ R P → (Values R^ R^))
-  (: r:with-2-paths/collapse
-     (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X)))
-  (define (r:ret! R Ξ Σ) (ret! R Ξ Σ))
-  (define (r:with-2-paths/collapse e t f) (with-2-paths/collapse e t f))
-  (define (r:split-results Σ R P) (split-results Σ R P))
-  (define (r:blm ℓ+ ℓo C V) (blm (ℓ-src ℓ+) ℓ+ ℓo C V))
-
-  #|
-  (: t.@/simp : -o (Listof -t) → -t)
-  (define t.@/simp
-    (match-lambda**
-     [('+ (list (? -b? b) (-t.@ '- (list t b)))) t]
-     [('+ (list (-b 0) t)) t]
-     [('+ (list t (-b 0))) t]
-     [('- (list t (-b 0))) t]
-     [('* (list t (-b 1))) t]
-     [('* (list (-b 1) t)) t]
-     [('= (list t t)) -tt]
-     [('any/c _) -tt]
-     [('none/c _) -ff]
-     [(o ts) (-t.@ o ts)]))
-  |#
+  (: r:err : Err → (Values R (℘ Err)))
+  (define (r:err e) (err e))
+  (: r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
+  (define (r:just V [ΔΣ ⊥ΔΣ]) (just V ΔΣ))
+  (: r:reify : V^ → V^)
+  (define (r:reify Cs) (reify Cs))
+  (: r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
+                         → (Values R (℘ Err))))
+  (define (r:with-split-Σ Σ P W on-t on-f) (with-split-Σ Σ P W on-t on-f))
+  (: r:⧺ : ΔΣ * → ΔΣ)
+  (define (r:⧺ . ΔΣs) (apply ⧺ ΔΣs))
+  (: r:ΔΣ⧺R : ΔΣ R → R)
+  (define (r:ΔΣ⧺R ΔΣ R) (ΔΣ⧺R ΔΣ R))
   )

@@ -4,9 +4,9 @@
 
 (require typed/racket/unit
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prim-runtime.rkt"
@@ -30,7 +30,7 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → ⟦F⟧^)
+  (: get-prim : Symbol → Σ ℓ W → (Values R (℘ Err)))
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
@@ -62,9 +62,9 @@
 
 (define-compound-unit/infer prims@
   (import ast-pretty-print^ static-info^ meta-functions^
-          val^ env^ evl^ sto^
+          val^ sto^ cache^
           prover^
-          alloc^ compile^ step^ mon^ approx^ app^)
+          exec^ app^ mon^ hv^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@

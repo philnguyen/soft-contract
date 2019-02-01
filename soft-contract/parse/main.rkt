@@ -52,9 +52,9 @@
              [(-p/c-item x _ _)
               (hash-set! decs x #t)]
              [(? symbol? x) (hash-set! decs x #t)]))]
-        [(-define-values (list x) (? -st-ac? e))
+        [(-define-values (list x) (? -st-ac? e) _)
          (hash-set! acc-defs x e)]
-        [(-define-values (list x) (? -st-mut? e))
+        [(-define-values (list x) (? -st-mut? e) _)
          (hash-set! mut-defs x e)]
         [_ (void)]))
     

@@ -4,8 +4,7 @@
 
 (define pkg-desc "Contract verifier")
 
-(define deps '("abstract-compilation"
-               "base"
+(define deps '("base"
                "bnf"
                "compiler-lib"
                "htdp-lib"

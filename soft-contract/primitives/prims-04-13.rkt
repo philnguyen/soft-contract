@@ -23,7 +23,7 @@
          "../utils/function.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -38,10 +38,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import evl^
+  (import sto^
           prim-runtime^
-          step^
-          prover^ approx^)
+          exec^
+          prover^)
   (export)
 
   (def-pred hash?)
@@ -49,36 +49,32 @@
     (hash? . -> . boolean?))
 
   (splicing-local
-      ((: hash-helper : W ℓ Φ^ Ξ:co Σ Symbol -o → (℘ Ξ))
-       (define (hash-helper Wₓ ℓ Φ^ Ξ Σ name eq)
+      ((: hash-helper : Σ ℓ W Symbol -o → (Values R (℘ Err)))
+       (define (hash-helper Σ ℓ Wₓ name eq)
          (cond
            [(even? (length Wₓ))
-            (define H (Ξ:co-ctx Ξ))
-            (define αₖ (mk-α (-α:hash:key ℓ H)))
-            (define αᵥ (mk-α (-α:hash:val ℓ H)))
-            (let go! ([W : W Wₓ])
-              (match W
-                [(list* Tₖ Tᵥ W*)
-                 (⊔T! Σ Φ^ αₖ Tₖ)
-                 (⊔T! Σ Φ^ αᵥ Tᵥ)
-                 (go! W*)]
-                [_ (void)]))
-            {set (ret! (T->R (Hash^ αₖ αᵥ #t) Φ^) Ξ Σ)}]
-           [else
-            (define msg (list (string->symbol "even number of arg(s)")))
-            (r:blm ℓ (loc->ℓ (loc name 0 0 '())) msg Wₓ)])))
-    (def (hash W ℓ Φ^ Ξ Σ)
+            (define αₖ (α:dyn (β:hash:key ℓ) H₀))
+            (define αᵥ (α:dyn (β:hash:val ℓ) H₀))
+            (define ΔΣ₀ : ΔΣ
+              (let go ([W : W Wₓ] [acc : ΔΣ ⊥ΔΣ])
+                (match W
+                  [(list* Vₖ Vᵥ W*)
+                   (go W* (⧺ acc (alloc αₖ Vₖ) (alloc αᵥ Vᵥ)))]
+                  [_ acc])))
+            (just (Hash-Of αₖ αᵥ #t) ΔΣ₀)]
+           [else (err (Err:Raised "even number of args" ℓ))])))
+    (def (hash Σ ℓ W)
       #:init ()
       #:rest [W (listof any/c)]
-      (hash-helper W ℓ Φ^ Ξ Σ 'hash 'hash-equal?))
-    (def (hasheq W ℓ Φ^ Ξ Σ)
+      (hash-helper Σ ℓ W 'hash 'hash-equal?))
+    (def (hasheq Σ ℓ W)
       #:init ()
       #:rest [W (listof any/c)]
-      (hash-helper W ℓ Φ^ Ξ Σ 'hasheq 'hash-eq?))
-    (def (hasheqv W ℓ Φ^ Ξ Σ)
+      (hash-helper Σ ℓ W 'hasheq 'hash-eq?))
+    (def (hasheqv Σ ℓ W)
       #:init ()
       #:rest [W (listof any/c)]
-      (hash-helper W ℓ Φ^ Ξ Σ 'hasheqv 'hash-eqv?)))
+      (hash-helper Σ ℓ W 'hasheqv 'hash-eqv?)))
 
   (def make-hash
     (∀/c (α β)

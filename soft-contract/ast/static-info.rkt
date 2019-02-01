@@ -50,11 +50,11 @@
     (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
   (define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
-  (define (struct-mutable? [𝒾 : -𝒾] [i : Index]) (vector-ref (get-struct-info 𝒾) i))
+  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (vector-ref (get-struct-info 𝒾) i))
   (define (struct-all-immutable? [𝒾 : -𝒾])
     (not (for/or : Boolean ([mut? (in-vector (get-struct-info 𝒾))])
            mut?)))
-  (define (add-struct-info! [𝒾 : -𝒾] [arity : Index] [mutables : (Setof Index)])
+  (define (add-struct-info! [𝒾 : -𝒾] [arity : Natural] [mutables : (Setof Natural)])
     (define v
       (for/vector : (Vectorof Boolean) #:length arity ([i arity])
                   (∋ mutables i)))

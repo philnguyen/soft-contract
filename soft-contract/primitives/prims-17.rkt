@@ -8,18 +8,20 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
+         "../utils/map.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-17@
   (import static-info^
-          evl^ sto^ val^
-          prim-runtime^ prover^
-          step^ app^ approx^)
+          sto^ val^ cache^
+          prim-runtime^
+          prover^
+          exec^ app^ mon^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -51,33 +53,26 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def (unsafe-struct-ref W ℓ Φ^ Ξ₀ Σ)
-    #:init ([Tᵥ any/c] [Tᵢ integer?])
-    (set-union-map
+  (def (unsafe-struct-ref Σ ℓ W)
+    #:init ([Vᵥ any/c] [Vᵢ integer?])
+    ((inst fold-ans V)
      (match-lambda
        [(St 𝒾 αs)
-         (define Vₐ^
-           (for/fold ([acc : V^ ∅])
-                     ([αᵢ (in-list αs)]
-                      [i : Natural (in-naturals)]
-                      #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-             ((iter-⊔ V^⊔) acc (Σᵥ@ Σ αᵢ))))
-         {set (ret! (T->R Vₐ^ Φ^) Ξ₀ Σ)}]
-        [(X/G ctx (St/C _ 𝒾 αℓs) αᵥ)
-         (define n (count-struct-fields 𝒾))
-         (match-define (Ctx l+ l- lo _) ctx)
-         (define Tᵥ* (Σᵥ@ Σ αᵥ))
-         (for/union : (℘ Ξ) ([αℓᵢ (in-list αℓs)]
-                             [i : Natural (in-naturals)]
-                             #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-            (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
-            (define Ξ*
-              (if (struct-mutable? 𝒾 (assert i index?))
-                  (K+ (F:Mon:C (Ctx-with-origin ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀)
-                  Ξ₀))
-            ((app₁ 'unsafe-struct-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
-        [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])
-     (T->V Σ Φ^ Tᵥ)))
+         (define Vₐ
+           (for/union : V^ ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+             (unpack αᵢ Σ)))
+         (just Vₐ)]
+        [(Guarded ctx (St/C 𝒾 αs _) αᵥ)
+         (define Vᵥ* (unpack αᵥ Σ))
+         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
+           (define Σ₀ (⧺ Σ ΔΣ₀))
+           (define Vₐ (car (collapse-W^ Ws)))
+           (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
+                     ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+             (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))
+             (values (m⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
+        [_ (just (-● ∅))])
+     Vᵥ))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

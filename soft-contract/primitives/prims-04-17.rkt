@@ -24,7 +24,7 @@
          "../utils/pretty.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -39,83 +39,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import evl^ val^
+  (import val^
           prim-runtime^ prover^
-          step^ app^)
+          exec^ app^)
   (export)
 
   (def-pred procedure?)
   (define ℓ:apply (loc->ℓ (loc 'apply 0 0 '())))
-  (def (apply Ts ℓ Φ^₀ Ξ₀ Σ)
+  (def (apply Σ ℓ args)
     #:init ()
-    #:rest [Ts (listof any/c)] ; manual arity check instead
-
-    (: check-fun-arity : V W T^ Φ^ → (℘ Ξ))
-    ;; Make sure init arguments and rest args are compatible with the function's arity
-    (define (check-fun-arity Vₕ Tₓs Tᵣ Φ^₀) 
-      (define num-inits (length Tₓs))
-      (define Vₕ:arity (T-arity Vₕ))
-      
-      (define (blm-arity)
-        (define msg (string->symbol (format "~a argument(s)" Vₕ:arity)))
-        {set (Blm (ℓ-src ℓ) ℓ ℓ:apply (list msg) (append Tₓs (list Tᵣ)))})
-
-      (define (go-with-rest [Vᵣ : V]) (app/rest/unsafe Vₕ Tₓs Vᵣ ℓ Φ^₀ Ξ₀ Σ))
-
-      (: with-num-rest-args-check : ((U Arity #f) → Boolean) → V → (℘ Ξ))
-      (define ((with-num-rest-args-check p?) Vᵣ)
-        (define-values (ok? er?)
-          (for/fold ([ok? : Boolean #f] [er? : Boolean #f])
-                    ([len (in-set (estimate-list-lengths Σ Vᵣ))])
-            (if (p? len) (values #t er?) (values ok? #t))))
-        (∪ (if ok? (app/rest/unsafe Vₕ Tₓs Vᵣ ℓ Φ^₀ Ξ₀ Σ) ∅)
-           (if er? (blm-arity) ∅)))
-      
-      (match Vₕ:arity
-        [(? index? fixed-arity)
-         (define num-remaining-args (- fixed-arity num-inits))
-         (cond
-           ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
-           [(<= 0 num-remaining-args)
-            (set-union-map
-             (with-num-rest-args-check
-               (match-lambda
-                 [(? index? len) (equal? len num-remaining-args)]
-                 [(arity-at-least len) #|TODO|# #t]))
-             (T->V Σ Φ^₀ Tᵣ))]
-           ;; More init arguments than required
-           [else (blm-arity)])]
-        [(arity-at-least arity:min)
-         (define remaining-inits (- arity:min num-inits))
-         (cond
-           ;; init-args maybe too short, then retrieve some more from rest-arg
-           [(<= 0 remaining-inits)
-            (set-union-map
-             (with-num-rest-args-check
-               (match-lambda
-                 [(? index? len) (>= len remaining-inits)]
-                 [(arity-at-least len) (>= len remaining-inits)]))
-             (T->V Σ Φ^₀ Tᵣ))]
-           ;; init args more than enough
-           [(set? Tᵣ) (set-union-map go-with-rest Tᵣ)]
-           [else (app/rest/unsafe Vₕ Tₓs Tᵣ ℓ Φ^₀ Ξ₀ Σ)])]
-        [a
-         (error 'apply "TODO: handle arity ~a" a)]))
-
-    ;; Make sure there is at least the function and rest args
-    (match Ts
-      [(list Tₕ Tₓs ... Tᵣ)
-       ((inst with-2-paths Ξ)
-         (λ () (split-results Σ (R (list (T->V Σ Φ^₀ Tₕ)) Φ^₀) 'procedure?))
-         (λ (R^)
-           (define Tₓs* (cast Tₓs (Listof T^)))
-           (for*/union : (℘ Ξ) ([Rᵢ (in-set R^)]
-                                [Φ^ᵢ (in-value (R-_1 Rᵢ))]
-                                [Vₕ (in-set (assert (car (R-_0 Rᵢ)) set?))])
-             (check-fun-arity Vₕ Tₓs* Tᵣ Φ^ᵢ)))
-         (λ (R^) (blm (ℓ-src ℓ) ℓ ℓ:Λ '(procedure?) (list Tₕ))))]
-      [_
-       (blm (ℓ-src ℓ) ℓ ℓ:apply (list (string->symbol "(arity-at-least/c 2)")) Ts)]))
+    #:rest [args (listof any/c)] ; manual arity check instead
+    (match args ; Make sure there is at least the function and rest args
+      [(list Vₕ Wₓ ... Vᵣ) (app/rest Σ ℓ Vₕ (cast Wₓ W) Vᵣ)]
+      [_ (err (Err:Arity 'apply args ℓ))]))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
@@ -131,15 +67,10 @@
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def (procedure-arity W ℓ Φ^ Ξ₀ Σ)
-    #:init ([Tₕ procedure?])
-    (define Tₐ
-      (if (set? Tₕ)
-          (for/set : V^ ([Vₕ (in-set Tₕ)])
-            (cond [(T-arity Vₕ) => -b]
-                  [else (-● ∅)]))
-          (S:@ 'procedure-arity (list Tₕ))))
-    {set (ret! (R (list Tₐ) Φ^) Ξ₀ Σ)})
+  (def (procedure-arity Σ ℓ W)
+    #:init ([Vₕ procedure?])
+    (just (for/set : V^ ([V (in-set Vₕ)])
+            (cond [(arity V) => -b] [else (-● ∅)]))))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
   (def procedure-reduce-arity

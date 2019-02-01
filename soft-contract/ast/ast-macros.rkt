@@ -14,14 +14,14 @@
   (import meta-functions^ static-info^)
   (export ast-macros^)
 
-  (: -define : Symbol -e → -define-values)
-  (define (-define x e) (-define-values (list x) e))
+  (: -define : Symbol -e ℓ → -define-values)
+  (define (-define x e ℓ) (-define-values (list x) e ℓ))
 
-  (: -cond : (Assoc -e -e) -e → -e)
-  (define (-cond cases default)
+  (: -cond : (Assoc -e -e) -e ℓ → -e)
+  (define (-cond cases default ℓ)
     (foldr (λ ([alt : (Pairof -e -e)] [els : -e])
              (match-define (cons cnd thn) alt)
-             (-if cnd thn els))
+             (-if cnd thn els ℓ))
            default
            cases))
 
@@ -39,11 +39,11 @@
 
   (: -cons/c : -e -e ℓ → -e)
   (define (-cons/c c d ℓ)
-    (-struct/c -𝒾-cons (list c d) ℓ))
+    (-@ 'scv:struct/c (list -cons c d) ℓ))
 
   (: -box/c : -e ℓ → -e)
   (define (-box/c c ℓ)
-    (-struct/c -𝒾-box (list c) ℓ))
+    (-@ 'scv:struct/c (list -box c) ℓ))
 
   (: -list/c : (Assoc ℓ -e) → -e)
   (define (-list/c args)
@@ -60,13 +60,13 @@
       [(cons (cons ℓ e) args*)
        (-@ -cons (list e (-list args*)) (ℓ-with-id ℓ 'list))]))
 
-  (: -and : -e * → -e)
+  (: -and : (Listof -e) ℓ → -e)
   ;; Return ast representing conjuction of 2 expressions
-  (define -and
-    (match-lambda*
+  (define (-and es ℓ)
+    (match es
       [(list) -tt]
       [(list e) e]
-      [(cons e es) (-if e (apply -and es) -ff)]))
+      [(cons e es) (-if e (-and es ℓ) -ff ℓ)]))
 
   (: -comp/c : Symbol -e ℓ → -e)
   ;; Return ast representing `(op _ e)`
@@ -75,8 +75,10 @@
     (define 𝐱 (-x x (ℓ-with-id ℓ 'cmp)))
     (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
     (-λ (-var (list x) #f)
-        (-and (-@ 'real? (list 𝐱) ℓ₀)
-              (-@ op (list 𝐱 e) ℓ₁))))
+        (-and (list (-@ 'real? (list 𝐱) ℓ₀)
+                    (-@ op (list 𝐱 e) ℓ₁))
+              ℓ)
+        (ℓ-with-id ℓ 'lam)))
 
   (: -begin/simp : (∀ (X) (Listof X) → (U X (-begin X))))
   ;; Smart constructor for begin, simplifying single-expression case
@@ -93,7 +95,7 @@
     (match-lambda**
      [('values (list x) _) x]
      [('not (list (-b b)) _) (-b (not b))]
-     [((-λ (? list? xs) e) es ℓ)
+     [((-λ (? list? xs) e _) es ℓ)
       #:when (= (length xs) (length es))
       (-let-values/simp
        (for/list ([x (in-list xs)] [e (in-list es)])
@@ -125,12 +127,12 @@
              (-let-values (reverse bindings-rev) (e/map inlines body) ℓ)])]
      [(bindings body ℓ) (-let-values bindings body ℓ)]))
 
-  (: -if/simp : -e -e -e → -e)
+  (: -if/simp : -e -e -e ℓ → -e)
   (define -if/simp
     (match-lambda**
-     [((-b #f) _ e) e]
-     [((-b _ ) e _) e]
-     [(i t e) (-if i t e)]))
+     [((-b #f) _ e _) e]
+     [((-b _ ) e _ _) e]
+     [(i t e ℓ) (-if i t e ℓ)]))
 
   (: inlinable? : Symbol -e -e → Boolean)
   (define (inlinable? x eₓ body)
@@ -153,14 +155,14 @@
        #:when (and bnds e)
        (and (effect-free? e)
             (andmap (compose1 effect-free? Binding-rhs) bnds))]
-      [(-set! x e) #f]
-      [(-if e e₁ e₂) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
+      [(-set! x e _) #f]
+      [(-if e e₁ e₂ _) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
       [(-μ/c _ e) (effect-free? e)]
       [(--> (-var cs c) d _)
        (and (effect-free? d)
             (implies c (effect-free? c))
             (andmap effect-free? cs))]
       [(-->i cs d) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
-      [(-struct/c _ cs _) (andmap effect-free? cs)]
+      [(case--> cases) (andmap effect-free? cases)]
       [_ #f]))
   )

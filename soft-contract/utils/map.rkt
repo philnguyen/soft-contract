@@ -88,3 +88,11 @@
 (: count-max : (∀ (X Y) ((HashTable X (℘ Y)) → Index)))
 (define (count-max m)
   (apply max 0 ((inst map Index (℘ Any)) set-count (hash-values m))))
+
+(: m⊔ (∀ (X Y) (Immutable-HashTable X (℘ Y)) (Immutable-HashTable X (℘ Y)) → (Immutable-HashTable X (℘ Y))))
+(define (m⊔ m₁ m₂)
+  (if (> (hash-count m₁) (hash-count m₂))
+      (m⊔ m₂ m₁)
+      (for/fold ([m : (Immutable-HashTable X (℘ Y)) m₂])
+                ([(x ys) (in-hash m₁)])
+        (hash-update m x (λ ([ys₀ : (℘ Y)]) (∪ ys₀ ys)) mk-∅))))

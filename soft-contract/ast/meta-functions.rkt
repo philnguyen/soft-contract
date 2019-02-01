@@ -18,48 +18,38 @@
   (import static-info^ ast-macros^)
   (export meta-functions^)
 
-  (: fv : (U -e (Listof -e)) → (℘ Symbol))
+  (: fv : -e → (℘ Symbol))
   ;; Compute free variables for expression. Return set of variable names.
   (define (fv e)
     (match e
       [(-x x _) (if (symbol? x) {seteq x} ∅eq)]
-      [(-x/c x) {seteq x}]
-      [(-λ xs e) (set-remove (fv e) (formals->names xs))]
-      [(-@ f xs _)
-       (for/fold ([FVs (fv f)]) ([x xs]) (∪ FVs (fv x)))]
-      [(-begin es) (fv es)]
-      [(-begin0 e₀ es) (∪ (fv e₀) (fv es))]
+      [(-x/c x) ∅eq]
+      [(-λ xs e _) (set-subtract (fv e) (formals->names xs))]
+      [(-case-λ cases _) (apply ∪ ∅eq (map fv cases))]
+      [(-@ f xs _) (apply ∪ (fv f) (map fv xs))]
+      [(-begin es) (apply ∪ ∅eq (map fv es))]
+      [(-begin0 e₀ es) (apply ∪ (fv e₀) (map fv es))]
       [(-let-values bnds e _)
-       (define-values (bound FV_rhs)
-         (for/fold ([bound : (℘ Symbol) ∅eq] [FV_rhs : (℘ Symbol) ∅eq]) ([bnd bnds])
+       (define-values (bound rhs:fv)
+         (for/fold ([bound : (℘ Symbol) ∅eq] [rhs:fv : (℘ Symbol) ∅eq])
+                   ([bnd bnds])
            (match-define (cons xs rhs) bnd)
-           (values (set-add* bound xs) (∪ FV_rhs (fv rhs)))))
-       (∪ FV_rhs (set-remove (fv e) bound))]
+           (values (set-add* bound xs) (∪ rhs:fv (fv rhs)))))
+       (∪ rhs:fv (set-subtract (fv e) bound))]
       [(-letrec-values bnds e _)
-       (define bound
-         (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
-           (set-add* bound (car bnd))))
-       
-       (for/fold ([xs : (℘ Symbol) (set-remove (fv e) bound)]) ([bnd bnds])
-         (set-remove (fv (cdr bnd)) bound))]
-      [(-set! x e)
-       (match x
-         [(? symbol? x) (set-add (fv e) x)]
-         [_ (fv e)])]
-      [(-if e e₁ e₂) (∪ (fv e) (fv e₁) (fv e₂))]
+       (define bound (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
+                       (set-add* bound (car bnd))))
+       (set-subtract (apply ∪ (fv e) (map (compose1 fv (inst cdr Any -e)) bnds)) bound)]
+      [(-set! x e _) (fv e)]
+      [(-if e e₁ e₂ _) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
-      [(--> (-var cs c) d _) (∪ (if c (fv c) ∅eq) (fv d) (fv cs))]
+      [(--> (-var cs c) d _) (apply ∪ (if c (fv c) ∅eq) (fv d) (map fv cs))]
       [(-->i cs d)
        (define dom-fv : (-dom → (℘ Symbol))
          (match-lambda
            [(-dom _ ?xs d _) (set-subtract (fv d) (if ?xs (list->seteq ?xs) ∅eq))]))
        (apply ∪ (dom-fv d) (map dom-fv cs))]
-      [(-struct/c _ cs _)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([c cs])
-         (∪ xs (fv c)))]
-      [(? list? l)
-       (for/fold ([xs : (℘ Symbol) ∅eq]) ([e l])
-         (∪ xs (fv e)))]
+      [(case--> cases) (apply ∪ ∅eq (map fv cases))]
       [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
   (: fv-count : -e Symbol → Natural)
@@ -68,9 +58,10 @@
       (match e
         [(-x x _) (if (equal? x z) 1 0)]
         [(-x/c x) (if (equal? x z) 1 0)]
-        [(-λ (-var xs x) e)
+        [(-λ (-var xs x) e _)
          (define bound? (or (and x (eq? x z)) (memq z xs)))
          (if bound? 0 (go e))]
+        [(-case-λ cases _) (apply + (map go cases))]
         [(-@ f xs _) (apply + (go f) (map go xs))]
         [(-begin es) (apply + (map go es))]
         [(-begin0 e₀ es) (apply + (go e₀) (map go es))]
@@ -86,8 +77,8 @@
          (if bound?
              0
              (apply + (go e) (map (λ ([bnd : (Pairof Any -e)]) (go (cdr bnd))) bnds)))]
-        [(-set! x e) (go e)]
-        [(-if e e₁ e₂) (+ (go e) (go e₁) (go e₂))]
+        [(-set! x e _) (go e)]
+        [(-if e e₁ e₂ _) (+ (go e) (go e₁) (go e₂))]
         [(-μ/c x e) (if (equal? x z) 0 (go e))]
         [(--> (-var cs c) d _) (+ (go d) (if c (go c) 0) (apply + (map go cs)))]
         [(-->i cs d)
@@ -99,12 +90,8 @@
              (match-define (-dom x _ eₓ _) dom)
              (values (+ sum (go eₓ)) (equal? x z))))
          sum]
-        [(-struct/c _ cs _) (apply + (map go cs))]
+        [(case--> cases) (apply + (map go cases))]
         [_ 0])))
-
-  (: closed? : -e → Boolean)
-  ;; Check whether expression is closed
-  (define (closed? e) (set-empty? (fv e)))
 
   (: free-x/c : -e → (℘ Symbol))
   ;; Return all free references to recursive contracts inside term
@@ -116,15 +103,17 @@
     (: go/dom : -dom → (℘ Symbol))
     (define go/dom
       (match-lambda
-        [(-dom _ ?xs d _) (if ?xs (go (-λ (-var ?xs #f) d)) (go d))]))
+        [(-dom _ ?xs d _) (if ?xs (go (-λ (-var ?xs #f) d +ℓ₀)) (go d))]))
 
     (: go : -e → (℘ Symbol))
     (define (go e)
       (match e
-        [(-λ xs e) (go e)]
+        [(-λ xs e _) (go e)]
+        [(-case-λ cases _) (go* cases)]
         [(-@ f xs ctx) (∪ (go f) (go* xs))]
-        [(-if i t e) (∪ (go i) (go t) (go e))]
+        [(-if i t e _) (∪ (go i) (go t) (go e))]
         [(-wcm k v b) (∪ (go k) (go v) (go b))]
+        [(-begin es) (go* es)]
         [(-begin0 e es) (∪ (go e) (go* es))]
         [(-let-values bnds e _)
          (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
@@ -133,7 +122,7 @@
         [(-μ/c _ c) (go c)]
         [(--> (-var cs c) d _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
         [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
-        [(-struct/c t cs _) (go* cs)]
+        [(case--> cases) (go* cases)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
     
@@ -181,12 +170,14 @@
               [(or (-x x _) (-x/c.tmp x))
                #:when x
                (hash-ref m x (λ () e))]
-              [(-λ xs e*)
-               (-λ xs (go (remove-keys m (formals->names xs)) e*))]
+              [(-λ xs e* ℓ)
+               (-λ xs (go (remove-keys m (formals->names xs)) e*) ℓ)]
+              [(-case-λ cases ℓ)
+               (-case-λ (cast (go-list m cases) (Listof -λ)) ℓ)]
               [(-@ f xs ℓ)
                (-@/simp (go m f) (go-list m xs) ℓ)]
-              [(-if e₀ e₁ e₂)
-               (-if (go m e₀) (go m e₁) (go m e₂))]
+              [(-if e₀ e₁ e₂ ℓ)
+               (-if (go m e₀) (go m e₁) (go m e₂) ℓ)]
               [(-wcm k v b)
                (-wcm (go m k) (go m v) (go m b))]
               [(-begin es)
@@ -216,17 +207,16 @@
                    (cons xs (go m* eₓ))))
                (define body* (go m* body))
                (-letrec-values bnds* body* ℓ)]
-              [(-set! x e*)
+              [(-set! x e* ℓ)
                (assert (not (hash-has-key? m x)))
-               (-set! x (go m e*))]
+               (-set! x (go m e*) ℓ)]
               [(-μ/c z c)
                (-μ/c z (go (remove-keys m {seteq z}) c))]
               [(--> (-var cs c) d ℓ)
                (--> (-var (go-list m cs) (and c (go m c))) (go m d) ℓ)]
               [(-->i cs d)
                (-->i (map go/dom cs) (go/dom d))]
-              [(-struct/c t cs ℓ)
-               (-struct/c t (go-list m cs) ℓ)]
+              [(case--> cases) (case--> (cast (go-list m cases) (Listof -->)))]
               [_
                ;(printf "unchanged: ~a @ ~a~n" (show-e e) (show-subst m))
                e])]))
@@ -242,8 +232,8 @@
     (for/fold ([m : Subst m]) ([x (in-set xs)])
       (hash-remove m x)))
 
-  (: formals->names : -formals → (℘ Symbol))
-  (define (formals->names xs) (var->set xs #:eq? #t))
+  (: formals->names ([-formals] [#:eq? Boolean] . ->* . (℘ Symbol)))
+  (define (formals->names xs #:eq? [use-eq? #t]) (var->set xs #:eq? use-eq?))
 
   (: first-forward-ref : (Listof -dom) → (Option Symbol))
   (define (first-forward-ref doms)
@@ -305,8 +295,8 @@
       (for/fold ([acc : (HashTable Symbol -e) (hasheq)])
                 ([form (in-list body)])
         (match form
-          [(-define-values (list x) e) (hash-set acc x e)]
-          [(-define-values xs (-@ 'values es _))
+          [(-define-values (list x) e _) (hash-set acc x e)]
+          [(-define-values xs (-@ 'values es _) _)
            (for/fold ([acc : (HashTable Symbol -e) acc])
                      ([x (in-list xs)] [e (in-list es)])
              (hash-set acc x e))]
@@ -378,15 +368,8 @@
         [(-->i doms rng)
          (-->i (map (go-dom (not pos?)) doms)
                ((go-dom pos?) rng))]
-        [(-struct/c 𝒾 es ℓ)
-         (define tag (-𝒾-name 𝒾))
-         (define es* : (Listof -e)
-           (for/list ([(e i) (in-indexed es)])
-             ((go-c pos? (ℓ-with-id ℓ (cons tag i))) e)))
-         (if (and (andmap any/c? es*) (opt? pos? ℓ))
-             'any/c
-             (-struct/c 𝒾 es* ℓ))]
-        [(-if e e₁ e₂) (-if e ((go-c pos? #f) e₁) ((go-c pos? #f) e₂))]
+        [(case--> cases) (printf "TODO: opt case->~n") (case--> cases)]
+        [(-if e e₁ e₂ ℓ) (-if e ((go-c pos? #f) e₁) ((go-c pos? #f) e₂) ℓ)]
         [(-wcm k v b) (-wcm k v ((go-c pos? #f) b))]
         [(-begin es) (match-let-values ([(es₀ (list eₙ)) (split-at es (sub1 (length es)))])
                        (-begin (append es₀ (list ((go-c pos? #f) eₙ)))))]
@@ -437,7 +420,7 @@
     
     (-module l (append (map go-module-level-form body)
                        (for/list : (Listof -module-level-form) ([(x e) (in-hash extra-defns)])
-                         (-define-values (list x) e)))))
+                         (-define-values (list x) e +ℓ₀)))))
 
   (: optimize-uses : (℘ ℓ) -module → -module)
   (define (optimize-uses ℓs m)
@@ -445,7 +428,7 @@
     (define go-module-level-form : (-module-level-form → -module-level-form)
       (match-lambda
         [(? -e? e) (go-e e)]
-        [(-define-values xs e) (-define-values xs (go-e e))]
+        [(-define-values xs e ℓ) (-define-values xs (go-e e) ℓ)]
         [(? -require? r) r]
         [(-provide specs) (-provide (map go-spec specs))]
         [(? -submodule-form? m) m]))
@@ -457,13 +440,14 @@
 
     (define go-e : (-e → -e)
       (match-lambda
-        [(-λ xs e) (-λ xs (go-e e))]
+        [(-λ xs e ℓ) (-λ xs (go-e e) ℓ)]
+        [(-case-λ cases ℓ) (-case-λ (cast (map go-e cases) (Listof -λ)) ℓ)]
         [(-@ e es ℓ)
          (define es* (map go-e es))
          (if (and (-prim? e) (not (∋ ℓs ℓ)))
              (-@/unsafe e es* ℓ)
              (-@ (go-e e) es* ℓ))]
-        [(-if e e₁ e₂) (-if (go-e e) (go-e e₁) (go-e e₂))]
+        [(-if e e₁ e₂ ℓ) (-if (go-e e) (go-e e₁) (go-e e₂) ℓ)]
         [(-wcm k v b) (-wcm (go-e k) (go-e v) (go-e b))]
         [(-begin es) (-begin (map go-e es))]
         [(-begin0 e es) (-begin0 (go-e e) (map go-e es))]
@@ -471,11 +455,11 @@
          (-let-values (map go-Binding bs) (go-e e) ℓ)]
         [(-letrec-values bs e ℓ)
          (-letrec-values (map go-Binding bs) (go-e e) ℓ)]
-        [(-set! x e) (-set! x (go-e e))]
+        [(-set! x e ℓ) (-set! x (go-e e) ℓ)]
         [(-μ/c x e) (-μ/c x (go-e e))]
         [(--> doms rng ℓ) (--> (var-map go-e doms) (go-e rng) ℓ)]
         [(-->i doms rng) (-->i (map go-dom doms) (go-dom rng))]
-        [(-struct/c 𝒾 es ℓ) (-struct/c 𝒾 (map go-e es) ℓ)]
+        [(case--> cases) (case--> (cast (map go-e cases) (Listof -->)))]
         [(-∀/c xs e) (-∀/c xs (go-e e))]
         [e e]))
 

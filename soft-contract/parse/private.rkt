@@ -230,7 +230,7 @@
        (define 𝒾 (-𝒾 s-name (cur-mod)))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (define st-p (-struct/c 𝒾 st-doms ℓ))
+       (define st-p (-@ 'scv:struct/c (cons (-st-mk 𝒾) st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
@@ -317,44 +317,46 @@
                     (-st-ac 𝒾 (+ offset i)))
                 ,@(for/list ([i (in-list (map car mut-list))])
                     (-st-mut 𝒾 (+ offset i))))
-              (next-ℓ! #'d))))]
+              (next-ℓ! #'d))
+          (syntax-ℓ #'d)))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
        #f]
-      [(define-values (x:identifier) e) ; FIXME: separate case hack to "close" recursive contract
+      ; FIXME: separate case hack to "close" recursive contract
+      [(~and d (define-values (x:identifier) e))
        (define lhs (syntax-e #'x))
        (define rhs (parse-e #'e))
        (define frees (free-x/c rhs))
        (cond
          [(set-empty? frees)
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs) rhs)]
+          (-define-values (list lhs) rhs (syntax-ℓ #'d))]
          [(set-empty? (set-remove frees lhs))
           (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs) (-μ/c x (e/ lhs (-x/c x) rhs)))]
+          (-define-values (list lhs) (-μ/c x (e/ lhs (-x/c x) rhs)) (syntax-ℓ #'d))]
          [else
           (raise-syntax-error
            'recursive-contract
            "arbitrary recursive contract reference not supported for now."
            #'(define-values (x) e)
            #'e)])]
-      [(define-values (x:identifier ...) e)
+      [(~and d (define-values (x:identifier ...) e))
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
          (add-top-level! (-𝒾 i (cur-mod))))
-       (-define-values lhs (parse-e #'e))]
+       (-define-values lhs (parse-e #'e) (syntax-ℓ #'d))]
       [(#%require spec ...) #f]
-      [(define-syntaxes (k:id) ; constructor alias
-         (~and rhs
-               (#%plain-app
-                (~literal make-self-ctor-checked-struct-info)
-                _ _
-                (#%plain-lambda () (quote-syntax k1:id)))))
+      [(~and d (define-syntaxes (k:id) ; constructor alias
+                 (~and rhs
+                       (#%plain-app
+                        (~literal make-self-ctor-checked-struct-info)
+                        _ _
+                        (#%plain-lambda () (quote-syntax k1:id))))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (next-ℓ! #'rhs)))]
+       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (next-ℓ! #'rhs)) (syntax-ℓ #'d))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -509,8 +511,7 @@
       [(#%plain-app (~literal fake:vectorof) c)
        (-@ 'vectorof (list (parse-e #'c)) (next-ℓ! stx))]
       [c:scv-struct/c
-       (define 𝒾 (-𝒾 (attribute c.name) (cur-mod)))
-       (-struct/c 𝒾 (map parse-e (attribute c.fields)) (next-ℓ! #'c))]
+       (-@ 'scv:struct/c (map parse-e (cons (attribute c.name) (attribute c.fields))) (next-ℓ! #'c))]
       [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (next-ℓ! stx))]
@@ -563,7 +564,7 @@
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
-       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e))]
+       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e) (syntax-ℓ #'stx))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
          (for/fold ([bindings-rev '()] [ρ (env)])
@@ -582,7 +583,7 @@
       [(#%plain-lambda fmls b ...+)
        (define-values (xs ρ) (parse-formals #'fmls))
        ;; put sequence back to `(begin ...)` to special cases of fake-contracts
-       (-λ xs (with-env ρ (parse-e #'(begin b ...))))]
+       (-λ xs (with-env ρ (parse-e #'(begin b ...))) (syntax-ℓ #'stx))]
       
       [(case-lambda [fml bodies ...+] ...)
        (-@ 'scv:make-case-lambda
@@ -590,7 +591,7 @@
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
           (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
-          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ)))))
+          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))) (syntax-ℓ #'stx)))
         (next-ℓ! stx))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)

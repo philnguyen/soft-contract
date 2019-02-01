@@ -9,21 +9,23 @@
          "../utils/list.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../execution/signatures.rkt"
          "signatures.rkt"
          "def.rkt")
 
 (define-unit prims-10@
-  (import prim-runtime^)
+  (import prim-runtime^
+          exec^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def (values W ℓ Φ^ Ξ Σ)
+  (def (values Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    {set (r:ret! (R W Φ^) Ξ Σ)})
+    (just W))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

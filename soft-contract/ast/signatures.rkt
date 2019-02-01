@@ -43,7 +43,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; AST subset definition as in Racket reference 1.2.3.1
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 
 (-top-level-form . ::= . -general-top-level-form
                          -e
@@ -55,7 +55,7 @@
                             -submodule-form)
 
 (-general-top-level-form . ::= . -e
-                                 (-define-values [ids : (Listof Symbol)] [e : -e])
+                                 (-define-values [ids : (Listof Symbol)] [e : -e] ℓ)
                                  (-require (Listof -require-spec)))
 
 (-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
@@ -68,7 +68,7 @@
 (-e . ::= . -v
             (-x (U Symbol -𝒾) ℓ) ; lexical/module ref
             (-@ -e (Listof -e) ℓ)
-            (-if -e -e -e)
+            (-if -e -e -e ℓ)
             (-wcm [key : -e] [val : -e] [body : -e])
             -begin/e
             (-begin0 -e (Listof -e))
@@ -79,21 +79,22 @@
             (-letrec-values [bnds : (Listof Binding)]
                             [body : -e]
                             [loc : ℓ])
-            (-set! (U Symbol -𝒾) -e)
+            (-set! (U Symbol -𝒾) -e ℓ)
             (-error String ℓ)
             
             ;; contract stuff
             (-μ/c Symbol -e)
             (--> [doms : (-var -e)] [rng : -e] [loc : ℓ])
             (-->i [doms : (Listof -dom)] [rng : -dom])
+            (case--> [cases : (Listof -->)])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
-            (-struct/c [name : -𝒾] [fields : (Listof -e)] [loc : ℓ])
             (-∀/c (Listof Symbol) -e)
             )
 
 (-v . ::= . -prim
-            (-λ -formals -e)
+            (-λ -formals -e ℓ)
+            (-case-λ (Listof -λ) ℓ)
             (-•))
 
 (-prim . ::= . -o
@@ -172,28 +173,27 @@
    ))
 
 (define-signature ast-macros^
-  ([-define : (Symbol -e → -define-values)]
-   [-cond : ((Assoc -e -e) -e → -e)]
+  ([-define : (Symbol -e ℓ → -define-values)]
+   [-cond : ((Assoc -e -e) -e ℓ → -e)]
    [-cons/c : (-e -e ℓ → -e)]
    [-box/c : (-e ℓ → -e)]
    [-list/c : ((Assoc ℓ -e) → -e)]
    [-list : ((Assoc ℓ -e) → -e)]
-   [-and : (-e * → -e)]
+   [-and : ((Listof -e) ℓ → -e)]
    [-comp/c : (Symbol -e ℓ → -e)]
    [-begin/simp : (∀ (X) (Listof X) → (U X (-begin X)))]
    [-begin0/simp : (-e (Listof -e) → -e)]
    [-@/simp : (-e (Listof -e) ℓ → -e)]
    [-let-values/simp : ((Listof Binding) -e ℓ → -e)]
-   [-if/simp : (-e -e -e → -e)]))
+   [-if/simp : (-e -e -e ℓ → -e)]))
 
 (define-signature meta-functions^
   ([fv : (-e → (℘ Symbol))]
    [fv-count : (-e Symbol → Natural)]
-   [closed? : (-e → Boolean)]
    [free-x/c : (-e → (℘ Symbol))]
    [e/map : (Subst -e → -e)]
    [e/ : (Symbol -e -e → -e)]
-   [formals->names : (-formals → (℘ Symbol))]
+   [formals->names : ([-formals] [#:eq? Boolean] . ->* . (℘ Symbol))]
    [first-forward-ref : ((Listof -dom) → (Option Symbol))]
    [var-map : (∀ (X Y) (X → Y) (-var X) → (-var Y))]
    [var->set : (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X)))]
@@ -229,8 +229,8 @@
    [current-static-info : (Parameterof -static-info)]
    [count-direct-struct-fields : (-𝒾 → Index)]
    [struct-all-immutable? : (-𝒾 → Boolean)]
-   [struct-mutable? : (-𝒾 Index → Boolean)]
-   [add-struct-info! : (-𝒾 Index (℘ Index) → Void)]
+   [struct-mutable? : (-𝒾 Natural → Boolean)]
+   [add-struct-info! : (-𝒾 Natural (℘ Natural) → Void)]
    [add-top-level! : (-𝒾 → Void)]
    [top-levels : (→ (Listof -𝒾))]
    [get-public-accs : (-𝒾 → (℘ -st-ac))]

@@ -11,16 +11,17 @@
          "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "def.rkt"
          "signatures.rkt")
 
 (define-unit prims-08@
   (import meta-functions^
-          prim-runtime^ evl^ val^
-          step^
-          prover^ approx^)
+          prim-runtime^
+          val^ sto^
+          exec^
+          prover^)
   (export)
 
   
@@ -36,58 +37,46 @@
   (def none/c (any/c . -> . not))
 
   (splicing-local
-      
-      ((: reduce-contracts : ℓ Φ^ Σ W Ξ:co (Φ^ ℓ T^ T^ → V) T^ → (℘ Ξ))
-       (define (reduce-contracts ℓ₀ Φ^ Σ W-fields Ξ comb! T₀)
-         (define Tₐ : T^
+      ((: reduce-contracts : Σ ℓ W (ℓ V^ V^ → (Values V ΔΣ)) V^ → (Values R (℘ Err)))
+       (define (reduce-contracts Σ ℓ W-fields comb V₀)
+         (define-values (Vₐ ΔΣₐ)
            (match W-fields
-             ['() T₀]
-             [(cons Tₗ Wᵣ)
-              (let loop! ([Tₗ : T^ Tₗ] [Wᵣ : W Wᵣ] [i : Natural 0])
+             ['() (values V₀ ⊥ΔΣ)]
+             [(cons Vₗ Wᵣ)
+              (let loop : (Values V^ ΔΣ) ([Vₗ : V^ Vₗ] [Wᵣ : W Wᵣ] [i : Natural 0])
                 (match Wᵣ
-                  ['() Tₗ]
-                  [(cons Tₗ* Wᵣ*)
-                   (define Tᵣ (loop! Tₗ* Wᵣ* (+ 1 i)))
-                   {set (comb! Φ^ (ℓ-with-id ℓ₀ i) Tₗ Tᵣ)}]))]))
-         {set (ret! (R (list Tₐ) Φ^) Ξ Σ)}))
+                  ['() (values Vₗ ⊥ΔΣ)]
+                  [(cons Vₗ* Wᵣ*)
+                   (define-values (Vᵣ ΔΣᵣ) (loop Vₗ* Wᵣ* (+ 1 i)))
+                   (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) Vₗ Vᵣ))
+                   (values {set V*} (⧺ ΔΣᵣ ΔΣ*))]))]))
+         (just Vₐ ΔΣₐ)))
     
-    (def (or/c W ℓ₀ Φ^₀ Ξ Σ)
+    (def (or/c Σ ℓ₀ W)
       #:init []
       #:rest [W (listof contract?)]
-      (define H (Ξ:co-ctx Ξ))
-      
-      (: step! : Φ^ ℓ T^ T^ → V)
-      (define (step! Φ^ ℓ₀ T₁ T₂)
-        (define α₁ (mk-α (-α:or/c:l ℓ₀ H)))
-        (define α₂ (mk-α (-α:or/c:r ℓ₀ H)))
-        (define ℓ₁ (ℓ-with-id ℓ₀ 'left-disj))
-        (define ℓ₂ (ℓ-with-id ℓ₀ 'right-disj))
-        (⊔T! Σ Φ^ α₁ T₁)
-        (⊔T! Σ Φ^ α₂ T₂)
-        (Or/C (and (C^-flat? T₁) (C^-flat? T₂)) (αℓ α₁ ℓ₁) (αℓ α₂ ℓ₂)))
-      (reduce-contracts ℓ₀ Φ^₀ Σ W Ξ step! {set 'none/c}))
+      (: step : ℓ V^ V^ → (Values V ΔΣ))
+      (define (step ℓ V₁ V₂)
+        (define α₁ (α:dyn (β:or/c:l ℓ) H₀))
+        (define α₂ (α:dyn (β:or/c:r ℓ) H₀))
+        (values (Or/C α₁ α₂ ℓ) (⧺ (alloc α₁ V₁) (alloc α₂ V₂))))
+      (reduce-contracts Σ ℓ₀ W step {set 'none/c}))
     
-    (def (and/c W ℓ₀ Φ^₀ Ξ Σ)
+    (def (and/c Σ ℓ₀ W)
       #:init ()
       #:rest [W (listof contract?)]
-      (define H (Ξ:co-ctx Ξ))
-      
-      (: step! : Φ^ ℓ T^ T^ → V)
-      (define (step! Φ^ ℓ₀ T₁ T₂)
-        (define α₁ (mk-α (-α:and/c:l ℓ₀ H)))
-        (define α₂ (mk-α (-α:and/c:r ℓ₀ H)))
-        (define ℓ₁ (ℓ-with-id ℓ₀ 'left-conj))
-        (define ℓ₂ (ℓ-with-id ℓ₀ 'right-conj))
-        (⊔T! Σ Φ^ α₁ T₁)
-        (⊔T! Σ Φ^ α₂ T₂)
-        (And/C (and (C^-flat? T₁) (C^-flat? T₂)) (αℓ α₁ ℓ₁) (αℓ α₂ ℓ₂)))
-      (reduce-contracts ℓ₀ Φ^₀ Σ W Ξ step! {set 'any/c})))
+      (: step : ℓ V^ V^ → (Values V ΔΣ))
+      (define (step ℓ V₁ V₂)
+        (define α₁ (α:dyn (β:and/c:l ℓ) H₀))
+        (define α₂ (α:dyn (β:and/c:r ℓ) H₀))
+        (values (And/C α₁ α₂ ℓ) (⧺ (alloc α₁ V₁) (alloc α₂ V₂))))
+      (reduce-contracts Σ ℓ₀ W step {set 'any/c})))
 
-  (def (not/c W ℓ Φ^ Ξ Σ)
+  (def (not/c Σ ℓ W)
     #:init ([V flat-contract?])
-    (define α (mk-α (-α:not/c ℓ (Ξ:co-ctx Ξ))))
+    (define α (α:dyn (β:not/c ℓ) H₀))
     (define ℓ* (ℓ-with-id ℓ 'not/c))
-    {set (ret! (T->R (Not/C (αℓ α ℓ*)) Φ^) Ξ Σ)})
+    (just (Not/C α ℓ) (alloc α V)))
   (def* (=/c </c >/c <=/c >=/c) ; TODO
     (real? . -> . flat-contract?))
   (def between/c (real? real? . -> . flat-contract?))
@@ -98,60 +87,45 @@
   (def string-len/c (real? . -> . flat-contract?))
   (def-alias false/c not)
   (def-pred printable/c)
-  (def (one-of/c W ℓ Φ^ Ξ Σ)
+  (def (one-of/c Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
     (define vals
       (map (match-lambda
-             [(or (singleton-set (-b b)) (-b b)) b]
-             [V^ (error 'one-of/c "only support simple values for not, got ~a" V^)])
+             [(singleton-set (-b b)) b]
+             [V^ (error 'one-of/c "only support simple values, got ~a" V^)])
            W))
-    {set (ret! (T->R (One-Of/C vals) Φ^) Ξ Σ)})
+    (just (One-Of/C (list->set vals)) ⊥ΔΣ))
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
-  (def (vectorof W ℓ Φ^ Ξ Σ) ; FIXME uses
-    #:init ([T contract?])
-    (define α (mk-α (-α:vectof ℓ (Ξ:co-ctx Ξ))))
-    (⊔T! Σ Φ^ α T)
-    {set (ret! (T->R (Vectof (αℓ α (ℓ-with-id ℓ 'vectorof))) Φ^) Ξ Σ)})
+  (def (vectorof Σ ℓ W) ; FIXME uses
+    #:init ([V contract?])
+    (define α (α:dyn (β:vectof ℓ) H₀))
+    (just (Vectof/C α ℓ) (alloc α V)))
   (def vector-immutableof (contract? . -> . contract?))
-  (def (vector/c W ℓ₀ Φ^ Ξ Σ)
+  (def (vector/c Σ ℓ W)
     #:init ()
     #:rest [W (listof contract?)]
-    (define H (Ξ:co-ctx Ξ))
-    ; FIXME uses ; FIXME check for domains to be listof contract
-    (define αℓs : (Listof αℓ) ; with side-effect allocating
-      (for/list ([Tᵢ (in-list W)] [i (in-naturals)] #:when (index? i))
-        (define αᵢ (mk-α (-α:vect/c ℓ₀ H i)))
-        (⊔T! Σ Φ^ αᵢ Tᵢ)
-        (αℓ αᵢ (ℓ-with-id ℓ₀ i))))
-    {set (ret! (T->R (Vect/C αℓs) Φ^) Ξ Σ)})
+    (define-values (αs ΔΣ) (alloc-each W (λ (i) (β:vect/c ℓ i))))
+    (just (Vect/C αs ℓ) ΔΣ))
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def box/c ; FIXME uses
     (contract? . -> . contract?))
   (def box-immutable/c (contract? . -> . contract?))
-  (def (listof W ℓ Φ^ Ξ Σ)
+  (def (listof Σ ℓ W)
     #:init ([C contract?])
-    (define H (Ξ:co-ctx Ξ))
-    (define flat? (C^-flat? C))
-    (define α₀ (mk-α (-α:imm 'null?)))
-    (define α₁ (mk-α (-α:or/c:r ℓ H)))
-    (define αₕ (mk-α (-α:struct/c -𝒾-cons ℓ H 0)))
-    (define αₜ (mk-α (-α:struct/c -𝒾-cons ℓ H 1)))
-    (define αₗ (mk-α (-α:x/c (+x!/memo 'listof ℓ) H)))
-    (define ℓ₀ (ℓ-with-id ℓ 'null?))
-    (define ℓ₁ (ℓ-with-id ℓ 'pair?))
-    (define ℓₕ (ℓ-with-id ℓ 'elem))
-    (define ℓₜ (ℓ-with-id ℓ 'rest))
-    (define Disj (Or/C flat? (αℓ α₀ ℓ₀) (αℓ α₁ ℓ₁)))
-    (define Cons (St/C flat? -𝒾-cons (list (αℓ αₕ ℓₕ) (αℓ αₜ ℓₜ))))
-    (define Ref (X/C αₗ))
-    (⊔T! Σ Φ^ αₗ Disj)
-    (⊔T! Σ Φ^ α₁ Cons)
-    (⊔T! Σ Φ^ αₕ C)
-    (⊔T! Σ Φ^ αₜ Ref)
-    {set (ret! (T->R Ref Φ^) Ξ Σ)})
+    (define α₀ (γ:imm 'null?))
+    (define α₁ (α:dyn (β:or/c:r ℓ) H₀))
+    (define αₕ (α:dyn (β:st/c -𝒾-cons ℓ 0) H₀))
+    (define αₜ (α:dyn (β:st/c -𝒾-cons ℓ 1) H₀))
+    (define αₗ (α:dyn (β:x/c (+x!/memo 'listof ℓ)) H₀))
+    (define Disj (Or/C α₀ α₁ ℓ))
+    (define Cons (St/C -𝒾-cons (list αₕ αₜ) ℓ))
+    (just αₗ (⧺ (alloc αₗ {set Disj})
+                (alloc α₁ {set Cons})
+                (alloc αₕ C)
+                (alloc αₜ {set αₗ}))))
   (def non-empty-listof (contract? . -> . list-contract?))
   (def list*of (contract? . -> . contract?))
   (def cons/c (contract? contract? . -> . contract?))

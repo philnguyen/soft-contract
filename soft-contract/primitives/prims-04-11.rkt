@@ -23,9 +23,10 @@
          "../utils/debug.rkt"
          "../utils/patterns.rkt"
          "../utils/function.rkt"
+         "../utils/map.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -41,115 +42,105 @@
 
 (define-unit prims-04-11@
   (import prim-runtime^
-          evl^ val^ sto^
+          val^ sto^ cache^
           prover^
-          step^ approx^ mon^ app^)
+          exec^ app^ mon^)
   (export)
   
   (def-pred vector?)
   (splicing-let
       ([.internal-make-vector
         (let ()
-          (def (internal-make-vector W ℓ Φ^ Ξ Σ)
-            #:init ([Tₙ exact-nonnegative-integer?]
-                    [Tᵥ any/c])
-            (define H (Ξ:co-ctx Ξ))
-            (match Tₙ
+          (def (internal-make-vector Σ ℓ W)
+            #:init ([Vₙ exact-nonnegative-integer?]
+                    [Vᵥ any/c])
+            (match Vₙ
               [(singleton-set (-b (? exact-nonnegative-integer? n)))
-               (define αs : (Listof α)
-                 (for/list ([i (in-range n)])
-                   (define α (mk-α (-α:idx ℓ H (assert i index?))))
-                   (⊔T! Σ Φ^ α Tᵥ)
-                   α))
-               {set (ret! (T->R (Vect αs) Φ^) Ξ Σ)}]
+               (define-values (αs ΔΣ) (alloc-each (make-list n Vᵥ) (λ (i) (β:idx ℓ i))))
+               (r:just (Vect αs) ΔΣ)]
               [_
-               (define α (mk-α (-α:vct ℓ H)))
-               (⊔T! Σ Φ^ α Tᵥ)
-               {set (ret! (T->R (Vect^ α (T->V Σ Φ^ Tₙ)) Φ^) Ξ Σ)}]))
+               (define α (α:dyn (β:vct ℓ) H₀))
+               (r:just (Vect-Of α Vₙ) (alloc α Vᵥ))]))
           .internal-make-vector)])
-    (def (make-vector W ℓ Φ^ Ξ Σ)
+    (def (make-vector Σ ℓ W)
       #:init ()
       #:rest [W (listof any/c)]
-      (define W*
-        (match W
-          [(list Tₙ) (list Tₙ {set (-b 0)})]
-          [_ W]))
-      (.internal-make-vector W* ℓ Φ^ Ξ Σ)))
+      (define W* (match W
+                   [(list Vₙ) (list Vₙ {set (-b 0)})]
+                   [_ W]))
+      (.internal-make-vector Σ ℓ W*)))
   
-  (def (vector W ℓ Φ^ Ξ Σ)
+  (def (vector Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (define H (Ξ:co-ctx Ξ))
-    (define αs : (Listof α) ; with side-effect allocating
-      (for/list ([T (in-list W)] [i (in-naturals)])
-        (define α (mk-α (-α:idx ℓ H (assert i index?))))
-        (⊔T! Σ Φ^ α T)
-        α))
-    {set (ret! (T->R (Vect αs) Φ^) Ξ Σ)})
+    (define-values (αs ΔΣ) (alloc-each W (λ (i) (β:idx ℓ i))))
+    (r:just (Vect αs) ΔΣ))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
-  (def (vector-length W ℓ Φ^ Ξ Σ)
-    #:init ([T vector?])
-    {set (ret! (T->R (vec-len T) Φ^) Ξ Σ)})
+  (def (vector-length Σ ℓ W)
+    #:init ([V vector?])
+    (just (vec-len V)))
 
-  (def (vector-ref W ℓ Φ^ Ξ₀ Σ)
-    #:init ([Tᵥ vector?] [Tᵢ integer?])
-    (set-union-map
+  (def (vector-ref Σ ℓ W)
+    #:init ([Vᵥ vector?] [Vᵢ integer?])
+    ((inst fold-ans V)
      (match-lambda
        [(Vect αs)
-        (define Vₐ^
+        (define Vₐ
           (for/fold ([acc : V^ ∅])
-                    ([α (in-list αs)]
-                     [i : Natural (in-naturals)]
-                     #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-            ((iter-⊔ V^⊔) acc (Σᵥ@ Σ α))))
-        {set (ret! (T->R Vₐ^ Φ^) Ξ₀ Σ)}]
-       [(Vect^ α n)
-        {set (ret! (T->R (Σᵥ@ Σ α) Φ^) Ξ₀ Σ)}]
-       [(X/G ctx G αᵥ)
-        (define Tᵥ* (Σᵥ@ Σ αᵥ))
+                    ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+            (∪ acc (unpack αᵢ Σ))))
+        (r:just Vₐ)]
+       [(Vect-Of α n)
+        (r:just (unpack α Σ))]
+       [(Guarded ctx G αᵥ)
+        (define Vᵥ* (unpack αᵥ Σ)) 
         (match G
-          [(Vect/C αℓs)
-           (for/union : (℘ Ξ) ([αℓᵢ (in-list αℓs)]
-                               [i : Natural (in-naturals)]
-                               #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
-             (define Ξ* (K+ (F:Mon:C (Ctx-with-origin ctx ℓᵢ) (Σᵥ@ Σ αᵢ)) Ξ₀))
-             ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ))]
-          [(Vectof αℓ*)
-           (match-define (αℓ α* ℓ*) αℓ*)
-           (define Ξ* (K+ (F:Mon:C (Ctx-with-origin ctx ℓ*) (Σᵥ@ Σ α*)) Ξ₀))
-           ((app₁ 'vector-ref) (list Tᵥ* Tᵢ) ℓ Φ^ Ξ* Σ)])]
-       [_ {set (ret! (T->R (-● ∅) Φ^) Ξ₀ Σ)}])
-     (T->V Σ Φ^ Tᵥ)))
+          [(Vect/C αs ℓ)
+           (define (ref [i : Natural])
+             (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* {set (-b i)})))
+           (for/ans ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+             (with-collapsing/R [(ΔΣ W) (ref (assert i index?))]
+               (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (unpack αᵢ Σ) (car (collapse-W^ W))))))]
+          {(Vectof/C α* ℓ)
+           (with-collapsing/R [(ΔΣ W) (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* Vᵢ))]
+             (with-pre ΔΣ
+               (mon (⧺ Σ ΔΣ) ctx (unpack α* Σ) (car (collapse-W^ W)))))})]
+       [_ (r:just (-● ∅))])
+     Vᵥ))
   
-  (def (vector-set! W ℓ Φ^ Ξ₀ Σ)
-    #:init ([Tᵥ^ vector?] [Tᵢ integer?] [Tᵤ any/c])
-    (define-thunk/memo (done) : (℘ Ξ) {set (ret! (T->R {set -void} Φ^) Ξ₀ Σ)})
-    (set-union-map
-     (match-lambda
-       [(Vect αs)
-        (for ([α (in-list αs)]
-              [i (in-naturals)] #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-          (⊔T! Σ Φ^ α Tᵤ))
-        (done)]
-       [(Vect^ α n) (⊔T! Σ Φ^ α Tᵤ) (done)]
-       [(X/G ctx G αᵥ)
-        (define ctx* (Ctx-flip ctx))
-        (define Tᵥ*^ (Σᵥ@ Σ αᵥ))
-        (match G
-          [(Vect/C αℓs)
-           (for/union : (℘ Ξ) ([(αℓᵢ i) (in-indexed αℓs)]
-                               #:when (possbly? Σ (R (list Tᵢ (-b i)) Φ^) '=))
-             (match-define (αℓ αᵢ ℓᵢ) αℓᵢ)
-             (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
-             (mon (Σᵥ@ Σ αᵢ) Tᵤ (Ctx-with-origin ctx* ℓᵢ) Φ^ Ξ* Σ))]
-          [(Vectof αℓ*)
-           (match-define (αℓ α* ℓ*) αℓ*)
-           (define Ξ* (K+ (F:Ap (list Tᵢ Tᵥ*^ 'vector-set!) '() ℓ) Ξ₀))
-           (mon (Σᵥ@ Σ α*) Tᵤ (Ctx-with-origin ctx* ℓ*) Φ^ Ξ* Σ)])]
-       [_ (done)])
-     (T->V Σ Φ^ Tᵥ^)))
+  (def (vector-set! Σ ℓ W)
+    #:init ([V^ vector?] [Vᵢ integer?] [Vᵤ any/c])
+    (define-values (ΔΣ* es*)
+      (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set V^)])
+        (match V
+          [(Vect αs)
+           (values (for/fold ([acc : ΔΣ acc])
+                             ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+                     (ΔΣ⊔ acc (mut αᵢ Vᵤ)))
+                   es)]
+          [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ)) es)]
+          [(Guarded ctx G αᵥ)
+           (define ctx* (Ctx-flip ctx))
+           (define V*^ (unpack αᵥ Σ))
+           (match G
+             [(Vect/C αs ℓ)
+              (for/fold ([acc : ΔΣ acc] [es : (℘ Err) es])
+                        ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+                (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack αᵢ Σ) Vᵤ)]
+                  #:fail acc
+                  (define Vᵤ* (car (collapse-W^ Ws)))
+                  (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) (Ctx-origin ctx) {set 'vector-set!} (list V*^ {set (-b i)} Vᵤ*))]
+                    #:fail acc
+                    (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) es))))]
+             [(Vect-Of α* ℓ*)
+              (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack α* Σ) Vᵤ)]
+                #:fail acc
+                (define Vᵤ* (car (collapse-W^ Ws)))
+                (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) (Ctx-origin ctx) {set 'vector-set} V*^ Vᵢ Vᵤ*)]
+                  (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) ∅)))])]
+          [_ (values acc es)])))
+    (values (hash ΔΣ* {set (list {set -void})}) es*))
   
   (def vector->list (∀/c (α) ((vectorof α) . -> . (listof α))))
   (def list->vector (∀/c (α) ((listof α) . -> . (vectorof α))))
@@ -161,13 +152,13 @@
      [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? . -> . void?]
      [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? exact-nonnegative-integer? . -> . void?]
      [(and/c vector? (not/c immutable?)) exact-nonnegative-integer? vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . void?]))
-  #;[vector->values ; FIXME uses, var-values, `any` instead of `any/c`
-     (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any)]
+  (def vector->values ; FIXME uses, var-values, `any` instead of `any/c`
+    (vector? exact-nonnegative-integer? exact-nonnegative-integer? . -> . any))
 
   (def build-vector (∀/c (α) (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . α) . -> . (vectorof α))))
 
   ;; 4.11.1 Additional Vector Functions
-  #;(def vector-set*! ; FIXME uses
+  (def vector-set*! ; FIXME uses
     ((and/c vector? (not/c immutable?)) exact-nonnegative-integer? any/c . -> . void?))
   (def vector-map (∀/c (α β) ((α . -> . β) (vectorof α) . -> . (vectorof β)))) ; FIXME varargs
   (def vector-map! ; FIXME uses
@@ -193,5 +184,5 @@
     (∀/c (α _) ((α . -> . _) (vectorof α) . -> . exact-nonnegative-integer?)))
   (def* (vector-argmin vector-argmax) (∀/c (α) ((α . -> . real?) (vectorof α) . -> . α)))
   (def* (vector-member vector-memv vector-memq)
-    (∀/c (_) (_ vector? . -> . (or/c exact-nonnegative-integer? not))))
+    (∀/c (_) (_ vector? . -> . (or/c exact-nonnegative-integer? not)))) 
   )

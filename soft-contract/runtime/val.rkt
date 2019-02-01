@@ -5,115 +5,206 @@
 (require typed/racket/unit
          racket/match
          racket/set
-         racket/bool
-         racket/splicing
+         (only-in racket/list make-list)
          set-extras
          unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit val@
-  (import meta-functions^ sto^)
+  (import meta-functions^ static-info^
+          prims^
+          sto^)
   (export val^)
 
-  (: C-flat? : V → Boolean)
+  (: collapse-W^ : W^ → W)
+  (define (collapse-W^ Ws) (set-fold W⊔ (set-first Ws) (set-rest Ws)))
+  
+  (: collapse-W^-by-arities : W^ → (Immutable-HashTable Index W))
+  (define (collapse-W^-by-arities Ws)
+    (for/fold ([acc : (Immutable-HashTable Index W) (hasheq)])
+              ([Wᵢ (in-set Ws)])
+      (define n (length Wᵢ))
+      (hash-update acc n
+                   (λ ([W₀ : W]) (W⊔ W₀ Wᵢ))
+                   (λ () (make-list n ∅))))) 
+
+  (: V/ : S → V → V)
+  (define (V/ S)
+    (define (α/ [α : α]) (hash-ref S α (λ () α)))
+    (define Clo/ : (Clo → Clo)
+      (match-lambda [(Clo xs E αs ℓ) (Clo xs E (map/set α/ αs) ℓ)]))
+    (define ==>/ : (==> → ==>)
+      (match-lambda [(==> cs d ℓ) (==> (var-map α/ cs) (and d (map α/ d)) ℓ)]))
+    (define Dom/ : (Dom → Dom)
+      (match-lambda [(Dom x c ℓ) (Dom x (if (Clo? c) (Clo/ c) (α/ c)) ℓ)]))
+    (define Prox/C/ : (Prox/C → Prox/C)
+      (match-lambda
+        [(St/C 𝒾 αs ℓ) (St/C 𝒾 (map α/ αs) ℓ)]
+        [(Vectof/C α ℓ) (Vectof/C (α/ α) ℓ)]
+        [(Vect/C αs ℓ) (Vect/C (map α/ αs) ℓ)]
+        [(Hash/C α₁ α₂ ℓ) (Hash/C (α/ α₁) (α/ α₂) ℓ)]
+        [(Set/C α ℓ) (Set/C (α/ α) ℓ)]
+        [(? ==>? C) (==>/ C)]
+        [(==>i dom rng) (==>i (map Dom/ dom) (Dom/ rng))]
+        [(∀/C xs E αs) (∀/C xs E (map/set α/ αs))]
+        [(Case-=> Cs) (Case-=> (map ==>/ Cs))]))
+    (λ (V₀)
+      (let go ([V : V V₀])
+        (match V
+          [(St 𝒾 αs) (St 𝒾 (map α/ αs))]
+          [(Vect αs) (Vect (map α/ αs))]
+          [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
+          [(Hash-Of α₁ α₂ im?) (Hash-Of (α/ α₁) (α/ α₂) im?)]
+          [(Set-Of α im?) (Set-Of (α/ α) im?)]
+          [(Guarded ctx G α) (Guarded ctx (Prox/C/ G) (α/ α))]
+          [(Sealed α) (Sealed (α/ α))]
+          [(? Clo? clo) (Clo/ clo)]
+          [(Case-Clo clos ℓ) (Case-Clo (map Clo/ clos) ℓ)]
+          [(And/C α₁ α₂ ℓ) (And/C (α/ α₁) (α/ α₂) ℓ)]
+          [(Or/C α₁ α₂ ℓ) (Or/C (α/ α₁) (α/ α₂) ℓ)]
+          [(Not/C α ℓ) (Not/C (α/ α) ℓ)]
+          [(? Prox/C? C) (Prox/C/ C)]
+          [(Seal/C α) (Seal/C (α/ α))]
+          [(? α? α) (α/ α)]
+          [V V]))))
+
+  (: W⊔ : W W → W)
+  (define (W⊔ W₁ W₂) ((inst map V^ V^ V^) ∪ W₁ W₂))
+
+  (define Ctx-with-site : (Ctx ℓ → Ctx)
+    (match-lambda** [((Ctx l+ l- ℓ:o _) ℓ) (Ctx l+ l- ℓ:o ℓ)]))
+
+  (define Ctx-flip : (Ctx → Ctx)
+    (match-lambda [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
+
+  (: C-flat? : V Σ → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
-  (define (C-flat? V)
-    (match V
-      [(And/C flat? _ _) flat?]
-      [(Or/C flat? _ _) flat?]
-      [(? Not/C?) #t]
-      [(? One-Of/C?) #t]
-      [(St/C flat? _ _) flat?]
-      [(or (? Vectof?) (? Vect/C?)) #f]
-      [(Hash/C _ _) #f] ; TODO
-      [(Set/C _) #f] ; TODO
-      [(? Fn/C?) #f]
-      [(or (? Clo?) (X/G (? Fn/C?) _ _) (? -prim?)) #t]
-      [(? X/C?) #t]
-      [(? ∀/C?) #f]
-      [(? Seal/C?) #f]
-      [V (error 'C-flat? "Unepxected: ~a" V)]))
+  (define (C-flat? C Σ)
+    (define-set seen : α #:as-mutable-hash? #t)
+    (: go-α : α → Boolean)
+    (define (go-α α)
+      (cond [(seen-has? α) #t]
+            [else (seen-add! α)
+                  (set-andmap go-V (unpack α Σ))]))
+    (: go-V : V → Boolean)
+    (define go-V
+      (match-lambda
+        [(And/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
+        [(Or/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
+        [(? Not/C?) #t]
+        [(St/C _ αs _) (andmap go-α αs)]
+        [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
+        [(Set/C α _) (go-α α)]
+        [(? Fn/C?) #f]
+        [(or (? Clo?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
+        [(α:dyn (? β:x/c?) _) #t]
+        [(? ∀/C?) #f]
+        [(? Seal/C?) #f]
+        [V (error 'C-flat? "unexpected: ~a" V)]))
+    (go-V C))
 
-  (: C^-flat? : T^ → Boolean)
-  (define (C^-flat? C^)
-    (if (set? C^)
-        (for/and : Boolean ([C (in-set C^)]) (C-flat? C))
-        (-o? C^)))
+  (: C^-flat? : V^ Σ → Boolean)
+  (define (C^-flat? C^ Σ)
+    (for/and : Boolean ([C (in-set C^)]) (C-flat? C Σ)))
 
-  (:* with-negative-party with-positive-party : -l V → V)
-  (define with-negative-party
-    (match-lambda**
-     [(l- (X/G C α (Ctx l+ _ lo ℓ))) (X/G C α (Ctx l+ l- lo ℓ))]
-     [(_ V) V]))
-  (define with-positive-party
-    (match-lambda**
-     [(l+ (X/G C α (Ctx _ l- lo ℓ))) (X/G C α (Ctx l+ l- lo ℓ))]
-     [(_ V) V]))
+  (: arity (case->
+            [Clo → (U Natural arity-at-least)]
+            [V → (Option Arity)]))
+  (define arity
+    (match-lambda
+      [(Guarded _ (? Fn/C? G) _) (guard-arity G)]
+      [(Clo xs _ _ _) (shape xs)]
+      [(Case-Clo clos _) (map arity clos)]
+      [(? And/C?) 1]
+      [(? Or/C?) 1]
+      [(? Not/C?) 1]
+      [(? St/C?) 1]
+      [(? One-Of/C?) 1]
+      [(? -st-p?) 1]
+      [(? -st-mut?) 2]
+      [(-st-mk 𝒾) (count-struct-fields 𝒾)]
+      [(? symbol? o) (prim-arity o)]
+      [V #:when (not (Clo? V)) #f]))
 
-  (: behavioral? : (U Σ Σᵥ) V → Boolean)
+  (: guard-arity (case->
+                  [==> → (U Natural arity-at-least)]
+                  [Fn/C → Arity]))
+  (define guard-arity
+    (match-lambda
+      [(==> doms _ _) (shape doms)]
+      [(==>i doms _) (length doms)]
+      [(Case-=> cases) (map guard-arity cases)]
+      [(∀/C _ E _)
+       ;; TODO: real Racket just returns `(arity-at-least 0)`
+       (cond [(E-arity E) => values] [else (error 'guard-arity "~a" E)])]))
+
+  (: E-arity (case->
+              [--> → (U Natural arity-at-least)]
+              [E → Arity]))
+  (define E-arity
+    (match-lambda
+      [(--> doms _ _) (shape doms)]
+      [(-->i doms _) (length doms)]
+      [(case--> cases) (map E-arity cases)]
+      [(-∀/c _ E) (E-arity E)]
+      [E (error 'E-arity "~a" E)]))
+
+  (: collect-behavioral-values : W^ Σ → V^)
+  (define (collect-behavioral-values Ws Σ)
+    (for*/fold ([acc : V^ ∅])
+               ([W (in-set Ws)]
+                [Vs (in-list W)]
+                [V (in-set Vs)] #:when (behavioral? V Σ))
+      (set-add acc V)))
+
+  (: behavioral? : V Σ → Boolean)
   ;; Check if value maybe behavioral.
   ;; `#t` is a conservative answer "maybe yes"
   ;; `#f` is a strong answer "definitely no"
-  (define (behavioral? Σᵥ v)
-    (define-set seen : α #:eq? #t #:as-mutable-hash? #t)
+  (define (behavioral? V₀ Σ)
+    (define-set seen : α #:as-mutable-hash? #t)
 
     (: check-α : α → Boolean)
     (define (check-α α)
       (cond [(seen-has? α) #f]
-            [else
-             (seen-add! α)
-             (set-ormap check (Σᵥ@ Σᵥ α))]))
-
-    (define check-αℓ : (αℓ → Boolean) (compose1 check-α αℓ-_0))
+            [else (seen-add! α)
+                  (set-ormap check (unpack α Σ))]))
 
     (: check : V → Boolean)
     (define check
       (match-lambda
         [(St _ αs) (ormap check-α αs)]
-        [(X/G _ G α) (or (Fn/C? G) (check-α α))]
         [(Vect αs) (ormap check-α αs)]
-        [(Vect^ α _) (check-α α)]
-        [(==> (-var doms domᵣ) rngs)
-         (or (and (pair? rngs) (ormap check-αℓ rngs))
-             (and domᵣ (check-αℓ domᵣ))
-             (ormap check-αℓ doms))]
+        [(Vect-Of α _) (check-α α)]
+        [(Hash-Of αₖ αᵥ im?) (or (not im?) (check-α αₖ) (check-α αᵥ))]
+        [(Set-Of α im?) (or (not im?) (check-α α))]
+        [(Guarded _ G α) (or (Fn/C? G) (check-α α))]
+        [(==> (-var doms domᵣ) rngs _)
+         (or (and (pair? rngs) (ormap check-α rngs))
+             (and domᵣ (check-α domᵣ))
+             (and rngs (ormap check-α doms)))]
         [(? ==>i?) #t]
         [(Case-=> cases) (ormap check cases)]
         [(or (? Clo?) (? Case-Clo?)) #t]
+        [(and T (or (? T:@?) (? α?))) (set-ormap check (unpack T Σ))]
         [_ #f]))
 
-    (check v))
+    (check V₀))
 
-  (define guard-arity : (case->
-                         [==> → Arity]
-                         [Fn/C → (Option Arity)])
-    (match-lambda
-      [(==> αs _) (shape αs)]
-      [(==>i Doms _) (length Doms)]
-      [(Case-=> cases) (normalize-arity (map guard-arity cases))]
-      [(? ∀/C?)
-       ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
-       (arity-at-least 0)]
-      ['scv:terminating/c #f]))
+  (:* with-negative-party with-positive-party : -l V → V)
+  (define with-negative-party
+    (match-lambda**
+     [(l- (Guarded (Ctx l+ _ ℓₒ ℓ) C α)) (Guarded (Ctx l+ l- ℓₒ ℓ) C α)]
+     [(_ V) V]))
+  (define with-positive-party
+    (match-lambda**
+     [(l+ (Guarded (Ctx _ l- ℓₒ ℓ) C α)) (Guarded (Ctx l+ l- ℓₒ ℓ) C α)]
+     [(_ V) V]))
 
-  (: blm-arity : -l ℓ ℓ Arity W → Blm)
-  (define blm-arity
-    (let ([arity->msg
-           (match-lambda
-             [(? integer? n)
-              (format-symbol (case n
-                               [(0 1) "~a value"]
-                               [else "~a values"])
-                             n)]
-             [(arity-at-least n)
-              (format-symbol "~a+ values" n)])])
-      (λ (l+ ℓ:site ℓ:src arity Vs)
-        (Blm l+ ℓ:site ℓ:src (list (arity->msg arity)) Vs))))
-
-  (define ⊥T : T^ ∅)
-
+  #| 
   (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))
   ;; Estimate possible list lengths from the object language's abstract list
   (define (estimate-list-lengths Σ V)
@@ -146,21 +237,6 @@
         [a {set a}]))
       (if maybe-non-proper-list? (set-add res #f) res)
     |#)
-
-  (: K+ : F Ξ:co → Ξ:co)
-  (define (K+ F Ξ)
-    (match-define (Ξ:co (K Fs α) M) Ξ)
-    (Ξ:co (K (cons F Fs) α) M))
-
-  (: in-scope? : ((U α S) (℘ α) → Boolean))
-  (define (in-scope? x αs)
-    (if (integer? x)
-        (implies (-α:x? (inspect-α x)) (∋ αs x))
-        (let go ([S : S x])
-          (match S
-            [(S:α α) (in-scope? α αs)]
-            [(S:@ f xs) (and (go f) (andmap go xs))]
-            [_ #t]))))
 
   (define cmp-sets : (?Cmp (℘ Any))
     (λ (s₁ s₂)
@@ -227,12 +303,6 @@
     (for/fold ([acc : (℘ X) xs₁]) ([x (in-set xs₂)])
       (f acc x)))
 
-  (define Ctx-flip : (Ctx → Ctx)
-    (match-lambda
-      [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
-  (define Ctx-with-site : (Ctx ℓ → Ctx)
-    (match-lambda**
-     [((Ctx l+ l- ℓ:o _) ℓ) (Ctx l+ l- ℓ:o ℓ)]))
   (define Ctx-with-origin : (Ctx ℓ → Ctx)
     (match-lambda**
      [((Ctx l+ l- _ ℓ) ℓ:o) (Ctx l+ l- ℓ:o ℓ)]))
@@ -243,4 +313,5 @@
                      ;; TODO other cases
                      [(-α:x/c x _) x]
                      [(-α:imm:listof x _ _) x])]))
+  |#
   )

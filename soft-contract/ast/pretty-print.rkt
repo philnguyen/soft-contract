@@ -58,23 +58,30 @@
   (define (show-e [e : -e]) : Sexp
     (match e
       ; syntactic sugar
-      [(-λ (-var (list x) #f) (-@ 'not (list (-@ f (list (-x x _)) _)) _)) `(not/c ,(show-e f))]
-      [(-λ (-var (list x) #f) (-@ '= (list (-x x _) e*) _)) `(=/c ,(show-e e*))]
-      [(-λ (-var (list x) #f) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _)) `(≡/c ,(show-e e*))]
-      [(-λ (-var (list x) #f) (-@ '> (list (-x x _) e*) _)) `(>/c ,(show-e e*))]
-      [(-λ (-var (list x) #f) (-@ '< (list (-x x _) e*) _)) `(</c ,(show-e e*))]
-      [(-λ (-var (list x) #f) (-@ '>= (list (-x x _) e*) _)) `(≥/c ,(show-e e*))]
-      [(-λ (-var (list x) #f) (-@ '<= (list (-x x _) e*) _)) `(≤/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ 'not (list (-@ f (list (-x x _)) _)) _) _) `(not/c ,(show-e f))]
+      [(-λ (-var (list x) #f) (-@ '= (list (-x x _) e*) _) _) `(=/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ (or 'equal? 'eq? 'eqv?) (list (-x x _) e*) _) _) `(≡/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '> (list (-x x _) e*) _) _) `(>/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '< (list (-x x _) e*) _) _) `(</c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '>= (list (-x x _) e*) _) _) `(≥/c ,(show-e e*))]
+      [(-λ (-var (list x) #f) (-@ '<= (list (-x x _) e*) _) _) `(≤/c ,(show-e e*))]
       
-      [(-if a b (-b #f))
+      [(-if a b (-b #f) _)
        (match* ((show-e a) (show-e b))
          [(`(and ,l ...) `(and ,r ...)) `(and ,@(cast l (Listof Sexp)) ,@(cast r (Listof Sexp)))]
          [(`(and ,l ...) r) `(and ,@(cast l (Listof Sexp)) ,r)]
          [(l `(and ,r ...)) `(and ,l ,@(cast r (Listof Sexp)))]
          [(l r) `(and ,l ,r)])]
-      [(-if a b (-b #t)) `(implies ,(show-e a) ,(show-e b))]
+      [(-if a b (-b #t) _) `(implies ,(show-e a) ,(show-e b))]
 
-      [(-λ xs e) `(λ ,(show-formals xs) ,(show-e e))]
+      [(-λ xs e _) `(λ ,(show-formals xs) ,(show-e e))]
+      [(-case-λ cases _)
+       `(case-lambda
+          ,@(for/list : (Listof Sexp) ([c (in-list cases)])
+              (match-define (-λ (-var xs ?z) e _) c)
+              (if ?z
+                  `[,(cons xs ?z) ,(show-e e)]
+                  `[,xs ,(show-e e)])))]
       [(-•) '•]
       [(-b b) (show-b b)]
       [(? -o? o) (show-o o)]
@@ -105,23 +112,22 @@
                   (match-define (cons xs ex) bnd)
                   `(,xs ,(show-e ex)))
              ,(show-e body))])]
-      [(-set! x e) `(set! ,(if (symbol? x) x (-𝒾-name x)) ,(show-e e))]
+      [(-set! x e _) `(set! ,(if (symbol? x) x (-𝒾-name x)) ,(show-e e))]
       [(-@ f xs _) `(,(show-e f) ,@(show-es xs))]
       [(-begin es) `(begin ,@(show-es es))]
       [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
       [(-error msg _) `(error ,msg)]
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
-      [(-if i t e) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
+      [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
       [(--> (-var es eᵣ) rng _)
        (cond [eᵣ  `(,(map show-e es) #:rest ,(show-e eᵣ) . ->* . ,(show-e rng))]
              [else `(,@(map show-e es) . -> . ,(show-e rng))])]
       [(-->i cs d)
        `(->i (,@(map show-dom cs)) ,(show-dom d))]
+      [(case--> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
-      [(-struct/c 𝒾 cs _)
-       `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(show-es cs))]
       [(-∀/c xs c) `(parametric->/c ,xs ,(show-e c))]))
 
   (: show-dom : -dom → Sexp)
@@ -146,9 +152,9 @@
   (define show-general-top-level-form : (-general-top-level-form → Sexp)
     (match-lambda
       [(? -e? e) (show-e e)]
-      [(-define-values xs e)
+      [(-define-values xs e _)
        (match* (xs e)
-         [((list f) (-λ xs e*)) `(define (,f ,@(show-formals xs)) ,(show-e e*))]
+         [((list f) (-λ xs e* _)) `(define (,f ,@(show-formals xs)) ,(show-e e*))]
          [((list x) _) `(define ,x ,(show-e e))]
          [(_ _) `(define-values ,xs ,(show-e e))])]
       [(-require specs) `(require ,@(map show-require-spec specs))]))

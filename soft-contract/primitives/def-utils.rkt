@@ -350,18 +350,6 @@
     [(~literal integer?) #'exact-nonnegative-integer?]
     [o #'o]))
 
-(define c-flat?
-  (syntax-parser
-    [_:fc #t]
-    [((~or (~literal and/c)
-           (~literal or/c)
-           (~literal list/c)
-           (~literal listof)
-           (~literal cons/c))
-      c ...)
-     (andmap c-flat? (syntax->list #'(c ...)))]
-    [_ #f]))
-
 (define/contract in-syntax-list (syntax? . -> . sequence?) (compose in-list syntax->list))
 
 (define/contract (check-shape-ok o sig sigs)

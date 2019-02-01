@@ -1,9 +1,10 @@
 #lang typed/racket/base
 
-(provide prim-runtime^)
+(provide prim-runtime^ ⟦O⟧)
 
 (require typed/racket/unit
          typed/racket/unsafe
+         bnf
          set-extras
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
@@ -37,25 +38,25 @@
                 alias-table-count
                 in-alias-table)
 
+(⟦O⟧ . ≜ . (Σ ℓ W → (Values R (℘ Err))))
+
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([make-total-pred : (Index → Symbol → ⟦F⟧^)]
-   [implement-predicate : (Σ Φ^ -o W → R^)]
+  ([make-total-pred : (Index → Symbol → ⟦O⟧)]
+   [implement-predicate : (Σ -o W → (Values R (℘ Err)))]
    [W->bs : (W → (Option (Listof Base)))]
-   [make-static-listof : (Symbol (→ (Values Boolean V ℓ)) → V)]
-   [make-listof : (Boolean V ℓ → V)]
-   [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → V)]
-   [make-∀/c : (Symbol (Listof Symbol) -e Ρ → V)]
+   [make-static-listof : (Symbol (→ (Values V ℓ)) → V)]
+   [make-listof : (V ℓ → V)]
    [exec-prim
-    : (ℓ Symbol Ξ:co Σ
+    : (Σ ℓ Symbol
          #:volatile? Boolean
-         #:dom (Listof (Pairof V ℓ))
+         #:dom (-var V)
          #:rng W
-         #:rng-wrap (Option (Listof (Pairof V ℓ)))
+         #:rng-wrap (Option (Listof V))
          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
-         #:args R
-         → Ξ)]
-   [vec-len : (T^ → T^)]
+         #:args W
+         → (Values R (℘ Err)))]
+   [vec-len : (V^ → V^)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -67,7 +68,7 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol ⟦F⟧^)]
+   [prim-table : (HashTable Symbol ⟦O⟧)]
    [const-table : Parse-Prim-Table]
    [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]
@@ -79,15 +80,14 @@
    [add-alias! : (Identifier Identifier → Void)]
    [add-const! : (Identifier -prim → Void)]
    
-   [add-seal : (Σ Symbol H -l → Seal/C)]
-   [mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
+   #;[mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
-   [r:ret! : ((U R R^) Ξ:co Σ → Ξ:co)]
-   [r:blm : (ℓ ℓ (Listof (U V V^)) (U W W^) → (℘ Blm))]
-   [r:split-results : (Σ R P → (Values R^ R^))]
-   [r:with-2-paths/collapse : (∀ (X) (→ (Values R^ R^)) (Φ^ → (℘ X)) (Φ^ → (℘ X)) → (℘ X))]
-   
-   #;[r:φ+/-pV^ : (Σ Φ -h -V^ * → (Values (℘ -φ) (℘ -φ)))]
-   
+   [r:err : (Err → (Values R (℘ Err)))]
+   [r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
+   [r:reify : (V^ → V^)]
+   [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
+                        → (Values R (℘ Err)))]
+   [r:⧺ : (ΔΣ * → ΔΣ)]
+   [r:ΔΣ⧺R : (ΔΣ R → R)]
    ))

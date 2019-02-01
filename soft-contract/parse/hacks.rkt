@@ -268,10 +268,9 @@
   #:description "scv hacked struct/c"
   #:literal-sets (lits)
   #:attributes (name fields)
-  (pattern (begin (#%plain-app (~literal fake:dynamic-struct/c) _ c ...)
-                  (#%plain-app _ _ _ _ (quote k) _ ...)
+  (pattern (begin (#%plain-app (~literal fake:dynamic-struct/c) tag c ...)
                   _ ...)
-           #:attr name (syntax-e #'k)
+           #:attr name #'tag
            #:attr fields (syntax->list #'(c ...))))
 
 (define-syntax-class scv-struct-out
