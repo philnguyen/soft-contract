@@ -84,9 +84,8 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (--> [doms : (-var -e)] [rng : -e] [loc : ℓ])
-            (-->i [doms : (Listof -dom)] [rng : -dom])
-            (case--> [cases : (Listof -->)])
+            (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))])
+            (case--> [cases : (Listof -->i)])
             (-x/c.tmp Symbol) ; hack
             (-x/c Symbol)
             (-∀/c (Listof Symbol) -e)
@@ -131,7 +130,7 @@
 (define -car (-st-ac -𝒾-cons 0))
 (define -cdr (-st-ac -𝒾-cons 1))
 (define -set-cdr! (-st-mut -𝒾-cons 1)) ; HACK for running some scheme programs
-(define -set-car! (-st-mut -𝒾-cons 0)) ; HACK for running nsome scheme programs
+(define -set-car! (-st-mut -𝒾-cons 0)) ; HACK for running some scheme programs
 (define -cons? (-st-p -𝒾-cons))
 
 (define -mcons (-st-mk -𝒾-mcons))
@@ -148,6 +147,35 @@
 (define -unbox (-st-ac -𝒾-box 0))
 (define -box (-st-mk -𝒾-box))
 (define -set-box! (-st-mut -𝒾-box 0))
+
+(: var-map (∀ (X Y) (X → Y) (-var X) → (-var Y)))
+(define (var-map f v)
+  (match-define (-var xs x) v)
+  (-var (map f xs) (and x (f x))))
+
+(: var->set (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X))))
+(define (var->set xs #:eq? [use-eq? #f])
+  (match-define (-var xs₀ ?xᵣ) xs)
+  (define s ((if use-eq? list->seteq list->set) xs₀))
+  (if ?xᵣ (set-add s ?xᵣ) s))
+
+(: var-fold (∀ (X Y Z) (X Y Z → Z) Z (-var X) (-var Y) → Z))
+(define (var-fold f z₀ xs ys)
+  (match-define (-var xs₀ ?xᵣ) xs)
+  (match-define (-var ys₀ ?yᵣ) ys)
+  (define z₁ (foldl f z₀ xs₀ ys₀))
+  (if (and ?xᵣ ?yᵣ) (f ?xᵣ ?yᵣ z₁) z₁))
+
+(: in-var (∀ (X) (-var X) → (Sequenceof X)))
+(define in-var
+  (match-lambda
+    [(-var xs ?x) (cond [?x (in-sequences (in-list xs) (in-value ?x))]
+                        [else (in-list xs)])]))
+
+(: shape (∀ (X) (-var X) → (U Index arity-at-least)))
+(define shape
+  (match-lambda
+    [(-var (app length n) x) (if x (arity-at-least n) n)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -175,6 +203,7 @@
 (define-signature ast-macros^
   ([-define : (Symbol -e ℓ → -define-values)]
    [-cond : ((Assoc -e -e) -e ℓ → -e)]
+   [--> : ((-var -e) -e ℓ → -->i)]
    [-cons/c : (-e -e ℓ → -e)]
    [-box/c : (-e ℓ → -e)]
    [-list/c : ((Assoc ℓ -e) → -e)]
@@ -195,11 +224,6 @@
    [e/ : (Symbol -e -e → -e)]
    [formals->names : ([-formals] [#:eq? Boolean] . ->* . (℘ Symbol))]
    [first-forward-ref : ((Listof -dom) → (Option Symbol))]
-   [var-map : (∀ (X Y) (X → Y) (-var X) → (-var Y))]
-   [var->set : (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X)))]
-   [var-fold : (∀ (X Y Z) (X Y Z → Z) Z (-var X) (-var Y) → Z)]
-   [in-var : (∀ (X) (-var X) → (Sequenceof X))]
-   [shape : (∀ (X) (-var X) → (U Index arity-at-least))]
    [+x! : ((U Symbol Integer) * → Symbol)]
    [+x!/memo : ((U Symbol Integer) * → Symbol)]
    [optimize-contracts : ((℘ ℓ) -module → -module)]

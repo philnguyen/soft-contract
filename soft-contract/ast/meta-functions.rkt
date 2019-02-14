@@ -43,12 +43,12 @@
       [(-set! x e _) (fv e)]
       [(-if e e₁ e₂ _) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
-      [(--> (-var cs c) d _) (apply ∪ (if c (fv c) ∅eq) (fv d) (map fv cs))]
-      [(-->i cs d)
+      [(-->i (-var cs c) d)
        (define dom-fv : (-dom → (℘ Symbol))
          (match-lambda
            [(-dom _ ?xs d _) (set-subtract (fv d) (if ?xs (list->seteq ?xs) ∅eq))]))
-       (apply ∪ (dom-fv d) (map dom-fv cs))]
+       (∪ (apply ∪ (if c (dom-fv c) ∅eq) (map dom-fv cs))
+          (if d (apply ∪ ∅eq (map dom-fv d)) ∅eq))]
       [(case--> cases) (apply ∪ ∅eq (map fv cases))]
       [_ (log-debug "FV⟦~a⟧ = ∅~n" e) ∅eq]))
 
@@ -80,16 +80,11 @@
         [(-set! x e _) (go e)]
         [(-if e e₁ e₂ _) (+ (go e) (go e₁) (go e₂))]
         [(-μ/c x e) (if (equal? x z) 0 (go e))]
-        [(--> (-var cs c) d _) (+ (go d) (if c (go c) 0) (apply + (map go cs)))]
-        [(-->i cs d)
-         (define-values (sum _)
-           (for/fold ([sum : Natural 0] [bound? : Boolean #f])
-                     ([dom (in-list (append cs (list d)))]
-                      #:break bound?
-                      #:unless bound?)
-             (match-define (-dom x _ eₓ _) dom)
-             (values (+ sum (go eₓ)) (equal? x z))))
-         sum]
+        [(-->i (-var cs c) d)
+         (define dom-count : (-dom → Natural)
+           (match-lambda [(-dom x _ eₓ _) (if (equal? x z) 0 (go eₓ))]))
+         (+ (apply + (if c (dom-count c) 0) (map dom-count cs))
+            (if d (apply + (map dom-count d)) 0))]
         [(case--> cases) (apply + (map go cases))]
         [_ 0])))
 
@@ -97,8 +92,8 @@
   ;; Return all free references to recursive contracts inside term
   (define (free-x/c e)
 
-    (: go* : (Listof -e) → (℘ Symbol))
-    (define (go* xs) (apply ∪ ∅eq (map go xs)))
+    (: go* (∀ (X) (X → (℘ Symbol)) → (Listof X) → (℘ Symbol)))
+    (define ((go* f) xs) (apply ∪ ∅eq (map f xs)))
 
     (: go/dom : -dom → (℘ Symbol))
     (define go/dom
@@ -109,20 +104,22 @@
     (define (go e)
       (match e
         [(-λ xs e _) (go e)]
-        [(-case-λ cases _) (go* cases)]
-        [(-@ f xs ctx) (∪ (go f) (go* xs))]
+        [(-case-λ cases _) ((go* go) cases)]
+        [(-@ f xs ctx) (∪ (go f) ((go* go) xs))]
         [(-if i t e _) (∪ (go i) (go t) (go e))]
         [(-wcm k v b) (∪ (go k) (go v) (go b))]
-        [(-begin es) (go* es)]
-        [(-begin0 e es) (∪ (go e) (go* es))]
+        [(-begin es) ((go* go) es)]
+        [(-begin0 e es) (∪ (go e) ((go* go) es))]
         [(-let-values bnds e _)
          (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
         [(-letrec-values bnds e _)
          (apply ∪ (go e) (map (compose1 go Binding-rhs) bnds))]
         [(-μ/c _ c) (go c)]
-        [(--> (-var cs c) d _) (∪ (go* cs) (if c (go c) ∅eq) (go d))]
-        [(-->i cs d) (apply ∪ (go/dom d) (map go/dom cs))]
-        [(case--> cases) (go* cases)]
+        [(-->i (-var cs c) d)
+         (∪ ((go* go/dom) cs)
+            (if c (go/dom c) ∅eq)
+            (if d ((go* go/dom) d) ∅eq))]
+        [(case--> cases) ((go* go) cases)]
         [(-x/c.tmp x) (seteq x)]
         [_ ∅eq]))
     
@@ -154,15 +151,21 @@
     (define (go-list m es)
       (for/list : (Listof -e) ([e es]) (go m e)))
 
+    (: go--->i : Subst -->i → -->i)
+    (define (go--->i m c)
+      (define go/dom : (-dom → -dom)
+        (match-lambda
+          [(-dom x ?xs d ℓ)
+           (define d* (if ?xs (go (remove-keys m (list->seteq ?xs)) d) (go m d)))
+           (-dom x ?xs d* ℓ)]))
+      (match-define (-->i cs d) c)
+      (-->i (var-map go/dom cs) (and d (map go/dom d))))
+
     (: go : Subst -e → -e)
     (define (go m e)
       (with-debugging/off
         ((ans)
-         (define go/dom : (-dom → -dom)
-           (match-lambda
-             [(-dom x ?xs d ℓ)
-              (define d* (if ?xs (go (remove-keys m (list->seteq ?xs)) d) (go m d)))
-              (-dom x ?xs d* ℓ)]))
+         
          (cond
            [(hash-empty? m) e]
            [else
@@ -212,11 +215,8 @@
                (-set! x (go m e*) ℓ)]
               [(-μ/c z c)
                (-μ/c z (go (remove-keys m {seteq z}) c))]
-              [(--> (-var cs c) d ℓ)
-               (--> (-var (go-list m cs) (and c (go m c))) (go m d) ℓ)]
-              [(-->i cs d)
-               (-->i (map go/dom cs) (go/dom d))]
-              [(case--> cases) (case--> (cast (go-list m cases) (Listof -->)))]
+              [(? -->i? c) (go--->i m c)]
+              [(case--> cases) (case--> (map (curry go--->i m) cases))]
               [_
                ;(printf "unchanged: ~a @ ~a~n" (show-e e) (show-subst m))
                e])]))
@@ -243,36 +243,7 @@
       (seen-add! x)
       (and ?xs
            (for/or : (Option Symbol) ([x (in-list ?xs)] #:unless (seen-has? x))
-             x))))
-
-  (: var-map (∀ (X Y) (X → Y) (-var X) → (-var Y)))
-  (define (var-map f v)
-    (match-define (-var xs x) v)
-    (-var (map f xs) (and x (f x))))
-
-  (: var->set (∀ (X) ([(-var X)] [#:eq? Boolean] . ->* . (℘ X))))
-  (define (var->set xs #:eq? [use-eq? #f])
-    (match-define (-var xs₀ ?xᵣ) xs)
-    (define s ((if use-eq? list->seteq list->set) xs₀))
-    (if ?xᵣ (set-add s ?xᵣ) s))
-
-  (: var-fold (∀ (X Y Z) (X Y Z → Z) Z (-var X) (-var Y) → Z))
-  (define (var-fold f z₀ xs ys)
-    (match-define (-var xs₀ ?xᵣ) xs)
-    (match-define (-var ys₀ ?yᵣ) ys)
-    (define z₁ (foldl f z₀ xs₀ ys₀))
-    (if (and ?xᵣ ?yᵣ) (f ?xᵣ ?yᵣ z₁) z₁))
-
-  (: in-var (∀ (X) (-var X) → (Sequenceof X)))
-  (define in-var
-    (match-lambda
-      [(-var xs ?x) (cond [?x (in-sequences (in-list xs) (in-value ?x))]
-                          [else (in-list xs)])]))
-
-  (: shape (∀ (X) (-var X) → (U Index arity-at-least)))
-  (define shape
-    (match-lambda
-      [(-var (app length n) x) (if x (arity-at-least n) n)]))
+             x)))) 
 
   (: +x! : (U Symbol Integer) * → Symbol)
   (define (+x! . prefixes)
@@ -355,19 +326,8 @@
          ;; Can optimize `or/c` if all of its disjuncts can be optimized
          (if (andmap any/c? (map-opt es ℓ 'left-disj 'right-disj)) 'any/c e)]
         [(-μ/c x e) (-μ/c x ((go-c pos? #f) e))]
-        [(--> (-var dom-init dom-rest) rng ℓ)
-         (--> (-var (for/list : (Listof -e) ([(d i) (in-indexed dom-init)])
-                      ((go-c (not pos?) (ℓ-with-id ℓ (cons 'dom i))) d))
-                    (and dom-rest ((go-c (not pos?) (ℓ-with-id ℓ 'rest)) dom-rest)))
-              ;; FIXME: generalize with multiple-values range
-              (let ([ℓ* (ℓ-with-id ℓ (cons 'rng 0))])
-                (match ((go-c pos? ℓ*) rng)
-                  ['any/c #:when (opt? pos? ℓ*) 'any]
-                  [r r]))
-              ℓ)]
         [(-->i doms rng)
-         (-->i (map (go-dom (not pos?)) doms)
-               ((go-dom pos?) rng))]
+         (-->i (var-map (go-dom (not pos?)) doms) (and rng (map (go-dom pos?) rng)))]
         [(case--> cases) (printf "TODO: opt case->~n") (case--> cases)]
         [(-if e e₁ e₂ ℓ) (-if e ((go-c pos? #f) e₁) ((go-c pos? #f) e₂) ℓ)]
         [(-wcm k v b) (-wcm k v ((go-c pos? #f) b))]
@@ -440,8 +400,8 @@
 
     (define go-e : (-e → -e)
       (match-lambda
-        [(-λ xs e ℓ) (-λ xs (go-e e) ℓ)]
-        [(-case-λ cases ℓ) (-case-λ (cast (map go-e cases) (Listof -λ)) ℓ)]
+        [(? -λ? e) (go-λ e)]
+        [(-case-λ cases ℓ) (-case-λ (map go-λ cases) ℓ)]
         [(-@ e es ℓ)
          (define es* (map go-e es))
          (if (and (-prim? e) (not (∋ ℓs ℓ)))
@@ -457,11 +417,17 @@
          (-letrec-values (map go-Binding bs) (go-e e) ℓ)]
         [(-set! x e ℓ) (-set! x (go-e e) ℓ)]
         [(-μ/c x e) (-μ/c x (go-e e))]
-        [(--> doms rng ℓ) (--> (var-map go-e doms) (go-e rng) ℓ)]
-        [(-->i doms rng) (-->i (map go-dom doms) (go-dom rng))]
-        [(case--> cases) (case--> (cast (map go-e cases) (Listof -->)))]
+        [(? -->i? c) (go--->i c)]
+        [(case--> cases) (case--> (map go--->i cases))]
         [(-∀/c xs e) (-∀/c xs (go-e e))]
         [e e]))
+
+    (define go-λ : (-λ → -λ)
+      (match-lambda [(-λ xs e ℓ) (-λ xs (go-e e) ℓ)]))
+
+    (define go--->i : (-->i → -->i)
+      (match-lambda
+        [(-->i doms rng) (-->i (var-map go-dom doms) (and rng (map go-dom rng)))]))
 
     (define go-Binding : (Binding → Binding)
       (match-lambda [(cons xs e) (cons xs (go-e e))]))

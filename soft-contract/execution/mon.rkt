@@ -25,10 +25,16 @@
           prover^)
   (export mon^)
 
+  (define γ-mon (γ:lex (gensym 'mon_)))
+
   (: mon : Σ Ctx V^ V^ → (Values R (℘ Err)))
   (define (mon Σ ctx C^ V^)
     (define args:root (V^-root V^))
-    (fold-ans (λ ([C : V]) ((mon₁ C) (gc (∪ (V-root C) args:root) Σ) ctx V^)) C^))
+    (fold-ans (λ ([C : V])
+                (define root (∪ (V-root C) args:root))
+                (with-gc root
+                  (λ () ((mon₁ C) (gc root Σ) ctx V^))))
+              C^))
 
   (: mon* : Σ Ctx W W → (Values R (℘ Err)))
   (define (mon* Σ₀ ctx Cs Vs)
@@ -68,20 +74,16 @@
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) Σ ctx Vs)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (define C:arity (guard-arity C))
-    (define (blm [V : V]) (Blm l+ ℓₒ ℓ (list {set C}) (list {set V})))
-    (define (wrap [Vₕ : V])
-      (define αᵥ (α:dyn (β:fn ctx) H₀))
-      (just (Guarded ctx C αᵥ) (alloc αᵥ {set Vₕ})))
-    ((inst fold-ans V)
-     (match-lambda
-       [(and V (or (? Clo?) (? Case-Clo?) (Guarded _ (? Fn/C?) _) (? -o?)))
-        #:when (arity-includes? (assert (arity V)) C:arity)
-        (wrap V)]
-       [(and V (-● Ps))
-        (if (∋ Ps 'procedure?) (wrap (-● Ps)) (err (blm V)))]
-       [V (err (blm V))])
-     Vs))
+    (with-split-Σ Σ 'procedure? (list Vs)
+      (λ (W ΔΣ₁)
+        (define arity-check (P:arity-includes (guard-arity C)))
+        (with-split-Σ Σ arity-check W
+          (match-lambda**
+           [((list V*) ΔΣ₂)
+            (define αᵥ (α:dyn (β:fn ctx) H₀))
+            (just (Guarded ctx C αᵥ) (alloc αᵥ V*))])
+          (λ (W _) (err (Blm l+ ℓₒ ℓ (list {set arity-check}) W)))))
+      (λ (W _) (err (Blm l+ ℓₒ ℓ (list {set 'procedure?}) W)))))
 
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) Σ₀ ctx Vs)
@@ -94,13 +96,13 @@
         (match αs
           ['() (just (reverse Vs-rev) ΔΣ)]
           [(cons αᵢ αs*)
-           (with-collapsing/R [(ΔΣ₀ Ws) (app (⧺ Σ ΔΣ) ℓ {set (-st-ac 𝒾 i)} (list Vs))]
+           (with-collapsing/R [(ΔΣ₀ Ws) (app (⧺ Σ ΔΣ) ℓ {set (-st-ac 𝒾 i)} (list V))]
              (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx (unpack αᵢ Σ) (car (collapse-W^ Ws)))]
                (go (assert (+ 1 i) index?)
                    αs*
                    (cons (car (collapse-W^ Ws*)) Vs-rev)
                    (⧺ ΔΣ ΔΣ₀ ΔΣ₁))))])))
-    
+
     (with-split-Σ Σ₀ (-st-p 𝒾) (list Vs)
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
@@ -110,10 +112,10 @@
               (just V* (⧺ ΔΣ ΔΣ* ΔΣ**))
               (let ([α (α:dyn (β:st 𝒾 ctx) H₀)])
                 (just (Guarded ctx C α) (⧺ ΔΣ ΔΣ* ΔΣ** (alloc α V*)))))))
-      (λ (W* ΔΣ) (err (Blm l+ ℓ ℓₒ (list {set C}) W*))))) 
+      (λ (W* _) (err (Blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-α : α → ⟦C⟧)
-  (define ((mon-α α) Σ ctx V^) (mon Σ ctx (unpack α Σ) V^))
+  (define ((mon-α α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
@@ -126,32 +128,25 @@
       [#f (values ⊥R es₁)]))
 
   (: mon-Or/C : Or/C → ⟦C⟧)
-  (define ((mon-Or/C C) Σ ctx V)
-    (match-define (Or/C α₁ α₂ _) C)
-
+  (define ((mon-Or/C C) Σ ctx V) 
     (: chk : V^ V^ → (Values R (℘ Err)))
     (define (chk C-fo C-ho)
-      (with-each-path [(ΔΣ Ws) (app Σ (Ctx-origin ctx) C-fo (list V))]
-        (with-split-Σ (⧺ Σ ΔΣ) 'values (collapse-W^ Ws)
-          (λ (_ ΔΣ*) (let-values ([(V* ΔΣ**) (refine V α₁ Σ)])
-                       (just V* (⧺ ΔΣ ΔΣ* ΔΣ**))))
-          (λ (_ ΔΣ*) (mon (⧺ Σ ΔΣ ΔΣ*) ctx C-ho V)))))
+      (flat-check Σ (Ctx-origin ctx) C-fo V just (λ (W ΔΣ) (mon (⧺ Σ ΔΣ) ctx C-ho (car W)))))
 
-    (let ([C₁ (unpack α₁ Σ)]
-          [C₂ (unpack α₂ Σ)])
-      (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
-            [(C^-flat? C₂ Σ) (chk C₂ C₁)]
-            [else (error 'or/c "No more than 1 higher-order disjunct for now")])))
+    (match-define (Or/C α₁ α₂ _) C)
+    (define C₁ (unpack α₁ Σ))
+    (define C₂ (unpack α₂ Σ))
+    (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
+          [(C^-flat? C₂ Σ) (chk C₂ C₁)]
+          [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) Σ ctx V)
     (match-define (Not/C α _) C)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (with-each-path [(ΔΣ Ws) (app Σ ℓₒ (unpack α Σ) (list V))]
-      (with-split-Σ (⧺ Σ ΔΣ) 'values (collapse-W^ Ws)
-        (λ _ (err (Blm (ℓ-src ℓ) ℓ ℓₒ (list {set C}) (list V))))
-        (λ (_ ΔΣ*) (let-values ([(V* ΔΣ**) (refine V C Σ)])
-                     (just V* (⧺ ΔΣ ΔΣ* ΔΣ**)))))))
+    (flat-check Σ ℓₒ (unpack α Σ) V
+                (λ _ (err (Blm l+ ℓ ℓₒ (list {set C}) (list V))))
+                just))
 
   (: mon-One-Of/C : One-Of/C → ⟦C⟧)
   (define ((mon-One-Of/C C) Σ ctx Vs)
@@ -241,11 +236,17 @@
     (case (sat Σ C Vs)
       [(✓) (just Vs)]
       [(✗) (err (blm))]
-      [else
-       (with-each-path [(ΔΣ Ws) (app Σ ℓₒ {set C} (list Vs))]
-         (with-split-Σ (⧺ Σ ΔΣ) 'values (collapse-W^ Ws)
-           (λ (_ ΔΣ₁) (let-values ([(V* ΔΣ*) (refine Vs C Σ)])
-                        (just V* (⧺ ΔΣ ΔΣ₁ ΔΣ*))))
-           (λ _ (err (blm)))))]))
+      {else (flat-check Σ ℓₒ {set (if (-b? C) (P:= C) C)} Vs just (λ _ (err (blm))))}))
 
+  (: flat-check : Σ ℓ V^ V^
+     (W ΔΣ → (Values R (℘ Err)))
+     (W ΔΣ → (Values R (℘ Err)))
+     → (Values R (℘ Err)))
+  (define (flat-check Σ ℓₒ C^ Vs on-t on-f)
+    (define ΔΣₓ (alloc γ-mon Vs))
+    (with-each-path [(ΔΣ Ws) (app (⧺ Σ ΔΣₓ) ℓₒ C^ (list {set γ-mon}))]
+      (define Wₐ (list (unpack γ-mon (⧺ Σ ΔΣₓ ΔΣ))))
+      (with-split-Σ (⧺ Σ ΔΣ) 'values (collapse-W^ Ws)
+        (λ _ (on-t Wₐ ΔΣ))
+        (λ _ (on-f Wₐ ΔΣ)))))
   )

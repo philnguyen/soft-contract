@@ -70,6 +70,14 @@
              #:attr name (?private-id-name (syntax-e #'x))
              #:when (attribute name))))
 
+(define-syntax-class scv-ignored
+  #:description "non-sense ignored by scv"
+  #:literal-sets (lits)
+  (pattern (if (#%plain-app (~literal variable-reference-from-unsafe?)
+                            (#%variable-reference))
+               (#%plain-app void)
+               (let-values () (#%plain-app check-list _ ...)))))
+
 
 (define-syntax-class scv-provide
   #:description "hacked scv provide form"
@@ -100,40 +108,49 @@
            #:attr body #'(begin c ...)))
 
 (define-syntax-class named-dom
-  #:description "restricted dependent contract's named domain"
+  #:description "restricted dependent named domain"
   #:literal-sets (lits)
   #:attributes (name dependency body)
   (pattern (#%plain-app list (quote #f) (quote x:id) c:expr)
-           #:attr name (syntax-e #'x)
+           #:attr name #'x
            #:attr dependency #f
            #:attr body #'c)
   (pattern (#%plain-app list (quote #t) (quote x:id) (#%plain-lambda (z:id ...) c:expr ...))
-           #:attr name (syntax-e #'x)
-           #:attr dependency #'(z ...)
+           #:attr name #'x
+           #:attr dependency (syntax->list #'(z ...))
            #:attr body #'(begin c ...)))
 
 (define-syntax-class scv-->i
   #:description "hacked dependent contract"
   #:literal-sets (lits)
-  #:attributes (domains range total?)
+  #:attributes (init-domains rest-domain ranges total?)
   (pattern (~or (begin
                   (#%plain-app (~literal fake:dynamic->i)
                                (#%plain-app list c:named-dom ...)
-                               d:named-dom
+                               (~and cr (~or (quote #f) _:named-dom))
+                               (~and ds (~or (quote #f) (#%plain-app list d:named-dom ...)))
                                (quote tot?:boolean))
                   _ ...)
                 (let-values ()
                   (#%plain-app (~literal fake:dynamic->i)
                                (#%plain-app list c:named-dom ...)
-                               d:named-dom
+                               (~and cr (~or (quote #f) _:named-dom))
+                               (~and ds (~or (quote #f) (#%plain-app list d:named-dom ...)))
                                (quote tot?:boolean))
                   _ ...)
                 (#%plain-app (~literal fake:dynamic->i)
-                             (#%plain-app list c:named-dom ...)
-                             d:named-dom
-                             (quote tot?:boolean)))
-           #:attr domains (syntax->list #'(c ...))
-           #:attr range #'d
+                               (#%plain-app list c:named-dom ...)
+                               (~and cr (~or (quote #f) _:named-dom))
+                               (~and ds (~or (quote #f) (#%plain-app list d:named-dom ...)))
+                               (quote tot?:boolean)))
+           #:attr init-domains (syntax->list #'(c ...))
+           #:attr rest-domain (syntax-parse #'cr
+                                [(quote #f) #f]
+                                [_ #'cr])
+           #:attr ranges (syntax-parse #'ds
+                           #:literal-sets (lits)
+                           [(quote #f) #f]
+                           [(#%plain-app list d ...) (syntax->list #'(d ...))])
            #:attr total? (syntax-e #'tot?)))
 
 (define-syntax-class scv-case->
@@ -163,53 +180,6 @@
                                   #'stx)])
                          (syntax->list #'(kase ...)))))
 
-(define-syntax-class scv-->
-  #:description "hacked non-dependent function contract"
-  #:literal-sets (lits)
-  #:attributes (inits ?rest range total?)
-  (pattern (~or (begin
-                  (#%plain-app (~literal fake:dynamic->)
-                               (#%plain-app list c ...)
-                               d
-                               (quote tot?:boolean))
-                  _ ...)
-                (let-values ()
-                  (#%plain-app (~literal fake:dynamic->)
-                               (#%plain-app list c ...)
-                               d
-                               (quote tot?:boolean))
-                  _ ...)
-                (#%plain-app (~literal fake:dynamic->)
-                             (#%plain-app list c ...)
-                             d
-                             (quote tot?:boolean)))
-           #:attr inits (syntax->list #'(c ...))
-           #:attr ?rest #f
-           #:attr range (range-expr #'d)
-           #:attr total? (syntax-e #'tot?))
-  (pattern (~or (begin
-                  (#%plain-app (~literal fake:dynamic->*)
-                               (#%plain-app list c ...)
-                               rst
-                               d
-                               (quote tot?:boolean))
-                  _ ...)
-                (let-values ()
-                  (#%plain-app (~literal fake:dynamic->*)
-                               (#%plain-app list c ...)
-                               rst
-                               d
-                               (quote tot?:boolean))
-                  _ ...)
-                (#%plain-app (~literal fake:dynamic->*)
-                             (#%plain-app list c ...)
-                             rst
-                             d
-                             (quote tot?:boolean)))
-           #:attr inits (syntax->list #'(c ...))
-           #:attr ?rest #'rst
-           #:attr range (range-expr #'d)
-           #:attr total? (syntax-e #'tot?)))
 
 (define-syntax-class scv-struct-decl
   #:description "struct declaration"

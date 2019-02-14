@@ -107,20 +107,18 @@
       [(Guarded _ (? Fn/C? C) α) (guard-arity-of C)]))
 
   (: guard-arity-of (case->
-                     [(U ==> ==>i) → (U Natural arity-at-least)]
+                     [==>i → (U Natural arity-at-least)]
                      [Fn/C → (U Natural arity-at-least (Listof (U Natural arity-at-least)))]))
   (define guard-arity-of
     (match-lambda
-      [(==> doms _ _) (shape doms)]
-      [(==>i doms _) (length doms)]
+      [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity-of cases)]
       [(∀/C _ E _) (E-arity-of E)]))
 
   (: E-arity-of : E → (U Natural arity-at-least))
   (define E-arity-of
     (match-lambda
-      [(--> doms _ _) (shape doms)]
-      [(-->i doms _) (length doms)]
+      [(-->i doms _) (shape doms)]
       [_ ???])) 
 
   (: ℓ/tag : (U Symbol Integer) * → ℓ)

@@ -25,6 +25,13 @@
            default
            cases))
 
+  (: --> : (-var -e) -e ℓ → -->i)
+  (define (--> doms rng ℓ)
+    (define (gen-dom [c : -e])
+      (define x (gensym '_))
+      (-dom x #f c (ℓ-with-id ℓ x)))
+    (-->i (var-map gen-dom doms) (list (gen-dom rng))))
+
   ;; Make conjunctive and disjunctive contracts
   (splicing-local
       ((: -app/c : Symbol → (Assoc ℓ -e) → -e)
@@ -158,11 +165,11 @@
       [(-set! x e _) #f]
       [(-if e e₁ e₂ _) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
       [(-μ/c _ e) (effect-free? e)]
-      [(--> (-var cs c) d _)
-       (and (effect-free? d)
-            (implies c (effect-free? c))
-            (andmap effect-free? cs))]
-      [(-->i cs d) (andmap (compose1 effect-free? -dom-body) (cons d cs))]
+      [(-->i (-var cs c) ds)
+       (define dom-effect-free? (compose1 effect-free? -dom-body))
+       (and (andmap dom-effect-free? cs)
+            (implies c (dom-effect-free? c))
+            (implies ds (andmap dom-effect-free? ds)))]
       [(case--> cases) (andmap effect-free? cases)]
       [_ #f]))
   )

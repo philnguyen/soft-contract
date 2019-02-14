@@ -63,10 +63,11 @@
    [gen-havoc-expr : ((Listof -module) → E)]))
 
 (define-signature gc^
-  ([gc : ((℘ (U T:@ α)) Σ → Σ)]
-   [V-root : (V → (℘ (U T:@ α)))]
-   [V^-root : (V^ → (℘ (U T:@ α)))]
-   [W-root : (W → (℘ (U T:@ α)))]
+  ([gc : ((℘ T) Σ → Σ)]
+   [with-gc : ((℘ T) (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
+   [V-root : (V → (℘ T))]
+   [V^-root : (V^ → (℘ T))]
+   [W-root : (W → (℘ T))]
    [E-root : (E → (℘ γ))]))
 
 (define-syntax with-collapsed

@@ -88,6 +88,6 @@
    [r:reify : (V^ → V^)]
    [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
                         → (Values R (℘ Err)))]
-   [r:⧺ : (ΔΣ * → ΔΣ)]
+   [r:⧺ : (ΔΣ ΔΣ * → ΔΣ)]
    [r:ΔΣ⧺R : (ΔΣ R → R)]
    ))

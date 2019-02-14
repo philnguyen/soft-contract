@@ -17,24 +17,24 @@
           val^ pretty-print^)
   (export sto^) 
 
-  (: ⧺ : ΔΣ * → ΔΣ)
+  (: ⧺ : ΔΣ ΔΣ * → ΔΣ)
   ;; Combine store deltas. *Not* commutative due to strong updates when possible.
   ;; (A store is a special case of store-delta where the cardinality is positive)
-  (define (⧺ . ΔΣs)
+  (define (⧺ ΔΣ₀ . ΔΣs)
     (define (⧺₁ [ΔΣᵢ : ΔΣ] [acc : ΔΣ])
       (if (> (hash-count acc) (hash-count ΔΣᵢ))
           (for/fold ([acc : ΔΣ acc]) ([(α rᵢ) (in-hash ΔΣᵢ)])
             (⧺ʳ acc α rᵢ))
           (for/fold ([ΔΣᵢ : ΔΣ ΔΣᵢ]) ([(α r₀) (in-hash acc)])
             (⧺ˡ α r₀ ΔΣᵢ))))
-    (foldl ⧺₁ ⊥ΔΣ ΔΣs))
+    (foldl ⧺₁ ΔΣ₀ ΔΣs))
 
-  (: lookup : (U T:@ α) Σ → V^)
+  (: lookup : T Σ → V^)
   (define (lookup T Σ)
     (match (hash-ref Σ T #f)
       [(cons V^ _)
        (match V^
-         [(singleton-set (and T* (or (? T:@?) (? α?)))) (lookup T* Σ)]
+         [(singleton-set (? T? T*)) (lookup T* Σ)]
          [_ (cond [(and (α? T) (mutable? T)) V^]
                   [(or (γ? T) (T:@? T)) {set T}]
                   [else V^])])]
@@ -116,14 +116,9 @@
           [(symbol? x) (γ:lex x)]
           [else (γ:top x)]))
 
-  (define n : Natural 0)
-  
-  (: unpack : (U T:@ α V^) Σ → V^)
+  (: unpack : (U V V^) Σ → V^)
   (define (unpack Vs Σ)
     (define seen : (Mutable-HashTable T #t) (make-hash))
-    (set! n (+ 1 n))
-    (when (> n 1000)
-      (error 'stopped))
 
     (: V@ : -st-ac → V → V^)
     (define (V@ ac)
@@ -134,13 +129,12 @@
         [_ ∅]))
 
     (: unpack-V : V V^ → V^)
-    (define (unpack-V V acc)
-      (if (or (T:@? V) (α? V)) (unpack-T V acc) (set-add acc V)))
+    (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (set-add acc V)))
 
     (: unpack-V^ : V^ V^ → V^)
     (define (unpack-V^ Vs acc) (set-fold unpack-V acc Vs))
 
-    (: unpack-T : (U T:@ α) V^ → V^)
+    (: unpack-T : T V^ → V^)
     (define (unpack-T T acc)
       (cond [(γ:imm? T) (set-add acc (γ:imm-_0 T))]
             [(hash-has-key? seen T) acc]
@@ -149,17 +143,17 @@
                     [(cons Vs _) (set-fold unpack-V acc Vs)]
                     [#f
                      (match T
-                       [(T:@ (? -st-ac? ac) (list (and T* (or (? T:@?) (? α?)))))
+                       [(T:@ (? -st-ac? ac) (list (? T? T*)))
                         (∪ acc (set-union-map (V@ ac) (unpack-T T* ∅)))]
                        [(? T:@?) (set-add acc (-● ∅))]
                        [(? α?) (error 'unpack-T "no ~a" T)])])]))
 
-    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-T Vs ∅)))
+    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
 
   (: unpack-W : W Σ → W)
   (define (unpack-W W Σ) (map (λ ([V^ : V^]) (unpack V^ Σ)) W))
 
-  (: mut : (U α T:@) V^ → ΔΣ)
+  (: mut : T V^ → ΔΣ)
   (define (mut T V^) (hash T (cons V^ 0))) 
 
   (: ⧺ʳ : ΔΣ T (Pairof V^ N) → ΔΣ)
@@ -218,23 +212,41 @@
           [(equal? 0 N₁) N₀]
           [else 'N]))
 
-  (: close : Σ (℘ Symbol) → (Values (℘ α) ΔΣ))
-  (define (close Σ Xs)
-    (for/fold ([xs* : (℘ α) ∅] [ΔΣ : ΔΣ ⊥ΔΣ]) ([x (in-set Xs)])
-      (define x* (α:dyn x H₀))
-      (values (set-add xs* x*) (⧺ ΔΣ (alloc x* (unpack (γ:lex x) Σ))))))
+  (: escape : Σ (℘ Symbol) → (Values (℘ α) ΔΣ))
+  (define (escape Σ Xs)
+    (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
+                 (values (γ:lex x) (α:dyn x H₀))))
+    (define adjust (rename rn))
+    (define addrs (list->set (hash-keys rn)))
+    (define-values (αs* ΔΣ*) (for/fold ([αs : (℘ α) ∅] [ΔΣ : ΔΣ ⊥ΔΣ]) ([T (in-hash-keys Σ)])
+      (match T
+        [(and (? γ:lex? γ) (app (λ ([γ : γ]) (hash-ref rn γ #f)) (? values α)))
+         (values (set-add αs α) (⧺ ΔΣ (alloc α (unpack γ Σ))))]
+        [(? T:@?) #:when (⊆ (T-root T) addrs)
+         (values αs (⧺ ΔΣ (mut (assert (adjust T)) (unpack T Σ))))]
+        [_ (values αs ΔΣ)])))
+    (values αs* ΔΣ*))
 
   (: stack-copy : (℘ α) Σ → ΔΣ)
   (define (stack-copy αs Σ)
-    (for/hash : ΔΣ ([α (in-set αs)])
-      (match-define (cons T _) (hash-ref Σ α (λ () (error 'stack-copy "nothing at ~a" α))))
-      (match-define (α:dyn (? symbol? x) _) α)
-      (values (γ:lex x) (cons T 1)))) 
+    (define rn
+      (for/hash : (Immutable-HashTable α γ) ([α (in-set αs)])
+        (match-define (α:dyn (? symbol? x) _) α)
+        (values α (γ:lex x))))
+    (define adjust (rename rn))
+    (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([(T r) (in-hash Σ)])
+      (define V^ (car r))
+      (match T
+        [(and (? α? α) (app (λ (α) (hash-ref rn α #f)) (? values γ)))
+         (hash-set ΔΣ γ (cons V^ 1))]
+        [(? T:@?) #:when (⊆ (T-root T) αs)
+         (hash-set ΔΣ (assert (adjust T)) (cons V^ 0))]
+        [_ ΔΣ])))
 
   (: ambiguous? : T Σ → Boolean)
   ;; Check if identity `T` is ambiguous under store `Σ`
   (define (ambiguous? T₀ Σ)
-    (let go ([T : T T₀])
+    (let go ([T : (U T -b) T₀])
       (cond [(-b? T) #f]
             [(T:@? T) (ormap go (T:@-_1 T))]
             [else (case (cdr (hash-ref Σ T))
@@ -249,5 +261,6 @@
          [(? β:mut?) #t]
          [(β:fld 𝒾 _ i) (struct-mutable? 𝒾 i)]
          [_ #f])]
+      [(? γ:escaped-field?) #t]
       [_ #f]))
   )

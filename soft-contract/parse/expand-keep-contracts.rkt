@@ -12,6 +12,7 @@
          macro-debugger/expand
          racket/contract
          (prefix-in f: soft-contract/fake-contract)
+         "utils.rkt"
          (for-syntax racket/base
                      racket/syntax
                      syntax/parse
@@ -61,48 +62,48 @@
   )
 
 (define (expand/high-level-contracts stx)
-  (define stop-list (list* #'#%require (free-id-table-keys swap-table)))
+  ;(define stop-list (list* #'#%require (free-id-table-keys swap-table)))
   ;; TODO If I expand/hide first with this stop-list,
   ;; Somehow `->` is retained, but all the `provide` stuff is gone
   ;; (expand (sneak-fake-contracts-into (expand/hide stx stop-list)))
-  (expand (sneak-fake-contracts-into stx)))
+  (expand (sneak-fake-contracts-into (sneak-fake-contracts-into stx))))
 
 (define (sneak-fake-contracts-into stx)
-  (define-values (stx* faked?) (replace-identifiers stx))
-  (if faked? stx* (insert-fake-contract-require stx*)))
+  (define faked? (make-parameter #f))
 
-(define (replace-identifiers stx)
-  (define faked? #f)
+  (define go
+    (syntax-parser
+      [(~or (~literal racket/contract) (~literal soft-contract/fake-contract))
+       (set-box! (faked?) #t)
+       #'soft-contract/fake-contract]
+      ;; TODO restore source location information?
+      [i:id (free-id-table-ref swap-table #'i (λ () #'i))]
+      [e (with-syntax-source #'e (go-e (syntax-e #'e)))]))
 
-  (define (go stx)
-    (match stx
-      [(? identifier? i)
-       (syntax-parse i
-         [(~or (~literal racket/contract) (~literal soft-contract/fake-contract))
-          (set! faked? #t)
-          #'soft-contract/fake-contract]
-         [_
-          ;; TODO restore source location information?
-          (free-id-table-ref swap-table i (λ () i))])]
-      [(cons p q) (cons (go p) (go q))]
-      [(and (? syntax?) (app syntax-e e))
-       (datum->syntax stx (go e)
-                      (list (syntax-source stx)
-                            (syntax-line stx)
-                            (syntax-column stx)
-                            (syntax-position stx)
-                            (syntax-span stx)))]
-      [_ stx]))
+  (define go-e
+    (match-lambda
+      [(cons p q)
+       ;; `syntax-parse` and `~literal` didn't work :(
+       (if (and (identifier? p) (eq? 'module (syntax-e p)))
+           (parameterize ([faked? (box #f)])
+             (define p* (go-e p))
+             (define q* (go-e q))
+             (cons p*
+                   (if (unbox (faked?))
+                       q*
+                       (syntax-parse q*
+                         [(id path (#%plain-module-begin form ...))
+                          (with-syntax ([require (datum->syntax #'id 'require)])
+                            (list #'id #'path
+                                  #'(#%plain-module-begin
+                                     (require soft-contract/fake-contract)
+                                     form ...)))]
+                         [(id path form ...)
+                          (with-syntax ([require (datum->syntax #'id 'require)])
+                            (list* #'id #'path #'(require soft-contract/fake-contract)
+                                   (syntax->list #'(form ...))))]))))
+           (cons (go-e p) (go-e q)))]
+      [(? syntax? s) (go s)]
+      [x x]))
 
-  (define stx* (go stx)) ; important to call `(go _)` before checking `faked?`
-  (values stx* faked?))
-
-(define insert-fake-contract-require
-  (syntax-parser
-    [(module id path (#%plain-module-begin form ...))
-     (define/with-syntax require (datum->syntax #'id 'require)) ; ambiguous otherwise
-     #'(module id path
-         (#%plain-module-begin
-          (require soft-contract/fake-contract)
-          form ...))]
-    [form #'form]))
+  (go stx))

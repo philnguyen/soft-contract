@@ -22,7 +22,7 @@
 
 (define-unit fix@
   (import static-info^
-          cache^
+          cache^ val^
           evl^
           prover^)
   (export exec^)

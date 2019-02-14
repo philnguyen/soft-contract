@@ -46,6 +46,7 @@
          (define l (current-module))
          (define lhs (map (λ ([x : Symbol]) (-𝒾 x l)) Xs))
          (values (⧺ ΔΣ (alloc-lex* lhs (collapse-W^ rhs))) ∅))]
+      [(? -module? m) (evl-module Σ m)]
       [(? -e? E) (define-values (r es) (evl Σ E))
                  (values (collapse-R/ΔΣ r) es)]))
 
@@ -67,138 +68,153 @@
        (values (alloc α* (lookup α Σ)) ∅)]))
 
   (: evl : Σ E → (Values R (℘ Err)))
-  (define (evl Σ E₀)
+  (define (evl Σ-full E₀)
+    (define Σ (gc (E-root E₀) Σ-full))
     #;(printf "~a~a ⊢ ~a ⇓ ...~n"
             (make-string (* 2 (db:depth)) #\space)
             (show-Σ Σ)
             (show-e E₀))
-    (parameterize ([db:depth (+ 1 (db:depth))])
-      (match E₀
-        [(? -prim? p) (just p)]
-        [(-•) (just (-● ∅))]
-        [(-λ Xs E ℓ)
-         (define-values (Ρ ΔΣ) (close Σ (fv E₀)))
-         (just (Clo Xs E Ρ ℓ) ΔΣ)]
-        [(-case-λ cases ℓ)
-         (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
-         (just (Case-Clo Cases ℓ) ΔΣ)]
-        [(-x x ℓ)
-         (define-values (α modify-V)
-           (cond [(symbol? x)
-                  (values (γ:lex x) (inst values V))]
-                 [(equal? (ℓ-src ℓ) (-𝒾-src x))
-                  (values (γ:top x) (inst values V))]
-                 [else
-                  (values (γ:wrp x)
-                          (if (symbol? (-𝒾-src x))
-                              (λ ([V : V]) (with-negative-party (ℓ-src ℓ) V))
-                              (λ ([V : V]) (with-positive-party 'dummy+
-                                             (with-negative-party (ℓ-src ℓ) V)))))]))
-         (define res (map/set modify-V (lookup α Σ)))
-         (define r (R-of (if (set? res) (set-remove res -undefined) res)))
-         (define es (if (∋ (unpack res Σ) -undefined)
-                        {set (Err:Undefined (if (-𝒾? x) (-𝒾-name x) x) ℓ)}
-                        ∅))
-         (values r es)]
-        [(-@ f xs ℓ)
-         (with-each-path [(ΔΣₕ Wsₕ) (evl/arity Σ f 1 ℓ)]
-           (match-define (list V^ₕ) (collapse-W^ Wsₕ))
-           (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
-             (with-pre (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
-        [(-if E E₁ E₂ ℓ)
-         (with-each-path [(ΔΣ Ws) (evl/arity Σ E 1 ℓ)]
-           (define Σ* (⧺ Σ ΔΣ))
-           (with-split-Σ Σ* 'values (collapse-W^ Ws)
-             (λ (_ ΔΣ₁) (with-pre (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
-             (λ (_ ΔΣ₂) (with-pre (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂)))))]
-        [(-wcm k v e) (error 'TODO "with-current-continuation-mark")]
-        [(-begin Es)
-         (match Es
-           ['() (just -void)] ; unreachable if `begin` is in expr position
-           [_
-            (match-define-values (Es₀ (list Eₙ)) (split-at Es (sub1 (length Es))))
-            (with-collapsed/R [ΔΣ₀ (evl*/discard/collapse evl/discard/collapse Σ Es₀)]
-              (with-pre ΔΣ₀ (evl (⧺ Σ ΔΣ₀) Eₙ)))])]
-        [(-begin0 E Es)
-         (define-values (r₀ es₀) (evl Σ E))
-         (match (collapse-R/ΔΣ r₀)
-           [(? values ΔΣ₀)
-            (with-collapsed/R [ΔΣ* (evl*/discard/collapse evl/discard/collapse (⧺ Σ ΔΣ₀) Es)]
-              (values (R⧺ΔΣ r₀ ΔΣ*) es₀))]
-           [#f (values ⊥R es₀)])]
-        [(-quote b) (if (Base? b) (just (-b b)) (error 'TODO "(quote ~a)" b))]
-        [(-let-values bnds E ℓ)
-         (define-values (ΔΣₓs es) (evl-bnd* Σ ℓ bnds))
-         (for/fold ([r : R ⊥R] [es : (℘ Err) es])
-                   ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
-           (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))]
-        [(-letrec-values bnds E ℓ)
-         (define ΔΣ₀
-           (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
-                      ([bnd (in-list bnds)]
-                       [x (in-list (Binding-lhs bnd))])
-             (⧺ ΔΣ₀ (alloc-lex x {set -undefined}))))
-         (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
-           (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
-           (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E)))]
-        [(-set! X E ℓ)
-         (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
-           (define α (if (symbol? X) (γ:lex X) (γ:top X)))
-           (define ΔΣ*
-             (for/fold ([ΔΣ* : ΔΣ ΔΣ:rhs]) ([α (in-set (car (hash-ref Σ α (λ () !!!))))])
-               (match α
-                 [(α:dyn (β:mut (== X)) _) (⧺ ΔΣ* (mut α (car (collapse-W^ rhs))))]
-                 [α (error 'internal "~a ↦ ~a" X α)])))
-           (just -void ΔΣ*))]
-        [(-error s ℓ) (err (Err:Raised s ℓ))]
-        [(-μ/c x E)
-         (with-collapsed/R [(cons C ΔΣ) ((evl/single/collapse +ℓ₀) Σ E)]
-           (define α (α:dyn (β:x/c x) H₀))
-           (values (hash (⧺ ΔΣ (alloc α C)) {set (list {set α})}) ∅))]
-        [(--> (-var c:init ?c:rest) d ℓ)
-         (with-collapsed/R ((cons Cs ΔΣ₁)
-                            (evl*/collapse
-                             (evl/single/collapse ℓ)
-                             Σ `(,@c:init ,@(if ?c:rest (list ?c:rest) '()))))
-           (with-each-path ((ΔΣ₂ D) (evl (⧺ Σ ΔΣ₁) d))
-             (define-values (A ΔΣ₃)
-               (if ?c:rest
-                   (match-let-values ([(C:init (list C:rest))
-                                       (split-at Cs (sub1 (length Cs)))])
-                     (mk-==> C:init C:rest D ℓ))
-                   (mk-==> Cs #f D ℓ)))
-             (just A (⧺ ΔΣ₁ ΔΣ₂ ΔΣ₃))))]
-        [(-->i doms rng)
-         (with-collapsed/R [(cons W ΔΣ₀) (evl*/collapse evl-dom Σ `(,@doms ,rng))]
-           (: on-C : (→ β) ΔΣ Symbol (U Clo V^) ℓ → (Values Dom ΔΣ))
-           (define (on-C mk-β ΔΣ x C ℓ)
-             (cond [(Clo? C) (values (Dom x C ℓ) ΔΣ)]
-                   [else (define α (α:dyn (mk-β) H₀))
-                         (values (Dom x α ℓ) (⧺ ΔΣ (alloc α C)))]))
-           (match-define-values (Cs (list D)) (split-at W (sub1 (length W))))
-           (define-values (Doms-rev ΔΣ₁)
-             (for/fold ([Doms-rev : (Listof Dom) '()] [ΔΣ : ΔΣ ΔΣ₀])
-                       ([domᵢ (in-list doms)] [Cᵢ (in-list Cs)] [i : Natural (in-naturals)])
-               (match-define (-dom xᵢ _ _ ℓᵢ) domᵢ)
-               (define-values (Dom ΔΣ*) (on-C (λ _ (β:dom ℓᵢ i)) ΔΣ xᵢ Cᵢ ℓᵢ))
-               (values (cons Dom Doms-rev) ΔΣ*)))
-           (define-values (Rng ΔΣ₂)
-             (match-let ([(-dom xᵣ _ _ ℓᵣ) rng])
-               (on-C (λ _ (β:rng ℓᵣ 1 0)) ΔΣ₁ xᵣ D ℓᵣ)))
-           (values (hash ΔΣ₂ {set (list {set (==>i (reverse Doms-rev) Rng)})})
-                   ∅))]
-        [(case--> cases)
-         (define-values (Cases ΔΣ) (evl/special Σ cases ==>?))
-         (just (Case-=> Cases) ΔΣ)]
-        [(-x/c x) (just (α:dyn (β:x/c x) H₀))]
-        [(-∀/c xs E)
-         (define-values (Ρ ΔΣ) (close Σ (fv E₀)))
-         (just (∀/C xs E Ρ) ΔΣ)])))
+    (define-values (rₐ esₐ)
+      (parameterize ([db:depth (+ 1 (db:depth))])
+        (ref-$! ($:Key:Exp Σ E₀) (λ () (do-evl Σ E₀)))))
+    #;(printf "~a~a ⊢ ~a ⇓ ~a~n"
+            (make-string (* 4 (db:depth)) #\space)
+            (show-Σ Σ)
+            (show-e E₀)
+            (show-R rₐ))
+    (values rₐ esₐ))
+
+  (: do-evl : Σ E → (Values R (℘ Err)))
+  ;; Evaluate `E₀` under `Σ` without caching `E₀`
+  (define (do-evl Σ E₀)
+    (match E₀
+      [(? -prim? p) (just p)]
+      [(-•) (just (-● ∅))]
+      [(-λ Xs E ℓ)
+       (define-values (Ρ ΔΣ) (escape Σ (fv E₀)))
+       (just (Clo Xs E Ρ ℓ) ΔΣ)]
+      [(-case-λ cases ℓ)
+       (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
+       (just (Case-Clo Cases ℓ) ΔΣ)]
+      [(-x x ℓ)
+       (define-values (α modify-V)
+         (cond [(symbol? x)
+                (values (γ:lex x) (inst values V))]
+               [(equal? (ℓ-src ℓ) (-𝒾-src x))
+                (values (γ:top x) (inst values V))]
+               [else
+                (values (γ:wrp x)
+                        (if (symbol? (-𝒾-src x))
+                            (λ ([V : V]) (with-negative-party (ℓ-src ℓ) V))
+                            (λ ([V : V]) (with-positive-party 'dummy+
+                                           (with-negative-party (ℓ-src ℓ) V)))))]))
+       (define res (map/set modify-V (lookup α Σ)))
+       (define r (R-of (if (set? res) (set-remove res -undefined) res)))
+       (define es (if (∋ (unpack res Σ) -undefined)
+                      {set (Err:Undefined (if (-𝒾? x) (-𝒾-name x) x) ℓ)}
+                      ∅))
+       (values r es)]
+      [(-@ f xs ℓ)
+       (with-each-path [(ΔΣₕ Wsₕ) (evl/arity Σ f 1 ℓ)]
+         (match-define (list V^ₕ) (collapse-W^ Wsₕ))
+         (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
+           (with-pre (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
+      [(-if E E₁ E₂ ℓ)
+       (with-each-path [(ΔΣ Ws) (evl/arity Σ E 1 ℓ)]
+         (define Σ* (⧺ Σ ΔΣ))
+         (with-split-Σ Σ* 'values (collapse-W^ Ws)
+           (λ (_ ΔΣ₁) (with-pre (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
+           (λ (_ ΔΣ₂) (with-pre (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂)))))]
+      [(-wcm k v e) (error 'TODO "with-current-continuation-mark")]
+      [(-begin Es)
+       (match Es
+         ['() (just -void)] ; unreachable if `begin` is in expr position
+         [_
+          (match-define-values (Es₀ (list Eₙ)) (split-at Es (sub1 (length Es))))
+          (with-collapsed/R [ΔΣ₀ (evl*/discard/collapse evl/discard/collapse Σ Es₀)]
+            (with-pre ΔΣ₀ (evl (⧺ Σ ΔΣ₀) Eₙ)))])]
+      [(-begin0 E Es)
+       (define-values (r₀ es₀) (evl Σ E))
+       (match (collapse-R/ΔΣ r₀)
+         [(? values ΔΣ₀)
+          (with-collapsed/R [ΔΣ* (evl*/discard/collapse evl/discard/collapse (⧺ Σ ΔΣ₀) Es)]
+            (values (R⧺ΔΣ r₀ ΔΣ*) es₀))]
+         [#f (values ⊥R es₀)])]
+      [(-quote b) (if (Base? b) (just (-b b)) (error 'TODO "(quote ~a)" b))]
+      [(-let-values bnds E ℓ)
+       (define-values (ΔΣₓs es) (evl-bnd* Σ ℓ bnds))
+       (for/fold ([r : R ⊥R] [es : (℘ Err) es])
+                 ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
+         (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
+         (values (m⊔ r rᵢ) (∪ es esᵢ)))]
+      [(-letrec-values bnds E ℓ)
+       (define ΔΣ₀
+         (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
+                    ([bnd (in-list bnds)]
+                     [x (in-list (Binding-lhs bnd))])
+           (⧺ ΔΣ₀ (alloc-lex x {set -undefined}))))
+       (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
+         (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
+         (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E)))]
+      [(-set! X E ℓ)
+       (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
+         (define α (if (symbol? X) (γ:lex X) (γ:top X)))
+         (define ΔΣ*
+           (for/fold ([ΔΣ* : ΔΣ ΔΣ:rhs]) ([α (in-set (car (hash-ref Σ α (λ () !!!))))])
+             (match α
+               [(α:dyn (β:mut (== X)) _) (⧺ ΔΣ* (mut α (car (collapse-W^ rhs))))]
+               [α (error 'internal "~a ↦ ~a" X α)])))
+         (just -void ΔΣ*))]
+      [(-error s ℓ) (err (Err:Raised s ℓ))]
+      [(-μ/c x E)
+       (with-collapsed/R [(cons C ΔΣ) ((evl/single/collapse +ℓ₀) Σ E)]
+         (define α (α:dyn (β:x/c x) H₀))
+         (values (hash (⧺ ΔΣ (alloc α C)) {set (list {set α})}) ∅))]
+      [(-->i (-var doms ?doms:rst) rngs)
+       (: mk-Dom : -dom (U Clo V^) → (Values Dom ΔΣ))
+       (define (mk-Dom dom C)
+         (match-define (-dom x _ _ ℓ) dom)
+         (cond [(Clo? C) (values (Dom x C ℓ) ⊥ΔΣ)]
+               [else (define α (α:dyn (β:dom ℓ) H₀))
+                     (values (Dom x α ℓ) (alloc α C))]))
+       (: mk-Doms : (Listof -dom) (Listof (U V^ Clo)) → (Values (Listof Dom) ΔΣ))
+       (define (mk-Doms doms Cs)
+         (define-values (Doms:rev ΔΣ*)
+           (for/fold ([Doms:rev : (Listof Dom) '()] [ΔΣ : ΔΣ ⊥ΔΣ])
+                     ([domᵢ (in-list doms)] [Cᵢ (in-list Cs)])
+             (define-values (Dom ΔΣ-dom) (mk-Dom domᵢ Cᵢ))
+             (values (cons Dom Doms:rev) (⧺ ΔΣ ΔΣ-dom))))
+         (values (reverse Doms:rev) ΔΣ*))
+
+       (define (with-inits [Inits : (Listof Dom)] [ΔΣ-acc : ΔΣ])
+         (if ?doms:rst
+             (with-collapsed/R [(cons C ΔΣ₀) (evl-dom (⧺ Σ ΔΣ-acc) ?doms:rst)]
+               (define-values (Rst ΔΣ₁) (mk-Dom ?doms:rst C))
+               (with-doms (-var Inits Rst) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁)))
+             (with-doms (-var Inits #f) ΔΣ-acc)))
+
+       (define (with-doms [doms : (-var Dom)] [ΔΣ-acc : ΔΣ])
+         (if rngs
+             (with-collapsed/R [(cons W-rngs ΔΣ₀)
+                                (evl*/collapse evl-dom (⧺ Σ ΔΣ-acc) rngs)]
+               (define-values (Rngs ΔΣ₁) (mk-Doms rngs W-rngs))
+               (just (==>i doms Rngs) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁)))
+             (just (==>i doms #f) ΔΣ-acc)))
+       
+       (with-collapsed/R [(cons W-init ΔΣ₀) (evl*/collapse evl-dom Σ doms)]
+         (define-values (Inits ΔΣ₁) (mk-Doms doms W-init))
+         (with-inits Inits (⧺ ΔΣ₀ ΔΣ₁)))]
+      [(case--> cases)
+       (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
+       (just (Case-=> Cases) ΔΣ)]
+      [(-x/c x) (just (α:dyn (β:x/c x) H₀))]
+      [(-∀/c xs E)
+       (define-values (Ρ ΔΣ) (escape Σ (fv E₀)))
+       (just (∀/C xs E Ρ) ΔΣ)]))
 
   (: evl-bnd* : Σ ℓ (Listof Binding) → (Values (℘ ΔΣ) (℘ Err)))
   (define (evl-bnd* Σ₀ ℓ bnds)
-    (: evl-bnd : Σ Binding → (Values (℘ ΔΣ) (℘ Err)))
-    (define (evl-bnd Σ bnd)
+    (define (evl-bnd [Σ : Σ] [bnd : Binding])
       (match-define (mk-Binding xs E) bnd)
       (define-values (r es) (evl/arity Σ E (length xs) ℓ))
       (define ΔΣs (for/set: : (℘ ΔΣ) ([(ΔΣ rhs) (in-hash r)])
@@ -213,8 +229,9 @@
          (for/fold ([ΔΣs* : (℘ ΔΣ) ∅] [es : (℘ Err) es₀])
                    ([ΔΣ₀ : ΔΣ (in-set ΔΣ₀s)])
            (define-values (ΔΣ₁s es₁) (step (⧺ Σ ΔΣ₀) bnds*))
-           (values (for/set: : (℘ ΔΣ) ([ΔΣ₁ : ΔΣ (in-set ΔΣ₁s)])
-                     (⧺ ΔΣ₀ ΔΣ₁))
+           (values (∪ (for/set: : (℘ ΔΣ) ([ΔΣ₁ : ΔΣ (in-set ΔΣ₁s)])
+                        (⧺ ΔΣ₀ ΔΣ₁))
+                      ΔΣs*)
                    (∪ es es₁)))])))
 
   (: evl-set-bnd : ℓ → Σ Binding → (Values (Option ΔΣ) (℘ Err)))
@@ -230,7 +247,7 @@
   (define (evl-dom Σ dom)
     (match-define (-dom _ ?deps c ℓ) dom)
     (if ?deps
-        (let-values ([(Ρ ΔΣ) (close Σ (set-subtract (fv c) (list->seteq ?deps)))])
+        (let-values ([(Ρ ΔΣ) (escape Σ (set-subtract (fv c) (list->seteq ?deps)))])
           (values (cons (Clo (-var ?deps #f) c Ρ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
 
@@ -300,21 +317,4 @@
                   (⧺ Σ ΔΣ₁)
                   xs*)]
            [(#f es) (values #f (∪ acc-es es))])])))
-
-  (: mk-==> : W (Option V^) W^ ℓ → (Values V^ ΔΣ))
-  (define (mk-==> dom:init ?dom:rest rngs ℓ)
-    (define-values (αs:dom ΔΣ:dom) (alloc-each dom:init (λ (i) (β:dom ℓ i))))
-    (define-values (α:rest ΔΣ:rest)
-      (if ?dom:rest
-          (let ([α (α:dyn (β:rst ℓ) H₀)])
-            (values α (alloc α ?dom:rest)))
-          (values #f ⊥ΔΣ)))
-    (define Dom (-var αs:dom α:rest))
-    (for/fold ([Vs : V^ ∅] [ΔΣ* : ΔΣ (⧺ ΔΣ:dom ΔΣ:rest)])
-              ([(n D) (in-hash (collapse-W^-by-arities rngs))])
-      (define-values (αs:rng ΔΣ:rng)
-        (match D
-          [(list {singleton-set 'any}) (values #f ⊥ΔΣ)]
-          [_ (alloc-each D (λ (i) (β:rng ℓ n i)))]))
-      (values (set-add Vs (==> Dom αs:rng ℓ)) (⧺ ΔΣ* ΔΣ:rng)))) 
   )

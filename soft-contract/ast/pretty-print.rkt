@@ -120,11 +120,13 @@
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-      [(--> (-var es eᵣ) rng _)
-       (cond [eᵣ  `(,(map show-e es) #:rest ,(show-e eᵣ) . ->* . ,(show-e rng))]
-             [else `(,@(map show-e es) . -> . ,(show-e rng))])]
-      [(-->i cs d)
-       `(->i (,@(map show-dom cs)) ,(show-dom d))]
+      [(-->i (-var cs c) d)
+       `(->i ,@(map show-dom cs)
+             ,@(if c `(#:rest ,(show-dom c)) '())
+             ,(match d
+                [#f 'any]
+                [(list d) (show-dom d)]
+                [(? values ds) `(values ,@(map show-dom ds))]))]
       [(case--> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
       [(-x/c x) x]
@@ -147,7 +149,8 @@
   (define show-module-level-form : (-module-level-form → Sexp)
     (match-lambda
       [(-provide specs) `(provide ,@(map show-provide-spec specs))]
-      [(? -general-top-level-form? m) (show-general-top-level-form m)]))
+      [(? -general-top-level-form? m) (show-general-top-level-form m)]
+      [(? -module? m) (show-module m)]))
 
   (define show-general-top-level-form : (-general-top-level-form → Sexp)
     (match-lambda

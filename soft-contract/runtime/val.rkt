@@ -5,7 +5,7 @@
 (require typed/racket/unit
          racket/match
          racket/set
-         (only-in racket/list make-list)
+         (only-in racket/list make-list split-at)
          set-extras
          unreachable
          "../utils/main.rkt"
@@ -16,7 +16,7 @@
 (define-unit val@
   (import meta-functions^ static-info^
           prims^
-          sto^)
+          sto^ pretty-print^)
   (export val^)
 
   (: collapse-W^ : W^ → W)
@@ -36,8 +36,8 @@
     (define (α/ [α : α]) (hash-ref S α (λ () α)))
     (define Clo/ : (Clo → Clo)
       (match-lambda [(Clo xs E αs ℓ) (Clo xs E (map/set α/ αs) ℓ)]))
-    (define ==>/ : (==> → ==>)
-      (match-lambda [(==> cs d ℓ) (==> (var-map α/ cs) (and d (map α/ d)) ℓ)]))
+    (define ==>i/ : (==>i → ==>i)
+      (match-lambda [(==>i dom rng) (==>i (var-map Dom/ dom) (and rng (map Dom/ rng)))]))
     (define Dom/ : (Dom → Dom)
       (match-lambda [(Dom x c ℓ) (Dom x (if (Clo? c) (Clo/ c) (α/ c)) ℓ)]))
     (define Prox/C/ : (Prox/C → Prox/C)
@@ -47,10 +47,9 @@
         [(Vect/C αs ℓ) (Vect/C (map α/ αs) ℓ)]
         [(Hash/C α₁ α₂ ℓ) (Hash/C (α/ α₁) (α/ α₂) ℓ)]
         [(Set/C α ℓ) (Set/C (α/ α) ℓ)]
-        [(? ==>? C) (==>/ C)]
-        [(==>i dom rng) (==>i (map Dom/ dom) (Dom/ rng))]
+        [(? ==>i? V) (==>i/ V)]
         [(∀/C xs E αs) (∀/C xs E (map/set α/ αs))]
-        [(Case-=> Cs) (Case-=> (map ==>/ Cs))]))
+        [(Case-=> Cs) (Case-=> (map ==>i/ Cs))]))
     (λ (V₀)
       (let go ([V : V V₀])
         (match V
@@ -130,24 +129,22 @@
       [V #:when (not (Clo? V)) #f]))
 
   (: guard-arity (case->
-                  [==> → (U Natural arity-at-least)]
+                  [==>i → (U Natural arity-at-least)]
                   [Fn/C → Arity]))
   (define guard-arity
     (match-lambda
-      [(==> doms _ _) (shape doms)]
-      [(==>i doms _) (length doms)]
+      [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity cases)]
       [(∀/C _ E _)
        ;; TODO: real Racket just returns `(arity-at-least 0)`
        (cond [(E-arity E) => values] [else (error 'guard-arity "~a" E)])]))
 
   (: E-arity (case->
-              [--> → (U Natural arity-at-least)]
+              [-->i → (U Natural arity-at-least)]
               [E → Arity]))
   (define E-arity
     (match-lambda
-      [(--> doms _ _) (shape doms)]
-      [(-->i doms _) (length doms)]
+      [(-->i doms _) (shape doms)]
       [(case--> cases) (map E-arity cases)]
       [(-∀/c _ E) (E-arity E)]
       [E (error 'E-arity "~a" E)]))
@@ -173,8 +170,18 @@
             [else (seen-add! α)
                   (set-ormap check (unpack α Σ))]))
 
-    (: check : V → Boolean)
-    (define check
+    (define check-==>i : (==>i → Boolean)
+      (match-lambda
+        [(==>i (-var init rest) rng)
+         (or (ormap check-dom init)
+             (and rest (check-dom rest))
+             (and rng (ormap check-dom rng)))]))
+
+    (define check-dom : (Dom → Boolean)
+      (match-lambda
+        [(Dom _ C _) (if (Clo? C) #t (check-α C))]))
+
+    (define check : (V → Boolean)
       (match-lambda
         [(St _ αs) (ormap check-α αs)]
         [(Vect αs) (ormap check-α αs)]
@@ -182,14 +189,10 @@
         [(Hash-Of αₖ αᵥ im?) (or (not im?) (check-α αₖ) (check-α αᵥ))]
         [(Set-Of α im?) (or (not im?) (check-α α))]
         [(Guarded _ G α) (or (Fn/C? G) (check-α α))]
-        [(==> (-var doms domᵣ) rngs _)
-         (or (and (pair? rngs) (ormap check-α rngs))
-             (and domᵣ (check-α domᵣ))
-             (and rngs (ormap check-α doms)))]
-        [(? ==>i?) #t]
-        [(Case-=> cases) (ormap check cases)]
+        [(? ==>i? V) (check-==>i V)]
+        [(Case-=> cases) (ormap check-==>i cases)]
         [(or (? Clo?) (? Case-Clo?)) #t]
-        [(and T (or (? T:@?) (? α?))) (set-ormap check (unpack T Σ))]
+        [(? T? T) (set-ormap check (unpack T Σ))]
         [_ #f]))
 
     (check V₀))
@@ -203,6 +206,50 @@
     (match-lambda**
      [(l+ (Guarded (Ctx _ l- ℓₒ ℓ) C α)) (Guarded (Ctx l+ l- ℓₒ ℓ) C α)]
      [(_ V) V]))
+
+  (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
+  (define (make-renamings fml W)
+    (define xs (if (-var? fml) (-var-init fml) fml))
+    (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
+                               (split-at W (length xs))
+                               (values W #f)))
+    (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
+      (values (γ:lex x)
+              (and (= 1 (set-count Vs))
+                   (let ([V (set-first Vs)])
+                     (and (T? V) V))))))
+
+  (: rename : Renamings → T → (Option T))
+  ;; Compute renaming in general.
+  ;; `#f` means there's no correspinding name
+  (define (rename rn)
+    (: go (case-> [T → (Option T)]
+                  [(U T -b) → (Option (U T -b))]))
+    (define go
+      (match-lambda
+        [(T:@ o Ts)
+         (define Ts* (go* Ts))
+         (and Ts* (T:@ o Ts*))]
+        [(? -b? b) b]
+        [(? α? α) (hash-ref rn α (λ () α))]))
+    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
+      (match-lambda
+        ['() '()]
+        [(cons T Ts) (match (go T)
+                       [#f #f]
+                       [(? values T*) (match (go* Ts)
+                                        [#f #f]
+                                        [(? values Ts*) (cons T* Ts*)])])]))
+    go)
+
+  (: T-root : T:@ → (℘ α))
+  (define (T-root T₀)
+    (: go : (U T -b) → (℘ α))
+    (define (go T)
+      (cond [(T:@? T) (apply ∪ ∅ (map go (T:@-_1 T)))]
+            [(-b? T) ∅]
+            [else {set T}]))
+    (apply ∪ ∅ (map go (T:@-_1 T₀))))
 
   #| 
   (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))

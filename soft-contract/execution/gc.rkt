@@ -15,31 +15,76 @@
 
 (define-unit gc@
   (import meta-functions^
-          exec^)
+          exec^ pretty-print^
+          val^)
   (export gc^)
 
   (: gc : (℘ T) Σ → Σ)
   (define (gc root Σ₀)
     (define seen : (Mutable-HashTable T #t) (make-hash))
 
+    (define Ts-from-α
+      (for*/fold ([m : (HashTable α (℘ T)) (hash)])
+                 ([Tᵢ (in-hash-keys Σ₀)]
+                  #:when (T:@? Tᵢ)
+                  [α (in-set (T-root Tᵢ))])
+        (hash-update m α (λ ([Ts : (℘ T)]) (set-add Ts Tᵢ)) mk-∅)))
+
     (: touch : T Σ → Σ)
     (define (touch T Σ)
-      (if (and (hash-has-key? Σ₀ T) (not (hash-has-key? seen T)))
-          (match-let ([(and r (cons Vs _)) (hash-ref Σ₀ T)])
+      (if (hash-has-key? seen T)
+          Σ
+          (let ([T* (cond [(T:@? T) (T-root T)]
+                          [(-b? T) ∅]
+                          [else (hash-ref Ts-from-α T mk-∅)])])
             (hash-set! seen T #t)
-            (foldl touch* (hash-set Σ T r) (set-map Vs V-root)))
-          Σ))
+            (define Σ*
+              (match (hash-ref Σ₀ T #f)
+                [(and r (cons Vs _)) (foldl touch* (hash-set Σ T r) (set-map Vs V-root))]
+                [#f Σ]))
+            (touch* T* Σ*))))
     
     (: touch* : (℘ T) Σ → Σ)
     (define (touch* Ts Σ) (set-fold touch Σ Ts))
 
-    #;(let ([Σ* (touch* root ⊥Σ)])
-      ;; Try to re-use old instance
-        (if (= (hash-count Σ*) (hash-count Σ₀)) Σ₀ Σ*))
-    ;; FIXME!!!
-    Σ₀)
+    (let ([Σ* (touch* root ⊥Σ)])
+      (if (= (hash-count Σ*) (hash-count Σ₀))
+          ;; Try to re-use old instance
+          Σ₀
+          ;; Remove refinements referring to gc-ed values
+          (let ([root* (list->set (hash-keys Σ*))])
+            (for/fold ([Σ* : Σ Σ*]) ([(T r) (in-hash Σ*)])
+              (match-define (cons Vs N) r)
+              (define Vs*
+                (for/fold ([Vs* : V^ Vs]) ([V (in-set Vs)])
+                  (match V
+                    [(-● Ps)
+                     (define Ps*
+                       (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)]
+                                                      [P:root (in-value (P-root P))]
+                                                      #:unless (or (set-empty? P:root)
+                                                                   (⊆ P:root root*)))
+                         (set-remove Ps* P)))
+                     ;; Try to retain old instance
+                     (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* V) (-● Ps*)))]
+                    [_ Vs*])))
+              (cond [(eq? Vs* Vs) Σ*] ; try to retain old instance
+                    [(set-empty? Vs*) (hash-remove Σ* T)]
+                    [else (hash-set Σ* T (cons Vs* N))]))))))
 
-  (define V-root : (V → (℘ (U α T:@)))
+  (: with-gc : (℘ T) (→ (Values R (℘ Err))) → (Values R (℘ Err)))
+  (define (with-gc root comp)
+    (define-values (r es) (comp))
+    (values (gc-R root r) es))
+
+  (: gc-R : (℘ T) R → R)
+  (define (gc-R root r)
+    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
+      (define root* (∪ root (apply ∪ ∅ (set-map Ws W-root))))
+      (define ΔΣ* (gc root* ΔΣ))
+      (hash-update acc ΔΣ* (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ Ws)) mk-∅)))
+
+  (define V-root : (V → (℘ T))
     (match-lambda
       [(St _ αs) (list->set αs)]
       [(Vect αs) (list->set αs)]
@@ -59,43 +104,45 @@
       [(Vect/C αs _) (list->set αs)]
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
-      [(? ==>? V) (==>-root V)]
-      [(==>i doms rng) (apply ∪ (Dom-root rng) (map Dom-root doms))]
+      [(? ==>i? V) (==>i-root V)]
       [(∀/C _ _ Ρ) Ρ]
-      [(Case-=> Cs) (apply ∪ ∅ (map ==>-root Cs))]
+      [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
-      [(? T:@? T) (define ans (T-root T))
-                  (printf "root ~a = ~a~n" T (T-root T))
-                  ans]
-      [(or (? -prim?) (? -●?)) ∅]))
+      [(? T:@? T) (T-root T)]
+      [(? P? P) (P-root P)]
+      [(-● Ps) ∅]
+      [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+      [(? symbol? o) {set (γ:hv o)}]
+      [(? -prim? p) ∅]))
 
-  (: T-root : T → (℘ (U T:@ α)))
-  (define T-root
+  (define P-root : (P → (℘ T))
     (match-lambda
-      [(and T (T:@ _ Ts)) (apply ∪ {set T} (map T-root Ts))]
-      [(? α? α) {set α}]
+      [(P:¬ Q) (P-root Q)]
+      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T)) (if (T? T) {set T} ∅)]
       [_ ∅]))
 
-  (: V^-root : V^ → (℘ (U T:@ α)))
+  (: V^-root : V^ → (℘ T))
   (define (V^-root Vs) (set-union-map V-root Vs))
 
-  (: W-root : W → (℘ (U T:@ α)))
+  (: W-root : W → (℘ T))
   (define (W-root W) (apply ∪ ∅ (map V^-root W)))
 
-  (define ==>-root : (==> → (℘ (U T:@ α)))
+  (define ==>i-root : (==>i → (℘ T))
     (match-lambda
-      [(==> (-var dom:init ?dom:rest) rng _)
-       (∪ (list->set dom:init)
-          (if ?dom:rest {set ?dom:rest} ∅)
-          (if rng (list->set rng) ∅))]))
+      [(==>i (-var doms ?doms:rst) rng)
+       (∪ (apply ∪ (if ?doms:rst (Dom-root ?doms:rst) ∅) (map Dom-root doms))
+          (if rng (apply ∪ ∅ (map Dom-root rng)) ∅))]))
 
-  (define Dom-root : (Dom → (℘ (U T:@ α)))
+  (define Dom-root : (Dom → (℘ T))
     (match-lambda [(Dom _ C _) (if (Clo? C) (Clo-_2 C) {set C})]))
 
   (: E-root : E → (℘ γ))
   ;; Compute free variables for expression. Return set of variable names.
   (define E-root
     (match-lambda
+      [(? symbol? o) {set (γ:hv o)}]
+      [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+      [(? -•?) {set (γ:hv #f)}]
       [(-x x ℓ)
        {set (cond [(symbol? x) (γ:lex x)]
                   [(equal? (ℓ-src ℓ) (-𝒾-src x)) (γ:top x)]
@@ -119,12 +166,12 @@
       [(-set! x e _) (E-root e)]
       [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
       [(-μ/c _ e) (E-root e)]
-      [(--> (-var cs c) d _) (apply ∪ (if c (E-root c) ∅) (E-root d) (map E-root cs))]
-      [(-->i cs d)
+      [(-->i (-var cs c) d)
        (define dom-E-root : (-dom → (℘ γ))
          (match-lambda
            [(-dom _ ?xs d _) (set-subtract (E-root d) (if ?xs (list->set (map γ:lex ?xs)) ∅))]))
-       (apply ∪ (dom-E-root d) (map dom-E-root cs))]
+       (∪ (apply ∪ (if c (dom-E-root c) ∅) (map dom-E-root cs))
+          (if d (apply ∪ ∅ (map dom-E-root d)) ∅))]
       [(case--> cases) (apply ∪ ∅ (map E-root cases))]
       [E (log-debug "E-ROOT⟦~a⟧ = ∅~n" E) ∅]))
 

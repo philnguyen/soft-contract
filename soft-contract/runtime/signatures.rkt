@@ -26,7 +26,7 @@
                                C
                                T
                                (-● (℘ P)))
-(#|Identities     |# T . ::= . -b α (T:@ -o (Listof T)))
+(#|Identities     |# T . ::= . α (T:@ -o (Listof (U T -b))))
 (#|Stores         |# Σ .  ≜  . (Immutable-HashTable T (Pairof V^ N)))
 (#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable T (Pairof V^ N)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
@@ -45,12 +45,9 @@
                                (Vect/C (Listof α) ℓ)
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
-(#|Func. Contracts|# Fn/C . ::= . (==> [doms : (-var α)]
-                                       [rng : (Option (Listof α))]
-                                       ℓ)
-                               (==>i [doms : (Listof Dom)] [mk-rng : Dom])
-                               (∀/C (Listof Symbol) E (℘ α))
-                               (Case-=> (Listof ==>))) 
+(#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
+                                  (∀/C (Listof Symbol) E (℘ α))
+                                  (Case-=> (Listof ==>i))) 
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
                                  (Err:Undefined Symbol ℓ)
                                  (Err:Values Natural E W ℓ)
@@ -62,7 +59,7 @@
                                       [ctc : W]
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q))
-(#|Pos. Predicates|# Q . ::= . -o (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:arity-includes Natural))
+(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity))
 (#|Caches         |# $ .  ≜  . (Mutable-HashTable $:Key (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
@@ -79,7 +76,9 @@
                                (γ:imm #|restricted|# V)
                                ;; indirection for `listof` to keep in-sync with regular listof contracts
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
-                               (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ)) 
+                               (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ)
+                               ;; Escaped struct field
+                               (γ:escaped-field -𝒾 Integer)) 
 (#|Addr. Bases    |# β . ::= . ; escaped parameter
                                Symbol
                                ; mutable cell
@@ -119,19 +118,18 @@
                                (β:hash/c:val ℓ)
                                (β:set/c:elem ℓ)
                                (β:st/c -𝒾 ℓ Natural)
-                               (β:dom ℓ Natural)
-                               (β:rst ℓ)
-                               (β:rng ℓ [arity : Natural] [index : Natural])
+                               (β:dom ℓ)
                                ;; for wrapped function
                                (β:fn Ctx)
                                ;; For values wrapped in seals
                                (β:sealed Symbol) ; points to wrapped objects
                                )
-(#|Cache Keys     |# $:Key . ::= . ($:Key:Mon Σ Ctx V V^)
+(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
+                                   ($:Key:Mon Σ Ctx V V^)
                                    ($:Key:App Σ ℓ V W)
                                    ($:Key:App/rest Σ ℓ V W V^)
                                    ($:Key:Hv Σ α))
-(#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] ℓ))
+(#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
 (#|Cardinalities  |# N . ::= . 0 1 'N)
 (#|Havoc Tags     |# HV-Tag . ≜ . (Option -l))
 (#|Mon. Contexts  |# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [origin : ℓ] [site : ℓ]))
@@ -144,6 +142,7 @@
 (#|Changes           |# Ch . ::= . '↓ '↧)
 
 (#|Addr. Substitutions|# S . ≜ . (HashTable α α))
+(Renamings . ≜ . (Immutable-HashTable α (Option T)))
 
 
 (define-interner H -H
@@ -168,15 +167,22 @@
 (define ⊥Σ : Σ (hash))
 (define ⊥ΔΣ : ΔΣ (hash))
 
+(: ==> : (-var α) (Option (Listof α)) ℓ → ==>i)
+(define (==> doms rngs ℓ)
+  (define (mk-dom [α : α])
+    (define x (gensym '_))
+    (Dom x α (ℓ-with-id ℓ x)))
+  (==>i (var-map mk-dom doms) (and rngs (map mk-dom rngs))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Signatures
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-signature sto^
-  ([⧺ : (ΔΣ * → ΔΣ)]
-   [lookup : ((U T:@ α) Σ → V^)]
-   [unpack : ((U T:@ α V^) Σ → V^)]
+  ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
+   [lookup : (T Σ → V^)]
+   [unpack : ((U V V^) Σ → V^)]
    [unpack-W : (W Σ → W)]
    [alloc : (α V^ → ΔΣ)]
    [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
@@ -186,9 +192,9 @@
    [alloc-each : (W (Natural → β) → (Values (Listof α) ΔΣ))]
    [unalloc-prefix : (Natural V^ Σ → (Option (Pairof W V^)))]
    [resolve-lex : ((U Symbol -𝒾) → α)]
-   [mut : ((U α T:@) V^ → ΔΣ)] 
+   [mut : (T V^ → ΔΣ)] 
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [close : (Σ (℘ Symbol) → (Values (℘ α) ΔΣ))]
+   [escape : (Σ (℘ Symbol) → (Values (℘ α) ΔΣ))]
    [stack-copy : ((℘ α) Σ → ΔΣ)] 
    [ambiguous? : (T Σ → Boolean)]
    
@@ -223,11 +229,10 @@
    [behavioral? : (V Σ → Boolean)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
+   [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
+   [rename : (Renamings → T → (Option T))]
+   [T-root : (T:@ → (℘ α))]
    #;[fresh-sym! : (→ -s)]
-   #;[guard-arity : (case->
-                   [==> → Arity]
-                   [Fn/C → (Option Arity)])]
-   #;[blm-arity : (-l ℓ ℓ Arity W → Blm)]
    #;[in-scope? : ((U α S) (℘ α) → Boolean)]
    #;[cmp-sets : (?Cmp (℘ Any))]
    #;[set-lift-cmp : (∀ (X) (?Cmp X) → (?Cmp (℘ X)))]
@@ -246,5 +251,8 @@
   ([show-α : (α → Sexp)]
    [show-V : (V → Sexp)]
    [show-V^ : (V^ → Sexp)]
-   [show-W : (W → Sexp)]
-   [show-Σ : (Σ → (Listof Sexp))])) 
+   [show-W : (W → (Listof Sexp))]
+   [show-Σ : (Σ → (Listof Sexp))]
+   [show-Dom : (Dom → Sexp)]
+   [show-R : (R → (Listof Sexp))]
+   [show-Err : (Err → Sexp)]))
