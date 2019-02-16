@@ -32,8 +32,9 @@
     ((inst fold-ans V)
      (λ (Vₕ)
        (define root (∪ W:root (V-root Vₕ)))
-       (with-gc root
-         (λ () (app₁ (gc root Σ) ℓ Vₕ W))))
+       (define Σ* (gc root Σ))
+       (ref-$! ($:Key:App Σ* ℓ Vₕ W)
+               (λ () (with-gc root (λ () (app₁ Σ* ℓ Vₕ W))))))
      (unpack Vₕ^ Σ))) 
 
   (: app₁ : Σ ℓ V W → (Values R (℘ Err)))
@@ -54,12 +55,13 @@
                 [(And/C α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-And/C α₁ α₂ ℓ)]
                 [(Or/C  α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-Or/C  α₁ α₂ ℓ)]
                 [(Not/C α ℓ) (app-Not/C α ℓ)]
+                [(X/C α) (app-X/C α)]
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(St/C 𝒾 αs ℓ) #:when (C-flat? V Σ) (app-St/C 𝒾 αs ℓ)]
                 [(-● Ps) (app-opq Ps)]
                 [(P:= T) (app-= T)]
                 [V (app-err V)]))
-    (ref-$! ($:Key:App Σ ℓ V W) (λ () (f Σ ℓ W))))
+    (f Σ ℓ W))
 
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
@@ -72,8 +74,12 @@
                (⧺ (stack-copy Ρ Σ)
                   (alloc-lex* xs W₀)
                   (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
-           (define-values (rₐ es) (evl (⧺ Σ ΔΣₓ) E)) ; no `ΔΣₓ` in result
-           (values (adjust-return Σ ΔΣₓ fml Wₓ* rₐ) es)]
+           ;; gc one more time against unpacked arguments
+           ;; TODO: clean this up so only need to gc once?
+           (let ([root (∪ (V-root Vₕ) (W-root Wₓ))])
+             (define Σ* (gc root Σ))
+             (define-values (rₐ es) (evl (⧺ Σ* ΔΣₓ) E)) ; no `ΔΣₓ` in result
+             (values (adjust-return Σ ΔΣₓ fml Wₓ* rₐ) es))]
           [else (err (Err:Arity ℓₕ (length Wₓ*) ℓ))]))
 
   (: app-Case-Clo : Case-Clo → ⟦F⟧)
@@ -103,7 +109,9 @@
       [(list Vₓ)
        (with-split-Σ Σ (-st-p 𝒾) Wₓ
          (λ (Wₓ* ΔΣ₁) (with-pre ΔΣ₁ ((unchecked-app-st-ac 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*))))
-         (λ (Wₓ* ΔΣ₂) (err (Blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set (-st-p 𝒾)}) Wₓ*))))]))
+         (λ (Wₓ* ΔΣ₂)
+           (define ℓₒ (ℓ-with-src +ℓ₀ (-𝒾-name 𝒾)))
+           (err (Blm (ℓ-src ℓ) ℓ ℓₒ (list {set (-st-p 𝒾)}) Wₓ*))))]))
 
   (: unchecked-app-st-ac : -𝒾 Index → Σ ℓ V^ → (Values R (℘ Err)))
   (define ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)
@@ -191,11 +199,10 @@
     (define Dom-ref (match-lambda [(Dom x _ _) {set (γ:lex x)}]))
 
     (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ (Values R (℘ Err)))])
-      (with-pre ΔΣ-acc
-        (if Rngs
-            (with-each-path [(ΔΣₐ Wₐs) (comp)]
-              (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) ctx Rngs (collapse-W^ Wₐs)))
-            (comp))))
+      (if Rngs
+          (with-each-path [(ΔΣₐ Wₐs) (comp)]
+            (with-pre (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) ctx Rngs (collapse-W^ Wₐs))))
+          (with-pre ΔΣ-acc (comp))))
 
     (with-guarded-arity Wₓ G ℓ
       [Wₓ
@@ -263,6 +270,9 @@
            (λ (_ ΔΣ*) (just -ff (⧺ ΔΣ ΔΣ*)))
            (λ (_ ΔΣ*) (just -tt (⧺ ΔΣ ΔΣ*)))))]))
 
+  (: app-X/C : α → ⟦F⟧)
+  (define ((app-X/C α) Σ ℓ Wₓ) (app Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
+
   (: app-One-Of/C : (℘ Base) → ⟦F⟧)
   (define ((app-One-Of/C bs) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ (One-Of/C bs) ℓ
@@ -295,22 +305,31 @@
   (: app-opq : (℘ P) → ⟦F⟧)
   (define ((app-opq Ps) Σ ℓ Wₓ)
     (define n (length Wₓ))
-    (define es (if (∋ Ps 'procedure?)
-                   (Blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'procedure?}) (list {set (-● ∅)}))
-                   ∅))
+    (define es
+      (let ([ℓₒ (ℓ-with-src +ℓ₀ 'Λ)]
+            [Vₕ {set (-● Ps)}])
+        (cond
+          [(not (∋ Ps 'procedure?))
+           {set (Blm (ℓ-src ℓ) ℓ ℓₒ (list {set 'procedure?}) (list Vₕ))}]
+          [(not (eq? '✓ (sat Σ (P:arity-includes n) {set (-● Ps)})))
+           {set (Blm (ℓ-src ℓ) ℓ ℓₒ (list {set (P:arity-includes n)}) (list Vₕ))}]
+          [else ∅])))
     (define αₕᵥ (γ:hv #f))
-    (define ΔΣ:leak (alloc αₕᵥ (collect-behavioral-values {set Wₓ} Σ)))
-    (define ΔΣ:field-leaks
-      (for*/fold ([acc : ΔΣ ⊥ΔΣ]) ([Vs (in-list Wₓ)] [V (in-set Vs)])
-        (match V
-          [(St 𝒾 αs)
-           ;; Bucket values by fields, breaking correlation between fields
-           (for/fold ([acc : ΔΣ acc]) ([αᵢ (in-list αs)] [i (in-naturals)])
-             (⧺ acc (alloc (γ:escaped-field 𝒾 i) (unpack αᵢ Σ))))]
-          [(Guarded ctx (St/C 𝒾 αs _) αᵥ) ; FIXME
-           acc]
-          [_ acc])))
-    (with-pre ΔΣ:leak (hv (⧺ Σ ΔΣ:leak ΔΣ:field-leaks) αₕᵥ)))
+    (define ΔΣ*
+      (let ([ΔΣ:leak (alloc αₕᵥ (collect-behavioral-values {set Wₓ} Σ))]
+            [ΔΣ:field-leaks
+             (for*/fold ([acc : ΔΣ ⊥ΔΣ]) ([Vs (in-list Wₓ)] [V (in-set Vs)])
+               (match V
+                 [(St 𝒾 αs)
+                  ;; Bucket values by fields, breaking correlation between fields
+                  (for/fold ([acc : ΔΣ acc]) ([αᵢ (in-list αs)] [i (in-naturals)])
+                    (⧺ acc (alloc (γ:escaped-field 𝒾 (assert i index?)) (unpack αᵢ Σ))))]
+                 [(Guarded ctx (St/C 𝒾 αs _) αᵥ) ; FIXME
+                  acc]
+                 [_ acc]))])
+        (⧺ ΔΣ:leak ΔΣ:field-leaks)))
+    (define-values (r* es*) (hv (⧺ Σ ΔΣ*) αₕᵥ))
+    (values (ΔΣ⧺R ΔΣ* r*) (∪ es es*)))
 
   (: app-= : (U T -b) → ⟦F⟧)
   (define ((app-= T) Σ ℓ Wₓ) ((app-prim 'equal?) Σ ℓ (cons {set T} Wₓ)))
@@ -323,7 +342,11 @@
   (define (app/rest Σ ℓ Vₕ^ Wₓ Vᵣ)
     (define args:root (∪ (W-root Wₓ) (V^-root Vᵣ)))
     ((inst fold-ans V)
-     (λ (Vₕ) (app₁/rest (gc (∪ args:root (V-root Vₕ)) Σ) ℓ Vₕ Wₓ Vᵣ))
+     (λ (Vₕ)
+       (define root (∪ args:root (V-root Vₕ)))
+       (define Σ* (gc root Σ))
+       (ref-$! ($:Key:App/rest Σ* ℓ Vₕ Wₓ Vᵣ)
+               (λ () (with-gc root (λ () (app₁/rest Σ* ℓ Vₕ Wₓ Vᵣ))))))
      (unpack Vₕ^ Σ)))
 
   (: app₁/rest : Σ ℓ V W V^ → (Values R (℘ Err)))
@@ -347,7 +370,7 @@
                 [(St/C 𝒾 αs ℓ) #:when (C-flat? V Σ) (app-St/C/rest 𝒾 αs ℓ)]
                 [(-● Ps) (app-opq/rest Ps)]
                 [V (app-err/rest V)]))
-    (ref-$! ($:Key:App/rest Σ ℓ V W₀ Vᵣ) (λ () (f Σ ℓ W₀ Vᵣ))))
+    (f Σ ℓ W₀ Vᵣ))
 
   (: app-Clo/rest : Clo → ⟦G⟧)
   (define ((app-Clo/rest clo) Σ ℓ W₀ Vᵣ)
@@ -437,8 +460,9 @@
 
   (: adjust-return : Σ ΔΣ -formals W R → R)
   (define (adjust-return Σ₀ ΔΣₓ fml Wₓ r)
-    (define Σₑᵣ ((inst make-parameter Σ) (⧺ Σ₀ ΔΣₓ))) ; HACK to reduce cluttering
-    (define adjust-T (rename (make-renamings fml Wₓ)))
+    (define Σ₀* (⧺ Σ₀ ΔΣₓ))
+    (define Σₑᵣ ((inst make-parameter Σ) Σ₀*)) ; HACK to reduce cluttering
+    (define adjust-T (rename (trim-renamings Σ₀ (make-renamings fml Wₓ))))
     (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
       (for*/hash : ΔΣ ([(T r) (in-hash ΔΣ₀)]
                        [T* (in-value (adjust-T T))] #:when T*)
@@ -450,11 +474,20 @@
                                  [else (unpack T (Σₑᵣ))]))
     
     (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣ)])
+      (parameterize ([Σₑᵣ (⧺ Σ₀* ΔΣ)])
         (hash-update acc
                      (go-ΔΣ ΔΣ)
                      (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ (map/set go-W Ws)))
                      mk-∅))))
+
+  (: trim-renamings : Σ Renamings → Renamings)
+  ;; Prevent some renaming from propagating based on what the caller has
+  (define (trim-renamings Σ rn)
+    (for/fold ([rn : Renamings rn])
+              ([(x ?T) (in-hash rn)]
+               ;; FIXME this erasure is too aggressive
+               #:when (T:@? ?T))
+      (hash-set rn x #f)))
 
   (define-simple-macro (with-guarded-arity W f ℓ [p body ...] ...)
     (match W

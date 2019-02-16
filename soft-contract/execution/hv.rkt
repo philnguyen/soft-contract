@@ -18,25 +18,30 @@
 (define-unit hv@
   (import static-info^ meta-functions^
           sto^ cache^ val^
-          exec^ app^)
+          exec^ app^ gc^)
   (export hv^)
 
+
   (define ● {set (-● ∅)})
+  (define ●* (list ●)) ; FIXME emulate *arbitrary* number of values
 
   (: hv : Σ γ:hv → (Values R (℘ Err)))
   (define (hv Σ αₕᵥ)
-    (ref-$! ($:Key:Hv Σ αₕᵥ)
+    (define root {set αₕᵥ})
+    (define Σ* (gc root Σ))
+    (ref-$! ($:Key:Hv Σ* αₕᵥ)
             (λ ()
-              (define-values (ΔΣ₁ es₁)
-                (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅])
-                          ([Vᵢ (in-set (unpack αₕᵥ Σ))])
-                  (define-values (Vsᵢ ΔΣᵢ esᵢ) (do-hv Σ Vᵢ))
-                  (values (ΔΣ⊔ ΔΣ (⧺ ΔΣᵢ (alloc αₕᵥ Vsᵢ)))
-                          (∪ es esᵢ))))
-              (define-values (r* es*) (hv (⧺ Σ ΔΣ₁) αₕᵥ))
-              (match (collapse-R r*)
-                [(cons _ ΔΣ*) (values (hash (ΔΣ⊔ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*)) {set (list ●)}) (∪ es₁ es*))]
-                [#f (values (hash ΔΣ₁ {set (list ●)}) (∪ es₁ es*))]))))
+              (with-gc root
+                (λ ()
+                  (define-values (ΔΣ₁ es₁)
+                    (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅])
+                              ([Vᵢ (in-set (unpack αₕᵥ Σ*))])
+                      (define-values (Vsᵢ ΔΣᵢ esᵢ) (do-hv Σ* Vᵢ))
+                      (values (ΔΣ⊔ ΔΣ (⧺ ΔΣᵢ (alloc αₕᵥ Vsᵢ)))
+                              (∪ es esᵢ))))
+                  (with-collapsing [(ΔΣ* _) (hv (⧺ Σ* ΔΣ₁) αₕᵥ)]
+                    #:fail (R-of ●* ΔΣ₁)
+                    (values (R-of ●* (ΔΣ⊔ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*))) es₁)))))))
 
   (: gen-havoc-expr : ((Listof -module) → E))
   (define (gen-havoc-expr ms)

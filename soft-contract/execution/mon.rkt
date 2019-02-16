@@ -9,6 +9,7 @@
          bnf
          set-extras
          unreachable
+         (only-in "../utils/map.rkt" m⊔)
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../execution/signatures.rkt"
@@ -25,6 +26,7 @@
           prover^)
   (export mon^)
 
+  (define -FF {set -ff})
   (define γ-mon (γ:lex (gensym 'mon_)))
 
   (: mon : Σ Ctx V^ V^ → (Values R (℘ Err)))
@@ -32,9 +34,10 @@
     (define args:root (V^-root V^))
     (fold-ans (λ ([C : V])
                 (define root (∪ (V-root C) args:root))
-                (with-gc root
-                  (λ () ((mon₁ C) (gc root Σ) ctx V^))))
-              C^))
+                (define Σ* (gc root Σ))
+                (ref-$! ($:Key:Mon Σ* ctx C V^)
+                        (λ () (with-gc root (λ () ((mon₁ C) Σ* ctx V^))))))
+              (unpack C^ Σ)))
 
   (: mon* : Σ Ctx W W → (Values R (℘ Err)))
   (define (mon* Σ₀ ctx Cs Vs)
@@ -52,24 +55,21 @@
         (match-let ([(Ctx l+ _ ℓₒ ℓ) ctx])
           (err (Blm l+ ℓ ℓₒ Cs Vs)))))
 
-  (: mon₁ : V → Σ Ctx V^ → (Values R (℘ Err)))
-  (define (mon₁ C) 
-    (define f
-      (cond [(Fn/C? C) (mon-Fn/C C)]
-            [(St/C? C) (mon-St/C C)]
-            [(α? C) (mon-α C)]
-            [(And/C? C) (mon-And/C C)]
-            [(Or/C? C) (mon-Or/C C)]
-            [(Not/C? C) (mon-Not/C C)]
-            [(One-Of/C? C) (mon-One-Of/C C)]
-            [(Vectof/C? C) (mon-Vectof/C C)]
-            [(Vect/C? C) (mon-Vect/C C)]
-            [(Hash/C? C) (mon-Hash/C C)]
-            [(Set/C? C) (mon-Set/C C)]
-            [(Seal/C? C) (mon-Seal/C C)]
-            [else (mon-Flat/C C)]))
-    (λ (Σ ctx V)
-      (ref-$! ($:Key:Mon Σ ctx C V) (λ () (f Σ ctx V)))))
+  (: mon₁ : V → ⟦C⟧)
+  (define (mon₁ C)
+    (cond [(Fn/C? C) (mon-Fn/C C)]
+          [(St/C? C) (mon-St/C C)]
+          [(X/C? C) (mon-X/C (X/C-_0 C))]
+          [(And/C? C) (mon-And/C C)]
+          [(Or/C? C) (mon-Or/C C)]
+          [(Not/C? C) (mon-Not/C C)]
+          [(One-Of/C? C) (mon-One-Of/C C)]
+          [(Vectof/C? C) (mon-Vectof/C C)]
+          [(Vect/C? C) (mon-Vect/C C)]
+          [(Hash/C? C) (mon-Hash/C C)]
+          [(Set/C? C) (mon-Set/C C)]
+          [(Seal/C? C) (mon-Seal/C C)]
+          [else (mon-Flat/C C)]))
 
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) Σ ctx Vs)
@@ -114,24 +114,27 @@
                 (just (Guarded ctx C α) (⧺ ΔΣ ΔΣ* ΔΣ** (alloc α V*)))))))
       (λ (W* _) (err (Blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
-  (: mon-α : α → ⟦C⟧)
-  (define ((mon-α α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
+  (: mon-X/C : α → ⟦C⟧)
+  ;; Need explicit contract reference to explicitly hint execution of loop
+  (define ((mon-X/C α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
     (match-define (And/C α₁ α₂ ℓ) C)
-    (define-values (r₁ es₁) ((mon₁ α₁) Σ ctx V^))
-    (match (collapse-R r₁)
-      [(cons (app collapse-W^ (app car V₁)) ΔΣ₁)
-       (define-values (r₂ es₂) ((mon₁ α₂) (⧺ Σ ΔΣ₁) ctx V₁))
-       (values (ΔΣ⧺R ΔΣ₁ r₂) (∪ es₁ es₂))]
-      [#f (values ⊥R es₁)]))
+    (with-collapsing/R [(ΔΣ₁ Ws₁) (mon Σ ctx (unpack α₁ Σ) V^)]
+      (match-define (list V^*) (collapse-W^ Ws₁))
+      (with-pre ΔΣ₁ (mon (⧺ Σ ΔΣ₁) ctx (unpack α₂ Σ) V^*))))
 
   (: mon-Or/C : Or/C → ⟦C⟧)
   (define ((mon-Or/C C) Σ ctx V) 
     (: chk : V^ V^ → (Values R (℘ Err)))
     (define (chk C-fo C-ho)
-      (flat-check Σ (Ctx-origin ctx) C-fo V just (λ (W ΔΣ) (mon (⧺ Σ ΔΣ) ctx C-ho (car W)))))
+      (with-each-path [(ΔΣ₁ Ws₁) (fc Σ (Ctx-origin ctx) C-fo V)]
+        (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W₁ (in-set Ws₁)])
+          (match W₁
+            [(list _) (values (m⊔ r (R-of W₁ ΔΣ₁)) es)]
+            [(list V* _) (define-values (r₂ es₂) (mon (⧺ Σ ΔΣ₁) ctx C-ho V*))
+                         (values (m⊔ r (ΔΣ⧺R ΔΣ₁ r₂)) (∪ es es₂))]))))
 
     (match-define (Or/C α₁ α₂ _) C)
     (define C₁ (unpack α₁ Σ))
@@ -144,9 +147,11 @@
   (define ((mon-Not/C C) Σ ctx V)
     (match-define (Not/C α _) C)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (flat-check Σ ℓₒ (unpack α Σ) V
-                (λ _ (err (Blm l+ ℓ ℓₒ (list {set C}) (list V))))
-                just))
+    (with-each-path [(ΔΣ Ws) (fc Σ ℓₒ (unpack α Σ) V)]
+      (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W (in-set Ws)])
+        (match W
+          [(list Vs* _) (values (m⊔ r (R-of Vs* ΔΣ)) es)]
+          [(list _) (values r (set-add es (Blm l+ ℓ ℓₒ (list {set C}) (list V))))]))))
 
   (: mon-One-Of/C : One-Of/C → ⟦C⟧)
   (define ((mon-One-Of/C C) Σ ctx Vs)
@@ -236,17 +241,96 @@
     (case (sat Σ C Vs)
       [(✓) (just Vs)]
       [(✗) (err (blm))]
-      {else (flat-check Σ ℓₒ {set (if (-b? C) (P:= C) C)} Vs just (λ _ (err (blm))))}))
+      [else
+       (with-each-path [(ΔΣ Ws) (fc Σ ℓₒ {set C} Vs)]
+         (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W (in-set Ws)])
+           (match W
+             [(list _) (values (m⊔ r (R-of W ΔΣ)) es)]
+             [(list Vs* _) (values r (set-add es (blm)))])))]))
 
-  (: flat-check : Σ ℓ V^ V^
-     (W ΔΣ → (Values R (℘ Err)))
-     (W ΔΣ → (Values R (℘ Err)))
-     → (Values R (℘ Err)))
-  (define (flat-check Σ ℓₒ C^ Vs on-t on-f)
-    (define ΔΣₓ (alloc γ-mon Vs))
-    (with-each-path [(ΔΣ Ws) (app (⧺ Σ ΔΣₓ) ℓₒ C^ (list {set γ-mon}))]
-      (define Wₐ (list (unpack γ-mon (⧺ Σ ΔΣₓ ΔΣ))))
-      (with-split-Σ (⧺ Σ ΔΣ) 'values (collapse-W^ Ws)
-        (λ _ (on-t Wₐ ΔΣ))
-        (λ _ (on-f Wₐ ΔΣ)))))
+  ;; Can't get away with not having specialized flat-check procedure.
+  ;; There's no straightforward way to fully refine a value by contract `c`
+  ;; after applying `c` as a procedure (tricky when `c` is recursive and effectful)
+  ;; Convention: `fc` returns:
+  ;; - `[refine(v, c)   ]` if `v`          satisfies `c`
+  ;; - `[refine(v,¬c),#f]` if `v` does not satisfies `c`,
+  (: fc : Σ ℓ V^ V^ → (Values R (℘ Err)))
+  (define (fc Σ₀ ℓ Cs Vs)
+    (define Vs:root (V^-root Vs))
+    ((inst fold-ans V)
+     (λ (C)
+       (define root (∪ (V-root C) Vs:root))
+       (define Σ₀* (gc root Σ₀))
+       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
+               (λ () (with-gc root (λ () (fc₁ Σ₀* ℓ C Vs))))))
+     Cs))
+
+  (: fc₁ : Σ ℓ V V^ → (Values R (℘ Err)))
+  (define (fc₁ Σ₀ ℓ C Vs)
+    (match C
+      [(And/C α₁ α₂ _)
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α₁ Σ₀) Vs)]
+         (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W₁ (in-set Ws₁)])
+           (match W₁
+             [(list Vs*)
+              (define-values (r₂ es₂) (fc (⧺ Σ₀ ΔΣ₁) ℓ (unpack α₂ Σ₀) Vs*))
+              (values (m⊔ r (ΔΣ⧺R ΔΣ₁ r₂)) (∪ es es₂))]
+             [(list _ _) (values (m⊔ r (R-of W₁ ΔΣ₁)) es)])))]
+      [(Or/C α₁ α₂ _)
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α₁ Σ₀) Vs)]
+         (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W₁ (in-set Ws₁)])
+           (match W₁
+             [(list _) (values (m⊔ r (R-of W₁ ΔΣ₁)) es)]
+             [(list Vs* _)
+              (define-values (r₂ es₂) (fc (⧺ Σ₀ ΔΣ₁) ℓ (unpack α₂ Σ₀) Vs*))
+              (values (m⊔ r (ΔΣ⧺R ΔΣ₁ r₂)) (∪ es es₂))])))]
+      [(Not/C α _)
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α Σ₀) Vs)]
+         (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W₁ (in-set Ws₁)])
+           (values (m⊔ r (R-of (match W₁
+                                 [(list Vs*) (list Vs* -FF)]
+                                 [(list Vs* _) (list Vs*)])
+                               ΔΣ₁))
+                   es)))]
+      [(One-Of/C bs)
+       (with-split-Σ Σ₀ (One-Of/C bs) (list Vs)
+         just
+         (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
+      [(St/C 𝒾 αs _)
+       (with-split-Σ Σ₀ (-st-p 𝒾) (list Vs)
+         (λ (W* ΔΣ*)
+           (define n (count-struct-fields 𝒾))
+           (let go ([Σ : Σ Σ₀] [αs : (Listof α) αs] [i : Index 0] [ΔΣ : ΔΣ ΔΣ*] [rev-W : W '()])
+             (match αs
+               ['()
+                (define-values (αs* ΔΣ*) (alloc-each (reverse rev-W) (λ (i) (β:fld 𝒾 ℓ i))))
+                (just (St 𝒾 αs*) (⧺ ΔΣ ΔΣ*))]
+               [(cons αᵢ αs*)
+                (with-collapsing/R [(ΔΣ:a Ws:a) (app Σ ℓ {set (-st-ac 𝒾 i)} W*)]
+                  (with-each-path [(ΔΣᵢ Wsᵢ) (fc (⧺ Σ ΔΣ:a) ℓ (unpack αᵢ Σ) (car (collapse-W^ Ws:a)))]
+                    (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([Wᵢ (in-set Wsᵢ)])
+                      (match Wᵢ
+                        [(list Vᵢ)
+                         (define-values (r* es*) (go (⧺ Σ ΔΣ:a ΔΣᵢ)
+                                                     αs* (assert (+ 1 i) index?)
+                                                     (⧺ ΔΣ ΔΣ:a ΔΣᵢ) (cons Vᵢ rev-W)))
+                         (values (m⊔ r r*) (∪ es es*))]
+                        [(list Vᵢ _)
+                         (define fields (append (reverse rev-W) (make-list (- n i 1) {set (-● ∅)})))
+                         (define-values (αs* ΔΣ*) (alloc-each fields (λ (i) (β:fld 𝒾 ℓ i))))
+                         (values (m⊔ r (R-of (list {set (St 𝒾 αs*)} -FF) (⧺ ΔΣ:a ΔΣᵢ ΔΣ*))) es)]))))])))
+         (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
+      [(X/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
+      [(? -b? b)
+       (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
+         (λ (_ ΔΣ) (just b ΔΣ))
+         (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
+      [_
+       (define ΔΣₓ (alloc γ-mon Vs))
+       (with-each-path [(ΔΣ Ws) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))]
+         (define Σ₁ (⧺ Σ₀ ΔΣₓ ΔΣ))
+         (define Vs* (unpack γ-mon Σ₁))
+         (with-split-Σ Σ₁ 'values (collapse-W^ Ws)
+           (λ _ (just Vs* ΔΣ))
+           (λ _ (just (list Vs* -FF) ΔΣ))))]))
   )

@@ -36,6 +36,7 @@
                                (Or/C α α ℓ)
                                (Not/C α ℓ)
                                (One-Of/C (℘ Base))
+                               (X/C α)
                                Prox/C
                                (Seal/C α)
                                P)
@@ -78,7 +79,7 @@
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
                                (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ)
                                ;; Escaped struct field
-                               (γ:escaped-field -𝒾 Integer)) 
+                               (γ:escaped-field -𝒾 Index)) 
 (#|Addr. Bases    |# β . ::= . ; escaped parameter
                                Symbol
                                ; mutable cell
@@ -126,6 +127,7 @@
                                )
 (#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
                                    ($:Key:Mon Σ Ctx V V^)
+                                   ($:Key:Fc Σ ℓ V V^)
                                    ($:Key:App Σ ℓ V W)
                                    ($:Key:App/rest Σ ℓ V W V^)
                                    ($:Key:Hv Σ α))
@@ -255,4 +257,5 @@
    [show-Σ : (Σ → (Listof Sexp))]
    [show-Dom : (Dom → Sexp)]
    [show-R : (R → (Listof Sexp))]
-   [show-Err : (Err → Sexp)]))
+   [show-Err : (Err → Sexp)]
+   [show-$:Key : ($:Key → Sexp)]))

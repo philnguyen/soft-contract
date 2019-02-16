@@ -287,7 +287,7 @@
           (for/fold ([rng-rev : W '()] [ΔΣ* : ΔΣ ΔΣ*])
                     ([rngᵢ (in-list rng*)] [refᵢ (in-list refinements)])
             (define-values (rngᵢ* ΔΣᵢ) (refine rngᵢ refᵢ Σ))
-            (values (cons rngᵢ rng-rev) (⧺ ΔΣ* ΔΣᵢ))))
+            (values (cons rngᵢ* rng-rev) (⧺ ΔΣ* ΔΣᵢ))))
         (values (reverse rng-rev) ΔΣ**))
 
       (check-inits dom-inits args)))

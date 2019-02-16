@@ -44,7 +44,7 @@
     (define iter : Natural 0)
     (define done? : (→ Boolean)
       (match (db:max-steps)
-        [(? values n) (λ () (> iter n))]
+        [(? values n) (λ () (>= iter n))]
         [#f (λ () #f)]))
     
     (let loop ()

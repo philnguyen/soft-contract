@@ -125,7 +125,10 @@
       (match-define (-st-ac 𝒾 i) ac)
       (match-lambda
         [(St (== 𝒾) αs) (unpack-V^ (car (hash-ref Σ (list-ref αs i))) ∅)]
-        [(-● _) {set (-● ∅)}]
+        [(-● Ps)
+         ;; special case for `cdr` of `list?`. TODO redce hack
+         (cond [(and (∋ Ps 'list?) (equal? ac -cdr)) {set (-● {set 'list?})}]
+               [else {set (-● ∅)}])]
         [_ ∅]))
 
     (: unpack-V : V V^ → V^)
@@ -146,7 +149,7 @@
                        [(T:@ (? -st-ac? ac) (list (? T? T*)))
                         (∪ acc (set-union-map (V@ ac) (unpack-T T* ∅)))]
                        [(? T:@?) (set-add acc (-● ∅))]
-                       [(? α?) (error 'unpack-T "no ~a" T)])])]))
+                       [(? α?) (error 'unpack-T "no ~a in ~a~n" (show-V T) (show-Σ Σ))])])]))
 
     (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
 

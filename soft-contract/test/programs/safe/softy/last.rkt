@@ -15,5 +15,4 @@
 
 
 (provide/contract
- [Y (([any/c . -> . any/c] . -> . [any/c . -> . any/c]) . -> . [any/c . -> . any/c])]
  [last ((cons/c any/c (listof any/c)) . -> . any/c)])

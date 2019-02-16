@@ -80,7 +80,7 @@
   (: gc-R : (℘ T) R → R)
   (define (gc-R root r)
     (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
-      (define root* (∪ root (apply ∪ ∅ (set-map Ws W-root))))
+      (define root* (apply ∪ root (set-map Ws W-root)))
       (define ΔΣ* (gc root* ΔΣ))
       (hash-update acc ΔΣ* (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ Ws)) mk-∅)))
 
@@ -98,6 +98,7 @@
       [(And/C α₁ α₂ _) {set α₁ α₂}]
       [(Or/C α₁ α₂ _) {set α₁ α₂}]
       [(Not/C α _) {set α}]
+      [(X/C α) {set α}]
       [(Seal/C α) {set α}]
       [(St/C _ αs _) (list->set αs)]
       [(Vectof/C α _) {set α}]

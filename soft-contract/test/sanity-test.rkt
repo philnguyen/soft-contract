@@ -116,10 +116,10 @@
   #;(test "paper/succ.rkt" check-safe)
   #;(test "paper/succ-incorrect.rkt" check-fail)
 
-  #|
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
-
+  
+  #|
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
   (test "safe/issues/issue-62.rkt" check-safe)

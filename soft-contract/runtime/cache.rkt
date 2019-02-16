@@ -66,9 +66,6 @@
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)
-    (define R₁ (for/hash : R ([(ΔΣ Ws) (in-hash R₀)])
-                 (values (f ΔΣ) Ws)))
-    ;; Expect `f` to be injective
-    (assert (= (hash-count R₀) (hash-count R₁)))
-    R₁)
+    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash R₀)])
+      (hash-update acc (f ΔΣ) (λ ([Ws₀ : W^]) (∪ Ws₀ Ws)) mk-∅)))
 )

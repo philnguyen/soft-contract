@@ -35,6 +35,7 @@
       [(And/C α₁ α₂ ℓ) `(and/c ,(show-α α₁) ,(show-α α₂))]
       [(Or/C α₁ α₂ ℓ) `(or/c ,(show-α α₂) ,(show-α α₂))]
       [(Not/C α ℓ) `(not/c ,(show-α α))]
+      [(X/C α) `(recursive-contract/c ,(show-α α))]
       [(One-Of/C bs) `(one-of/c ,@(set-map bs show-b))]
       [(? Prox/C? C) (show-Prox/C C)]
       [(Seal/C α) `(seal/c ,(show-α α))]
@@ -67,11 +68,11 @@
       [(? ==>i? V) (show-==>i V)]
       [(∀/C xs C Ρ) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
-      [(St/C 𝒾 _ ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) … ,(show-ℓ ℓ))]
-      [(Vectof/C _ ℓ) `(vectorof … ,(show-ℓ ℓ))]
-      [(Vect/C _ ℓ) `(vector/c … ,(show-ℓ ℓ))]
-      [(Hash/C _ _ ℓ) `(hash/c … ,(show-ℓ ℓ))]
-      [(Set/C _ ℓ) `(set/c … ,(show-ℓ ℓ))]))
+      [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs) ,(show-ℓ ℓ))]
+      [(Vectof/C α ℓ) `(vectorof ,(show-α α) ,(show-ℓ ℓ))]
+      [(Vect/C αs ℓ) `(vector/c ,@(map show-α αs) ,(show-ℓ ℓ))]
+      [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ) ,(show-ℓ ℓ))]
+      [(Set/C α ℓ) `(set/c ,(show-α α) ,(show-ℓ ℓ))]))
 
   (define show-==>i : (==>i → Sexp)
     (match-lambda
@@ -111,7 +112,8 @@
       [(γ:hv hv-tag) (format-symbol "hv:~a" (show-HV-Tag hv-tag))]
       [(γ:imm V) (show-V V)]
       [(γ:imm:listof x V _) (format-symbol "~a:listof" x)]
-      [(γ:imm:ref-listof x V _) (format-symbol "~a:ref-listof" x)]))
+      [(γ:imm:ref-listof x V _) (format-symbol "~a:ref-listof" x)]
+      [(γ:escaped-field 𝒾 i) (format-symbol "escaped-~a" (show-o (-st-ac 𝒾 i)))]))
 
   (define show-β : (β → Symbol)
     (match-lambda
@@ -189,6 +191,21 @@
       [(Err:Sealed x ℓ) `(inspect-sealed-value ,x ,(show-ℓ ℓ))]
       [(Blm l+ ℓ ℓₒ ctc val)
        `(blame ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-W ctc) ,(show-W val))]))
+
+  (define show-$:Key : ($:Key → Sexp)
+    (match-lambda
+      [($:Key:Exp Σ E)
+       `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
+      [($:Key:Mon Σ Ctx V V^)
+       `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+      [($:Key:Fc Σ ℓ V V^)
+       `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+      [($:Key:App Σ ℓ V W)
+       `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
+      [($:Key:App/rest Σ ℓ V W V^)
+       `(App ,(show-V V) ,@(show-W W) #:rest ,(show-V^ V^) @ ,@(show-Σ Σ))]
+      [($:Key:Hv Σ α)
+       `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
 
   (define (sexp->string [s : Sexp]) (format "~a" s))
   )

@@ -113,7 +113,7 @@
     (match (set-count blames)
       [0 (printf "Safe~n")]
       [n
-       (printf "Found ~a possible errors~a~n" n (maybe-plural n))
+       (printf "Found ~a possible error~a~n" n (maybe-plural n))
        (for ([b (in-set blames)] [i (in-naturals)])
          (print-blame b (format "(~a)" (+ 1 i))))]))
 

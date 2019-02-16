@@ -59,7 +59,7 @@
        (define α  (γ:top 𝒾))
        (define α* (γ:wrp 𝒾))
        (with-collapsed [(cons C^ ΔΣ) ((evl/single/collapse ℓ) Σ c)]
-         (with-collapsing [(ΔΣ* Ws) (mon Σ (Ctx l 'dummy- ℓ ℓ) C^ (unpack α Σ))]
+         (with-collapsing [(ΔΣ* Ws) (mon (⧺ Σ ΔΣ) (Ctx l 'dummy- ℓ ℓ) C^ (unpack α Σ))]
            (values (⧺ ΔΣ ΔΣ* (alloc α* (car (collapse-W^ Ws)))) ∅)))]
       [(? symbol? x)
        (define 𝒾 (-𝒾 x (current-module)))
@@ -68,21 +68,11 @@
        (values (alloc α* (lookup α Σ)) ∅)]))
 
   (: evl : Σ E → (Values R (℘ Err)))
-  (define (evl Σ-full E₀)
-    (define Σ (gc (E-root E₀) Σ-full))
-    #;(printf "~a~a ⊢ ~a ⇓ ...~n"
-            (make-string (* 2 (db:depth)) #\space)
-            (show-Σ Σ)
-            (show-e E₀))
-    (define-values (rₐ esₐ)
-      (parameterize ([db:depth (+ 1 (db:depth))])
-        (ref-$! ($:Key:Exp Σ E₀) (λ () (do-evl Σ E₀)))))
-    #;(printf "~a~a ⊢ ~a ⇓ ~a~n"
-            (make-string (* 4 (db:depth)) #\space)
-            (show-Σ Σ)
-            (show-e E₀)
-            (show-R rₐ))
-    (values rₐ esₐ))
+  (define (evl Σ E₀)
+    (define root (E-root E₀))
+    (define Σ* (gc root Σ))
+    (ref-$! ($:Key:Exp Σ* E₀)
+            (λ () (with-gc root (λ () (do-evl Σ* E₀))))))
 
   (: do-evl : Σ E → (Values R (℘ Err)))
   ;; Evaluate `E₀` under `Σ` without caching `E₀`
@@ -169,7 +159,7 @@
       [(-μ/c x E)
        (with-collapsed/R [(cons C ΔΣ) ((evl/single/collapse +ℓ₀) Σ E)]
          (define α (α:dyn (β:x/c x) H₀))
-         (values (hash (⧺ ΔΣ (alloc α C)) {set (list {set α})}) ∅))]
+         (just (X/C α) (⧺ ΔΣ (alloc α C))))]
       [(-->i (-var doms ?doms:rst) rngs)
        (: mk-Dom : -dom (U Clo V^) → (Values Dom ΔΣ))
        (define (mk-Dom dom C)
@@ -207,7 +197,7 @@
       [(case--> cases)
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
        (just (Case-=> Cases) ΔΣ)]
-      [(-x/c x) (just (α:dyn (β:x/c x) H₀))]
+      [(-x/c x) (just (X/C (α:dyn (β:x/c x) H₀)))]
       [(-∀/c xs E)
        (define-values (Ρ ΔΣ) (escape Σ (fv E₀)))
        (just (∀/C xs E Ρ) ΔΣ)]))

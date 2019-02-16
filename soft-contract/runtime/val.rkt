@@ -99,7 +99,7 @@
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
         [(or (? Clo?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
-        [(α:dyn (? β:x/c?) _) #t]
+        [(X/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
         [V (error 'C-flat? "unexpected: ~a" V)]))
@@ -212,12 +212,16 @@
     (define xs (if (-var? fml) (-var-init fml) fml))
     (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
                                (split-at W (length xs))
-                               (values W #f)))
-    (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
-      (values (γ:lex x)
-              (and (= 1 (set-count Vs))
-                   (let ([V (set-first Vs)])
-                     (and (T? V) V))))))
+                               (values W #f))) 
+    (define m
+      (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
+        (values (γ:lex x)
+                (and (= 1 (set-count Vs))
+                     (let ([V (set-first Vs)])
+                       (and (T? V) V))))))
+    (match fml
+      [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
+      [_ m]))
 
   (: rename : Renamings → T → (Option T))
   ;; Compute renaming in general.

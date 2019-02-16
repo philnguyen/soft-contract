@@ -72,10 +72,21 @@
         [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
               (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))])))
 
+  (: refine-not : V^ V Σ → (Values V^ ΔΣ))
+  (define (refine-not Vs P Σ)
+    (for*/fold ([acc : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ])
+               ([V (in-set Vs)]
+                [P (if (α? P) (in-set (unpack P Σ)) (in-value P))])
+      (case (sat₁ Σ P V)
+        [(✓) (values acc ΔΣ)]
+        [(✗) (values (set-add acc V) ΔΣ)]
+        [else (define-values (V* ΔΣ*) (refine-not₁ V P Σ))
+              (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))])))
+
   (: refine₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine₁ V P Σ)
     (match V
-      [(? -●?) (values (refine-V V P) ⊥ΔΣ)]
+      [(? -●?) (values (refine-V V P Σ) ⊥ΔΣ)]
       [(? T? T)
        (define ΔΣ
          (cond [(ambiguous? T Σ) ⊥ΔΣ]
@@ -126,24 +137,62 @@
       (case (sat₁ Σ P V)
         [(✓) (set-add acc V)]
         [(✗) acc]
-        [else (∪ acc (refine-V V P))])))
+        [else (∪ acc (refine-V V P Σ))])))
 
-  (: refine-V : V V → V^)
-  (define (refine-V V P)
+  (: refine-V : V V Σ → V^)
+  (define (refine-V V P Σ)
     (match V
-      [(-● Ps) (reify (refine-Ps Ps P))]
+      [(-● Ps) (reify (refine-Ps Ps P Σ))]
       [_ {set V}]))
 
-  (: refine-Ps : (℘ P) V → (℘ P))
-  (define (refine-Ps Ps Q) ; TODO
-    (if (P? Q) (set-add Ps Q) Ps))
+  (: refine-Ps : (℘ P) V Σ → (℘ P))
+  ;; Strengthen refinement set with new predicate
+  (define (refine-Ps Ps₀ P₀ Σ)
+
+    ;; Combine 2 predicates for a more precise one.
+    ;; Return `#f` if there's no single predicate that refines both
+    (define P+ : (P P → (Option (℘ P)))
+      (match-lambda**/symmetry
+       [(P Q) #:when (equal? '✓ (P⊢P Σ P Q)) {set P}]
+       [((or 'exact-integer? 'exact-nonnegative-integer?)
+         (P:≥ (-b (and (? (between/c 0 1)) (not 0)))))
+        {set 'exact-positive-integer?}]
+       [((or 'exact-integer? 'exact-nonnegative-integer?)
+         (P:> (-b (and (? (between/c 0 1)) (not 1)))))
+        {set 'exact-positive-integer?}]
+       [('exact-integer? (P:≥ (-b (and (? (between/c -1 0)) (not -1)))))
+        {set 'exact-nonnegative-integer?}]
+       [('exact-integer? (P:> (-b (and (? (between/c -1 0)) (not  0)))))
+        {set 'exact-nonnegative-integer?}]
+       [('exact-nonnegative-integer? (P:¬ (P:= (-b 0))))
+        {set 'exact-positive-integer?}]
+       [('list? (P:¬ 'null?)) {set 'list? -cons?}]
+       [('list? (P:¬ -cons?)) {set 'null?}]
+       #:else
+       [(_ _) #f]))
+
+    (: iter : P (℘ P) → (U (℘ P) (Pairof (℘ P) (℘ P))))
+    (define (iter P₀ Ps₀)
+      (or (for/or : (Option (Pairof (℘ P) (℘ P))) ([Pᵢ (in-set Ps₀)])
+            (define Ps* (P+ Pᵢ P₀))
+            (and Ps* (cons (set-remove (set-remove Ps₀ Pᵢ) P₀) Ps*)))
+          (set-add Ps₀ P₀)))
+
+    (: repeat-compact (∀ (X) (X (℘ X) → (U (℘ X) (Pairof (℘ X) (℘ X)))) X (℘ X) → (℘ X)))
+    (define (repeat-compact f x xs)
+      (let loop ([x : X x] [xs : (℘ X) xs])
+        (match (f x xs)
+          [(cons xs₁ xs₂) (set-fold loop xs₁ xs₂)]
+          [(? set? s) s])))
+
+    (if (P? P₀) (repeat-compact iter P₀ Ps₀) Ps₀))
 
   (: sat₁ : Σ V V → ?Dec)
   (define (sat₁ Σ P V₀)
     (match V₀
-      [(-● Ps) (Ps⊢P Ps P)]
+      [(-● Ps) (Ps⊢P Σ Ps P)]
       [(? α? α) (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack α Σ))]
-      [(and T (T:@ k _)) (or (and (symbol? k) (P⊢P (get-conservative-range k) P))
+      [(and T (T:@ k _)) (or (and (symbol? k) (P⊢P Σ (get-conservative-range k) P))
                              (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack T Σ)))]
       [_ (match P
            [(-st-p 𝒾)
@@ -225,9 +274,9 @@
               [(hash?) (check-among Hash-Of? (with-guard Hash/C?))]
               [(set? generic-set?) (check-among Set-Of? (with-guard Set/C?))]
               [(contract?)
-               (check-among Fn/C? And/C? Or/C? Not/C?
+               (check-among Fn/C? And/C? Or/C? Not/C? X/C?
                             Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
-                            ∀/C? Seal/C? -b? (match-λ? (α:dyn (? β:x/c?) _)))]
+                            ∀/C? Seal/C? -b?)]
               [(flat-contract?) (check-among -b? proper-flat-contract?)]
               ;; Take more conservative view of sealed value than standard Racket.
               ;; `sealed` is the lack of type information.
@@ -343,8 +392,8 @@
     (define go-V
       (match-lambda**
        [((-b x) (-b y)) (bool->Dec (equal? x y))]
-       [((-● Ps) (-b b)) (Ps⊢P Ps (One-Of/C {set b}))]
-       [((-b b) (-● Ps)) (Ps⊢P Ps (One-Of/C {set b}))]
+       [((-● Ps) (-b b)) (Ps⊢P Σ Ps (One-Of/C {set b}))]
+       [((-b b) (-● Ps)) (Ps⊢P Σ Ps (One-Of/C {set b}))]
        [((? -o? o₁) (? -o? o₂)) (bool->Dec (equal? o₁ o₂))]
        [((St 𝒾₁ αs₁) (St 𝒾₂ αs₂)) (if (equal? 𝒾₁ 𝒾₂) (go* αs₁ αs₂) '✗)]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
@@ -354,93 +403,94 @@
 
     (go-V V₁ V₂))
 
-  (:* Ps⊢P simple-Ps⊢P : (℘ P) V → ?Dec)
-  (define (Ps⊢P Ps Q)
+  (:* Ps⊢P simple-Ps⊢P : Σ (℘ P) V → ?Dec)
+  (define (Ps⊢P Σ Ps Q)
     (define Q* (canonicalize Q))
     (if (set? Q*)
-        (summarize-conj (map/set (λ ([Q : P]) (simple-Ps⊢P Ps Q)) Q*))
-        (simple-Ps⊢P Ps Q*)))
-  (define (simple-Ps⊢P Ps Q)
+        (summarize-conj (map/set (λ ([Q : P]) (simple-Ps⊢P Σ Ps Q)) Q*))
+        (simple-Ps⊢P Σ Ps Q*)))
+  (define (simple-Ps⊢P Σ Ps Q)
     (cond [(∋ Ps Q) '✓]
           [(and (equal? Q -cons?) (∋ Ps (P:¬ 'null?)) (∋ Ps 'list?)) '✓]
           [(equal? Q 'none/c) '✗]
           [(equal? Q 'any/c) '✓]
-          [else (for/or : ?Dec ([P (in-set Ps)]) (P⊢P P Q))]))
+          [else (for/or : ?Dec ([P (in-set Ps)]) (P⊢P Σ P Q))]))
 
-  (:* P⊢P simple-P⊢P : V V → ?Dec)
-  (define (P⊢P P₀ Q₀)
+  (:* P⊢P simple-P⊢P : Σ V V → ?Dec)
+  ;; Need `Σ` because of predicates such as `(P≥ x)`
+  (define (P⊢P Σ P₀ Q₀)
     (define P* (canonicalize P₀))
     (define Q* (canonicalize Q₀))
     (cond [(and (set? P*) (set? Q*))
-           (summarize-conj (map/set (λ ([Q : P]) (simple-Ps⊢P P* Q)) Q*))]
+           (summarize-conj (map/set (λ ([Q : P]) (simple-Ps⊢P Σ P* Q)) Q*))]
           [(set? Q*)
-           (summarize-conj (map/set (λ ([Q : P]) (simple-P⊢P P* Q)) Q*))]
-          [(set? P*) (simple-Ps⊢P P* Q*)]
-          [else (simple-P⊢P P* Q*)]))
-  (define simple-P⊢P
-    (match-lambda**
-     ;; Base
-     [(_ 'any/c) '✓]
-     [('none/c _) '✓]
-     [(_ 'none/c) '✗]
-     [('any/c _) #f]
-     [(P P) '✓]
-     [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
-     [(P 'values) (match P ; TODO generalize
-                    ['not '✗]
-                    [(? -o?) '✓] ; TODO careful
-                    [_ #f])]
-     [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
-     [((? base-only?) (? -st-p?)) '✗]
-     [((? -st-p?) (? base-only?)) '✗]
-     ;; Negate
-     [((P:¬ P) (P:¬ Q)) (case (simple-P⊢P Q P)
-                          [(✓) '✓]
-                          [else #f])]
-     [(P (P:¬ Q)) (neg (simple-P⊢P P Q))]
-     [((P:¬ P) Q) (case (simple-P⊢P Q P)
-                    [(✓) '✗]
-                    [else #f])]
-     ;; Special rules for numbers
-     ; < and <
-     [((P:≤ (-b (? real? a))) (P:< (-b (? real? b))))
-      (and (<  a b) '✓)]
-     [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
-       (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
-      (and a b (<= a b) '✓)]
-     ; > and >
-     [((P:≥ (-b (? real? a))) (P:> (-b (? real? b))))
-      (and (>  a b) '✓)]
-     [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
-       (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
-      (and a b (>= a b) '✓)]
-     ; < and >
-     [((P:≤ (-b (? real? a))) (P:≥ (-b (? real? b))))
-      (and (<  a b) '✗)]
-     [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
-       (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
-      (and a b (<= a b) '✗)]
-     ; > and <
-     [((P:≥ (-b (? real? a))) (P:≤ (-b (? real? b))))
-      (and (>  a b) '✗)]
-     [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
-       (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
-      (and a b (>= a b) '✗)]
-     ; _ -> real?
-     [((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?) (? P:=?)) (or 'real? 'number?)) '✓]
-     [((P:= (and b (-b (? real?)))) Q) (sat₁ ⊥Σ Q b)]
-     ; equal?
-     [((P:= (-b (? real? x))) (P:= (-b (? real? y)))) (bool->Dec (= x y))]
-     [((P:< (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<= a b) '✗]
-     [((P:≤ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<  a b) '✗]
-     [((P:> (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>= a b) '✗]
-     [((P:≥ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>  a b) '✗]
-     [((P:= (-b (? real? a))) (P:< (-b (? real? b)))) (bool->Dec (<  a b))]
-     [((P:= (-b (? real? a))) (P:≤ (-b (? real? b)))) (bool->Dec (<= a b))]
-     [((P:= (-b (? real? a))) (P:> (-b (? real? b)))) (bool->Dec (>  a b))]
-     [((P:= (-b (? real? a))) (P:≥ (-b (? real? b)))) (bool->Dec (>= a b))]
-     ;; Default
-     [(_ _) #f]))
+           (summarize-conj (map/set (λ ([Q : P]) (simple-P⊢P Σ P* Q)) Q*))]
+          [(set? P*) (simple-Ps⊢P Σ P* Q*)]
+          [else (simple-P⊢P Σ P* Q*)]))
+  (define (simple-P⊢P Σ P Q)
+    (match* (P Q)
+      ;; Base
+      [(_ 'any/c) '✓]
+      [('none/c _) '✓]
+      [(_ 'none/c) '✗]
+      [('any/c _) #f]
+      [(P P) '✓]
+      [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
+      [(P 'values) (match P ; TODO generalize
+                     ['not '✗]
+                     [(? -o?) '✓] ; TODO careful
+                     [_ #f])]
+      [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
+      [((? base-only?) (? -st-p?)) '✗]
+      [((? -st-p?) (? base-only?)) '✗]
+      ;; Negate
+      [((P:¬ P) (P:¬ Q)) (case (simple-P⊢P Σ Q P)
+                           [(✓) '✓]
+                           [else #f])]
+      [(P (P:¬ Q)) (neg (simple-P⊢P Σ P Q))]
+      [((P:¬ P) Q) (case (simple-P⊢P Σ Q P)
+                     [(✓) '✗]
+                     [else #f])]
+      ;; Special rules for numbers
+      ; < and <
+      [((P:≤ (-b (? real? a))) (P:< (-b (? real? b))))
+       (and (<  a b) '✓)]
+      [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
+        (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
+       (and a b (<= a b) '✓)]
+      ; > and >
+      [((P:≥ (-b (? real? a))) (P:> (-b (? real? b))))
+       (and (>  a b) '✓)]
+      [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
+        (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
+       (and a b (>= a b) '✓)]
+      ; < and >
+      [((P:≤ (-b (? real? a))) (P:≥ (-b (? real? b))))
+       (and (<  a b) '✗)]
+      [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
+        (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
+       (and a b (<= a b) '✗)]
+      ; > and <
+      [((P:≥ (-b (? real? a))) (P:≤ (-b (? real? b))))
+       (and (>  a b) '✗)]
+      [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
+        (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
+       (and a b (>= a b) '✗)]
+      ; _ -> real?
+      [((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?) (? P:=?)) (or 'real? 'number?)) '✓]
+      [((P:= (and b (-b (? real?)))) Q) (sat₁ Σ Q b)]
+      ; equal?
+      [((P:= (-b (? real? x))) (P:= (-b (? real? y)))) (bool->Dec (= x y))]
+      [((P:< (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<= a b) '✗]
+      [((P:≤ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<  a b) '✗]
+      [((P:> (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>= a b) '✗]
+      [((P:≥ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>  a b) '✗]
+      [((P:= (-b (? real? a))) (P:< (-b (? real? b)))) (bool->Dec (<  a b))]
+      [((P:= (-b (? real? a))) (P:≤ (-b (? real? b)))) (bool->Dec (<= a b))]
+      [((P:= (-b (? real? a))) (P:> (-b (? real? b)))) (bool->Dec (>  a b))]
+      [((P:= (-b (? real? a))) (P:≥ (-b (? real? b)))) (bool->Dec (>= a b))]
+      ;; Default
+      [(_ _) #f]))
 
   ;; Whether predicate `P` only covers base types
   (define (base-only? [P : V])
@@ -470,10 +520,6 @@
       [(P:> x) {set (P:≥ x) (P:¬ (P:= x))}]
       [(P:< x) (P:¬ (P:≥ x))]
       [P P]))
-
-  (: check-range-in : -o V → ?Dec)
-  (define (k . check-range-in . P)
-    (and (symbol? k) (P⊢P (get-conservative-range k) P)))
 
   (splicing-let ([list-excl? ; TODO use prim-runtime
                   (set->predicate

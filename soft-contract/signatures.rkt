@@ -44,5 +44,6 @@
    [maybe=? : (Σ Integer V^ → Boolean)]
    [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
    [refine : (V^ V Σ → (Values V^ ΔΣ))]
+   [refine-not : (V^ V Σ → (Values V^ ΔΣ))]
    [reify : (V^ → V^)]
    ))
