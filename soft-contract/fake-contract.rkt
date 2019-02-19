@@ -137,7 +137,9 @@
     [(_ (~or i:id
              (struct-out so:id)
              (contract-out (~or [p/i:id ctc:expr]
-                                [struct s:id ([ac:id dom:expr] ...)]) ...))
+                                ;; TODO confirm that ignoring super struct declaration here makes no difference.
+                                ;; In a transparent module, the superstruct relation is recorded at struct definition site.
+                                [struct (~or s:id (s:id _:id)) ([ac:id dom:expr] ...)]) ...))
         ...)
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
