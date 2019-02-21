@@ -51,19 +51,40 @@
 
     #:args (first-module . other-modules) ; TODO re-enable file list
     (cons first-module other-modules)]
-   (Listof Path-String)))
+   (Listof Path-String))) 
 
 (: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: run-with : ((Listof Path-String) → (Values (℘ Blm) Σ)) (Listof Path-String) → (℘ Blm))
-  (define (run-with f files)
-    (define-values (blms _) (f files))
-    (print-blames blms)
-    blms)
+  (Summary . ≜ . (Immutable-HashTable ℓ (Listof (℘ (U T V)))))
 
-  (: print-blame : Blm String → Void)
-  (define (print-blame blm idx)
+  (: ⊕ : (℘ (U T V)) T^ → (℘ (U T V)))
+  (define (⊕ vals val) (if (set? val) (∪ vals val) (set-add vals val)))
+  (define (val->string [v : (U T V)]) (format "~a" (show-T v)))
+  (define (show-val-set [vs : (℘ (U V T))])
+    (if (= 1 (set-count vs))
+        (val->string (set-first vs))
+        (string-join (set-map vs val->string) " " #:before-first "{" #:after-last "}")))
+
+  (: run-with : ((Listof Path-String) → (Values (℘ Blm) Σ)) (Listof Path-String) → Void)
+  (define (run-with f files)
+    (define-values (blms* _) (f files))
+    (define blms
+      (for/fold ([acc : Summary (hash)]) ([b (in-set blms*)])
+        (match b
+          [(Blm _ ℓ _ (list Cs) (cons fun args))
+           #:when (if (set? Cs)
+                      (∋ Cs 'size-change-terminating/c)
+                      (eq? Cs 'size-change-terminating/c))
+           (hash-update
+            acc ℓ
+            (λ ([vals : (Listof (℘ (U T V)))]) (map ⊕ vals (cons fun args)))
+            (λ () (make-list (+ 1 (length args)) ∅)))]
+          [_ acc])))
+    (print-blames blms))
+
+  (: print-blame : ℓ (℘ (U T V)) (Listof (℘ (U T V))) String → Void)
+  (define (print-blame ℓ fun args idx)
 
     (: show-set (∀ (X) (X → Sexp) X → String))
     (define (show-set f x)
@@ -75,31 +96,22 @@
                               #:before-first "{"
                               #:after-last "}"))]
             [else (format "~a" s)]))
-    
-    (match-define (Blm l+ ℓ:site ℓ:origin Cs Vs) blm)
-    (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ:site) (ℓ-line ℓ:site) (ℓ-col ℓ:site))
-    (printf "    - Blaming: ~a~n" l+)
-    (printf "    - Contract from: ~a:~a:~a @ ~a ~n" (ℓ-src ℓ:origin) (ℓ-line ℓ:origin) (ℓ-col ℓ:origin) (ℓ-id ℓ:origin))
-    (printf "    - Expected: ~a~n"
-            (match Cs
-              [(list C) (show-set show-blm-reason C)]
-              ['() "no value"]
-              [_ (format "~a values: ~a" (length Cs) (map show-blm-reason Cs))]))
-    (printf "    - Given: ~a~n"
-            (match Vs
-              [(list V) (show-set show-T V)]
-              ['() "(values)"]
-              [_ (format "~a values: ~a" (length Vs) (map show-T Vs))])))
 
-  (: print-blames : (℘ Blm) → Void)
-  (define (print-blames blames)
+    (printf "~a ~a:~a:~a~n" idx (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ))
+    (printf "    - Function: ~a~n" (show-val-set fun))
+    (printf "    - Arguments:~n")
+    (for ([arg (in-list args)])
+      (printf "        * ~a~n" (show-val-set arg))))
+
+  (: print-blames : Summary → Void)
+  (define (print-blames summary)
     (define maybe-plural (match-lambda [1 ""] [_ "s"]))
-    (match (set-count blames)
+    (match (hash-count summary)
       [0 (printf "Safe~n")]
       [n
-       (printf "Found ~a possible contract violation~a~n" n (maybe-plural n))
-       (for ([b (in-set blames)] [i (in-naturals)])
-         (print-blame b (format "(~a)" (+ 1 i))))]))
+       (printf "Found ~a possible SCT violation~a~n" n (maybe-plural n))
+       (for ([(ℓ vals) (in-hash summary)] [i (in-naturals)])
+         (print-blame ℓ (car vals) (cdr vals) (format "(~a)" (+ 1 i))))]))
 
   (: go : (Listof Path-String) → Any)
   (define (go fnames)
@@ -116,12 +128,7 @@
            (pretty-write (show-module m))
            (printf "~n"))]
         [(light) (run-with run fnames)]
-        [(havoc) (define blms (run-with havoc fnames))
-                 (when (opt?)
-                   (printf "~nOptimized modules:~n")
-                   (for ([m (in-list (parse-files fnames))])
-                     (pretty-write (show-module (optimize m blms)))
-                     (printf "~n")))]
+        [(havoc) (run-with havoc fnames)]
         [(havoc-last) (run-with havoc-last fnames)]
         [(debug) (void (viz fnames))])))
 

@@ -560,6 +560,6 @@
     (if (eq? Ξ* Ξ) (↝ Ξ* Σ) {set Ξ*}))
 
   (define db:iter? : (Parameterof Boolean) (make-parameter #f))
-  (define db:max-steps : (Parameterof (Option Integer)) (make-parameter #f))
+  (define db:max-steps : (Parameterof (Option Integer)) (make-parameter 1450 #|TODO restore|#))
   (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
   )

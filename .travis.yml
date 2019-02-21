@@ -38,6 +38,7 @@ script:
  - cd soft-contract
  - /usr/racket/bin/raco pkg install --deps search-auto
  # Run test suite
- - /usr/racket/bin/raco test test/sanity-test.rkt
+ #- /usr/racket/bin/raco test test/sanity-test.rkt
+ - for file in tests; do raco scv "$file"; done
 
 after_script:

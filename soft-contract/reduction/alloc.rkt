@@ -55,7 +55,7 @@
          (define ext-$ : ($ → $)
            (let-values ([(αs Ss)
                          (for/lists ([αs : (Listof α)] [Ss : (Listof S)])
-                                    ([α : α (in-var fmls)] [T (in-var args)] #:unless (mutable? α))
+                                    ([α : α ((inst in-var α) fmls)] [T ((inst in-var T^) args)] #:unless (mutable? α))
                            (define S (if (and (S? T) (not looped?) (in-scope? T scope))
                                          T
                                          (S:α α)))
@@ -64,8 +64,9 @@
 
          (define ext-Ψ : (Ψ Ψ → Ψ)
            (let* ([mappings
-                   (var-fold (λ ([α : α] [T : T^] [m : (Immutable-HashTable S S:α)])
-                               (if (S? T) (hash-set m T (S:α α)) m))
+                   ((inst var-fold α T^ (Immutable-HashTable S S:α))
+                    (λ (α T m)
+                      (if (S? T) (hash-set m T (S:α α)) m))
                              ((inst hash S S:α)) fmls args)]
                   [er? (λ ([S : S]) (hash-has-key? mappings S))]
                   [subst₁
@@ -103,7 +104,7 @@
        (: ext-env : Ρ -formals (-var α) → Ρ)
        (define (ext-env Ρ₀ xs αs)
          (define f : (Symbol α Ρ → Ρ) (λ (x α Ρ) (Ρ+ Ρ x α)))
-         (var-fold f Ρ₀ xs αs)))
+         ((inst var-fold Symbol α Ρ) f Ρ₀ xs αs)))
     
     (: bind-args! : Φ^ Ρ -formals W H Σ → (Values Φ^ Ρ))
     (define (bind-args! Φ^ Ρ fmls W H Σ)

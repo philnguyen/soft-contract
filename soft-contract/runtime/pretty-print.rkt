@@ -69,7 +69,7 @@
          ""
          #:before-first "●"))]
       [(? -o? o) (show-o o)]
-      [(Clo xs ⟦E⟧ Ρ) `(λ ,(show-formals xs) … ,(show-Ρ Ρ))]
+      [(Clo xs ⟦E⟧ Ρ) `(λ ,(show-formals xs) ...)]
       [(Case-Clo cases) `(case-lambda ,@(map show-V cases))]
       [(X/G _ G α) `(,(show-V G) ◃ ,(show-α α))]
       [(St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]

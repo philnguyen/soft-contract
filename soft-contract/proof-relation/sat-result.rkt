@@ -24,9 +24,11 @@
 
   (: ⊔*/set (∀ (X) (X → ?Dec) (Setof X) → ?Dec))
   (define (⊔*/set f xs)
-    (for/fold ([r : ?Dec (f (set-first xs))])
-              ([x (in-set (set-rest xs))] #:break (not r))
-      (⊔₁ r (f x))))
+    (if (set-empty? xs)
+        #f
+        (for/fold ([r : ?Dec (f (set-first xs))])
+                  ([x (in-set (set-rest xs))] #:break (not r))
+          (⊔₁ r (f x)))))
 
   (: neg : ?Dec → ?Dec)
   ;; Negate provability result
