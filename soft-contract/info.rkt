@@ -15,7 +15,6 @@
                "profile-lib"
                "rackunit-typed"
                "set-extras"
-               "traces"
                "typed-racket-hacks"
                "typed-racket-lib"
                "unreachable"

@@ -14,7 +14,7 @@
          "parse/signatures.rkt"
          "main.rkt")
 
-(Mode . ::= . 'light 'havoc 'expand 'havoc-last 'debug 'debug-cg)
+(Mode . ::= . 'light 'havoc 'expand 'havoc-last)
 (define mode : Mode 'havoc)
 (define opt? ((inst make-parameter Boolean) #f))
 
@@ -39,12 +39,6 @@
     [("-o" "--optimize")
      "Dump optimized programs after verification"
      (opt? #t)]
-    [("-d" "--debug")
-     "Show graph"
-     (set! mode 'debug)]
-    [("-c" "--debug-call-graph")
-     "Show call graph"
-     (set! mode 'debug-cg)]
     [("-s" "--max-steps") n
      "Set maximum steps to explore"
      (db:max-steps (assert (string->number (assert n string?)) exact-nonnegative-integer?))]
@@ -129,8 +123,7 @@
            (printf "~n"))]
         [(light) (run-with run fnames)]
         [(havoc) (run-with havoc fnames)]
-        [(havoc-last) (run-with havoc-last fnames)]
-        [(debug) (void (viz fnames))])))
+        [(havoc-last) (run-with havoc-last fnames)])))
 
   (go (map canonicalize-path fnames)))
 
