@@ -83,8 +83,9 @@
    #;[mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
-   [r:err : (Err → (Values R (℘ Err)))]
+   [r:err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
    [r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
+   [r:blm : (-l ℓ ℓ W W → (℘ Blm))]
    [r:reify : (V^ → V^)]
    [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
                         → (Values R (℘ Err)))]

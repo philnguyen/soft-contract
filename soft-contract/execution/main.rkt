@@ -48,11 +48,11 @@
         [#f (λ () #f)]))
     
     (let loop ()
-      (when dump-iter?
-        (printf "iter: ~a~n" iter))
-      (set! iter (+ 1 iter))
       (set! $ᵢₙ $ₒᵤₜ)
       (set! $ₒᵤₜ (⊥$))
+      (when dump-iter?
+        (printf "iter: ~a (~a) ~n" iter (hash-count $ᵢₙ)))
+      (set! iter (+ 1 iter))
       (define es (run))
       (if (or (done?) (equal? $ᵢₙ $ₒᵤₜ))
           (values (set-filter blame-on-transparent? es) $ᵢₙ)
@@ -71,8 +71,12 @@
   (: just ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
   (define (just V [ΔΣ ⊥ΔΣ]) (values (R-of V ΔΣ) ∅))
 
-  (: err (Err → (Values R (℘ Err))))
-  (define (err er) (values ⊥R {set er}))
+  (: err ((U (℘ Err) Err) → (Values R (℘ Err))))
+  (define (err er) (values ⊥R (if (set? er) er {set er})))
+
+  (: blm : -l ℓ ℓ W W → (℘ Blm))
+  (define (blm l+ ℓ ℓₒ ctc val)
+    (if (transparent-module? l+) {set (Blm l+ ℓ ℓₒ ctc val)} ∅))
 
   (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
   (define (fold-ans on-X Xs)

@@ -293,10 +293,12 @@
       (check-inits dom-inits args)))
 
   ;; Eta-expand to get aroudn undefined and init-depend
-  (: r:err : Err → (Values R (℘ Err)))
+  (: r:err : (U (℘ Err) Err) → (Values R (℘ Err)))
   (define (r:err e) (err e))
   (: r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
   (define (r:just V [ΔΣ ⊥ΔΣ]) (just V ΔΣ))
+  (: r:blm : (-l ℓ ℓ W W → (℘ Blm)))
+  (define (r:blm l+ ℓ ℓₒ ctc val) (blm l+ ℓ ℓₒ ctc val))
   (: r:reify : V^ → V^)
   (define (r:reify Cs) (reify Cs))
   (: r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))

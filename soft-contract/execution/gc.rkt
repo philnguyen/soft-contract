@@ -19,33 +19,22 @@
           val^)
   (export gc^)
 
-  (: gc : (℘ T) Σ → Σ)
+  (: gc : (℘ α) Σ → Σ)
   (define (gc root Σ₀)
-    (define seen : (Mutable-HashTable T #t) (make-hash))
+    (define seen : (Mutable-HashTable α #t) (make-hash))
 
-    (define Ts-from-α
-      (for*/fold ([m : (HashTable α (℘ T)) (hash)])
-                 ([Tᵢ (in-hash-keys Σ₀)]
-                  #:when (T:@? Tᵢ)
-                  [α (in-set (T-root Tᵢ))])
-        (hash-update m α (λ ([Ts : (℘ T)]) (set-add Ts Tᵢ)) mk-∅)))
-
-    (: touch : T Σ → Σ)
-    (define (touch T Σ)
-      (if (hash-has-key? seen T)
+    (: touch : α Σ → Σ)
+    (define (touch α Σ)
+      (if (hash-has-key? seen α)
           Σ
-          (let ([T* (cond [(T:@? T) (T-root T)]
-                          [(-b? T) ∅]
-                          [else (hash-ref Ts-from-α T mk-∅)])])
-            (hash-set! seen T #t)
-            (define Σ*
-              (match (hash-ref Σ₀ T #f)
-                [(and r (cons Vs _)) (foldl touch* (hash-set Σ T r) (set-map Vs V-root))]
-                [#f Σ]))
-            (touch* T* Σ*))))
+          (begin
+            (hash-set! seen α #t)
+            (match (hash-ref Σ₀ α #f)
+              [(and r (cons Vs _)) (foldl touch* (hash-set Σ α r) (set-map Vs V-root))]
+              [#f Σ]))))
     
-    (: touch* : (℘ T) Σ → Σ)
-    (define (touch* Ts Σ) (set-fold touch Σ Ts))
+    (: touch* : (℘ α) Σ → Σ)
+    (define (touch* αs Σ) (set-fold touch Σ αs))
 
     (let ([Σ* (touch* root ⊥Σ)])
       (if (= (hash-count Σ*) (hash-count Σ₀))
@@ -53,46 +42,51 @@
           Σ₀
           ;; Remove refinements referring to gc-ed values
           (let ([root* (list->set (hash-keys Σ*))])
-            (for/fold ([Σ* : Σ Σ*]) ([(T r) (in-hash Σ*)])
+            (for/fold ([Σ* : Σ Σ*]) ([(α r) (in-hash Σ*)])
               (match-define (cons Vs N) r)
               (define Vs*
-                (for/fold ([Vs* : V^ Vs]) ([V (in-set Vs)])
-                  (match V
+                (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
+                  (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
+                  (define (replace-if-refinements-stale Ps mk-V)
+                    (define Ps*
+                      (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)]
+                                                     [P:root (in-value (P-root P))]
+                                                     #:unless (or (set-empty? P:root)
+                                                                  (⊆ P:root root*)))
+                        (set-remove Ps* P)))
+                    ;; Try to retain old instance
+                    (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
+                  (match Vᵢ
                     [(-● Ps)
-                     (define Ps*
-                       (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)]
-                                                      [P:root (in-value (P-root P))]
-                                                      #:unless (or (set-empty? P:root)
-                                                                   (⊆ P:root root*)))
-                         (set-remove Ps* P)))
-                     ;; Try to retain old instance
-                     (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* V) (-● Ps*)))]
+                     (replace-if-refinements-stale Ps -●)]
+                    [(St 𝒾 αs Ps)
+                     (replace-if-refinements-stale Ps (λ (Ps*) (St 𝒾 αs Ps*)))]
                     [_ Vs*])))
               (cond [(eq? Vs* Vs) Σ*] ; try to retain old instance
-                    [(set-empty? Vs*) (hash-remove Σ* T)]
-                    [else (hash-set Σ* T (cons Vs* N))]))))))
+                    [(set-empty? Vs*) (hash-remove Σ* α)]
+                    [else (hash-set Σ* α (cons Vs* N))]))))))
 
-  (: with-gc : (℘ T) (→ (Values R (℘ Err))) → (Values R (℘ Err)))
+  (: with-gc : (℘ α) (→ (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (with-gc root comp)
     (define-values (r es) (comp))
     (values (gc-R root r) es))
 
-  (: gc-R : (℘ T) R → R)
+  (: gc-R : (℘ α) R → R)
   (define (gc-R root r)
     (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
       (define root* (apply ∪ root (set-map Ws W-root)))
       (define ΔΣ* (gc root* ΔΣ))
       (hash-update acc ΔΣ* (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ Ws)) mk-∅)))
 
-  (define V-root : (V → (℘ T))
+  (define V-root : (V → (℘ α))
     (match-lambda
-      [(St _ αs) (list->set αs)]
+      [(St _ αs _) (list->set αs)]
       [(Vect αs) (list->set αs)]
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set-Of α _) {set α}]
-      [(Clo _ E Ρ _) (∪ Ρ (set-filter (match-lambda [(γ:lex (? symbol?)) #f] [_ #t]) (E-root E)))]
-      [(Case-Clo clos _) (apply ∪ ∅ (map Clo-_2 clos))]
+      [(? Clo? V) (Clo-root V)]
+      [(Case-Clo clos _) (apply ∪ ∅ (map Clo-root clos))]
       [(Guarded _ C α) (set-add (V-root C) α)]
       [(Sealed α) ∅] ; TODO confirm ok
       [(And/C α₁ α₂ _) {set α₁ α₂}]
@@ -111,31 +105,38 @@
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
       [(? P? P) (P-root P)]
-      [(-● Ps) ∅]
+      [(-● _) ∅]
       [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
       [(? symbol? o) {set (γ:hv o)}]
-      [(? -prim? p) ∅]))
+      [(or (? -prim?) (? One-Of/C?)) ∅]))
 
-  (define P-root : (P → (℘ T))
+  (define Clo-root : (Clo → (℘ α))
+    (match-lambda
+      [(Clo _ E Ρ _) (∪ Ρ (set-filter (match-lambda [(γ:lex (? symbol?)) #f] [_ #t]) (E-root E)))]))
+
+  (define P-root : (P → (℘ α))
     (match-lambda
       [(P:¬ Q) (P-root Q)]
-      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T)) (if (T? T) {set T} ∅)]
+      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T))
+       (cond [(T:@? T) (T-root T)]
+             [(α? T) {set T}]
+             [else ∅])]
       [_ ∅]))
 
-  (: V^-root : V^ → (℘ T))
+  (: V^-root : V^ → (℘ α))
   (define (V^-root Vs) (set-union-map V-root Vs))
 
-  (: W-root : W → (℘ T))
+  (: W-root : W → (℘ α))
   (define (W-root W) (apply ∪ ∅ (map V^-root W)))
 
-  (define ==>i-root : (==>i → (℘ T))
+  (define ==>i-root : (==>i → (℘ α))
     (match-lambda
       [(==>i (-var doms ?doms:rst) rng)
        (∪ (apply ∪ (if ?doms:rst (Dom-root ?doms:rst) ∅) (map Dom-root doms))
           (if rng (apply ∪ ∅ (map Dom-root rng)) ∅))]))
 
-  (define Dom-root : (Dom → (℘ T))
-    (match-lambda [(Dom _ C _) (if (Clo? C) (Clo-_2 C) {set C})]))
+  (define Dom-root : (Dom → (℘ α))
+    (match-lambda [(Dom _ C _) (if (Clo? C) (Clo-root C) {set C})]))
 
   (: E-root : E → (℘ γ))
   ;; Compute free variables for expression. Return set of variable names.

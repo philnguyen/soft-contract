@@ -57,11 +57,12 @@
     #:init ([Vᵥ any/c] [Vᵢ integer?])
     ((inst fold-ans V)
      (match-lambda
-       [(St 𝒾 αs)
+       [(St 𝒾 αs Ps)
          (define Vₐ
            (for/union : V^ ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
              (unpack αᵢ Σ)))
-         (just Vₐ)]
+         (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
+         (just Vₐ* ΔΣ)]
         [(Guarded ctx (St/C 𝒾 αs _) αᵥ)
          (define Vᵥ* (unpack αᵥ Σ))
          (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]

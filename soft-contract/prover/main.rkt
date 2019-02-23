@@ -58,19 +58,24 @@
     (match-lambda
       ['null? -null]
       ['not -ff]
-      [(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '())]
+      [(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) (St 𝒾 '() ∅)]
       [_ #f]))
 
-  (: refine : V^ V Σ → (Values V^ ΔΣ))
-  (define (refine Vs P Σ)
-    (for*/fold ([acc : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ])
-               ([V (in-set Vs)]
-                [P (if (α? P) (in-set (unpack P Σ)) (in-value P))])
-      (case (sat₁ Σ P V)
-        [(✓) (values (set-add acc V) ΔΣ)]
-        [(✗) (values acc ΔΣ)]
-        [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
-              (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))])))
+  (: refine : V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))
+  (define (refine Vs P* Σ)
+    (if (set? P*)
+        ;; refine by conjunction of predicates
+        (for*/fold ([Vs : V^ Vs] [ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
+          (define-values (Vs* ΔΣ*) (refine Vs P Σ))
+          (values Vs* (⧺ ΔΣ ΔΣ*)))
+        (for*/fold ([acc : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ])
+                   ([V (in-set Vs)]
+                    [P (if (α? P*) (in-set (unpack P* Σ)) (in-value P*))])
+          (case (sat₁ Σ P V)
+            [(✓) (values (set-add acc V) ΔΣ)]
+            [(✗) (values acc ΔΣ)]
+            [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
+                  (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))]))))
 
   (: refine-not : V^ V Σ → (Values V^ ΔΣ))
   (define (refine-not Vs P Σ)
@@ -87,21 +92,32 @@
   (define (refine₁ V P Σ)
     (match V
       [(? -●?) (values (refine-V V P Σ) ⊥ΔΣ)]
-      [(? T? T)
-       (define ΔΣ
-         (cond [(ambiguous? T Σ) ⊥ΔΣ]
-               [else (match (lookup T Σ)
-                       [{singleton-set (? T? T*)}
-                        (mut (if (ambiguous? T* Σ) T T*) (refine-V^ (unpack T* Σ) P Σ))]
-                       [_ (mut T (refine-V^ (unpack T Σ) P Σ))])]))
-       (values {set T} ΔΣ)]
+      [(? T? T) (values {set T} (if (ambiguous? T Σ) ⊥ΔΣ (refine-T T P Σ)))]
       [_ (values {set V} ⊥ΔΣ)]))
+
+  (: refine-T : T V Σ → ΔΣ)
+  (define (refine-T T₀ P Σ)
+    (if (P? P)
+        (let go ([T : (U T -b) T₀] [acs : (Listof -st-ac) '()])
+          (match T
+            [(T:@ (? -st-ac? ac) (list T*)) (go T* (cons ac acs))]
+            [(? α? α) (mut α (refine-V^ (unpack α Σ) (if (pair? acs) (P:St acs P) P) Σ))]
+            [_ ⊥ΔΣ]))
+        ⊥ΔΣ)
+    
+    #;(match (lookup T Σ)
+        [{singleton-set (? T? T*)}
+         (mut (if (ambiguous? T* Σ) T T*) (refine-V^ (unpack T* Σ) P Σ))]
+        [_ (mut T (refine-V^ (unpack T Σ) P Σ))]))
 
   (: refine-not₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine-not₁ V P Σ)
-    (cond [(Q? P) (refine₁ V (P:¬ P) Σ)]
-          [(P:¬? P) (refine₁ V (P:¬-_0 P) Σ)]
-          [else (values {set V} ⊥ΔΣ)]))
+    (match P
+      [(? Q?) (refine₁ V (P:¬ P) Σ)]
+      [(P:¬ Q) (refine₁ V Q Σ)]
+      [(P:St acs (? Q? Q)) (refine₁ V (P:St acs (P:¬ Q)) Σ)]
+      [(P:St acs (P:¬ Q)) (refine₁ V (P:St acs Q) Σ)]
+      [_ (values {set V} ⊥ΔΣ)]))
 
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
@@ -143,6 +159,7 @@
   (define (refine-V V P Σ)
     (match V
       [(-● Ps) (reify (refine-Ps Ps P Σ))]
+      [(St 𝒾 α Ps) {set (St 𝒾 α (refine-Ps Ps P Σ))}]
       [_ {set V}]))
 
   (: refine-Ps : (℘ P) V Σ → (℘ P))
@@ -169,7 +186,13 @@
        [('list? (P:¬ 'null?)) {set 'list? -cons?}]
        [('list? (P:¬ -cons?)) {set 'null?}]
        #:else
-       [(_ _) #f]))
+       [(P₀ Q₀)
+        (match* (P₀ Q₀)
+          [((P:St acs P*) (P:St acs Q*))
+           (match (P+ P* Q*)
+             [(? values Ps) (map/set (λ ([P : P]) (P:St acs P)) Ps)]
+             [_ #f])]
+          [(_ _) #f])]))
 
     (: iter : P (℘ P) → (U (℘ P) (Pairof (℘ P) (℘ P))))
     (define (iter P₀ Ps₀)
@@ -197,7 +220,7 @@
       [_ (match P
            [(-st-p 𝒾)
             (match V₀
-              [(or (St 𝒾* _) (Guarded _ (St/C 𝒾* _ _) _))
+              [(or (St 𝒾* _ _) (Guarded _ (St/C 𝒾* _ _) _))
                (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
               [_ '✗])]
            [(One-Of/C bs) (bool->Dec (and (-b? V₀) (∋ bs (-b-unboxed V₀))))]
@@ -395,7 +418,7 @@
        [((-● Ps) (-b b)) (Ps⊢P Σ Ps (One-Of/C {set b}))]
        [((-b b) (-● Ps)) (Ps⊢P Σ Ps (One-Of/C {set b}))]
        [((? -o? o₁) (? -o? o₂)) (bool->Dec (equal? o₁ o₂))]
-       [((St 𝒾₁ αs₁) (St 𝒾₂ αs₂)) (if (equal? 𝒾₁ 𝒾₂) (go* αs₁ αs₂) '✗)]
+       [((St 𝒾₁ αs₁ _) (St 𝒾₂ αs₂ _)) (if (equal? 𝒾₁ 𝒾₂) (go* αs₁ αs₂) '✗)]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
@@ -435,6 +458,7 @@
       [(_ 'none/c) '✗]
       [('any/c _) #f]
       [(P P) '✓]
+      [((P:St acs P*) (P:St acs Q*)) (simple-P⊢P Σ P* Q*)]
       [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
       [(P 'values) (match P ; TODO generalize
                      ['not '✗]
@@ -519,6 +543,12 @@
       [(P:¬ 'odd?) 'even?]
       [(P:> x) {set (P:≥ x) (P:¬ (P:= x))}]
       [(P:< x) (P:¬ (P:≥ x))]
+      [(and P₀ (P:St acs P*))
+       (define P** (canonicalize P*))
+       (cond [(eq? P** P*) P₀] ; try to re-use old instance
+             [(set? P**) (map/set (λ ([P : P]) (P:St acs P)) P**)]
+             [(P? P**) (P:St acs P**)]
+             [else P₀])]
       [P P]))
 
   (splicing-let ([list-excl? ; TODO use prim-runtime
@@ -593,6 +623,102 @@
       (ensure-?Dec
        (for*/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-set V₁)] [Vⱼ (in-set V₂)] #:when d)
          (join-Dec d (check Vᵢ Vⱼ))))))
+
+  (: unpack : (U V V^) Σ → V^)
+  (define (unpack Vs Σ)
+    (define seen : (Mutable-HashTable α #t) (make-hash))
+
+    (: V@ : -st-ac → V → V^)
+    (define (V@ ac)
+      (match-define (-st-ac 𝒾 i) ac)
+      (match-lambda
+        [(St (== 𝒾) αs Ps)
+         (define-values (V* _)
+           (refine (unpack-V^ (car (hash-ref Σ (list-ref αs i))) ∅)
+                   (ac-Ps ac Ps)
+                   Σ))
+         ;; TODO: explicitly enforce that store delta doesn't matter in this case
+         V*]
+        [(-● Ps) {set (-● (ac-Ps ac Ps))}]
+        [_ ∅]))
+
+    (: unpack-V : V V^ → V^)
+    (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (set-add acc V)))
+
+    (: unpack-V^ : V^ V^ → V^)
+    (define (unpack-V^ Vs acc) (set-fold unpack-V acc Vs))
+
+    (: unpack-T : (U T -b) V^ → V^)
+    (define (unpack-T T acc)
+      (cond [(T:@? T) (unpack-T:@ T acc)]
+            [(-b? T) (set-add acc T)]
+            [else (unpack-α T acc)]))
+
+    (: unpack-α : α V^ → V^)
+    (define (unpack-α α acc)
+      (cond [(hash-has-key? seen α) acc]
+            [else (hash-set! seen α #t)
+                  (set-fold unpack-V acc (Σ@ α Σ))]))
+
+    (: unpack-T:@ : T:@ V^ → V^)
+    (define (unpack-T:@ T acc)
+      (match T
+        [(T:@ (? -st-ac? ac) (list T*))
+         (∪ acc (set-union-map (V@ ac) (unpack-T T* ∅)))]
+        [_ acc]))
+
+    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
+
+  (: unpack-W : W Σ → W)
+  (define (unpack-W W Σ) (map (λ ([V^ : V^]) (unpack V^ Σ)) W))
+
+  (: behavioral? : V Σ → Boolean)
+  ;; Check if value maybe behavioral.
+  ;; `#t` is a conservative answer "maybe yes"
+  ;; `#f` is a strong answer "definitely no"
+  (define (behavioral? V₀ Σ)
+    (define-set seen : α #:as-mutable-hash? #t)
+
+    (: check-α : α → Boolean)
+    (define (check-α α)
+      (cond [(seen-has? α) #f]
+            [else (seen-add! α)
+                  (set-ormap check (Σ@ α Σ))]))
+
+    (define check-==>i : (==>i → Boolean)
+      (match-lambda
+        [(==>i (-var init rest) rng)
+         (or (ormap check-dom init)
+             (and rest (check-dom rest))
+             (and rng (ormap check-dom rng)))]))
+
+    (define check-dom : (Dom → Boolean)
+      (match-lambda
+        [(Dom _ C _) (if (Clo? C) #t (check-α C))]))
+
+    (define check : (V → Boolean)
+      (match-lambda
+        [(St _ αs _) (ormap check-α αs)]
+        [(Vect αs) (ormap check-α αs)]
+        [(Vect-Of α _) (check-α α)]
+        [(Hash-Of αₖ αᵥ im?) (or (not im?) (check-α αₖ) (check-α αᵥ))]
+        [(Set-Of α im?) (or (not im?) (check-α α))]
+        [(Guarded _ G α) (or (Fn/C? G) (check-α α))]
+        [(? ==>i? V) (check-==>i V)]
+        [(Case-=> cases) (ormap check-==>i cases)]
+        [(or (? Clo?) (? Case-Clo?)) #t]
+        [(? T? T) (set-ormap check (unpack T Σ))]
+        [_ #f]))
+
+    (check V₀))
+
+  (: collect-behavioral-values : W^ Σ → V^)
+  (define (collect-behavioral-values Ws Σ)
+    (for*/fold ([acc : V^ ∅])
+               ([W (in-set Ws)]
+                [Vs (in-list W)]
+                [V (in-set Vs)] #:when (behavioral? V Σ))
+      (set-add acc V)))
 
   (define-syntax-parser collect
     [(_ sat:id refine:id refine-not:id Σ:id P:id Vs:id ...)

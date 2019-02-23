@@ -9,13 +9,14 @@
          unreachable
          intern
          set-extras
-         "../ast/signatures.rkt"
+         (only-in "../utils/list.rkt" NeListof)
+         "../ast/signatures.rkt" 
          )
 
 (E . ≜ . -e)
 
 (#|Run-time Values|# V . ::= . -prim
-                               (St -𝒾 (Listof α))
+                               (St -𝒾 (Listof α) (℘ P))
                                (Vect (Listof α))
                                (Vect-Of [content : α] [length : #|restricted|# V^])
                                (Hash-Of [key : α] [val : α] [immut? : Boolean])
@@ -27,8 +28,8 @@
                                T
                                (-● (℘ P)))
 (#|Identities     |# T . ::= . α (T:@ -o (Listof (U T -b))))
-(#|Stores         |# Σ .  ≜  . (Immutable-HashTable T (Pairof V^ N)))
-(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable T (Pairof V^ N)))
+(#|Stores         |# Σ .  ≜  . (Immutable-HashTable α (Pairof V^ N)))
+(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof V^ N)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
 (#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E (℘ α) ℓ)
                                 (Case-Clo (Listof Clo) ℓ))
@@ -59,7 +60,7 @@
                                       [origin : ℓ]
                                       [ctc : W]
                                       [val : W]))
-(#|Predicates     |# P . ::= . Q (P:¬ Q))
+(#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
 (#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity))
 (#|Caches         |# $ .  ≜  . (Mutable-HashTable $:Key (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
@@ -154,8 +155,8 @@
 ;; Convenient patterns
 (define-syntax-rule (define-St-matcher (P α ...) St-id)
   (define-match-expander P
-    (syntax-rules () [(_ α ...) (St (== St-id) (list α ...))])
-    (syntax-rules () [(_ α ...) (St St-id (list α ...))])))
+    (syntax-rules () [(_ α ...) (St (== St-id) (list α ...) _)])
+    (syntax-rules () [(_ α ...) (St St-id (list α ...) ∅)])))
 (define-syntax-rule (define-St/G-matcher P St-id)
   (define-match-expander P
     (syntax-rules () [(_ α) (Guarded _ (St/C (== St-id) _ _) α)])))
@@ -183,27 +184,19 @@
 
 (define-signature sto^
   ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
-   [lookup : (T Σ → V^)]
-   [unpack : ((U V V^) Σ → V^)]
-   [unpack-W : (W Σ → W)]
+   [lookup : (α Σ → V^)]
+   [Σ@ : (α Σ → V^)]
    [alloc : (α V^ → ΔΣ)]
    [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
    [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
    [alloc-vararg : (Symbol W → ΔΣ)]
    [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
    [alloc-each : (W (Natural → β) → (Values (Listof α) ΔΣ))]
-   [unalloc-prefix : (Natural V^ Σ → (Option (Pairof W V^)))]
    [resolve-lex : ((U Symbol -𝒾) → α)]
-   [mut : (T V^ → ΔΣ)] 
+   [mut : (α V^ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [escape : (Σ (℘ Symbol) → (Values (℘ α) ΔΣ))]
    [stack-copy : ((℘ α) Σ → ΔΣ)] 
    [ambiguous? : (T Σ → Boolean)]
-   
-   ;; Old
-   #;[alloc-rest-args : ([-Σ ℓ -H -φ (Listof -V^)] [#:end -V] . ->* . (Values -V -φ))]
-   #;[unalloc : (-σ -δσ -V → (℘ (Listof -V^)))]
-   #;[unalloc-prefix : (-σ -δσ -V Natural → (℘ (Pairof (Listof -V^) -V)))]
    ))
 
 (define-signature cache^
@@ -227,13 +220,12 @@
    [C^-flat? : (V^ Σ → Boolean)]
    [arity : (V → (Option Arity))]
    [guard-arity : (Fn/C → Arity)]
-   [collect-behavioral-values : (W^ Σ → V^)]
-   [behavioral? : (V Σ → Boolean)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
    [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
    [rename : (Renamings → T → (Option T))]
    [T-root : (T:@ → (℘ α))]
+   [ac-Ps : (-st-ac (℘ P) → (℘ P))]
    #;[fresh-sym! : (→ -s)]
    #;[in-scope? : ((U α S) (℘ α) → Boolean)]
    #;[cmp-sets : (?Cmp (℘ Any))]

@@ -246,11 +246,11 @@
                     (λ _ (blm '#,?rst V^)))]
                  ['() #,@body])))
           body))
-    (hack:make-available (-o) r:err)
+    (hack:make-available (-o) r:err r:blm)
     (cons
      #`(define (blm [ctc : V] [val : V^])
          (define ℓₒ (loc->ℓ (loc '#,(-o) 0 0 '())))
-         (r:err (Blm (ℓ-src #,(-ℓ)) #,(-ℓ) ℓₒ (list {set ctc}) (list val))))
+         (r:err (r:blm (ℓ-src #,(-ℓ)) #,(-ℓ) ℓₒ (list {set ctc}) (list val))))
      (gen-inits doms (-Vⁿ))))
 
   ;; See if range needs to go through general contract monitoring

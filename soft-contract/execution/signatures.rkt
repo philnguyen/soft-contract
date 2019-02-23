@@ -32,7 +32,8 @@
    [ref-$! : ($:Key (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
    [current-module : (Parameterof -l)]
    [just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
-   [err : (Err → (Values R (℘ Err)))] 
+   [err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
+   [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fold-ans : (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err)))]
    [ans-map : ((ΔΣ W^ → (Values R (℘ Err))) R → (Values R (℘ Err)))]
    [with-split-Σ : (Σ V W
@@ -63,11 +64,11 @@
    [gen-havoc-expr : ((Listof -module) → E)]))
 
 (define-signature gc^
-  ([gc : ((℘ T) Σ → Σ)]
-   [with-gc : ((℘ T) (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
-   [V-root : (V → (℘ T))]
-   [V^-root : (V^ → (℘ T))]
-   [W-root : (W → (℘ T))]
+  ([gc : ((℘ α) Σ → Σ)]
+   [with-gc : ((℘ α) (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
+   [V-root : (V → (℘ α))]
+   [V^-root : (V^ → (℘ α))]
+   [W-root : (W → (℘ α))]
    [E-root : (E → (℘ γ))]))
 
 (define-syntax with-collapsed

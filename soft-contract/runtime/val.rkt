@@ -50,10 +50,29 @@
         [(? ==>i? V) (==>i/ V)]
         [(∀/C xs E αs) (∀/C xs E (map/set α/ αs))]
         [(Case-=> Cs) (Case-=> (map ==>i/ Cs))]))
+    (define P/ : (P → P)
+      (match-lambda
+        [(P:¬ Q) (P:¬ (Q/ Q))]
+        [(P:St acs P) (P:St acs (P/ P))]))
+    (define Q/ : (Q → Q)
+      (match-lambda
+        [(P:> T) (P:> (T/ T))]
+        [(P:≥ T) (P:≥ (T/ T))]
+        [(P:< T) (P:< (T/ T))]
+        [(P:≤ T) (P:≤ (T/ T))]
+        [(P:= T) (P:= (T/ T))]
+        [P P]))
+    (define T/ : ((U T -b) → (U T -b))
+      (match-lambda
+        [(T:@ o Ts) (T:@ o (map T/ Ts))]
+        [(? α? α) (α/ α)]
+        [(? -b? b) b]))
     (λ (V₀)
       (let go ([V : V V₀])
         (match V
-          [(St 𝒾 αs) (St 𝒾 (map α/ αs))]
+          [(? P? P) (P/ P)]
+          [(? T? T) (T/ T)]
+          [(St 𝒾 αs Ps) (St 𝒾 (map α/ αs) (map/set P/ Ps))]
           [(Vect αs) (Vect (map α/ αs))]
           [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
           [(Hash-Of α₁ α₂ im?) (Hash-Of (α/ α₁) (α/ α₂) im?)]
@@ -67,7 +86,7 @@
           [(Not/C α ℓ) (Not/C (α/ α) ℓ)]
           [(? Prox/C? C) (Prox/C/ C)]
           [(Seal/C α) (Seal/C (α/ α))]
-          [(? α? α) (α/ α)]
+          [(-● Ps) (-● (map/set P/ Ps))]
           [V V]))))
 
   (: W⊔ : W W → W)
@@ -87,7 +106,7 @@
     (define (go-α α)
       (cond [(seen-has? α) #t]
             [else (seen-add! α)
-                  (set-andmap go-V (unpack α Σ))]))
+                  (set-andmap go-V (Σ@ α Σ))]))
     (: go-V : V → Boolean)
     (define go-V
       (match-lambda
@@ -149,54 +168,6 @@
       [(-∀/c _ E) (E-arity E)]
       [E (error 'E-arity "~a" E)]))
 
-  (: collect-behavioral-values : W^ Σ → V^)
-  (define (collect-behavioral-values Ws Σ)
-    (for*/fold ([acc : V^ ∅])
-               ([W (in-set Ws)]
-                [Vs (in-list W)]
-                [V (in-set Vs)] #:when (behavioral? V Σ))
-      (set-add acc V)))
-
-  (: behavioral? : V Σ → Boolean)
-  ;; Check if value maybe behavioral.
-  ;; `#t` is a conservative answer "maybe yes"
-  ;; `#f` is a strong answer "definitely no"
-  (define (behavioral? V₀ Σ)
-    (define-set seen : α #:as-mutable-hash? #t)
-
-    (: check-α : α → Boolean)
-    (define (check-α α)
-      (cond [(seen-has? α) #f]
-            [else (seen-add! α)
-                  (set-ormap check (unpack α Σ))]))
-
-    (define check-==>i : (==>i → Boolean)
-      (match-lambda
-        [(==>i (-var init rest) rng)
-         (or (ormap check-dom init)
-             (and rest (check-dom rest))
-             (and rng (ormap check-dom rng)))]))
-
-    (define check-dom : (Dom → Boolean)
-      (match-lambda
-        [(Dom _ C _) (if (Clo? C) #t (check-α C))]))
-
-    (define check : (V → Boolean)
-      (match-lambda
-        [(St _ αs) (ormap check-α αs)]
-        [(Vect αs) (ormap check-α αs)]
-        [(Vect-Of α _) (check-α α)]
-        [(Hash-Of αₖ αᵥ im?) (or (not im?) (check-α αₖ) (check-α αᵥ))]
-        [(Set-Of α im?) (or (not im?) (check-α α))]
-        [(Guarded _ G α) (or (Fn/C? G) (check-α α))]
-        [(? ==>i? V) (check-==>i V)]
-        [(Case-=> cases) (ormap check-==>i cases)]
-        [(or (? Clo?) (? Case-Clo?)) #t]
-        [(? T? T) (set-ormap check (unpack T Σ))]
-        [_ #f]))
-
-    (check V₀))
-
   (:* with-negative-party with-positive-party : -l V → V)
   (define with-negative-party
     (match-lambda**
@@ -254,6 +225,16 @@
             [(-b? T) ∅]
             [else {set T}]))
     (apply ∪ ∅ (map go (T:@-_1 T₀))))
+
+  (: ac-Ps : -st-ac (℘ P) → (℘ P))
+  (define (ac-Ps ac Ps)
+    (for/fold ([Ps* : (℘ P) ∅]) ([P (in-set Ps)])
+      (match P
+        [(P:St (cons (== ac) acs*) P*)
+         (set-add Ps* (if (pair? acs*) (P:St acs* P*) P*))]
+        ;; Special case for rest of `list?`. TODO: reduce hack
+        ['list? #:when (equal? ac -cdr) (set-add Ps* 'list?)]
+        [_ Ps*])))
 
   #| 
   (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))

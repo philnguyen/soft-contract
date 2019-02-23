@@ -182,7 +182,8 @@
     [(_ (~or i:id
              (struct-out so:id)
              (contract-out (~or [p/i:id ctc:expr]
-                                [struct s:id ([ac:id dom:expr] ...)]) ...))
+                                ;; TODO confirm that ignoring parent declaration makes no difference
+                                [struct (~or s:id (s:id _:id)) ([ac:id dom:expr] ...)]) ...))
         ...)
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))

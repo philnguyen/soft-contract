@@ -354,7 +354,7 @@
                         (#%plain-lambda () (quote-syntax k1:id))))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-mod)))
-       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (next-ℓ! #'rhs)) (syntax-ℓ #'d))]
+       (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-mod)) (next-ℓ! #'d)) (next-ℓ! #'d))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 

@@ -23,6 +23,7 @@
 
 (define-unit evl@
   (import meta-functions^ static-info^ ast-pretty-print^
+          prover^
           sto^ cache^ val^ pretty-print^
           exec^ app^ mon^ gc^)
   (export evl^)
@@ -307,4 +308,18 @@
                   (⧺ Σ ΔΣ₁)
                   xs*)]
            [(#f es) (values #f (∪ acc-es es))])])))
+
+  (: escape : Σ (℘ Symbol) → (Values (℘ α) ΔΣ))
+  (define (escape Σ Xs)
+    (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
+                 (values (γ:lex x) (α:dyn x H₀))))
+    (define adjust (rename rn))
+    (define addrs (list->set (hash-keys rn)))
+    (define-values (αs* ΔΣ*)
+      (for/fold ([αs : (℘ α) ∅] [ΔΣ : ΔΣ ⊥ΔΣ]) ([α₀ (in-hash-keys Σ)])
+        (match α₀
+          [(and (? γ:lex? γ) (app (λ ([γ : γ]) (hash-ref rn γ #f)) (? values α)))
+           (values (set-add αs α) (⧺ ΔΣ (alloc α (unpack γ Σ))))]
+          [_ (values αs ΔΣ)])))
+    (values αs* ΔΣ*))
   )

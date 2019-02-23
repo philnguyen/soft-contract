@@ -53,7 +53,7 @@
             [('() '())
              (values (R-of (reverse rev-As) ΔΣ) es)]))
         (match-let ([(Ctx l+ _ ℓₒ ℓ) ctx])
-          (err (Blm l+ ℓ ℓₒ Cs Vs)))))
+          (err (blm l+ ℓ ℓₒ Cs Vs)))))
 
   (: mon₁ : V → ⟦C⟧)
   (define (mon₁ C)
@@ -82,8 +82,8 @@
            [((list V*) ΔΣ₂)
             (define αᵥ (α:dyn (β:fn ctx) H₀))
             (just (Guarded ctx C αᵥ) (alloc αᵥ V*))])
-          (λ (W _) (err (Blm l+ ℓₒ ℓ (list {set arity-check}) W)))))
-      (λ (W _) (err (Blm l+ ℓₒ ℓ (list {set 'procedure?}) W)))))
+          (λ (W _) (err (blm l+ ℓₒ ℓ (list {set arity-check}) W)))))
+      (λ (W _) (err (blm l+ ℓₒ ℓ (list {set 'procedure?}) W)))))
 
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) Σ₀ ctx Vs)
@@ -107,12 +107,12 @@
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
           (define-values (αs ΔΣ**) (alloc-each (collapse-W^ Ws) (λ (i) (β:fld 𝒾 ℓₕ i))))
-          (define V* {set (St 𝒾 αs)})
+          (define V* {set (St 𝒾 αs ∅)})
           (if (struct-all-immutable? 𝒾)
               (just V* (⧺ ΔΣ ΔΣ* ΔΣ**))
               (let ([α (α:dyn (β:st 𝒾 ctx) H₀)])
                 (just (Guarded ctx C α) (⧺ ΔΣ ΔΣ* ΔΣ** (alloc α V*)))))))
-      (λ (W* _) (err (Blm l+ ℓ ℓₒ (list {set C}) W*)))))
+      (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-X/C : α → ⟦C⟧)
   ;; Need explicit contract reference to explicitly hint execution of loop
@@ -151,14 +151,14 @@
       (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W (in-set Ws)])
         (match W
           [(list Vs* _) (values (m⊔ r (R-of Vs* ΔΣ)) es)]
-          [(list _) (values r (set-add es (Blm l+ ℓ ℓₒ (list {set C}) (list V))))]))))
+          [(list _) (values r (∪ es (blm l+ ℓ ℓₒ (list {set C}) (list V))))]))))
 
   (: mon-One-Of/C : One-Of/C → ⟦C⟧)
   (define ((mon-One-Of/C C) Σ ctx Vs)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
     (with-split-Σ Σ C (list Vs)
       (λ (W ΔΣ) (just W ΔΣ))
-      (λ (W ΔΣ) (err (Blm l+ ℓ ℓₒ (list {set C}) W)))))
+      (λ (W ΔΣ) (err (blm l+ ℓ ℓₒ (list {set C}) W)))))
 
   (: mon-Vectof/C : Vectof/C → ⟦C⟧)
   (define ((mon-Vectof/C C) Σ ctx Vs)
@@ -175,7 +175,7 @@
             (define αᵥ (α:dyn (β:unvct ctx) H₀))
             (just (Guarded ctx C αᵥ)
                   (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc αₑ Vₑ) (alloc αᵥ {set (Vect-Of αₑ {set N})}))))))
-      (λ (W* _) (err (Blm l+ ℓₒ ℓ (list {set C}) W*)))))
+      (λ (W* _) (err (blm l+ ℓₒ ℓ (list {set C}) W*)))))
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define ((mon-Vect/C C) Σ ctx Vs)
@@ -184,7 +184,7 @@
     (define n (length αs))
     (define (@ [α : α]) (unpack α Σ))
 
-    (define (blm [V : V]) (Blm l+ ℓₒ ℓ (list {set C}) (list {set V})))
+    (define (blame [V : V]) (blm l+ ℓₒ ℓ (list {set C}) (list {set V})))
 
     (: check-elems+wrap : W → (Values R (℘ Err)))
     (define (check-elems+wrap W)
@@ -218,8 +218,8 @@
        [(and V (-● Ps))
         (if (∋ Ps 'vector?)
             (check-elems+wrap (make-list n {set (-● ∅)}))
-            (err (blm V)))]
-       [V (err (blm V))])
+            (err (blame V)))]
+       [V (err (blame V))])
      Vs))
 
   (: mon-Hash/C : Hash/C → ⟦C⟧)
@@ -237,16 +237,16 @@
   (: mon-Flat/C : V → ⟦C⟧)
   (define ((mon-Flat/C C) Σ ctx Vs)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (define (blm) (Blm l+ ℓ ℓₒ (list {set C}) (list Vs)))
+    (define (blame) (blm l+ ℓ ℓₒ (list {set C}) (list Vs)))
     (case (sat Σ C Vs)
       [(✓) (just Vs)]
-      [(✗) (err (blm))]
+      [(✗) (err (blame))]
       [else
        (with-each-path [(ΔΣ Ws) (fc Σ ℓₒ {set C} Vs)]
          (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W (in-set Ws)])
            (match W
              [(list _) (values (m⊔ r (R-of W ΔΣ)) es)]
-             [(list Vs* _) (values r (set-add es (blm)))])))]))
+             [(list Vs* _) (values r (∪ es (blame)))])))]))
 
   ;; Can't get away with not having specialized flat-check procedure.
   ;; There's no straightforward way to fully refine a value by contract `c`
@@ -304,7 +304,7 @@
              (match αs
                ['()
                 (define-values (αs* ΔΣ*) (alloc-each (reverse rev-W) (λ (i) (β:fld 𝒾 ℓ i))))
-                (just (St 𝒾 αs*) (⧺ ΔΣ ΔΣ*))]
+                (just (St 𝒾 αs* ∅) (⧺ ΔΣ ΔΣ*))]
                [(cons αᵢ αs*)
                 (with-collapsing/R [(ΔΣ:a Ws:a) (app Σ ℓ {set (-st-ac 𝒾 i)} W*)]
                   (with-each-path [(ΔΣᵢ Wsᵢ) (fc (⧺ Σ ΔΣ:a) ℓ (unpack αᵢ Σ) (car (collapse-W^ Ws:a)))]
@@ -318,7 +318,7 @@
                         [(list Vᵢ _)
                          (define fields (append (reverse rev-W) (make-list (- n i 1) {set (-● ∅)})))
                          (define-values (αs* ΔΣ*) (alloc-each fields (λ (i) (β:fld 𝒾 ℓ i))))
-                         (values (m⊔ r (R-of (list {set (St 𝒾 αs*)} -FF) (⧺ ΔΣ:a ΔΣᵢ ΔΣ*))) es)]))))])))
+                         (values (m⊔ r (R-of (list {set (St 𝒾 αs* ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ ΔΣ*))) es)]))))])))
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
       [(X/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
       [(? -b? b)

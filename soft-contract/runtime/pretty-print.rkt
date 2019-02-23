@@ -21,13 +21,12 @@
   (define show-V : (V → Sexp)
     (match-lambda
       [(-b b) (show-b b)]
-      [(-● Ps) (string->symbol (string-join (set-map Ps (compose1 sexp->string show-P))
-                                            "_" #:before-first "●"))]
+      [(-● Ps) (show-Ps Ps "●")]
       [(? -o? o) (show-o o)]
       [(? Clo? clo) (show-Clo clo)]
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
-      [(St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-α αs))]
+      [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
       [(Vect αs) `(vector ,@(map show-α αs))]
       [(Vect-Of α n) `(vector-of ,(show-α α) × ,(show-V^ n))]
       [(Hash-Of αₖ αᵥ im?) `(,(if im? 'hash-of 'mutable-hash-of) ,(show-α αₖ) ,(show-α αᵥ))]
@@ -52,7 +51,15 @@
       [(P:≤ T) `(≤/c ,(show-T T))]
       [(P:= T) `(=/c ,(show-T T))]
       [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
-      [(P:¬ Q) `(¬/c ,(show-P Q))]))
+      [(P:¬ Q) `(¬/c ,(show-P Q))]
+      [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]))
+
+  (define (show-Ps [Ps : (℘ P)] [prefix : String]) : Symbol
+    (string->symbol (string-join (set-map Ps (compose1 sexp->string show-P))
+                                 "_" #:before-first prefix)))
+
+  (define (show-acs [acs : (Listof -st-ac)])
+    (string->symbol (string-join (map (compose1 symbol->string show-o) acs) ".")))
 
   (define show-Arity : (Arity → Sexp)
     (match-lambda

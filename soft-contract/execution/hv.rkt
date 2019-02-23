@@ -12,13 +12,15 @@
          unreachable
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          )
 
 (define-unit hv@
   (import static-info^ meta-functions^
           sto^ cache^ val^
-          exec^ app^ gc^)
+          exec^ app^ gc^
+          prover^)
   (export hv^)
 
 
@@ -76,7 +78,7 @@
                (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???)))]
          [(and k (or (? index?) (? arity-at-least?))) (on-arity k)])]
       ;; Havoc and widen struct's public fields
-      [(or (St 𝒾 _) (Guarded _ (St/C 𝒾 _ _) _))
+      [(or (St 𝒾 _ _) (Guarded _ (St/C 𝒾 _ _) _))
        #:when 𝒾
        (⊕ (collapse Σ (app Σ (ℓ/tag 'st-ref (-𝒾-name 𝒾)) (get-public-accs 𝒾) (list {set V})))
           (collapse Σ (app Σ (ℓ/tag 'st-set! (-𝒾-name 𝒾)) (get-public-muts 𝒾) (list {set V} ●))))]
@@ -98,7 +100,7 @@
       [(or (? Set-Of?) (Guarded _ (? Set/C?) _))
        (collapse Σ (app Σ (ℓ/tag 'set-ref) {set 'set-first} (list {set V})))]
       ;; TODO apply contract to unknown
-      [(? C?) ???]
+      [(? C?) (values ∅ ⊥ΔΣ ∅)]
       [_ (values ∅ ⊥ΔΣ ∅)]))
 
   (: arity-of

@@ -14,7 +14,7 @@
          "parse/signatures.rkt"
          "main.rkt")
 
-(Mode . ::= . 'light 'havoc 'expand 'havoc-last 'debug 'debug-cg)
+(Mode . ::= . 'light 'havoc 'expand 'havoc-last 'havoc/profile)
 (define mode : Mode 'havoc)
 (define opt? ((inst make-parameter Boolean) #f))
 
@@ -36,15 +36,12 @@
     [("-p" "--progress")
      "Dump progress"
      (db:iter? #t)]
+    [("-d" "--profile")
+     "Havoc with profiling"
+     (set! mode 'havoc/profile)]
     [("-o" "--optimize")
      "Dump optimized programs after verification"
      (opt? #t)]
-    [("-d" "--debug")
-     "Show graph"
-     (set! mode 'debug)]
-    [("-c" "--debug-call-graph")
-     "Show call graph"
-     (set! mode 'debug-cg)]
     [("-s" "--max-steps") n
      "Set maximum steps to explore"
      (db:max-steps (assert (string->number (assert n string?)) index?))]
@@ -138,8 +135,14 @@
                    (for ([m (in-list (parse-files fnames))])
                      (pretty-write (show-module (optimize m blms)))
                      (printf "~n")))]
-        [(havoc-last) (run-with havoc-last fnames)]
-        #;[(debug) (void (viz fnames))])))
+        [(havoc/profile)
+         (define blms (run-with havoc/profile fnames))
+         (when (opt?)
+           (printf "~nOptimized modules:~n")
+           (for ([m (in-list (parse-files fnames))])
+             (pretty-write (show-module (optimize m blms)))
+             (printf "~n")))]
+        [(havoc-last) (run-with havoc-last fnames)])))
 
   (go (map canonicalize-path fnames)))
 

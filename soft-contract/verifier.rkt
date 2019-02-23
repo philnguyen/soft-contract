@@ -59,11 +59,7 @@
                     [#:delay Positive-Real]
                     . ->* . (Values (℘ Err) $)))
   (define (havoc/profile ps #:delay [delay 0.05])
-    (let ([ans : (℘ Err) ∅]
-          [$ : $ (make-hash)])
-      ((inst profile-thunk Void)
-       (λ () (set!-values (ans $) (havoc ps))) #:delay delay)
-      (values ans $)))
+    (profile2 (havoc ps) #:delay delay))
 
   (: havoc-last : (Listof Path-String) → (Values (℘ Err) $))
   (define (havoc-last ps)
