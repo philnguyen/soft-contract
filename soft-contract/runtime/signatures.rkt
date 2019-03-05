@@ -39,7 +39,7 @@
                                (One-Of/C (℘ Base))
                                (X/C α)
                                Prox/C
-                               (Seal/C α)
+                               (Seal/C α -l)
                                P)
 (#|Proxies        |# Prox/C . ::= . Fn/C
                                (St/C -𝒾 (Listof α) ℓ)
@@ -54,6 +54,7 @@
                                  (Err:Undefined Symbol ℓ)
                                  (Err:Values Natural E W ℓ)
                                  (Err:Arity [proc : (U V ℓ)] [args : (U Natural W)] [site : ℓ])
+                                 (Err:Varargs W V^ ℓ)
                                  (Err:Sealed [seal : Symbol] [site : ℓ])
                                  (Blm [violator : -l]
                                       [site : ℓ]
@@ -61,7 +62,7 @@
                                       [ctc : W]
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
-(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity))
+(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)))
 (#|Caches         |# $ .  ≜  . (Mutable-HashTable $:Key (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
@@ -75,12 +76,13 @@
                                (γ:hv HV-Tag)
                                ;; Only use this in the prim DSL where all values are finite
                                ;; with purely syntactic components
-                               (γ:imm #|restricted|# V)
-                               ;; indirection for `listof` to keep in-sync with regular listof contracts
-                               (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
-                               (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ)
+                               γ:imm*
                                ;; Escaped struct field
                                (γ:escaped-field -𝒾 Index)) 
+(#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
+                               ;; indirection for `listof` to keep in-sync with regular listof contracts
+                               (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
+                               (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
 (#|Addr. Bases    |# β . ::= . ; escaped parameter
                                Symbol
                                ; mutable cell
@@ -104,9 +106,9 @@
                                ;; for wrapped vector
                                (β:unvct Ctx)
                                ;; for wrapped hash
-                               (β:unhsh Ctx)
+                               (β:unhsh Ctx ℓ)
                                ;; for wrapped set
-                               (β:unset Ctx)
+                               (β:unset Ctx ℓ)
                                ;; for contract components
                                (β:and/c:l ℓ)
                                (β:and/c:r ℓ)
@@ -122,15 +124,14 @@
                                (β:st/c -𝒾 ℓ Natural)
                                (β:dom ℓ)
                                ;; for wrapped function
-                               (β:fn Ctx)
+                               (β:fn Ctx Fn/C-Sig)
                                ;; For values wrapped in seals
-                               (β:sealed Symbol) ; points to wrapped objects
+                               (β:sealed Symbol ℓ) ; points to wrapped objects
                                )
 (#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
                                    ($:Key:Mon Σ Ctx V V^)
                                    ($:Key:Fc Σ ℓ V V^)
                                    ($:Key:App Σ ℓ V W)
-                                   ($:Key:App/rest Σ ℓ V W V^)
                                    ($:Key:Hv Σ α))
 (#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
 (#|Cardinalities  |# N . ::= . 0 1 'N)
@@ -139,6 +140,8 @@
 (#|Cache Tags     |# $:Tag . ::= . 'app 'mon 'flc)
 (#|Abstract Values|# V^ . ≜ . (℘ V))
 (#|Abs. Val. Lists|# W^ . ≜ . (℘ W))
+(#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
+                                                  [#:reuse (Listof Fn/C-Sig)])
 
 ;; Size-change Stuff
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
@@ -170,14 +173,6 @@
 (define ⊥Σ : Σ (hash))
 (define ⊥ΔΣ : ΔΣ (hash))
 
-(: ==> : (-var α) (Option (Listof α)) ℓ → ==>i)
-(define (==> doms rngs ℓ)
-  (define (mk-dom [α : α])
-    (define x (gensym '_))
-    (Dom x α (ℓ-with-id ℓ x)))
-  (==>i (var-map mk-dom doms) (and rngs (map mk-dom rngs))))
-
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Signatures
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -186,6 +181,8 @@
   ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
    [lookup : (α Σ → V^)]
    [Σ@ : (α Σ → V^)]
+   [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
+   [unpack-W : (W Σ → W)]
    [alloc : (α V^ → ΔΣ)]
    [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
    [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
@@ -195,7 +192,8 @@
    [resolve-lex : ((U Symbol -𝒾) → α)]
    [mut : (α V^ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [stack-copy : ((℘ α) Σ → ΔΣ)] 
+   [escape : ((℘ Symbol) Σ → (Values (℘ α) ΔΣ))]
+   [stack-copy : ((℘ α) Σ → ΔΣ)]
    [ambiguous? : (T Σ → Boolean)]
    ))
 
@@ -214,6 +212,11 @@
    [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))] 
    [V/ : (S → V → V)]
    [W⊔ : (W W → W)]
+   [V⊔ : (V^ V^ → V^)]
+   [V⊔₁ : (V V^ → V^)]
+   [blur : (case->
+            [V → V]
+            [V^ → V^])]
    [Ctx-with-site : (Ctx ℓ → Ctx)]
    [Ctx-flip : (Ctx → Ctx)]
    [C-flat? : (V Σ → Boolean)]
@@ -223,9 +226,12 @@
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
    [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
-   [rename : (Renamings → T → (Option T))]
+   [rename : (Renamings → (case->
+                           [T → (Option T)]
+                           [(U T -b) → (Option (U T -b))]))]
    [T-root : (T:@ → (℘ α))]
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
+   [merge/compact : (∀ (X) (X X → (Option (℘ X))) X (℘ X) → (℘ X))]
    #;[fresh-sym! : (→ -s)]
    #;[in-scope? : ((U α S) (℘ α) → Boolean)]
    #;[cmp-sets : (?Cmp (℘ Any))]
@@ -239,6 +245,17 @@
    #;[Ctx-with-origin : (Ctx ℓ → Ctx)]
    #;[X/C->binder : (X/C → Symbol)]
    #;[estimate-list-lengths : ((U Σ Σᵥ) V → (℘ (U #f Arity)))]
+   ))
+
+(define-signature prover^
+  ([sat : (Σ V V^ → ?Dec)]
+   [P⊢P : (Σ V V → ?Dec)]
+   [refine-Ps : ((℘ P) V Σ → (℘ P))]
+   [maybe=? : (Σ Integer V^ → Boolean)]
+   [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
+   [refine : (V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))]
+   [refine-not : (V^ V Σ → (Values V^ ΔΣ))]
+   [reify : ((℘ P) → V^)]
    ))
 
 (define-signature pretty-print^

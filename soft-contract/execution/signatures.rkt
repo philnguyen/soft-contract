@@ -34,6 +34,7 @@
    [just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
    [err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
+   [fix-return : (Renamings Σ R → R)]
    [fold-ans : (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err)))]
    [ans-map : ((ΔΣ W^ → (Values R (℘ Err))) R → (Values R (℘ Err)))]
    [with-split-Σ : (Σ V W
@@ -60,12 +61,13 @@
    [mon* : (Σ Ctx W W → (Values R (℘ Err)))]))
 
 (define-signature hv^
-  ([hv : (Σ γ:hv → (Values R (℘ Err)))]
-   [gen-havoc-expr : ((Listof -module) → E)]))
+  ([leak : (Σ γ:hv V^ → (Values R (℘ Err)))]
+   [gen-havoc-expr : ((Listof -module) → E)]
+   [behavioral? : (V Σ → Boolean)]))
 
 (define-signature gc^
-  ([gc : ((℘ α) Σ → Σ)]
-   [with-gc : ((℘ α) (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
+  ([gc : ([(℘ α) Σ] [Σ] . ->* . Σ)]
+   [with-gc : ((℘ α) Σ (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
    [V-root : (V → (℘ α))]
    [V^-root : (V^ → (℘ α))]
    [W-root : (W → (℘ α))]

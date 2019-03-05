@@ -326,14 +326,15 @@
        (define lhs (syntax-e #'x))
        (define rhs (parse-e #'e))
        (define frees (free-x/c rhs))
+       (define ℓ (syntax-ℓ #'d))
        (cond
          [(set-empty? frees)
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs) rhs (syntax-ℓ #'d))]
+          (-define-values (list lhs) rhs ℓ)]
          [(set-empty? (set-remove frees lhs))
           (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-mod)))
-          (-define-values (list lhs) (-μ/c x (e/ lhs (-x/c x) rhs)) (syntax-ℓ #'d))]
+          (-define-values (list lhs) (-μ/c x (e/ lhs (-x x (syntax-ℓ #'e)) rhs)) ℓ)]
          [else
           (raise-syntax-error
            'recursive-contract
@@ -491,14 +492,13 @@
              (-@ 'and/c (list ctc 'scv:terminating/c) (next-ℓ! #'c))
              ctc))]
       [e:scv-case->
-       (define cases
-         (map
-          (match-lambda
-            [(list inits ?rest rng stx)
-             (define dom (-var (map parse-e inits) (and ?rest (parse-e ?rest))))
-             (--> dom (parse-e rng) (next-ℓ! stx))])
-          (attribute e.cases)))
-       (-@ 'scv:make-case-> cases (next-ℓ! stx))]
+       (case-->
+        (map
+         (match-lambda
+           [(list inits ?rest rng stx)
+            (define dom (-var (map parse-e inits) (and ?rest (parse-e ?rest))))
+            (--> dom (parse-e rng) (next-ℓ! stx))])
+         (attribute e.cases)))]
       [(#%plain-app (~literal fake:list/c) c ...)
        (define args
          (for/list ([cᵢ (in-syntax-list #'(c ...))])
@@ -561,7 +561,7 @@
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
-       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e) (syntax-ℓ #'stx))]
+       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e) (syntax-ℓ stx))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
          (for/fold ([bindings-rev '()] [ρ (env)])
@@ -576,19 +576,19 @@
       [(set! i:identifier e)
        (match-define (-x x _) (parse-ref #'i))
        (set-assignable! x)
-       (-set! x (parse-e #'e))]
+       (-set! x (parse-e #'e) (syntax-ℓ stx))]
       [(#%plain-lambda fmls b ...+)
        (define-values (xs ρ) (parse-formals #'fmls))
        ;; put sequence back to `(begin ...)` to special cases of fake-contracts
-       (-λ xs (with-env ρ (parse-e #'(begin b ...))) (syntax-ℓ #'stx))]
+       (-λ xs (with-env ρ (parse-e #'(begin b ...))) (syntax-ℓ stx))]
       
       [(case-lambda [fml bodies ...+] ...)
-       (-@ 'scv:make-case-lambda
+       (-case-λ
         (for/list ([fmlᵢ (in-syntax-list #'(fml ...))]
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
           (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
-          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))) (syntax-ℓ #'stx)))
+          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))) (syntax-ℓ stx)))
         (next-ℓ! stx))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
@@ -598,6 +598,7 @@
            (syntax-parse bnd
              [((x ...) _)
               (define-values (lhs ρ*) (parse-formals #'(x ...) #:base ρ))
+              (for-each set-assignable! (-var-init lhs))
               (values (cons (-var-init lhs) lhss-rev) ρ*)])))
        (-letrec-values
         (for/list ([lhs (in-list (reverse lhss-rev))]

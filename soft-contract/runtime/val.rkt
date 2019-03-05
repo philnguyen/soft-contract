@@ -16,7 +16,7 @@
 (define-unit val@
   (import meta-functions^ static-info^
           prims^
-          sto^ pretty-print^)
+          sto^ pretty-print^ prover^)
   (export val^)
 
   (: collapse-W^ : W^ → W)
@@ -85,12 +85,12 @@
           [(Or/C α₁ α₂ ℓ) (Or/C (α/ α₁) (α/ α₂) ℓ)]
           [(Not/C α ℓ) (Not/C (α/ α) ℓ)]
           [(? Prox/C? C) (Prox/C/ C)]
-          [(Seal/C α) (Seal/C (α/ α))]
+          [(Seal/C α l) (Seal/C (α/ α) l)]
           [(-● Ps) (-● (map/set P/ Ps))]
           [V V]))))
 
   (: W⊔ : W W → W)
-  (define (W⊔ W₁ W₂) ((inst map V^ V^ V^) ∪ W₁ W₂))
+  (define (W⊔ W₁ W₂) (map V⊔ W₁ W₂))
 
   (define Ctx-with-site : (Ctx ℓ → Ctx)
     (match-lambda** [((Ctx l+ l- ℓ:o _) ℓ) (Ctx l+ l- ℓ:o ℓ)]))
@@ -113,6 +113,7 @@
         [(And/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
         [(Or/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
         [(? Not/C?) #t]
+        [(? One-Of/C?) #t]
         [(St/C _ αs _) (andmap go-α αs)]
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
@@ -142,6 +143,7 @@
       [(? St/C?) 1]
       [(? One-Of/C?) 1]
       [(? -st-p?) 1]
+      [(? -st-ac?) 1]
       [(? -st-mut?) 2]
       [(-st-mk 𝒾) (count-struct-fields 𝒾)]
       [(? symbol? o) (prim-arity o)]
@@ -194,7 +196,9 @@
       [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
       [_ m]))
 
-  (: rename : Renamings → T → (Option T))
+  (: rename : Renamings → (case->
+                           [T → (Option T)]
+                           [(U T -b) → (Option (U T -b))]))
   ;; Compute renaming in general.
   ;; `#f` means there's no correspinding name
   (define (rename rn)
@@ -235,6 +239,98 @@
         ;; Special case for rest of `list?`. TODO: reduce hack
         ['list? #:when (equal? ac -cdr) (set-add Ps* 'list?)]
         [_ Ps*])))
+
+  (: V⊔ : V^ V^ → V^)
+  (define (V⊔ Vs₁ Vs₂)
+    (if (> (set-count Vs₁) (set-count Vs₂))
+        (set-fold V⊔₁ Vs₁ Vs₂)
+        (set-fold V⊔₁ Vs₂ Vs₁)))
+
+  (: V⊔₁ : V V^ → V^)
+  (define (V⊔₁ V Vs) (merge/compact V⊕ V Vs))
+
+  (define V⊕ : (V V → (Option V^))
+    (match-lambda**
+      [(V₁ V₂) #:when (V⊑ V₁ V₂) {set V₂}]
+      [(V₁ V₂) #:when (V⊑ V₂ V₁) {set V₁}]
+      [((-● Ps₁) (-● Ps₂))
+       (define Ps (∩ Ps₁ Ps₂))
+       (and (set-ormap -o? Ps) {set (-● Ps)})]
+      [(_ _) #f]))
+
+  ;; Check if `rhs` *definitely* subsumes `rhs`
+  (define V⊑ : (V V → Boolean)
+    (match-lambda**
+     [(V V) #t]
+     [((-● Ps) (-● Qs))
+      (for/and : Boolean ([Q (in-set Qs)])
+        (for/or : Boolean ([P (in-set Ps)])
+          (P⊢P-without-store? P Q)))]
+     [((? -b? b) (-● Ps))
+      (define b^ {set b})
+      (for/and : Boolean ([P (in-set Ps)])
+        (and (meaningful-without-store? P) (eq? '✓ (sat ⊥Σ P b^))))]
+     [(_ _) #f]))
+
+  (define blur : (case->
+                  [V → V]
+                  [V^ → V^])
+    (match-lambda
+      [(-b (app blur-b (? values P))) (-● {set P})]
+      [(? set? Vs) (map/set blur Vs)]
+      [(and V (not (? set?))) V]))
+
+  (: blur-b : Base → (Option P))
+  (define (blur-b b)
+    (define-syntax-rule (try-each p? ...)
+      (cond [(p? b) 'p?] ... [else #f]))
+    (try-each
+     exact-positive-integer?
+     exact-nonnegative-integer?
+     exact-integer?
+     integer?
+     real?
+     number?
+     string?
+     char?
+     regexp?))
+
+  (: P⊢P-without-store? : P P → Boolean)
+  (define (P⊢P-without-store? P Q)
+    (or (equal? P Q)
+        ;; FIXME: ugly redundancy, but `(P:> T)` need store in general
+        (and (memq Q '(real? number?))
+             (or (P:>? P) (P:≥? P) (P:<? P) (P:≤? P) (P:=? P)))
+        (and (meaningful-without-store? P)
+             (meaningful-without-store? Q)
+             (eq? '✓ (P⊢P ⊥Σ P Q)))))
+
+  (define meaningful-without-store? : (P → Boolean)
+    (match-lambda
+      [(P:¬ Q) (meaningful-without-store? Q)]
+      [(P:St acs Q) (meaningful-without-store? Q)]
+      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:≡ T)) (-b? T)]
+      [(or (? P:arity-includes?) (? -o?)) #t]))
+
+  (: merge/compact (∀ (X) (X X → (Option (℘ X))) X (℘ X) → (℘ X)))
+  ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
+  (define (merge/compact ⊕ x xs)
+
+    (: iter : X (℘ X) → (U (℘ X) (Pairof (℘ X) (℘ X))))
+    (define (iter x₀ xs₀)
+      (or (for/or : (Option (Pairof (℘ X) (℘ X))) ([xᵢ (in-set xs₀)])
+            (define xs* (⊕ xᵢ x₀))
+            (and xs* (cons (set-remove (set-remove xs₀ xᵢ) x₀) xs*)))
+          (set-add xs₀ x₀)))
+
+    (: repeat-compact (∀ (X) (X (℘ X) → (U (℘ X) (Pairof (℘ X) (℘ X)))) X (℘ X) → (℘ X)))
+    (define (repeat-compact f x xs)
+      (let loop ([x : X x] [xs : (℘ X) xs])
+        (match (f x xs)
+          [(cons xs₁ xs₂) (set-fold loop xs₁ xs₂)]
+          [(? set? s) s])))
+
+    (repeat-compact iter x xs))
 
   #| 
   (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))

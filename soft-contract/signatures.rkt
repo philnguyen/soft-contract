@@ -37,18 +37,4 @@
    #|
    [vec-len : (T^ → T^)]
    |#
-   ))
-
-(define-signature prover^
-  ([sat : (Σ V V^ → ?Dec)]
-   [maybe=? : (Σ Integer V^ → Boolean)]
-   [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
-   [refine : (V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))]
-   [refine-not : (V^ V Σ → (Values V^ ΔΣ))]
-   [reify : (V^ → V^)]
-   ;; Store lookup with additional provings to eliminate spurious results
-   [unpack : ((U V V^) Σ → V^)]
-   [unpack-W : (W Σ → W)]
-   [collect-behavioral-values : (W^ Σ → V^)]
-   [behavioral? : (V Σ → Boolean)]
-   ))
+   )) 

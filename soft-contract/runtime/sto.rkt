@@ -6,6 +6,7 @@
          racket/match
          racket/set
          racket/list
+         racket/splicing
          set-extras
          unreachable
          "../utils/patterns.rkt"
@@ -14,7 +15,7 @@
 
 (define-unit sto@
   (import static-info^
-          val^ pretty-print^)
+          val^ prover^ pretty-print^)
   (export sto^) 
 
   (: ⧺ : ΔΣ ΔΣ * → ΔΣ)
@@ -28,25 +29,107 @@
           (for/fold ([ΔΣᵢ : ΔΣ ΔΣᵢ]) ([(α r₀) (in-hash acc)])
             (⧺ˡ α r₀ ΔΣᵢ))))
     (foldl ⧺₁ ΔΣ₀ ΔΣs))
+  (splicing-local
+      ((define ⊥r (cons ∅ 0))
+       (define undef {set -undefined})
+       (define r:undef (cons undef 'N)))
 
-  (: lookup : α Σ → V^)
-  (define (lookup α Σ)
-    (match (hash-ref Σ α #f)
-      [(cons V^ _)
-       (match V^
-         [(singleton-set (? T? T)) (if (α? T) (lookup T Σ) {set T})]
-         [_ (if (γ? α) {set α} V^)])]
-      [#f (error 'lookup "nothing at ~a in ~a" (show-α α) (show-Σ Σ))]))
+    (: lookup : α Σ → V^)
+    (define (lookup α Σ)
+      (if (γ:imm? α)
+          (resolve-imm α)
+          (match (hash-ref Σ α #f)
+            [(cons V^ _)
+             (match V^
+               [(singleton-set (? T? T)) (if (α? T) (lookup T Σ) {set T})]
+               [_ (if (γ? α) {set α} V^)])]
+            [#f undef])))
 
-  (: Σ@ : α Σ → V^)
-  (define (Σ@ α Σ)
-    (match α
-      [(γ:imm V) {set V}]
-      [else (car (hash-ref Σ α (λ () (error 'Σ@ "nothing at ~a" (show-α α)))))]))
+    (: Σ@ : α Σ → V^)
+    (define (Σ@ α Σ)
+      (define (on-not-found)
+        (match α
+          [(or (? γ:hv?)
+               (? γ:escaped-field?)
+               (α:dyn (? β:sealed?) _))
+           ⊥r]
+          [_ r:undef]))
+      (if (γ:imm*? α)
+          (resolve-imm α)
+          (car (hash-ref Σ α on-not-found)))))
+
+  (splicing-local
+      ((define γ:null? (γ:imm 'null?))
+       (define cache-listof : (Mutable-HashTable γ:imm* V^) (make-hash)))
+    (define resolve-imm : (γ:imm* → V^)
+      (match-lambda
+        [(γ:imm V) {set V}]
+        [(and α (γ:imm:listof x Cₑ ℓ))
+         (hash-ref!
+          cache-listof α
+          (λ ()
+            (define Cₚ (St/C -𝒾-cons (list (γ:imm Cₑ) (γ:imm:ref-listof x Cₑ ℓ))
+                             (ℓ-with-id ℓ 'imm:pair)))
+            {set (Or/C γ:null? (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or))}))]
+        [(and α (γ:imm:ref-listof x Cₑ ℓ))
+         (hash-ref! cache-listof α (λ () {set (X/C (γ:imm:listof x Cₑ ℓ))}))])))
+
+  (: unpack : (U V V^) Σ → V^)
+  (define (unpack Vs Σ)
+    (define seen : (Mutable-HashTable α #t) (make-hash))
+
+    (: V@ : -st-ac → V → V^)
+    (define (V@ ac)
+      (match-define (-st-ac 𝒾 i) ac)
+      (match-lambda
+        [(St (== 𝒾) αs Ps)
+         (define-values (V* _)
+           (refine (unpack-V^ (car (hash-ref Σ (list-ref αs i))) ∅)
+                   (ac-Ps ac Ps)
+                   Σ))
+         ;; TODO: explicitly enforce that store delta doesn't matter in this case
+         V*]
+        [(-● Ps)
+         (define Ps* (ac-Ps ac Ps))
+         (if (prim-struct? 𝒾)
+             {set (-● Ps*)}
+             (let-values ([(V* _) (refine (unpack (γ:escaped-field 𝒾 i) Σ) Ps* Σ)])
+               V*))]
+        [_ ∅]))
+
+    (: unpack-V : V V^ → V^)
+    (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (V⊔₁ V acc)))
+
+    (: unpack-V^ : V^ V^ → V^)
+    (define (unpack-V^ Vs acc) (set-fold unpack-V acc Vs))
+
+    (: unpack-T : (U T -b) V^ → V^)
+    (define (unpack-T T acc)
+      (cond [(T:@? T) (unpack-T:@ T acc)]
+            [(-b? T) (V⊔₁ T acc)]
+            [else (unpack-α T acc)]))
+
+    (: unpack-α : α V^ → V^)
+    (define (unpack-α α acc)
+      (cond [(hash-has-key? seen α) acc]
+            [else (hash-set! seen α #t)
+                  (set-fold unpack-V acc (Σ@ α Σ))]))
+
+    (: unpack-T:@ : T:@ V^ → V^)
+    (define (unpack-T:@ T acc)
+      (match T
+        [(T:@ (? -st-ac? ac) (list T*))
+         (V⊔ acc (set-union-map (V@ ac) (unpack-T T* ∅)))]
+        [_ acc]))
+
+    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
+
+  (: unpack-W : W Σ → W)
+  (define (unpack-W W Σ) (map (λ ([V^ : V^]) (unpack V^ Σ)) W))
 
   (: alloc : α V^ → ΔΣ)
   (define (alloc α V^)
-    (define n (if (γ:hv? α) 'N 1)) ; HACK to reduce redundant work
+    (define n (if (care-if-singular? α) 1 'N))
     (hash α (cons V^ n)))
 
   (: alloc-lex : (U Symbol -𝒾) V^ → ΔΣ)
@@ -90,7 +173,7 @@
     (values (reverse αs:rev) ΔΣ*))
 
   (: alloc-on : α V^ ΔΣ → ΔΣ)
-  (define (alloc-on α V^ ΔΣ) (⧺ʳ ΔΣ α (cons V^ 1))) 
+  (define (alloc-on α V^ ΔΣ) (⧺ʳ ΔΣ α (cons V^ 1))) ; FIXME apply `care-if-singular?`
 
   (: resolve-lex : (U Symbol -𝒾) → α)
   (define (resolve-lex x)
@@ -110,9 +193,9 @@
                 [(cons Vs₀ N₀)
                  (match* (N₀ N₁)
                    [(0 0) (cons Vs₁ 0)]
-                   [(0 1) (cons (∪ Vs₀ Vs₁) 1)]
+                   [(0 1) (cons (V⊔ Vs₀ Vs₁) 1)]
                    [(1 0) (cons Vs₁ 1)]
-                   [(_ _) (cons (∪ Vs₀ Vs₁) 'N)])]
+                   [(_ _) (cons (V⊔ Vs₀ Vs₁) 'N)])]
                 [#f r₁])))
 
   (: ⧺ˡ : α (Pairof V^ N) ΔΣ → ΔΣ)
@@ -123,9 +206,9 @@
       [(cons Vs₁ N₁)
        (match* (N₀ N₁)
          [(0 0) ΔΣ]
-         [(0 1) (hash-set ΔΣ α (cons (∪ Vs₀ Vs₁) 1))]
+         [(0 1) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 1))]
          [(1 0) (hash-set ΔΣ α (cons Vs₁ 1))]
-         [(_ _) (hash-set ΔΣ α (cons (∪ Vs₀ Vs₁) 'N))])]
+         [(_ _) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 'N))])]
       [#f (hash-set ΔΣ α r₀)]))
 
   (: ΔΣ⊔ : ΔΣ ΔΣ → ΔΣ)
@@ -141,7 +224,7 @@
   (define (⊔₁ α r ΔΣ)
     (match-define (cons Vs N) r)
     (match-define (cons Vs₀ N₀) (hash-ref ΔΣ α (λ () (cons ∅ 0))))
-    (hash-set ΔΣ α (cons (∪ Vs₀ Vs) (N-max N₀ N))))
+    (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs) (N-max N₀ N))))
 
   (: N-max : N N → N)
   ;; Take cardinalitt max
@@ -163,15 +246,49 @@
       (for/hash : (Immutable-HashTable α γ) ([α (in-set αs)])
         (match-define (α:dyn (? symbol? x) _) α)
         (values α (γ:lex x))))
-    (define adjust (rename rn))
-    (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([(T r) (in-hash Σ)])
-      (define V^ (car r))
-      (match T
-        [(and (? α? α) (app (λ (α) (hash-ref rn α #f)) (? values γ)))
-         (hash-set ΔΣ γ (cons V^ 1))]
-        [(? T:@?) #:when (⊆ (T-root T) αs)
-         (hash-set ΔΣ (assert (adjust T)) (cons V^ 0))]
-        [_ ΔΣ])))
+    (copy/rename rn Σ))
+
+  (: escape : (℘ Symbol) Σ → (Values (℘ α) ΔΣ))
+  (define (escape Xs Σ)
+    (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
+                 (values (γ:lex x) (α:dyn x H₀))))
+    (values (list->set (hash-values rn)) (copy/rename rn Σ)))
+
+  (: copy/rename : (Immutable-HashTable α α) Σ → Σ)
+  (define (copy/rename rn Σ₀)
+    (define adjust : (case-> [α → α]
+                             [T → T]
+                             [(U T -b) → (U T -b)])
+      (let ([f (rename rn)])
+        (λ (T)
+          (define T* (f T))
+          (if (α? T) (assert T* α?) (assert T*)))))
+    (define (go-V^ [V^ : V^]) (map/set go-V V^))
+    (define go-V : (V → V)
+      (match-lambda
+        [(? T? T) (go-T T)]
+        [(-● Ps) (-● (map/set go-P Ps))]
+        [(St 𝒾 αs Ps) (St 𝒾 αs (map/set go-P Ps))]
+        [V V]))
+    (define go-P : (P → P)
+      (match-lambda
+        [(P:¬ Q) (P:¬ (go-Q Q))]
+        [(P:St acs P) (P:St acs (go-P P))]
+        [(? Q? Q) (go-Q Q)]))
+    (define go-Q : (Q → Q)
+      (match-lambda
+        [(P:> T) (P:> (adjust T))]
+        [(P:≥ T) (P:≥ (adjust T))]
+        [(P:< T) (P:< (adjust T))]
+        [(P:≤ T) (P:≤ (adjust T))]
+        [(P:= T) (P:= (adjust T))]
+        [(P:≡ T) (P:≡ (adjust T))]
+        [Q Q]))
+    (define (go-T [T : T]) (cond [(adjust T) => values] [else T]))
+    (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([(α r) (in-hash Σ₀)])
+      (define Vs (car r))
+      (cond [(hash-ref rn α #f) => (λ (α*) (⧺ acc (alloc α* (go-V^ Vs))))]
+            [else acc])))
 
   (: ambiguous? : T Σ → Boolean)
   ;; Check if identity `T` is ambiguous under store `Σ`
@@ -183,8 +300,7 @@
                     [(1) #f]
                     [(N) #t])]))) 
 
-  (: mutable? : α → Boolean)
-  (define mutable?
+  (define mutable? : (α → Boolean)
     (match-lambda
       [(α:dyn β _)
        (match β
@@ -192,5 +308,19 @@
          [(β:fld 𝒾 _ i) (struct-mutable? 𝒾 i)]
          [_ #f])]
       [(? γ:escaped-field?) #t]
+      [_ #f]))
+
+  ;; HACK to reduce redundant iterations
+  (define care-if-singular? : (α → Boolean)
+    (match-lambda
+      ;; Care if mutable addreses are singular so we can do strong update
+      [(α:dyn β _)
+       (match β
+         [(or (? β:mut?) (? β:idx?)) #t]
+         [(β:fld 𝒾 _ i) (struct-mutable? 𝒾 i)]
+         [_ #f])]
+      ;; Care if "stack addresses" are singular so we can use them as symbolic name
+      ;; With current implementation, these addresses should be singular by construction
+      [(or (? γ:lex?) (? γ:top?) (? γ:wrp?)) #t]
       [_ #f]))
   )

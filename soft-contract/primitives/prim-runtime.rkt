@@ -33,8 +33,8 @@
            (define-values (r es₀) (implement-predicate Σ o W))
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
            (define es₁
-             (for*/set: : (℘ Err) ([Vs (in-list W)] [V (in-set Vs)] #:when (Sealed? V))
-               (match-define (Sealed (α:dyn (β:sealed x) _)) V)
+             (for*/set: : (℘ Err) ([Vs (in-list W)] [V (in-set (unpack Vs Σ))] #:when (Sealed? V))
+               (match-define (Sealed (α:dyn (β:sealed x _) _)) V)
                (Err:Sealed x ℓ)))
            (values r (∪ es₀ es₁))]
           [else (err (Err:Arity o n ℓ))]))))
@@ -86,11 +86,13 @@
            (not doms:rest)
            (andmap symbol? doms:init)))
 
-    (define (args:behavioral?)
-      (match (for*/set: : V^ ([Vs (in-list args)] [V (in-set Vs)] #:when (behavioral? V Σ₀))
-               V)
-        [(? set-empty?) #f]
-        [Vs Vs]))
+    (define (args:behavioral? [args : W^])
+      (define Vs*
+        (for*/set: : V^ ([W (in-set args)]
+                         [Vs (in-list W)]
+                         [V (in-set Vs)] #:when (behavioral? V Σ₀))
+          V))
+      (and (not (set-empty? Vs*)) Vs*))
 
     (define (mk-rng [Σ : Σ])
       (define-values (Wₐ ΔΣ) (refine-ranges Σ refinements args ranges))
@@ -110,14 +112,12 @@
                             (mon* Σ₀ ctx* (map (inst set V) doms:init) args))]
       (cond [(no-return?) (values ⊥R ∅)]
             [(simple-pred?) (with-pre ΔΣ₀ (implement-predicate (⧺ Σ₀ ΔΣ₀) o (collapse-W^ args*)))]
-            [(args:behavioral?)
+            [(args:behavioral? args*)
              =>
              (λ (Vs)
-               (define αₕᵥ (γ:hv #f))
-               (define ΔΣ₁ (alloc αₕᵥ Vs))
-               (define Σ₁ (⧺ Σ₀ ΔΣ₀ ΔΣ₁))
-               (with-collapsing/R [(ΔΣ₂ _) (hv Σ₁ αₕᵥ)]
-                 (with-pre (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂) (mk-rng (⧺ Σ₁ ΔΣ₂)))))]
+               (define Σ₁ (⧺ Σ₀ ΔΣ₀))
+               (with-collapsing/R [(ΔΣ₁ _) (leak Σ₁ (γ:hv #f) Vs)]
+                 (with-pre (⧺ ΔΣ₀ ΔΣ₁) (mk-rng (⧺ Σ₁ ΔΣ₁)))))]
             [else (with-pre ΔΣ₀ (mk-rng (⧺ Σ₀ ΔΣ₀)))])))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
@@ -299,7 +299,7 @@
   (define (r:just V [ΔΣ ⊥ΔΣ]) (just V ΔΣ))
   (: r:blm : (-l ℓ ℓ W W → (℘ Blm)))
   (define (r:blm l+ ℓ ℓₒ ctc val) (blm l+ ℓ ℓₒ ctc val))
-  (: r:reify : V^ → V^)
+  (: r:reify : (℘ P) → V^)
   (define (r:reify Cs) (reify Cs))
   (: r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
                          → (Values R (℘ Err))))

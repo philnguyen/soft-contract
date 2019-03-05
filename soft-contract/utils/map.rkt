@@ -89,6 +89,17 @@
 (define (count-max m)
   (apply max 0 ((inst map Index (℘ Any)) set-count (hash-values m))))
 
+(: summarize-tables (∀ (X Y) (℘ (HashTable X Y)) → (HashTable X (℘ Y))))
+(define (summarize-tables ms)
+  (for*/fold ([acc : (HashTable X (℘ Y)) (hash)])
+             ([m (in-set ms)] [(x y) (in-hash m)])
+    (hash-update acc x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅)))
+
+(: group (∀ (V X Y) (Sequenceof V) (V → X) (V → Y) → (HashTable X (℘ Y))))
+(define (group vs v-x v-y)
+  (for/fold ([acc : (HashTable X (℘ Y)) (hash)]) ([v vs])
+    (hash-update acc (v-x v) (λ ([ys : (℘ Y)]) (set-add ys (v-y v))) mk-∅)))
+
 (: m⊔ (∀ (X Y) (Immutable-HashTable X (℘ Y)) (Immutable-HashTable X (℘ Y)) → (Immutable-HashTable X (℘ Y))))
 (define (m⊔ m₁ m₂)
   (if (> (hash-count m₁) (hash-count m₂))

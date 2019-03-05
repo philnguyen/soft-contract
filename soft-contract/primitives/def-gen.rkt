@@ -192,7 +192,7 @@
            #'(list (r:reify {set c ...}) ...))]))
     `(,@(for/list ([x (in-list (-ctc-parameters))])
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
-          #`(define #,x (Seal/C (α:dyn (β:sealed 'x.name) H₀))))
+          #`(define #,x (Seal/C (α:dyn (β:sealed 'x.name #,(-ℓ)) H₀) (ℓ-src #,(-ℓ)))))
       ,#`(exec-prim #,(-Σ) #,(-ℓ) '#,(-o)
                     #:volatile? #,(-volatile?)
                     #:dom doms
@@ -303,15 +303,8 @@
          [(~literal >=/c) #'(P:≥ (-b r))]
          [(~literal <=/c) #'(P:≤ (-b r))]
          [(~literal =/c)  #'(P:= (-b r))])]
-      [((~literal ->) c ... d)
-       (define Cs (map gen-ctc-α (syntax->list #'(c ...))))
-       (define D  (gen-rng #'d))
-       #`(==> (-var (list #,@Cs) #f) #,D #,(gen-stx-ℓ stx))]
-      [((~literal ->*) (c ...) #:rest r d)
-       (define Cs (map gen-ctc-α (syntax->list #'(c ...))))
-       (define R (gen-ctc-α #'r))
-       (define D (gen-rng #'d))
-       #`(==> (-var (list #,@Cs) #,R) #,D #,(gen-stx-ℓ stx))]
+      [((~literal -> )  c ...           d) (gen-==> #'(c ...) #f  #'d)]
+      [((~literal ->*) (c ...) #:rest r d) (gen-==> #'(c ...) #'r #'d)]
       [((~literal case->) clauses ...)
        (error 'gen-ctc-V "TODO: nested case-> for `~a`" (syntax-e (-o)))]
       [((~literal ∀/c) (x ...) c)
@@ -443,4 +436,33 @@
                   [(t ...) tags])
       #`(ℓ-with-id #,(-ℓ) (list 'src line col 't ...))
       #;(loc->ℓ (loc 'src line col (list 't ...)))))
+
+  (define/contract (gen-==> inits ?rest rngs)
+    (syntax? (or/c #f syntax?) syntax? . -> . syntax?)
+    (define/with-syntax init-doms
+      (let ([inits (syntax->list inits)])
+        (with-syntax* ([(dom ...) (map gen-ctc-α inits)]
+                       [(x ...) (gen-names inits (-o))]
+                       [(ℓₓ ...) (map gen-stx-ℓ inits)])
+          #'(list (Dom 'x dom ℓₓ) ...))))
+    (define/with-syntax rest-dom
+      (if ?rest
+           (with-syntax ([c (gen-ctc-α ?rest)]
+                         [x (car (gen-names '(1) (-o)))]
+                         [ℓₓ (gen-stx-ℓ ?rest)])
+             #'(Dom 'x c ℓₓ))
+           #'#f))
+    (define/with-syntax rng-doms
+      (syntax-parse (gen-rng rngs)
+        [((~literal quote) #f) #'#f]
+        [((~literal list) rng ...)
+         (with-syntax ([(x ...) (gen-names (syntax->list #'(rng ...)) (-o))]
+                       [ℓₓ (gen-stx-ℓ rngs)])
+           #'(list (Dom 'x rng (ℓ-with-id ℓₓ 'x)) ...))]))
+    #'(==>i (-var init-doms rest-dom) rng-doms))
+
+  (define/contract (gen-names xs pre)
+    (list? identifier? . -> . (listof symbol?))
+    (define prefix (format-symbol "_~a_" (syntax-e pre)))
+    (map (λ _ (gensym prefix)) xs))
   )

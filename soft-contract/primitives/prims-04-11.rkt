@@ -107,7 +107,7 @@
              (with-pre ΔΣ
                (mon (⧺ Σ ΔΣ) ctx (unpack α* Σ) (car (collapse-W^ W)))))})]
        [_ (r:just (-● ∅))])
-     Vᵥ))
+     (unpack Vᵥ Σ)))
   
   (def (vector-set! Σ ℓ W)
     #:init ([V^ vector?] [Vᵢ integer?] [Vᵤ any/c])

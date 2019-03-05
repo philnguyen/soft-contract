@@ -102,7 +102,7 @@
     (match-lambda**
      [('values (list x) _) x]
      [('not (list (-b b)) _) (-b (not b))]
-     [((-λ (? list? xs) e _) es ℓ)
+     [((-λ (-var (? list? xs) #f) e _) es ℓ)
       #:when (= (length xs) (length es))
       (-let-values/simp
        (for/list ([x (in-list xs)] [e (in-list es)])

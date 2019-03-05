@@ -28,7 +28,7 @@
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
       [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
       [(Vect αs) `(vector ,@(map show-α αs))]
-      [(Vect-Of α n) `(vector-of ,(show-α α) × ,(show-V^ n))]
+      [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
       [(Hash-Of αₖ αᵥ im?) `(,(if im? 'hash-of 'mutable-hash-of) ,(show-α αₖ) ,(show-α αᵥ))]
       [(Set-Of α im?) `(,(if im? 'set-of 'mutable-set-of) ,(show-α α))]
       [(And/C α₁ α₂ ℓ) `(and/c ,(show-α α₁) ,(show-α α₂))]
@@ -37,7 +37,7 @@
       [(X/C α) `(recursive-contract/c ,(show-α α))]
       [(One-Of/C bs) `(one-of/c ,@(set-map bs show-b))]
       [(? Prox/C? C) (show-Prox/C C)]
-      [(Seal/C α) `(seal/c ,(show-α α))]
+      [(Seal/C α _) `(seal/c ,(show-α α))]
       [(Sealed α) (format-symbol "sealed@~a" (assert (show-α α) symbol?))]
       [(? P? P) (show-P P)]
       [(? T? T) (show-T T)]))
@@ -50,6 +50,7 @@
       [(P:< T) `(</c ,(show-T T))]
       [(P:≤ T) `(≤/c ,(show-T T))]
       [(P:= T) `(=/c ,(show-T T))]
+      [(P:≡ T) `(≡/c ,(show-T T))]
       [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
       [(P:¬ Q) `(¬/c ,(show-P Q))]
       [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]))
@@ -75,11 +76,11 @@
       [(? ==>i? V) (show-==>i V)]
       [(∀/C xs C Ρ) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
-      [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs) ,(show-ℓ ℓ))]
-      [(Vectof/C α ℓ) `(vectorof ,(show-α α) ,(show-ℓ ℓ))]
-      [(Vect/C αs ℓ) `(vector/c ,@(map show-α αs) ,(show-ℓ ℓ))]
-      [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ) ,(show-ℓ ℓ))]
-      [(Set/C α ℓ) `(set/c ,(show-α α) ,(show-ℓ ℓ))]))
+      [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
+      [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
+      [(Vect/C αs ℓ) `(vector/c ,@(map show-α αs))]
+      [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
+      [(Set/C α ℓ) `(set/c ,(show-α α))]))
 
   (define show-==>i : (==>i → Sexp)
     (match-lambda
@@ -126,18 +127,18 @@
     (match-lambda
       [(? symbol? x) x]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
-      [(β:fld 𝒾 _ i) (format-symbol "~a@~a" (-𝒾-name 𝒾) i)]
+      [(β:fld 𝒾 ℓ i) (show-β:ℓ ℓ i)]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
       [(β:idx ℓ i) (format-symbol "@~a" i)]
-      [(β:vct ℓ) '@*]
+      [(β:vct ℓ) (show-β:ℓ ℓ)]
       [(β:hash:key ℓ) (show-β:ℓ ℓ 0)]
       [(β:hash:val ℓ) (show-β:ℓ ℓ 1)]
       [(β:set:elem ℓ) (show-β:ℓ ℓ)]
       [(β:unvct ctx) (show-β:ctx ctx)]
-      [(β:unhsh ctx) (show-β:ctx ctx)]
-      [(β:unset ctx) (show-β:ctx ctx)]
+      [(β:unhsh ctx _) (show-β:ctx ctx)]
+      [(β:unset ctx _) (show-β:ctx ctx)]
       [(β:and/c:l ℓ) (show-β:ℓ ℓ 0)]
       [(β:and/c:r ℓ) (show-β:ℓ ℓ 1)]
       [(β:or/c:l ℓ) (show-β:ℓ ℓ 0)]
@@ -145,16 +146,16 @@
       [(β:not/c ℓ) (show-β:ℓ ℓ)]
       [(β:x/c x) (format-symbol "rec-~a/c" x)]
       [(β:vect/c _ i) (format-symbol "vect/c@~a" i)]
-      [(β:vectof _) 'vectof]
+      [(β:vectof ℓ) (show-β:ℓ ℓ)]
       [(β:hash/c:key _) 'hash/c:key]
       [(β:hash/c:val _) 'hash/c:val]
       [(β:set/c:elem _) 'set/c:elem]
-      [(β:st/c 𝒾 _ i) (format-symbol "~a@~a" (-𝒾-name 𝒾) i)]
-      [(β:dom ℓ) (format-symbol "dom~a~a" (n-sub (ℓ-line ℓ)) (n-sup (ℓ-col ℓ)))]
-      [(β:fn _) 'inner-fun]
-      [(β:sealed x) (format-symbol "⦇~a⦈" x)]))
+      [(β:st/c 𝒾 ℓ i) (show-β:ℓ ℓ i)]
+      [(β:dom ℓ) (format-symbol "dom-~a" (show-β:ℓ ℓ))]
+      [(β:fn (Ctx l+ _ ℓₒ ℓ) _) (format-symbol "fun-~a-~a" (show-β:ℓ ℓₒ) (show-β:ℓ ℓ))]
+      [(β:sealed x _) (format-symbol "⦇~a⦈" x)]))
 
-  (: show-β:ℓ ([ℓ] [(Option Index)] . ->* . Symbol))
+  (: show-β:ℓ ([ℓ] [(Option Natural)] . ->* . Symbol))
   (define (show-β:ℓ ℓ [i #f])
     (if i
         (format-symbol "~a:~a@~a" (ℓ-line ℓ) (ℓ-col ℓ) i)
@@ -209,8 +210,6 @@
        `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
       [($:Key:App Σ ℓ V W)
        `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
-      [($:Key:App/rest Σ ℓ V W V^)
-       `(App ,(show-V V) ,@(show-W W) #:rest ,(show-V^ V^) @ ,@(show-Σ Σ))]
       [($:Key:Hv Σ α)
        `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
 

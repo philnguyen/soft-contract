@@ -97,7 +97,6 @@
          (match-define (cons cs d) clause)
          (for-each c.go! cs) (c.go! d))
        (up! 'procedure? 'arity)]
-      [(-x/c _) (up! 'leaf)]
       [(-struct/c _ cs _) (for-each c.go! cs) (up! 'struct)]
       [(? -o? o) (up! 'leaf)]
       [(-@ (or 'and/c 'or/c 'not/c) cs _) (for-each c.go! cs)]

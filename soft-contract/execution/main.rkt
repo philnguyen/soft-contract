@@ -22,7 +22,7 @@
 
 (define-unit fix@
   (import static-info^
-          cache^ val^
+          sto^ cache^ val^
           evl^
           prover^)
   (export exec^)
@@ -78,6 +78,34 @@
   (define (blm l+ ℓ ℓₒ ctc val)
     (if (transparent-module? l+) {set (Blm l+ ℓ ℓₒ ctc val)} ∅))
 
+  (: fix-return : Renamings Σ R → R)
+  (define (fix-return rn Σ₀ r)
+    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
+    (define adjust-T (rename rn))
+    (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
+      (for*/hash : ΔΣ ([(α r) (in-hash ΔΣ₀)]
+                       [α* (in-value (adjust-T α))]
+                       ;; TODO generalize this
+                       #:when (α? α*))
+        (values α* (cons (go-V^ (car r))
+                         ;; if `α` is new allocation within callee and
+                         ;; `α*` is existing address, store-delta entry for `α*`
+                         ;; should always be refinement,
+                         ;; so should not increase cardinality
+                         (if (hash-has-key? rn α) 0 (cdr r))))))
+    (define (go-W [W : W]) (map go-V^ W))
+    (define (go-V^ [V^ : V^]) (set-union-map go-V V^))
+    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
+    (define (go-T [T : T]) (cond [(adjust-T T) => set]
+                                 [else (unpack T (Σₑᵣ))]))
+
+    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
+      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣ)])
+        (hash-update acc
+                     (go-ΔΣ ΔΣ)
+                     (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ (map/set go-W Ws)))
+                     mk-∅))))
+
   (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
   (define (fold-ans on-X Xs)
     (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([X (in-set Xs)])
@@ -109,6 +137,7 @@
         [(Err:Undefined _ ℓ) (ℓ-src ℓ)]
         [(Err:Values _ _ _ ℓ) (ℓ-src ℓ)]
         [(Err:Arity _ _ ℓ) (ℓ-src ℓ)]
+        [(Err:Varargs _ _ ℓ) (ℓ-src ℓ)]
         [(Err:Sealed _ ℓ) (ℓ-src ℓ)]
         [(Blm l+ _ _ _ _) l+]))
     (transparent-module? (violator err)))

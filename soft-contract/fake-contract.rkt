@@ -43,8 +43,9 @@
 (define-syntax (struct/c stx) 
   (syntax-case stx ()
     [(_ name cs ...)
-     #`(begin (dynamic-struct/c name cs ...)
-              (scv:ignore (c:struct/c name cs ...)))]))
+     (with-syntax-source stx
+       #'(begin (dynamic-struct/c name cs ...)
+                (scv:ignore (c:struct/c name cs ...))))]))
 
 (define-syntax-rule (parametric->/c (x ...) c) (dynamic-parametric->/c (λ (x ...) c)))
 
@@ -128,6 +129,9 @@
         [gen-range-dom
          (syntax-parser
            [(~literal c:any) #'c:any]
+           [(~and r ((~literal values) d ...))
+            #`(values #,@(for/list ([dᵢ (in-list (syntax->list #'(d ...)))])
+                          (with-syntax-source dᵢ #`(_ #,dᵢ))))]
            [d (with-syntax-source #'d #'(_ d))])])
     (values
      (syntax-parser

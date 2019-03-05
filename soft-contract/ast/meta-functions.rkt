@@ -23,7 +23,6 @@
   (define (fv e)
     (match e
       [(-x x _) (if (symbol? x) {seteq x} ∅eq)]
-      [(-x/c x) ∅eq]
       [(-λ xs e _) (set-subtract (fv e) (formals->names xs))]
       [(-case-λ cases _) (apply ∪ ∅eq (map fv cases))]
       [(-@ f xs _) (apply ∪ (fv f) (map fv xs))]
@@ -40,7 +39,7 @@
        (define bound (for/fold ([bound : (℘ Symbol) ∅eq]) ([bnd bnds])
                        (set-add* bound (car bnd))))
        (set-subtract (apply ∪ (fv e) (map (compose1 fv (inst cdr Any -e)) bnds)) bound)]
-      [(-set! x e _) (fv e)]
+      [(-set! x e _) (if (symbol? x) (set-add (fv e) x) (fv e))]
       [(-if e e₁ e₂ _) (∪ (fv e) (fv e₁) (fv e₂))]
       [(-μ/c _ e) (fv e)]
       [(-->i (-var cs c) d)
@@ -57,7 +56,6 @@
     (let go ([e : -e e])
       (match e
         [(-x x _) (if (equal? x z) 1 0)]
-        [(-x/c x) (if (equal? x z) 1 0)]
         [(-λ (-var xs x) e _)
          (define bound? (or (and x (eq? x z)) (memq z xs)))
          (if bound? 0 (go e))]

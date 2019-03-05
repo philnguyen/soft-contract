@@ -9,7 +9,6 @@
          "ast/main.rkt"
          "runtime/main.rkt"
          "verifier.rkt"
-         "prover/main.rkt"
          "execution/main.rkt"
          "primitives/main.rkt"
          "parse/main.rkt"

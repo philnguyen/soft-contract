@@ -87,7 +87,6 @@
             (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))])
             (case--> [cases : (Listof -->i)])
             (-x/c.tmp Symbol) ; hack
-            (-x/c Symbol)
             (-∀/c (Listof Symbol) -e)
             )
 
@@ -276,4 +275,5 @@
    [field-offset : (-𝒾 → Index)]
    [count-struct-fields : (-𝒾 → Index)]
    [add-transparent-module! : (-l → Void)]
-   [transparent-module? : (-l → Boolean)]))
+   [transparent-module? : (-l → Boolean)]
+   [prim-struct? : (-𝒾 → Boolean)]))

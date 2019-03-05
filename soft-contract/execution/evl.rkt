@@ -23,7 +23,6 @@
 
 (define-unit evl@
   (import meta-functions^ static-info^ ast-pretty-print^
-          prover^
           sto^ cache^ val^ pretty-print^
           exec^ app^ mon^ gc^)
   (export evl^)
@@ -69,11 +68,11 @@
        (values (alloc α* (lookup α Σ)) ∅)]))
 
   (: evl : Σ E → (Values R (℘ Err)))
-  (define (evl Σ E₀)
-    (define root (E-root E₀))
+  (define (evl Σ E)
+    (define root (E-root E))
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Exp Σ* E₀)
-            (λ () (with-gc root (λ () (do-evl Σ* E₀))))))
+    (ref-$! ($:Key:Exp Σ* E)
+            (λ () (with-gc root Σ* (λ () (do-evl Σ* E))))))
 
   (: do-evl : Σ E → (Values R (℘ Err)))
   ;; Evaluate `E₀` under `Σ` without caching `E₀`
@@ -82,7 +81,7 @@
       [(? -prim? p) (just p)]
       [(-•) (just (-● ∅))]
       [(-λ Xs E ℓ)
-       (define-values (Ρ ΔΣ) (escape Σ (fv E₀)))
+       (define-values (Ρ ΔΣ) (escape (fv E₀) Σ))
        (just (Clo Xs E Ρ ℓ) ΔΣ)]
       [(-case-λ cases ℓ)
        (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
@@ -134,40 +133,53 @@
       [(-quote b) (if (Base? b) (just (-b b)) (error 'TODO "(quote ~a)" b))]
       [(-let-values bnds E ℓ)
        (define-values (ΔΣₓs es) (evl-bnd* Σ ℓ bnds))
-       (for/fold ([r : R ⊥R] [es : (℘ Err) es])
-                 ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
-         (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
-         (values (m⊔ r rᵢ) (∪ es esᵢ)))]
+       (define-values (r* es*)
+         (for/fold ([r : R ⊥R] [es : (℘ Err) es])
+                   ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
+           (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
+           (values (m⊔ r rᵢ) (∪ es esᵢ))))
+       (define rn
+         (let ([ΔΣₓ^ (set-fold ΔΣ⊔ ⊥ΔΣ ΔΣₓs)])
+           (bnd->renamings bnds (λ (α)
+                                  (match (hash-ref ΔΣₓ^ α #f)
+                                    [{singleton-set (? T? T)} T]
+                                    [_ #f])))))
+       (values (fix-return rn Σ r*) es*)]
       [(-letrec-values bnds E ℓ)
        (define ΔΣ₀
          (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
                     ([bnd (in-list bnds)]
                      [x (in-list (Binding-lhs bnd))])
            (⧺ ΔΣ₀ (alloc-lex x {set -undefined}))))
-       (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
-         (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
-         (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E)))]
+       (define-values (r* es*)
+         (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
+           (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
+           (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E))))
+       (define rn (bnd->renamings bnds (λ _ #f)))
+       (values (fix-return rn Σ r*) es*)]
       [(-set! X E ℓ)
        (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define α (if (symbol? X) (γ:lex X) (γ:top X)))
-         (define ΔΣ*
-           (for/fold ([ΔΣ* : ΔΣ ΔΣ:rhs]) ([α (in-set (car (hash-ref Σ α (λ () !!!))))])
-             (match α
-               [(α:dyn (β:mut (== X)) _) (⧺ ΔΣ* (mut α (car (collapse-W^ rhs))))]
-               [α (error 'internal "~a ↦ ~a" X α)])))
-         (just -void ΔΣ*))]
+         (define rhs^ (blur (car (collapse-W^ rhs))))
+         (define ΔΣ:mut
+           (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([α (in-set (Σ@ α Σ))])
+             (match-let ([(α:dyn (β:mut (== X)) _) α])
+               (ΔΣ⊔ acc (mut α rhs^)))))
+         (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
       [(-μ/c x E)
-       (with-collapsed/R [(cons C ΔΣ) ((evl/single/collapse +ℓ₀) Σ E)]
-         (define α (α:dyn (β:x/c x) H₀))
-         (just (X/C α) (⧺ ΔΣ (alloc α C))))]
+       (define α (α:dyn (β:x/c x) H₀))
+       (define C:rec {set (X/C α)})
+       (define ΔΣ₀ (alloc (γ:lex x) C:rec))
+       (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse +ℓ₀) (⧺ Σ ΔΣ₀) E)]
+         (just C:rec (⧺ ΔΣ₀ ΔΣ₁ (alloc α C))))]
       [(-->i (-var doms ?doms:rst) rngs)
        (: mk-Dom : -dom (U Clo V^) → (Values Dom ΔΣ))
        (define (mk-Dom dom C)
          (match-define (-dom x _ _ ℓ) dom)
          (cond [(Clo? C) (values (Dom x C ℓ) ⊥ΔΣ)]
                [else (define α (α:dyn (β:dom ℓ) H₀))
-                     (values (Dom x α ℓ) (alloc α C))]))
+                     (values (Dom x α ℓ) (alloc α (unpack C Σ)))]))
        (: mk-Doms : (Listof -dom) (Listof (U V^ Clo)) → (Values (Listof Dom) ΔΣ))
        (define (mk-Doms doms Cs)
          (define-values (Doms:rev ΔΣ*)
@@ -198,10 +210,15 @@
       [(case--> cases)
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
        (just (Case-=> Cases) ΔΣ)]
-      [(-x/c x) (just (X/C (α:dyn (β:x/c x) H₀)))]
       [(-∀/c xs E)
-       (define-values (Ρ ΔΣ) (escape Σ (fv E₀)))
+       (define-values (Ρ ΔΣ) (escape (fv E₀) Σ))
        (just (∀/C xs E Ρ) ΔΣ)]))
+
+  (: bnd->renamings : (Listof Binding) (γ:lex → (Option T)) → Renamings)
+  (define (bnd->renamings bnds f)
+    (for*/hash : Renamings ([bnd (in-list bnds)] [x (in-list (car bnd))])
+      (define α (γ:lex x))
+      (values α (f α))))
 
   (: evl-bnd* : Σ ℓ (Listof Binding) → (Values (℘ ΔΣ) (℘ Err)))
   (define (evl-bnd* Σ₀ ℓ bnds)
@@ -238,7 +255,7 @@
   (define (evl-dom Σ dom)
     (match-define (-dom _ ?deps c ℓ) dom)
     (if ?deps
-        (let-values ([(Ρ ΔΣ) (escape Σ (set-subtract (fv c) (list->seteq ?deps)))])
+        (let-values ([(Ρ ΔΣ) (escape (set-subtract (fv c) (list->seteq ?deps)) Σ)])
           (values (cons (Clo (-var ?deps #f) c Ρ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
 
@@ -308,18 +325,4 @@
                   (⧺ Σ ΔΣ₁)
                   xs*)]
            [(#f es) (values #f (∪ acc-es es))])])))
-
-  (: escape : Σ (℘ Symbol) → (Values (℘ α) ΔΣ))
-  (define (escape Σ Xs)
-    (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
-                 (values (γ:lex x) (α:dyn x H₀))))
-    (define adjust (rename rn))
-    (define addrs (list->set (hash-keys rn)))
-    (define-values (αs* ΔΣ*)
-      (for/fold ([αs : (℘ α) ∅] [ΔΣ : ΔΣ ⊥ΔΣ]) ([α₀ (in-hash-keys Σ)])
-        (match α₀
-          [(and (? γ:lex? γ) (app (λ ([γ : γ]) (hash-ref rn γ #f)) (? values α)))
-           (values (set-add αs α) (⧺ ΔΣ (alloc α (unpack γ Σ))))]
-          [_ (values αs ΔΣ)])))
-    (values αs* ΔΣ*))
   )

@@ -208,7 +208,9 @@
     (case->
      [-> (and/c inexact-real? (>/c 0) (</c 1))]
      [exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
-     [exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?]))
+     [exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?])
+    #:volatile? #t
+    #:lift-concrete? #f)
   (def random-seed ((and/c exact-integer? positive?) . -> . void?))
   (def make-pseudo-random-generator (-> pseudo-random-generator?))
   (def-pred pseudo-random-generator?)

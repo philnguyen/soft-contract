@@ -240,4 +240,7 @@
   (: transparent-module? : -l → Boolean)
   (define (transparent-module? l)
     (hash-has-key? (-static-info-transparent-modules (current-static-info)) l))
+
+  (: prim-struct? : -𝒾 → Boolean)
+  (define (prim-struct? 𝒾) (or (equal? 𝒾 -𝒾-cons) (equal? 𝒾 -𝒾-box)))
   )

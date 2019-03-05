@@ -14,6 +14,7 @@
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
          "../execution/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
          (for-syntax racket/base
@@ -24,7 +25,8 @@
   (import static-info^
           prim-runtime^
           sto^ val^
-          mon^ exec^)
+          mon^ exec^
+          prover^)
   (export)
 
   ;; TODO: obsolete. Can be expressed directly in big step
@@ -51,5 +53,5 @@
               (just (St/C 𝒾 αs ℓ) ΔΣ))
             (err (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ)))]
        [_ (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))])
-     Vₖ))
+     (unpack Vₖ Σ)))
   )

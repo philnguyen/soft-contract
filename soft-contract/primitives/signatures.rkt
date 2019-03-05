@@ -86,7 +86,7 @@
    [r:err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
    [r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
    [r:blm : (-l ℓ ℓ W W → (℘ Blm))]
-   [r:reify : (V^ → V^)]
+   [r:reify : ((℘ P) → V^)]
    [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
                         → (Values R (℘ Err)))]
    [r:⧺ : (ΔΣ ΔΣ * → ΔΣ)]

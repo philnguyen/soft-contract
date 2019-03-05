@@ -36,7 +36,7 @@
                 (define root (∪ (V-root C) args:root))
                 (define Σ* (gc root Σ))
                 (ref-$! ($:Key:Mon Σ* ctx C V^)
-                        (λ () (with-gc root (λ () ((mon₁ C) Σ* ctx V^))))))
+                        (λ () (with-gc root Σ* (λ () ((mon₁ C) Σ* ctx V^))))))
               (unpack C^ Σ)))
 
   (: mon* : Σ Ctx W W → (Values R (℘ Err)))
@@ -80,7 +80,16 @@
         (with-split-Σ Σ arity-check W
           (match-lambda**
            [((list V*) ΔΣ₂)
-            (define αᵥ (α:dyn (β:fn ctx) H₀))
+            (define C:sig
+              (let ([sig : (==>i → Fn/C-Sig)
+                     (match-lambda
+                       [(==>i doms rngs)
+                        (cons (var-map Dom-name doms) (and rngs (map Dom-name rngs)))])])
+                (match C
+                  [(? ==>i?) (sig C)]
+                  [(∀/C xs _ _) (cons (-var xs #f) #f)]
+                  [(Case-=> Cs) (map sig Cs)])))
+            (define αᵥ (α:dyn (β:fn ctx C:sig) H₀))
             (just (Guarded ctx C αᵥ) (alloc αᵥ V*))])
           (λ (W _) (err (blm l+ ℓₒ ℓ (list {set arity-check}) W)))))
       (λ (W _) (err (blm l+ ℓₒ ℓ (list {set 'procedure?}) W)))))
@@ -157,8 +166,8 @@
   (define ((mon-One-Of/C C) Σ ctx Vs)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
     (with-split-Σ Σ C (list Vs)
-      (λ (W ΔΣ) (just W ΔΣ))
-      (λ (W ΔΣ) (err (blm l+ ℓ ℓₒ (list {set C}) W)))))
+      just
+      (λ (W _) (err (blm l+ ℓ ℓₒ (list {set C}) W)))))
 
   (: mon-Vectof/C : Vectof/C → ⟦C⟧)
   (define ((mon-Vectof/C C) Σ ctx Vs)
@@ -223,16 +232,84 @@
      Vs))
 
   (: mon-Hash/C : Hash/C → ⟦C⟧)
-  (define ((mon-Hash/C C) Σ ctx V^)
-    ???)
+  (define ((mon-Hash/C C) Σ₀ ctx Vs)
+    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Hash/C αₖ αᵥ ℓₕ) C)
+    (define Cₖ (Σ@ αₖ Σ₀))
+    (define Cᵥ (Σ@ αᵥ Σ₀))
+
+    (: chk : Σ V^ V^ → (Values R (℘ Err)))
+    (define (chk Σ C V) (if (set-empty? V) (just -void) (mon Σ ctx C V)))
+
+    (: chk-key-vals : Σ V^ V^ → (Values R (℘ Err)))
+    (define (chk-key-vals Σ Vₖ Vᵥ)
+      (with-collapsing/R [(ΔΣ₁ _) (chk Σ Cₖ Vₖ)]
+        (with-collapsing/R [(ΔΣ₂ _) (chk (⧺ Σ ΔΣ₁) Cᵥ Vᵥ)]
+          (just -void (⧺ ΔΣ₁ ΔΣ₂)))))
+
+    (: chk-content : Σ V^ → (Values R (℘ Err)))
+    (define (chk-content Σ Vs)
+      ((inst fold-ans V)
+       (match-lambda
+         [(and V (Guarded _ (? Hash/C?) _)) (just -void)] ; FIXME havoc properly
+         [(Hash-Of α₁ α₂ im?) (chk-key-vals Σ (Σ@ α₁ Σ) (Σ@ α₂ Σ))]
+         [_ (define ●s {set (-● ∅)})
+            (chk-key-vals Σ ●s ●s)])
+       Vs))
+
+    (with-split-Σ Σ₀ 'hash? (list Vs)
+      (λ (W* ΔΣ₀)
+        (define Vᵤ (unpack (car W*) Σ₀))
+        (with-collapsing/R [(ΔΣ₁ _) (chk-content (⧺ Σ₀ ΔΣ₀) Vᵤ)]
+          (define αᵤ (α:dyn (β:unhsh ctx ℓₕ) H₀))
+          (just (Guarded ctx C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
+      (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-Set/C : Set/C → ⟦C⟧)
-  (define ((mon-Set/C C) Σ ctx V^)
-    ???)
+  (define ((mon-Set/C C) Σ₀ ctx Vs)
+    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Set/C αₑ ℓₛ) C)
+
+    (: chk-elems : Σ V^ → (Values R (℘ Err)))
+    (define (chk-elems Σ Vs)
+      (if (set-empty? Vs) (just -void) (mon Σ ctx (Σ@ αₑ Σ) Vs)))
+
+    (: chk-content : Σ V^ → (Values R (℘ Err)))
+    (define (chk-content Σ Vs)
+      ((inst fold-ans V)
+       (match-lambda
+         [(and V (Guarded _ (? Set/C?) _)) (just -void)] ; FIXME havoc properly
+         [(Set-Of α _) (chk-elems Σ (Σ@ α Σ₀))]
+         [_ (chk-elems Σ {set (-● ∅)})])
+       Vs))
+
+    (with-split-Σ Σ₀ 'set? (list Vs)
+      (λ (W* ΔΣ₀)
+        (define Vᵤ (unpack (car W*) Σ₀))
+        (with-collapsing/R [(ΔΣ₁ _) (chk-content (⧺ Σ₀ ΔΣ₀) Vᵤ)]
+          (define αᵤ (α:dyn (β:unset ctx ℓₛ) H₀))
+          (just (Guarded ctx C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
+      (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-Seal/C : Seal/C → ⟦C⟧)
-  (define ((mon-Seal/C C) Σ ctx V^)
-    ???)
+  (define ((mon-Seal/C C) Σ ctx V^*)
+    (match-define (Seal/C α l) C)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
+    (define V^ (unpack V^* Σ))
+    (cond
+      ;; Seal position
+      [(equal? l+ l) (just (Sealed α) (alloc α V^))]
+      ;; Unseal position
+      [(equal? l- l)
+       (define unsealed (Σ@ α Σ))
+       (define ers (blm l+ ℓ ℓₒ (list {set C}) (list (set-remove V^ (Sealed α)))))
+       ((inst fold-ans V)
+        (match-lambda
+          [(Sealed (== α)) (just unsealed)]
+          [(? -●?) (values (R-of unsealed ⊥ΔΣ) ers)]
+          [_ (err ers)])
+        V^)]
+      [else !!!]))
 
   (: mon-Flat/C : V → ⟦C⟧)
   (define ((mon-Flat/C C) Σ ctx Vs)
@@ -262,7 +339,7 @@
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
        (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
-               (λ () (with-gc root (λ () (fc₁ Σ₀* ℓ C Vs))))))
+               (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
      Cs))
 
   (: fc₁ : Σ ℓ V V^ → (Values R (℘ Err)))

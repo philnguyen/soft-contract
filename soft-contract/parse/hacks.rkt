@@ -29,7 +29,8 @@
                       file->value
                       with-input-from-file
                       with-output-to-file
-                      string-join))
+                      string-join
+                      sort))
      (define (?recognized-name name) (first-prefix names name)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"

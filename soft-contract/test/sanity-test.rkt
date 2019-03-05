@@ -103,25 +103,26 @@
   (test   "safe/misc" check-safe)
   (test "unsafe/misc" check-fail)
 
-  #;(test "paper/match.rkt" check-safe)
-  #;(test "paper/match-no-check.rkt" check-safe)
-  #;(test "paper/match-unsafe.rkt" check-fail)
-  ;(test "paper/escape.rkt" check-safe)
+  (test "paper/match.rkt" check-safe)
+  (test "paper/match-no-check.rkt" check-safe)
+  (test "paper/match-unsafe.rkt" check-fail)
+  (test "paper/escape.rkt" check-safe)
   #;(test "paper/escape-safe.rkt" check-safe)
-  ;(test "paper/escape-conservative.rkt" check-fail)
-  #;(test "paper/factorial.rkt" check-safe)
-  #;(test "paper/havoc-1.rkt" check-fail)
-  ;(test "paper/havoc-2.rkt" check-fail)
-  #;(test "paper/mutable-box-as-closure.rkt" check-safe)
+  (test "paper/escape-conservative.rkt" check-fail)
+  (test "paper/factorial.rkt" check-safe)
+  (test "paper/havoc-1.rkt" check-fail)
+  #;(test "paper/havoc-2.rkt" check-fail) ; FIXME false-neg from unsound gc
+  (test "paper/mutable-box-as-closure.rkt" check-safe)
   #;(test "paper/succ.rkt" check-safe)
-  #;(test "paper/succ-incorrect.rkt" check-fail)
+  (test "paper/succ-incorrect.rkt" check-fail)
 
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
-  
-  #|
+
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
+  (test "safe/issues/letrec-escape.rkt" check-safe)
+  (test "safe/issues/oop-encoding.rkt" check-safe)
   (test "safe/issues/issue-62.rkt" check-safe)
   (test "safe/issues/issue-63.rkt" check-safe)
   (test "safe/issues/issue-64.rkt" check-safe)
@@ -165,18 +166,19 @@
   (test "safe/issues/issue-99.rkt" check-safe)
   (test "safe/issues/issue-98.rkt" check-safe)
   (test "safe/issues/issue-101.rkt" check-safe)
-  (test "safe/issues/issue-101b.rkt" check-safe)
+  ;(test "safe/issues/issue-101b.rkt" check-safe) ; TODO restore when restore `zo`
   (test "safe/issues/case-lambdas.rkt" check-safe)
   (test "safe/issues/refined-string2list.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
+  (test "unsafe/issues/oop-encoding.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
   (test "unsafe/issues/issue-79.rkt" check-fail)
   (test "unsafe/issues/issue-61.rkt" check-fail)
   (test "unsafe/issues/issue-74a.rkt" check-fail)
   (test "unsafe/issues/issue-74b.rkt" check-fail)
   (test "unsafe/issues/issue-74c.rkt" check-fail)
-  ;(test "unsafe/issues/issue-80.rkt" check-fail) TODO: check for exn
+  ;(test "unsafe/issues/issue-80.rkt" check-fail) ; TODO: check for exn
   (test "unsafe/issues/issue-82.rkt" check-fail)
   (test "unsafe/issues/issue-89.rkt" check-fail)
   (test "unsafe/issues/utilities.rkt" check-fail)
@@ -187,32 +189,33 @@
   (test "unsafe/issues/issue-97.rkt" check-fail)
   (test "unsafe/issues/strict-parametricity.rkt" check-fail)
 
-  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))
-  (test "safe/real/fector.rkt" (check 'Ok-pos 0 6)) ; depends count how
+  ;; Slightly larger ones
+  #;(test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))
+  #;(test "safe/real/fector.rkt" (check 'Ok-pos 0 6)) ; depends count how
   #;(test "safe/real/nucleic2-modular-fixed.rkt" check-safe)
   #;(test "safe/real/nucleic2-modular.rkt" check-fail)
 
-  (test   "safe/real/protected-leftist-tree.rkt" check-safe)
-  (test "unsafe/real/protected-leftist-tree.rkt" check-fail)
+  #;(test   "safe/real/protected-leftist-tree.rkt" check-safe)
+  #;(test "unsafe/real/protected-leftist-tree.rkt" check-fail)
 
-  (test   "safe/real/protected-ring-buffer.rkt" check-safe)
-  (test "unsafe/real/protected-ring-buffer.rkt" check-fail)
+  #;(test   "safe/real/protected-ring-buffer.rkt" check-safe)
+  #;(test "unsafe/real/protected-ring-buffer.rkt" check-fail)
   
   ;; Multple files
-  (test '("programs/safe/multiple/main.rkt"
+  #;(test '("programs/safe/multiple/main.rkt"
           "programs/safe/multiple/helper-1.rkt"
           "programs/safe/multiple/helper-2.rkt")
         check-safe)
-  (test '("programs/unsafe/multiple/main.rkt"
+  #;(test '("programs/unsafe/multiple/main.rkt"
           "programs/unsafe/multiple/helper-1.rkt"
           "programs/unsafe/multiple/helper-2.rkt")
         (check 'Failed 1 1))
 
   ;; From gradual benchmarks
-  (test '("gradual-typing-benchmarks/sieve/streams.rkt"
+  #;(test '("gradual-typing-benchmarks/sieve/streams.rkt"
           "gradual-typing-benchmarks/sieve/main.rkt")
         check-safe)
-  (test '("gradual-typing-benchmarks/morsecode/morse-code-table.rkt"
+  #;(test '("gradual-typing-benchmarks/morsecode/morse-code-table.rkt"
           "gradual-typing-benchmarks/morsecode/morse-code-strings.rkt"
           "gradual-typing-benchmarks/morsecode/levenshtein.rkt"
           "gradual-typing-benchmarks/morsecode/main.rkt")
@@ -221,14 +224,17 @@
           "gradual-typing-benchmarks/fsm/automata.rkt"
           "gradual-typing-benchmarks/fsm/population.rkt")
         (check 'Ok-pos 2 3))
-  (test '("gradual-typing-benchmarks/kcfa/structs.rkt"
+  #;(test '("gradual-typing-benchmarks/kcfa/structs.rkt"
           "gradual-typing-benchmarks/kcfa/benv.rkt"
           "gradual-typing-benchmarks/kcfa/time.rkt"
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
 
-  (test   "safe/games" check-safe)
-  (test "unsafe/games" check-fail)
-  |#
+  #;(test   "safe/games" check-safe)
+  #;(test "unsafe/games" check-fail)
   
+  (test   "safe/games/snake.rkt" check-safe)
+  (test   "safe/games/tetris.rkt" check-safe)
+  (test "unsafe/games/snake.rkt" check-fail)
+  (test "unsafe/games/tetris.rkt" check-fail)
   )

@@ -125,7 +125,7 @@
     (define Cₐ {set (X/C αₗ)})
     (just Cₐ (⧺ (alloc αₗ {set Disj})
                 (alloc α₁ {set Cons})
-                (alloc αₕ C)
+                (alloc αₕ (unpack C Σ))
                 (alloc αₜ Cₐ))))
   (def non-empty-listof (contract? . -> . list-contract?))
   (def list*of (contract? . -> . contract?))
