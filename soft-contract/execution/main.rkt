@@ -28,8 +28,8 @@
   (export exec^)
 
   (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
-  (define $ᵢₙ  : $ (⊥$))
-  (define $ₒᵤₜ : $ (⊥$)) ; TODO strange that set! below complains without ann
+  (define $ᵢₙ  : $ ⊥$)
+  (define $ₒᵤₜ : $ ⊥$) ; TODO strange that set! below complains without ann
   (define db:iter? ((inst make-parameter Boolean) #f))
   (define db:max-steps ((inst make-parameter (Option Index)) #f))
   (define db:depth ((inst make-parameter Natural) 0))
@@ -49,7 +49,7 @@
     
     (let loop ()
       (set! $ᵢₙ $ₒᵤₜ)
-      (set! $ₒᵤₜ (⊥$))
+      (set! $ₒᵤₜ ⊥$)
       (when dump-iter?
         (printf "iter: ~a (~a) ~n" iter (hash-count $ᵢₙ)))
       (set! iter (+ 1 iter))
@@ -63,9 +63,9 @@
     (match (hash-ref $ₒᵤₜ key #f)
       [(cons r es) (values r es)]
       [#f
-       (hash-set! $ₒᵤₜ key (hash-ref $ᵢₙ key (λ () ⊥A)))
+       (set! $ₒᵤₜ (hash-set $ₒᵤₜ key (hash-ref $ᵢₙ key (λ () ⊥A))))
        (define-values (r es) (comp))
-       ($⊔! $ₒᵤₜ key r es)
+       (set! $ₒᵤₜ ($⊔ $ₒᵤₜ key r es))
        (values r es)]))
 
   (: just ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))

@@ -75,8 +75,8 @@
           [(St 𝒾 αs Ps) (St 𝒾 (map α/ αs) (map/set P/ Ps))]
           [(Vect αs) (Vect (map α/ αs))]
           [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
-          [(Hash-Of α₁ α₂ im?) (Hash-Of (α/ α₁) (α/ α₂) im?)]
-          [(Set-Of α im?) (Set-Of (α/ α) im?)]
+          [(Hash-Of α₁ α₂) (Hash-Of (α/ α₁) (α/ α₂))]
+          [(Set-Of α) (Set-Of (α/ α))]
           [(Guarded ctx G α) (Guarded ctx (Prox/C/ G) (α/ α))]
           [(Sealed α) (Sealed (α/ α))]
           [(? Clo? clo) (Clo/ clo)]
@@ -223,12 +223,14 @@
 
   (: T-root : T:@ → (℘ α))
   (define (T-root T₀)
-    (: go : (U T -b) → (℘ α))
-    (define (go T)
-      (cond [(T:@? T) (apply ∪ ∅ (map go (T:@-_1 T)))]
+    (define o-root : (-o → (℘ α))
+      (match-lambda
+        [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+        [_ ∅]))
+    (let go ([T : (U T -b) T₀])
+      (cond [(T:@? T) (apply ∪ (o-root (T:@-_0 T)) (map go (T:@-_1 T)))]
             [(-b? T) ∅]
-            [else {set T}]))
-    (apply ∪ ∅ (map go (T:@-_1 T₀))))
+            [else {set T}])))
 
   (: ac-Ps : -st-ac (℘ P) → (℘ P))
   (define (ac-Ps ac Ps)
@@ -251,26 +253,25 @@
 
   (define V⊕ : (V V → (Option V^))
     (match-lambda**
-      [(V₁ V₂) #:when (V⊑ V₁ V₂) {set V₂}]
-      [(V₁ V₂) #:when (V⊑ V₂ V₁) {set V₁}]
-      [((-● Ps₁) (-● Ps₂))
-       (define Ps (∩ Ps₁ Ps₂))
-       (and (set-ormap -o? Ps) {set (-● Ps)})]
-      [(_ _) #f]))
+     [((? -b? b) (and V (-● Qs))) (and (b∈Ps? b Qs) {set V})]
+     [((and V₁ (-● Ps)) (and V₂ (-● Qs)))
+      (cond [(Ps⇒Ps? Ps Qs) {set V₂}]
+            [(Ps⇒Ps? Qs Ps) {set V₁}]
+            [else (define Ps* (∩ Ps Qs))
+                  (and (set-ormap -o? Ps*) {set (-● Ps*)})])]
+     [(V₁ V₂) (and (equal? V₁ V₂) {set V₁})]))
 
-  ;; Check if `rhs` *definitely* subsumes `rhs`
-  (define V⊑ : (V V → Boolean)
-    (match-lambda**
-     [(V V) #t]
-     [((-● Ps) (-● Qs))
-      (for/and : Boolean ([Q (in-set Qs)])
-        (for/or : Boolean ([P (in-set Ps)])
-          (P⊢P-without-store? P Q)))]
-     [((? -b? b) (-● Ps))
-      (define b^ {set b})
-      (for/and : Boolean ([P (in-set Ps)])
-        (and (meaningful-without-store? P) (eq? '✓ (sat ⊥Σ P b^))))]
-     [(_ _) #f]))
+  (: b∈Ps? : -b (℘ P) → Boolean)
+  (define (b∈Ps? b Ps)
+    (define b^ {set b})
+    (for/and : Boolean ([P (in-set Ps)])
+      (and (meaningful-without-store? P) (eq? '✓ (sat ⊥Σ P b^)))))
+
+  (: Ps⇒Ps? : (℘ P) (℘ P) → Boolean)
+  (define (Ps⇒Ps? Ps Qs)
+    (for/and : Boolean ([Q (in-set Qs)])
+      (for/or : Boolean ([P (in-set Ps)])
+        (P⊢P-without-store? P Q))))
 
   (define blur : (case->
                   [V → V]
@@ -331,115 +332,4 @@
           [(? set? s) s])))
 
     (repeat-compact iter x xs))
-
-  #| 
-  (: estimate-list-lengths : (U Σ Σᵥ) V → (℘ (U #f Arity)))
-  ;; Estimate possible list lengths from the object language's abstract list
-  (define (estimate-list-lengths Σ V)
-    ???
-    #|
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-    (define maybe-non-proper-list? : Boolean #f)
-
-    (: arity-inc : Arity → Arity)
-    (define arity-inc
-      (match-lambda
-        [(? exact-integer? n) (+ 1 n)]
-        [(arity-at-least n) (arity-at-least (+ 1 n))]))
-    
-    (: go! : -V → (℘ Arity))
-    (define go!
-      (match-lambda
-        [(-Cons _ αₜ)
-         (cond [(seen-has? αₜ) {set (arity-at-least 0)}]
-               [else (seen-add! αₜ)
-                     (for/union : (℘ Arity) ([V* (in-set (σ@ σ δσ αₜ))])
-                       (map/set arity-inc (go! V*)))])]
-        [(-b '()) {set 0}]
-        [(-● ps) #:when (∋ ps 'list?) {set (arity-at-least 0)}]
-        [_ (set! maybe-non-proper-list? #t)
-           ∅]))
-    (define res
-      (match (normalize-arity (set->list (go! V)))
-        [(? list? l) (list->set l)]
-        [a {set a}]))
-      (if maybe-non-proper-list? (set-add res #f) res)
-    |#)
-
-  (define cmp-sets : (?Cmp (℘ Any))
-    (λ (s₁ s₂)
-      (define s₁⊆s₂ (s₁ . ⊆ . s₂))
-      (define s₂⊆s₁ (s₂ . ⊆ . s₁))
-      (or (and s₁⊆s₂ s₂⊆s₁ '=)
-          (and s₁⊆s₂ '<)
-          (and s₂⊆s₁ '>))))
-
-  (: set-lift-cmp (∀ (X) (?Cmp X) → (?Cmp (℘ X))))
-  (define ((set-lift-cmp cmp*) xs ys)
-    (define cache : (Mutable-HashTable X (Mutable-HashTable X ?Ord)) (make-hasheq))
-    (for ([x (in-set xs)])
-      (define x:cmp : (Mutable-HashTable X ?Ord) (make-hasheq))
-      (hash-set! cache x x:cmp)
-      (for ([y (in-set ys)])
-        (hash-set! x:cmp y (cmp* x y))))
-    (define (flip [o : ?Ord]) : ?Ord
-      (case o [(>) '<] [(<) '>] [else o]))
-    (define (cmp [x : X] [y : X]) : ?Ord
-      (match (hash-ref cache x #f)
-        [(? values x:cmp) (hash-ref x:cmp y (λ () (flip (cmp y x))))]
-        [#f (flip (cmp y x))]))
-    (define (⊑ [s₁ : (℘ X)] [s₂ : (℘ X)])
-      (for/and : Boolean ([x (in-set s₁)])
-        (for/or : Boolean ([y (in-set s₂)])
-          (case (cmp x y)
-            [(< =) #t]
-            [else  #f]))))
-    (define xs⊑ys (xs . ⊑ . ys))
-    (define ys⊑ys (ys . ⊑ . xs))
-    (or (and xs⊑ys ys⊑ys '=)
-        (and xs⊑ys '<)
-        (and ys⊑ys '>)))
-
-  (: fold-cmp (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord))
-  (define (fold-cmp cmp xs ys)
-    (let go ([xs : (Listof X) xs] [ys : (Listof X) ys])
-      (match* (xs ys)
-        [((cons x xs*) (cons y ys*))
-         (define x-vs-y (cmp x y))
-         (and x-vs-y (concat-ord x-vs-y (go xs* ys*)))]
-        [('() '()) '=]
-        [(_ _) #f])))
-
-  (: join-by-max (∀ (X) (?Cmp X) → (?Joiner X)))
-  (define ((join-by-max cmp) x₁ x₂)
-    (case (cmp x₁ x₂)
-      [(> =) x₁]
-      [(<  ) x₂]
-      [else  #f]))
-
-  (: compact-with (∀ (X) (?Joiner X) → (℘ X) X → (℘ X)))
-  (define ((compact-with ?⊔) xs x)
-    (define-values (subsumed x*)
-      (for*/fold ([subsumed : (℘ X) ∅] [x* : X x])
-                 ([x₀ (in-set xs)]
-                  [?x₁ (in-value (?⊔ x₀ x*))] #:when ?x₁)
-        (values (set-add subsumed x₀) ?x₁)))
-    (set-add (set-subtract xs subsumed) x*))
-
-  (: iter-⊔ (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X)))
-  (define ((iter-⊔ f) xs₁ xs₂)
-    (for/fold ([acc : (℘ X) xs₁]) ([x (in-set xs₂)])
-      (f acc x)))
-
-  (define Ctx-with-origin : (Ctx ℓ → Ctx)
-    (match-lambda**
-     [((Ctx l+ l- _ ℓ) ℓ:o) (Ctx l+ l- ℓ:o ℓ)]))
-
-  (define X/C->binder : (X/C → Symbol)
-    (match-lambda [(X/C α)
-                   (match (inspect-α α)
-                     ;; TODO other cases
-                     [(-α:x/c x _) x]
-                     [(-α:imm:listof x _ _) x])]))
-  |#
   )

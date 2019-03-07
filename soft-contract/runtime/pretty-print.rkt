@@ -15,7 +15,7 @@
          )
 
 (define-unit pretty-print@
-  (import ast-pretty-print^)
+  (import ast-pretty-print^ static-info^)
   (export pretty-print^)
 
   (define show-V : (V → Sexp)
@@ -29,12 +29,14 @@
       [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
       [(Vect αs) `(vector ,@(map show-α αs))]
       [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
-      [(Hash-Of αₖ αᵥ im?) `(,(if im? 'hash-of 'mutable-hash-of) ,(show-α αₖ) ,(show-α αᵥ))]
-      [(Set-Of α im?) `(,(if im? 'set-of 'mutable-set-of) ,(show-α α))]
+      [(Empty-Hash) 'empty-hash]
+      [(Hash-Of αₖ αᵥ) `(hash-of ,(show-α αₖ) ,(show-α αᵥ))]
+      [(Empty-Set) '∅]
+      [(Set-Of α) `(set-of ,(show-α α))]
       [(And/C α₁ α₂ ℓ) `(and/c ,(show-α α₁) ,(show-α α₂))]
       [(Or/C α₁ α₂ ℓ) `(or/c ,(show-α α₂) ,(show-α α₂))]
       [(Not/C α ℓ) `(not/c ,(show-α α))]
-      [(X/C α) `(recursive-contract/c ,(show-α α))]
+      [(X/C α) `(rec/c ,(show-α α))]
       [(One-Of/C bs) `(one-of/c ,@(set-map bs show-b))]
       [(? Prox/C? C) (show-Prox/C C)]
       [(Seal/C α _) `(seal/c ,(show-α α))]
@@ -128,14 +130,15 @@
       [(? symbol? x) x]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
       [(β:fld 𝒾 ℓ i) (show-β:ℓ ℓ i)]
+      [(β:fld/wrap 𝒾 ctx _ i) (format-symbol "~a@~a" (show-β:ctx ctx) i)]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
       [(β:idx ℓ i) (format-symbol "@~a" i)]
-      [(β:vct ℓ) (show-β:ℓ ℓ)]
+      [(β:vct ℓ) (show-ℓ ℓ)]
       [(β:hash:key ℓ) (show-β:ℓ ℓ 0)]
       [(β:hash:val ℓ) (show-β:ℓ ℓ 1)]
-      [(β:set:elem ℓ) (show-β:ℓ ℓ)]
+      [(β:set:elem ℓ) (show-ℓ ℓ)]
       [(β:unvct ctx) (show-β:ctx ctx)]
       [(β:unhsh ctx _) (show-β:ctx ctx)]
       [(β:unset ctx _) (show-β:ctx ctx)]
@@ -143,28 +146,28 @@
       [(β:and/c:r ℓ) (show-β:ℓ ℓ 1)]
       [(β:or/c:l ℓ) (show-β:ℓ ℓ 0)]
       [(β:or/c:r ℓ) (show-β:ℓ ℓ 1)]
-      [(β:not/c ℓ) (show-β:ℓ ℓ)]
+      [(β:not/c ℓ) (show-ℓ ℓ)]
       [(β:x/c x) (format-symbol "rec-~a/c" x)]
       [(β:vect/c _ i) (format-symbol "vect/c@~a" i)]
-      [(β:vectof ℓ) (show-β:ℓ ℓ)]
+      [(β:vectof ℓ) (show-ℓ ℓ)]
       [(β:hash/c:key _) 'hash/c:key]
       [(β:hash/c:val _) 'hash/c:val]
       [(β:set/c:elem _) 'set/c:elem]
       [(β:st/c 𝒾 ℓ i) (show-β:ℓ ℓ i)]
-      [(β:dom ℓ) (format-symbol "dom-~a" (show-β:ℓ ℓ))]
-      [(β:fn (Ctx l+ _ ℓₒ ℓ) _) (format-symbol "fun-~a-~a" (show-β:ℓ ℓₒ) (show-β:ℓ ℓ))]
+      [(β:dom ℓ) (show-ℓ ℓ)]
+      [(β:fn ctx _) (show-β:ctx ctx)]
       [(β:sealed x _) (format-symbol "⦇~a⦈" x)]))
 
-  (: show-β:ℓ ([ℓ] [(Option Natural)] . ->* . Symbol))
-  (define (show-β:ℓ ℓ [i #f])
-    (if i
-        (format-symbol "~a:~a@~a" (ℓ-line ℓ) (ℓ-col ℓ) i)
-        (format-symbol "~a:~a" (ℓ-line ℓ) (ℓ-col ℓ))))
+  (: show-β:ℓ (ℓ Natural → Symbol))
+  (define (show-β:ℓ ℓ i) (format-symbol "~a@~a" (show-ℓ ℓ) i))
 
-  (: show-β:ctx : Ctx → Symbol)
-  (define show-β:ctx
+  (define show-β:ctx : (Ctx → Symbol)
     (match-lambda
-      [(Ctx l+ l- ℓₒ ℓ) (format-symbol "~a_~a" (show-β:ℓ ℓₒ) (show-β:ℓ ℓ))]))
+      [(Ctx l+ l- ℓₒ ℓ)
+       (format-symbol "~a-~a-~a"
+                      (if (transparent-module? l+) '⊕ '⊖)
+                      (show-ℓ ℓₒ)
+                      (show-ℓ ℓ))]))
 
   (define show-HV-Tag : (HV-Tag → Symbol)
     (match-lambda
@@ -180,7 +183,7 @@
                   [(0) '↦⁰]
                   [(1) '↦¹]
                   [(N) '↦ⁿ]))
-      `(,(show-T T) ,↦ ,(show-V^ Vs))))
+      `(,(show-T T) ,↦ ,@(show-V^ Vs))))
 
   (: show-R : R → (Listof Sexp))
   (define (show-R r)

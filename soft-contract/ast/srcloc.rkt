@@ -68,6 +68,12 @@
 
 (define (show-ℓ [ℓ : ℓ])
   (match-define (loc src line col id) (ℓ->loc ℓ))
-  (case loc
+  (case src
     [(dummy) '□]
-    [else (format-symbol "ℓ~a~a" (n-sub line) (n-sup col))]))
+    [else (format-symbol "~a:~a" line col)]))
+
+(define (show-full-ℓ [ℓ : ℓ])
+  (match-define (loc src line col id) (ℓ->loc ℓ))
+  (case src
+    [(dummy) '□]
+    [else (format-symbol "~a:~a:~a" src line col)]))

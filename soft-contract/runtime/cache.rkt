@@ -16,7 +16,7 @@
   (import sto^)
   (export cache^)
 
-  (define (⊥$) : $ (make-hash))
+  (define (⊥$) : $ (hash))
   (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
 
   (: R-of ([(U V V^ W)] [ΔΣ] . ->* . R))
@@ -57,9 +57,9 @@
           (values ok er)
           (values (set-remove ok W) (set-add er W)))))
 
-  (: $⊔! : $ $:Key R (℘ Err) → Void)
-  (define ($⊔! $ key r es)
-    ((inst hash-update! $:Key (Pairof R (℘ Err)))
+  (: $⊔ : $ $:Key R (℘ Err) → $)
+  (define ($⊔ $ key r es)
+    ((inst hash-update $:Key (Pairof R (℘ Err)))
      $ key
      (match-lambda [(cons r₀ es₀) (cons (m⊔ r₀ r) (∪ es₀ es))])
      (λ () ⊥A)))

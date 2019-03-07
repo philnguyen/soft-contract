@@ -79,7 +79,13 @@
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
   (def (vector-length Σ ℓ W)
     #:init ([V vector?])
-    (just (vec-len V)))
+    (just (set-union-map
+           (match-lambda
+             [(Vect αs) {set (-b (length αs))}]
+             [(Vect-Of _ Vₙ) Vₙ]
+             [(Guarded _ (Vect/C αs _) _) {set (-b (length αs))}]
+             [_ {set (-● {set 'exact-nonnegative-integer?})}])
+           V)))
 
   (def (vector-ref Σ ℓ W)
     #:init ([Vᵥ vector?] [Vᵢ integer?])

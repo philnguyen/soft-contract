@@ -30,33 +30,27 @@
             (⧺ˡ α r₀ ΔΣᵢ))))
     (foldl ⧺₁ ΔΣ₀ ΔΣs))
   (splicing-local
-      ((define ⊥r (cons ∅ 0))
-       (define undef {set -undefined})
-       (define r:undef (cons undef 'N)))
+      ((define undef {set -undefined}))
 
     (: lookup : α Σ → V^)
     (define (lookup α Σ)
-      (if (γ:imm? α)
-          (resolve-imm α)
-          (match (hash-ref Σ α #f)
-            [(cons V^ _)
-             (match V^
-               [(singleton-set (? T? T)) (if (α? T) (lookup T Σ) {set T})]
-               [_ (if (γ? α) {set α} V^)])]
-            [#f undef])))
+      (match (hash-ref Σ α #f)
+        [(cons V^ _)
+         (match V^
+           [(singleton-set (? T? T)) (if (α? T) (lookup T Σ) {set T})]
+           [_ (if (γ? α) {set α} V^)])]
+        [#f (if (γ:imm? α) (resolve-imm α) undef)]))
 
     (: Σ@ : α Σ → V^)
     (define (Σ@ α Σ)
-      (define (on-not-found)
-        (match α
-          [(or (? γ:hv?)
-               (? γ:escaped-field?)
-               (α:dyn (? β:sealed?) _))
-           ⊥r]
-          [_ r:undef]))
-      (if (γ:imm*? α)
-          (resolve-imm α)
-          (car (hash-ref Σ α on-not-found)))))
+      (cond
+        [(hash-ref Σ α #f) => car]
+        [(γ:imm*? α) (resolve-imm α)]
+        [(or (γ:hv? α)
+             (γ:escaped-field? α)
+             (and (α:dyn? α) (β:sealed? (α:dyn-_0 α))))
+         ∅]
+        [else undef])))
 
   (splicing-local
       ((define γ:null? (γ:imm 'null?))
@@ -93,8 +87,11 @@
          (define Ps* (ac-Ps ac Ps))
          (if (prim-struct? 𝒾)
              {set (-● Ps*)}
-             (let-values ([(V* _) (refine (unpack (γ:escaped-field 𝒾 i) Σ) Ps* Σ)])
-               V*))]
+             (let ([Vs (unpack (γ:escaped-field 𝒾 i) Σ)])
+               (if (set-empty? Vs)
+                   ∅
+                   (let-values ([(Vs* _) (refine Vs Ps* Σ)])
+                     Vs*))))]
         [_ ∅]))
 
     (: unpack-V : V V^ → V^)

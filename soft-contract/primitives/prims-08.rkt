@@ -136,13 +136,11 @@
     (contract? . -> . contract?))
   (def procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
-  #;(def (hash/c ℓ Vs H φ Σ ⟦k⟧) ; FIXME uses
+  (def (hash/c Σ ℓ W)
     #:init ([Vₖ contract?] [Vᵥ contract?])
-    (define αₖ (mk-α (-α.hash/c-key ℓ H)))
-    (define αᵥ (mk-α (-α.hash/c-val ℓ H)))
-    (define φ* (alloc Σ (alloc Σ φ αₖ Vₖ) αᵥ Vᵥ))
-    (define V (-Hash/C (αℓ αₖ (ℓ-with-id ℓ 'hash/c.key)) (αℓ αᵥ (ℓ-with-id ℓ 'hash/c.val))))
-    (⟦k⟧ (list {set V}) H φ* Σ))
+    (define αₖ (α:dyn (β:hash/c:key ℓ) H₀))
+    (define αᵥ (α:dyn (β:hash/c:val ℓ) H₀))
+    (just (Hash/C αₖ αᵥ ℓ) (⧺ (alloc αₖ Vₖ) (alloc αᵥ Vᵥ))))
   (def channel/c (contract? . -> . contract?))
   (def continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]

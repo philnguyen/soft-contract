@@ -19,8 +19,10 @@
                                (St -𝒾 (Listof α) (℘ P))
                                (Vect (Listof α))
                                (Vect-Of [content : α] [length : #|restricted|# V^])
-                               (Hash-Of [key : α] [val : α] [immut? : Boolean])
-                               (Set-Of [elems : α] [immut? : Boolean])
+                               (Empty-Hash)
+                               (Hash-Of [key : α] [val : α])
+                               (Empty-Set)
+                               (Set-Of [elems : α])
                                Fn
                                (Guarded [ctx : Ctx] [guard : Prox/C] [val : α])
                                (Sealed α)
@@ -63,7 +65,7 @@
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
 (#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)))
-(#|Caches         |# $ .  ≜  . (Mutable-HashTable $:Key (Pairof R (℘ Err))))
+(#|Caches         |# $ .  ≜  . (Immutable-HashTable $:Key (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
 (#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
@@ -89,6 +91,8 @@
                                (β:mut (U Symbol -𝒾))
                                ; struct field
                                (β:fld -𝒾 ℓ Natural)
+                               ; wrapped struct field from monitoring
+                               (β:fld/wrap -𝒾 Ctx ℓ Natural)
                                ; for varargs
                                (β:var:car (U ℓ Symbol) (Option Natural))
                                (β:var:cdr (U ℓ Symbol) (Option Natural))
@@ -172,6 +176,7 @@
 (define H₀ : H (mk-H '()))
 (define ⊥Σ : Σ (hash))
 (define ⊥ΔΣ : ΔΣ (hash))
+(define ⊥$ : $ (hash))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Signatures
@@ -198,14 +203,13 @@
    ))
 
 (define-signature cache^
-  ([⊥$ : (→ $)] 
-   [R-of : ([(U V V^ W)] [ΔΣ] . ->* . R)]
+  ([R-of : ([(U V V^ W)] [ΔΣ] . ->* . R)]
    [ΔΣ⧺R : (ΔΣ R → R)]
    [R⧺ΔΣ : (R ΔΣ → R)]
    [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
    [collapse-R/ΔΣ : (R → (Option ΔΣ))]
    [split-by-arity : (W^ Natural → (Values W^ W^))]
-   [$⊔! : ($ $:Key R (℘ Err) → Void)]))
+   [$⊔ : ($ $:Key R (℘ Err) → $)]))
 
 (define-signature val^
   ([collapse-W^ : (W^ → W)]

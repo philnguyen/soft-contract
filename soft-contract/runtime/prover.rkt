@@ -59,6 +59,8 @@
     (match-lambda
       ['null? {set -null}]
       ['not {set -ff}]
+      ['set-empty? {set (Empty-Set)}]
+      ['hash-empty? {set (Empty-Hash)}]
       [(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) {set (St 𝒾 '() ∅)}]
       [(P:≡ (? -b? b)) {set b}]
       [_ #f]))
@@ -288,8 +290,18 @@
                (check-among -o? Fn? (with-guard Fn/C?) proper-flat-contract?)]
               [(vector?)
                (check-among Vect? Vect-Of? (with-guard Vect/C? Vectof/C?))]
-              [(hash?) (check-among Hash-Of? (with-guard Hash/C?))]
-              [(set? generic-set?) (check-among Set-Of? (with-guard Set/C?))]
+              [(hash-empty?)
+               (match V₀
+                 [(Empty-Hash) '✓]
+                 [(Guarded _ (? Hash/C?) _) #f]
+                 [_ '✗])]
+              [(hash?) (check-among Empty-Hash? Hash-Of? (with-guard Hash/C?))]
+              [(set? generic-set?) (check-among Empty-Set? Set-Of? (with-guard Set/C?))]
+              [(set-empty?)
+               (match V₀
+                 [(Empty-Set) '✓]
+                 [(Guarded _ (? Set/C?) _) #f]
+                 [_ '✗])]
               [(contract?)
                (check-among Fn/C? And/C? Or/C? Not/C? X/C?
                             Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
@@ -308,13 +320,13 @@
                (define go : (V → ?Dec)
                  (match-lambda
                    [(-b b) (bool->Dec (immutable? b))]
-                   [(Hash-Of _ _ im?) (bool->Dec im?)]
-                   [(Set-Of _ im?) (bool->Dec im?)]
-                   [(Guarded _ (or (? Hash/C?) (? Set/C?)) α) (check α)]
+                   [(or (? Empty-Hash?) (? Hash-Of?) (? Empty-Set?) (? Set-Of?)) '✓]
+                   [(Guarded _ (or (? Hash/C?) (? Set/C?)) α) (go-α α)]
                    [(or (? Vect?) (? Vect-Of?) (Guarded _ (or (? Vect/C?) (? Vectof/C?)) _)) '✗]
+                   [(-● Ps) (Ps⊢P Σ Ps 'immutable?)]
                    [_ #f]))
-               (: check : α → ?Dec)
-               (define (check α) (sat^₁ go (unpack α Σ)))
+               (: go-α : α → ?Dec)
+               (define (go-α α) (sat^₁ go (unpack α Σ)))
                (go V₀)]
               [(list?) (check-proper-list Σ V₀)]
               [(port? input-port? output-port?) '✗] ; ports can't reach here
@@ -661,9 +673,4 @@
                                  (refine₁ V₂ (P₂ V₁) Σ)
                                  (values {set V₂} ⊥ΔΣ)))
     (values V₁* V₂* (⧺ ΔΣ₁ ΔΣ₂)))
-
-  (define V⊑ : (V V → Boolean)
-    (match-lambda**
-     [((-● Ps₁) (-● Ps₂)) (⊆ Ps₂ Ps₁)]
-     [(_ _) #f]))
   )

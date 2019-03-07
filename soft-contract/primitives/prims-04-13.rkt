@@ -52,6 +52,7 @@
       ((: hash-helper : Σ ℓ W Symbol -o → (Values R (℘ Err)))
        (define (hash-helper Σ ℓ Wₓ name eq)
          (cond
+           [(null? Wₓ) (just (Empty-Hash))]
            [(even? (length Wₓ))
             (define αₖ (α:dyn (β:hash:key ℓ) H₀))
             (define αᵥ (α:dyn (β:hash:val ℓ) H₀))
@@ -61,7 +62,7 @@
                   [(list* Vₖ Vᵥ W*)
                    (go W* (⧺ acc (alloc αₖ Vₖ) (alloc αᵥ Vᵥ)))]
                   [_ acc])))
-            (just (Hash-Of αₖ αᵥ #t) ΔΣ₀)]
+            (just (Hash-Of αₖ αᵥ) ΔΣ₀)]
            [else (err (Err:Raised "even number of args" ℓ))])))
     (def (hash Σ ℓ W)
       #:init ()
@@ -80,78 +81,58 @@
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-equal? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-equal? (not/c immutable?))])))
+          [(listof (cons/c α β)) . -> . (and/c hash-equal? (not/c immutable?) (hash/c α β))])))
   (def make-hasheqv
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eqv? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eqv? (not/c immutable?))])))
+          [(listof (cons/c α β)) . -> . (and/c hash-eqv? (not/c immutable?) (hash/c α β))])))
   (def make-hasheq
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eq? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eq? (not/c immutable?))])))
+          [(listof (cons/c α β)) . -> . (and/c hash-eq? (not/c immutable?) (hash/c α β))])))
   (def make-immutable-hash
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-equal? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-equal? immutable?)])))
+          [(listof (cons/c α β)) . -> . (and/c hash-equal? immutable? (hash/c α β))])))
   (def make-immutable-hasheqv
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eqv? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eqv? immutable?)])))
+          [(listof (cons/c α β)) . -> . (and/c hash-eqv? immutable? (hash/c α β))])))
   (def make-immutable-hasheq
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eq? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eq? immutable?)])))
+          [(listof (cons/c α β)) . -> . (and/c hash-eq? immutable? (hash/c α β))])))
 
   (def make-weak-hash
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-equal? hash-weak?)))))
+          ((listof (cons/c α β)) . -> . (and/c hash-equal? hash-weak? (hash/c α β))))))
   (def make-weak-hasheqv
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eqv? hash-weak?)))))
+          ((listof (cons/c α β)) . -> . (and/c hash-eqv? hash-weak? (hash/c α β))))))
   (def make-weak-hasheq
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c (hash/c α β) hash-eq? hash-weak?)))))
+          ((listof (cons/c α β)) . -> . (and/c hash-eq? hash-weak? (hash/c α β))))))
   (def hash-set!
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
   (def hash-set*! ; FIXME uses
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
-  #;(def (hash-set ℓ Vs H φ Σ ⟦k⟧)
-    #:init ([Vₕ^ (and/c hash? immutable?)]
-            [Vₖ any/c]
-            [Vᵥ any/c])
-    (define αₖ* (-α->⟪α⟫ (-α.hash.key ℓ H)))
-    (define αᵥ* (-α->⟪α⟫ (-α.hash.val ℓ H)))
-    (for/union : (℘ -ς) ([Vₕ (in-set Vₕ^)])
-      (match Vₕ
-        [(-Hash^ αₖ αᵥ _)
-         (define φ*
-           (alloc* Σ φ
-                   (list αₖ*                    αₖ* αᵥ*                    αᵥ*)
-                   (list (σ@ Σ (-φ-cache φ) αₖ) Vₖ  (σ@ Σ (-φ-cache φ) αᵥ) Vᵥ)))
-         (⟦k⟧ (list {set (-Hash^ αₖ* αᵥ* #t)}) H φ* Σ)]
-        [(-Hash/guard (and C (-Hash/C (-⟪α⟫ℓ αₖ ℓₖ) (-⟪α⟫ℓ αᵥ ℓᵥ))) αₕ ctx)
-         (define ctx* (ctx-neg ctx))
-         (define Cₖ^ (σ@ Σ (-φ-cache φ) αₖ))
-         (define Cᵥ^ (σ@ Σ (-φ-cache φ) αᵥ))
-         (define ⟦k⟧* (mon*∷ ctx* (list Cᵥ^) (list Vᵥ) (list ℓᵥ) '()
-                             (hash-set-inner∷ ℓ αₕ (wrap-hash∷ C ctx ⟦k⟧))))
-         (mon (ctx-with-ℓ ctx* ℓₖ) Cₖ^ Vₖ H φ Σ ⟦k⟧*)]
-        [_
-         (⟦k⟧ (list {set (-Hash^ ⟪α⟫ₒₚ ⟪α⟫ₒₚ #t)}) H φ Σ)])))
+  (def hash-set
+    (∀/c (α β)
+      ((and/c immutable? (hash/c α β)) α β . -> . (and/c immutable? (hash/c α β)))))
   (def hash-set* ; FIXME uses
     (∀/c (α β)
-      [(and/c immutable? (hash/c α β)) α β . -> . (and/c (hash/c α β) immutable?)]))
+      [(and/c immutable? (hash/c α β)) α β . -> . (and/c immutable? (hash/c α β))]))
   
   (def hash-ref
     (∀/c (α β)
@@ -194,11 +175,9 @@
          (case->
           [(hash/c α β) (α . -> . _) . -> . void?]
           [(hash/c α β) (α . -> . _) boolean? . -> . void?])))
-  (def hash-count
-    (∀/c (α β)
-         (case->
-          [(hash/c α β) . -> . exact-nonnegative-integer?]
-          [(hash/c α β) boolean? . -> . exact-nonnegative-integer?])))
+  (def hash-count (hash? . -> . exact-nonnegative-integer?)
+    #:refinements
+    (hash-empty? . -> . 0))
   (def hash-empty? (∀/c (α β) ((hash/c α β) . -> . boolean?)))
   (def hash-iterate-first
     (∀/c (α β) ((hash/c α β) . -> . (or/c exact-nonnegative-integer? not))))
@@ -212,7 +191,7 @@
     (∀/c (α β) ((hash/c α β) exact-nonnegative-integer? . -> . (values α β))))
   
   (def hash-copy
-    (∀/c (α β) ((hash/c α β) . -> . (and/c (hash/c α β) (not/c immutable?)))))
+    (∀/c (α β) ((hash/c α β) . -> . (and/c (not/c immutable?) (hash/c α β)))))
   (def* (eq-hash-code eqv-hash-code equal-hash-code equal-secondary-hash-code)
     (∀/c (α) (α . -> . fixnum?)))
 

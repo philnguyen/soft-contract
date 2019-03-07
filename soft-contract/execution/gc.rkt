@@ -85,8 +85,8 @@
       [(St _ αs _) (list->set αs)]
       [(Vect αs) (list->set αs)]
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
-      [(Hash-Of αₖ αᵥ _) {set αₖ αᵥ}]
-      [(Set-Of α _) {set α}]
+      [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
+      [(Set-Of α) {set α}]
       [(? Clo? V) (Clo-root V)]
       [(Case-Clo clos _) (apply ∪ ∅ (map Clo-root clos))]
       [(Guarded _ C α) (set-add (V-root C) α)]
@@ -115,7 +115,7 @@
       [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
       [(? P? P) (P-root P)]
       [(? symbol? o) {set (γ:hv o)}]
-      [(or (? -prim?) (? One-Of/C?) (? -●?)) ∅]))
+      [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
 
   (define Clo-root : (Clo → (℘ α))
     (match-lambda

@@ -56,7 +56,6 @@
          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
          #:args W
          → (Values R (℘ Err)))]
-   [vec-len : (V^ → V^)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]

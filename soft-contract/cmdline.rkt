@@ -61,12 +61,11 @@
 
   (: print-blame : Err String → Void)
   (define (print-blame blm idx)
-    (define (format-ℓ [ℓ : ℓ]) (format "~a:~a:~a" (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ)))
     (match blm
       [(Blm l+ ℓ:site ℓ:origin Cs Vs)
-       (printf "~a ~a~n" idx (format-ℓ ℓ:site))
+       (printf "~a ~a~n" idx (show-full-ℓ ℓ:site))
        (printf "    - Blaming: ~a~n" l+)
-       (printf "    - Contract from: ~a @ ~a ~n" (format-ℓ ℓ:origin) (ℓ-id ℓ:origin))
+       (printf "    - Contract from: ~a @ ~a ~n" (show-full-ℓ ℓ:origin) (ℓ-id ℓ:origin))
        (printf "    - Expected: ~a~n"
                (match Cs
                  [(list C) (show-V^ C)]
@@ -79,37 +78,37 @@
                  [_ (format "~a values: ~a" (length Vs) (show-W Vs))]))]
       [(Err:Raised s ℓ)
        (printf "~a Error: ~a~n" idx s)
-       (printf "    - At: ~a~n" (format-ℓ ℓ))]
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Undefined x ℓ)
        (printf "~a Undefined `~a`~n" idx x)
-       (printf "    - At: ~a~n" (format-ℓ ℓ))]
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Values n E W ℓ)
        (printf "~a Expected ~a values, given ~a:~n" idx n (length W))
        (for ([Vs (in-list W)])
          (printf "    - ~a~n" (show-V^ Vs)))
-       (printf "    - At: ~a~n" (format-ℓ ℓ))]
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Arity f xs ℓ)
        (printf "~a Function applied with wrong arity~n" idx)
        (if (V? f)
            (printf "    - Function: ~a~n" (show-V f))
-           (printf "    - Function defined at ~a~n" (format-ℓ f)))
+           (printf "    - Function defined at ~a~n" (show-full-ℓ f)))
        (if (integer? xs)
            (printf "    - Given ~a arguments~n" xs)
            (begin
              (printf "    - Given ~a arguments:~n" (length xs))
              (for ([Vs (in-list xs)])
                (printf "        + ~a~n" (show-V^ Vs)))))
-       (printf "    - At: ~a~n" (format-ℓ ℓ))]
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Varargs W₀ Vᵣ ℓ)
        (printf "~a Invalid number of rest args~n" idx)
        (printf "    - ~a inits:~n" (length W₀))
        (for ([V (in-list W₀)])
          (printf "        * ~a~n" (show-V^ V)))
        (printf "    - rest: ~a~n" (show-V^ Vᵣ))
-       (printf "    - Application at ~a~n" (format-ℓ ℓ))]
+       (printf "    - Application at ~a~n" (show-full-ℓ ℓ))]
       [(Err:Sealed x ℓ)
        (printf "~a Attempt to inspect value sealed in ~a~n" idx x)
-       (printf "    - At: ~a~n" (format-ℓ ℓ))]))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]))
 
   (: print-blames : (℘ Err) → Void)
   (define (print-blames blames)

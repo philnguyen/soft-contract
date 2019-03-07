@@ -66,7 +66,7 @@
   ;; TODO If I expand/hide first with this stop-list,
   ;; Somehow `->` is retained, but all the `provide` stuff is gone
   ;; (expand (sneak-fake-contracts-into (expand/hide stx stop-list)))
-  (expand (sneak-fake-contracts-into (sneak-fake-contracts-into stx))))
+  (expand (sneak-fake-contracts-into stx)))
 
 (define (sneak-fake-contracts-into stx)
   (define faked? (make-parameter #f))

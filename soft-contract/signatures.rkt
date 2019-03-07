@@ -34,7 +34,4 @@
    [get-exclusions : (Symbol → (℘ Symbol))]
    [o⊢o : (Symbol Symbol → ?Dec)]
    [parse-prim : (Identifier → (Option -prim))]
-   #|
-   [vec-len : (T^ → T^)]
-   |#
    )) 

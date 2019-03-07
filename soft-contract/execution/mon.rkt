@@ -115,7 +115,7 @@
     (with-split-Σ Σ₀ (-st-p 𝒾) (list Vs)
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
-          (define-values (αs ΔΣ**) (alloc-each (collapse-W^ Ws) (λ (i) (β:fld 𝒾 ℓₕ i))))
+          (define-values (αs ΔΣ**) (alloc-each (collapse-W^ Ws) (λ (i) (β:fld/wrap 𝒾 ctx ℓₕ i))))
           (define V* {set (St 𝒾 αs ∅)})
           (if (struct-all-immutable? 𝒾)
               (just V* (⧺ ΔΣ ΔΣ* ΔΣ**))
@@ -235,27 +235,18 @@
   (define ((mon-Hash/C C) Σ₀ ctx Vs)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
     (match-define (Hash/C αₖ αᵥ ℓₕ) C)
-    (define Cₖ (Σ@ αₖ Σ₀))
-    (define Cᵥ (Σ@ αᵥ Σ₀))
-
-    (: chk : Σ V^ V^ → (Values R (℘ Err)))
-    (define (chk Σ C V) (if (set-empty? V) (just -void) (mon Σ ctx C V)))
-
-    (: chk-key-vals : Σ V^ V^ → (Values R (℘ Err)))
-    (define (chk-key-vals Σ Vₖ Vᵥ)
-      (with-collapsing/R [(ΔΣ₁ _) (chk Σ Cₖ Vₖ)]
-        (with-collapsing/R [(ΔΣ₂ _) (chk (⧺ Σ ΔΣ₁) Cᵥ Vᵥ)]
-          (just -void (⧺ ΔΣ₁ ΔΣ₂)))))
 
     (: chk-content : Σ V^ → (Values R (℘ Err)))
     (define (chk-content Σ Vs)
-      ((inst fold-ans V)
-       (match-lambda
-         [(and V (Guarded _ (? Hash/C?) _)) (just -void)] ; FIXME havoc properly
-         [(Hash-Of α₁ α₂ im?) (chk-key-vals Σ (Σ@ α₁ Σ) (Σ@ α₂ Σ))]
-         [_ (define ●s {set (-● ∅)})
-            (chk-key-vals Σ ●s ●s)])
-       Vs))
+      (define dummy-ℓ (ℓ-with-src +ℓ₀ 'mon-hash/c))
+      (define (chk-with [ac : Symbol] [αₚ : α])
+        (define-values (r es)
+          (with-collapsing/R [(ΔΣ Ws) (app Σ dummy-ℓ {set ac} (list Vs))]
+            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₚ Σ₀) (car (collapse-W^ Ws))))))
+        (values (or (collapse-R/ΔΣ r) ⊥ΔΣ) es))
+      (define-values (ΔΣ₁ es₁) (chk-with 'scv:hash-key αₖ))
+      (define-values (ΔΣ₂ es₂) (chk-with 'scv:hash-val αᵥ))
+      (values (R-of -void (ΔΣ⊔ ΔΣ₁ ΔΣ₂)) (∪ es₁ es₂)))
 
     (with-split-Σ Σ₀ 'hash? (list Vs)
       (λ (W* ΔΣ₀)
@@ -270,18 +261,11 @@
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
     (match-define (Set/C αₑ ℓₛ) C)
 
-    (: chk-elems : Σ V^ → (Values R (℘ Err)))
-    (define (chk-elems Σ Vs)
-      (if (set-empty? Vs) (just -void) (mon Σ ctx (Σ@ αₑ Σ) Vs)))
-
     (: chk-content : Σ V^ → (Values R (℘ Err)))
     (define (chk-content Σ Vs)
-      ((inst fold-ans V)
-       (match-lambda
-         [(and V (Guarded _ (? Set/C?) _)) (just -void)] ; FIXME havoc properly
-         [(Set-Of α _) (chk-elems Σ (Σ@ α Σ₀))]
-         [_ (chk-elems Σ {set (-● ∅)})])
-       Vs))
+      (define dummy-ℓ (ℓ-with-src +ℓ₀ 'mon-set/c))
+      (with-collapsing/R [(ΔΣ Ws) (app Σ dummy-ℓ {set 'set-first} (list Vs))]
+        (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws))))))
 
     (with-split-Σ Σ₀ 'set? (list Vs)
       (λ (W* ΔΣ₀)

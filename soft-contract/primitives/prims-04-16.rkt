@@ -19,9 +19,11 @@
          typed/racket/unit
          syntax/parse/define
          set-extras
+         unreachable
          "../utils/debug.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -36,12 +38,20 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-16@
-  (import prim-runtime^)
+  (import prim-runtime^
+          sto^ cache^ val^
+          exec^ app^ mon^)
   (export)
 
   ;;;;; Hash Sets
   (def-preds (set-equal? set-eqv? set-eq? set? set-mutable? set-weak?))
-  (def set (∀/c (α) (() #:rest (listof α) . ->* . (and/c immutable? (set/c α)))))
+  (def set
+    (∀/c (α)
+      (case->
+       ;; PN: first case feels like a hack, but I don't know what else to do.
+       ;; Without it, (set) will disappear, because nothing is sealed
+       [-> (and/c immutable? set? set-empty?)]
+       [α #:rest (listof α) . -> . (and/c immutable? (set/c α))])))
   (def seteqv (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-eqv? (set/c α)))))
   (def seteq (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-eq? (set/c α)))))
   (def mutable-set (∀/c (α) (() #:rest list? . ->* . (and/c generic-set? set-equal? set-mutable? (set/c α)))))
@@ -60,17 +70,16 @@
   (def list->weak-seteqv (∀/c (α) ((listof α) . -> . (and/c generic-set? set-eqv? set-weak? (set/c α)))))
   (def list->weak-seteq (∀/c (α) ((listof α) . -> . (and/c generic-set? set-eq? set-weak? (set/c α)))))
 
-;;;;; 4.16.2 Set Predicates and Contracts
+  ;;;;; 4.16.2 Set Predicates and Contracts
   (def-pred generic-set?)
   #;[set-implements ; FIXME listof
      ((generic-set?) #:rest (listof symbol?) . ->* . boolean?)]
   #;[set-implements/c ; FIXME varargs, contract?
      (symbol? . -> . flat-contract?)]
-  #;(def (set/c ℓ Vs H φ Σ ⟦k⟧)
+  (def (set/c Σ ℓ W)
     #:init ([V contract? #|TODO chaperone-contract?|#])
-    (define α (-α->⟪α⟫ (-α.set/c-elem ℓ H)))
-    (define C (-Set/C (-⟪α⟫ℓ α (ℓ-with-id ℓ 'set/c))))
-    (⟦k⟧ (list {set C}) H (alloc Σ φ α V) Σ))
+    (define α (α:dyn (β:set:elem ℓ) H₀))
+    (r:just (Set/C α ℓ) (alloc α V)))
 
 ;;;;; 4.16.3 Generic Set Interface
 
@@ -81,8 +90,25 @@
   (def* (set-add! set-remove!) ; FIXME no!
     (∀/c (_) ((and/c generic-set? set-mutable?) _ . -> . void?)))
   (def-pred set-empty? {generic-set?})
-  (def set-count (generic-set? . -> . exact-nonnegative-integer?))
-  (def set-first (∀/c (α) ((set/c α) . -> . α)))
+  (def set-count (generic-set? . -> . exact-nonnegative-integer?)
+    #:refinements
+    (set-empty? . -> . 0)
+    ((not/c set-empty?) . -> . exact-positive-integer?))
+  (def (set-first Σ ℓ W)
+    #:init ([Vs set?])
+    (define ac₁ : (V → (Values R (℘ Err)))
+      (match-lambda
+        [(Empty-Set) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'set-first)
+                               (list {set (Not/C (γ:imm 'set-empty?) +ℓ₀)})
+                               (list {set (Empty-Set)})))]
+        [(Set-Of α) (just (Σ@ α Σ))]
+        [(Guarded ctx (Set/C αₑ ℓₕ) α)
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'set-first} (list (Σ@ α Σ)))]
+           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (just (-● ∅))]
+        [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
+        [_ !!!]))
+    (fold-ans ac₁ Vs))
   (def set-rest (∀/c (α) ((set/c α) . -> . (set/c α))))
   (def set->stream (generic-set? . -> . stream?))
   (def set-copy (generic-set? . -> . generic-set?))

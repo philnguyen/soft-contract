@@ -24,8 +24,8 @@
 (define-unit prims-scv@
   (import static-info^
           prim-runtime^
-          sto^ val^
-          mon^ exec^
+          sto^ val^ cache^
+          app^ mon^ exec^
           prover^)
   (export)
 
@@ -54,4 +54,42 @@
             (err (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ)))]
        [_ (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))])
      (unpack Vₖ Σ)))
+
+  (def (scv:hash-key Σ ℓ W)
+    #:init ([Vₕ hash?])
+    (define ac₁ : (V → (Values R (℘ Err)))
+      (match-lambda
+        [(Empty-Hash) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
+                                (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
+                                (list {set (Empty-Hash)})))]
+        [(Hash-Of αₖ _) (just (Σ@ αₖ Σ))]
+        [(Guarded ctx (Hash/C αₖ _ _) α)
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'scv:hash-key} (list (Σ@ α Σ)))]
+           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₖ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (just (-● ∅))]
+        [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
+        [_ !!!]))
+    (fold-ans ac₁ Vₕ))
+
+  (def (scv:hash-val Σ ℓ W)
+    #:init ([Vₕ hash?])
+    (define ac₁ : (V → (Values R (℘ Err)))
+      (match-lambda
+        [(Empty-Hash) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
+                                (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
+                                (list {set (Empty-Hash)})))]
+        [(Hash-Of _ αᵥ) (just (Σ@ αᵥ Σ))]
+        [(Guarded ctx (Hash/C _ αᵥ _) α)
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'scv:hash-val} (list (Σ@ α Σ)))]
+           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αᵥ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (just (-● ∅))]
+        [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
+        [_ !!!]))
+    (fold-ans ac₁ Vₕ))
+
+  ;; HACK for some internal uses of `make-sequence`
+  (def (make-sequence Σ ℓ W)
+    #:init ()
+    #:rest [_ (listof any/c)]
+    (just (list {set -car} {set -cdr} {set 'values} {set -one} {set -cons?} {set -ff} {set -ff})))
   )

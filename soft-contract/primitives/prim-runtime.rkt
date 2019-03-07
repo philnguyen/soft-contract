@@ -229,19 +229,6 @@
       (λ (tag mk-V)
         (hash-ref! cache tag (λ () (call-with-values mk-V make-listof))))))
 
-  (: vec-len : V^ → V^)
-  (define (vec-len V^)
-    (match V^
-      [{singleton-set (? T? T)} {set (T:@ 'vector-length (list T))}]
-      [_
-       (set-union-map
-        (match-lambda
-          [(Vect αs) {set (-b (length αs))}]
-          [(Vect-Of _ αₙ) αₙ]
-          [(Guarded _ (Vect/C αs _) _) {set (-b (length αs))}]
-          [_ {set (-● {set 'exact-nonnegative-integer?})}])
-        V^)]))
-
   (: refine-ranges : Σ (Listof (List (Listof V) (Option V) (Listof V))) W W → (Values W ΔΣ))
   (define (refine-ranges Σ cases args rng)
 

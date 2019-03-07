@@ -636,7 +636,8 @@
       [(~literal fake:list/c) 'list/c]
       [(~literal fake:between/c) 'between/c]
       [(~literal fake:flat-contract) 'values]
-      #;[(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      [(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
+      [(~literal fake:set/c) 'set/c]
       [(~literal fake:dynamic-mon) 'scv:mon]
       [(~literal fake:contract?) 'contract?]
 

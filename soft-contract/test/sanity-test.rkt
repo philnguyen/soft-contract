@@ -169,6 +169,7 @@
   ;(test "safe/issues/issue-101b.rkt" check-safe) ; TODO restore when restore `zo`
   (test "safe/issues/case-lambdas.rkt" check-safe)
   (test "safe/issues/refined-string2list.rkt" check-safe)
+  (test "safe/issues/controlled-structs.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -188,6 +189,9 @@
   (test "unsafe/issues/parametric-basics.rkt" (check 'Failed 2 2))
   (test "unsafe/issues/issue-97.rkt" check-fail)
   (test "unsafe/issues/strict-parametricity.rkt" check-fail)
+  (test "unsafe/issues/controlled-structs.rkt" check-fail)
+  (test "unsafe/issues/set-basics.rkt" check-fail)
+  (test "unsafe/issues/hash-basics.rkt" check-fail)
 
   ;; Slightly larger ones
   #;(test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))
@@ -212,7 +216,7 @@
         (check 'Failed 1 1))
 
   ;; From gradual benchmarks
-  #;(test '("gradual-typing-benchmarks/sieve/streams.rkt"
+  (test '("gradual-typing-benchmarks/sieve/streams.rkt"
           "gradual-typing-benchmarks/sieve/main.rkt")
         check-safe)
   #;(test '("gradual-typing-benchmarks/morsecode/morse-code-table.rkt"
