@@ -154,7 +154,6 @@
   (define effect-free? : (-e → Boolean)
     (match-lambda
       [(or (? -v?) (? -x?)) #t]
-      [(-@ (and (? -o?) (not (? -st-mut?))) xs _) (andmap effect-free? xs)]
       [(-begin es) (andmap effect-free? es)]
       [(-begin0 e₀ es) (and (effect-free? e₀) (andmap effect-free? es))]
       [(or (-let-values bnds e _)

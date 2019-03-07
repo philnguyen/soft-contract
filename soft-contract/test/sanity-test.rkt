@@ -170,6 +170,13 @@
   (test "safe/issues/case-lambdas.rkt" check-safe)
   (test "safe/issues/refined-string2list.rkt" check-safe)
   (test "safe/issues/controlled-structs.rkt" check-safe)
+  (test "safe/issues/issue-105a.rkt" check-safe)
+  (test '("safe/issues/issue-105b.rkt"
+          "safe/issues/issue-105c.rkt")
+        check-safe)
+  (test "safe/issues/issue-102.rkt" check-safe)
+  (test "safe/issues/issue-68.rkt" check-safe)
+  (test "safe/issues/issue-107.rkt" check-safe) ; FIXME current false poz due to imprecise rest-arg reasoning
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -192,6 +199,9 @@
   (test "unsafe/issues/controlled-structs.rkt" check-fail)
   (test "unsafe/issues/set-basics.rkt" check-fail)
   (test "unsafe/issues/hash-basics.rkt" check-fail)
+  (test "unsafe/issues/issue-105.rkt" check-fail)
+  (test "unsafe/issues/issue-68.rkt" check-fail)
+  (test "unsafe/issues/issue-106.rkt" check-fail)
 
   ;; Slightly larger ones
   #;(test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))

@@ -65,7 +65,7 @@
       [(Blm l+ ℓ:site ℓ:origin Cs Vs)
        (printf "~a ~a~n" idx (show-full-ℓ ℓ:site))
        (printf "    - Blaming: ~a~n" l+)
-       (printf "    - Contract from: ~a @ ~a ~n" (show-full-ℓ ℓ:origin) (ℓ-id ℓ:origin))
+       (printf "    - Contract from: ~a ~n" (ℓ-src ℓ:origin))
        (printf "    - Expected: ~a~n"
                (match Cs
                  [(list C) (show-V^ C)]

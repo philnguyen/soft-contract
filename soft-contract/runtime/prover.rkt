@@ -188,6 +188,8 @@
         {set 'exact-nonnegative-integer?}]
        [('exact-integer? (P:> (-b (and (? (between/c -1 0)) (not  0)))))
         {set 'exact-nonnegative-integer?}]
+       [((or 'exact-integer? 'exact-nonnegative-integer?) 'zero?)
+        {set (P:≡ -zero)}]
        [('exact-nonnegative-integer? (P:¬ (P:= (-b 0))))
         {set 'exact-positive-integer?}]
        [('list? (P:¬ 'null?)) {set 'list? -cons?}]
