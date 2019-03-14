@@ -76,7 +76,7 @@
   (define show-Prox/C : (Prox/C → Sexp)
     (match-lambda
       [(? ==>i? V) (show-==>i V)]
-      [(∀/C xs C Ρ) `(∀/C ,xs …)]
+      [(∀/C xs C Ρ _) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
@@ -115,7 +115,7 @@
 
   (define show-α : (α → Sexp)
     (match-lambda
-      [(α:dyn β H) (format-symbol "~a~a" (show-β β) (n-sup H))]
+      [(α:dyn β H) (format-symbol "~a~a" (show-β β) (n-sup (intern-H H)))]
       [(γ:lex x) x]
       [(γ:top x) (-𝒾-name x)]
       [(γ:wrp x) (format-symbol "⟨~a⟩" (-𝒾-name x))]
@@ -130,7 +130,7 @@
       [(? symbol? x) x]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
       [(β:fld 𝒾 ℓ i) (show-β:ℓ ℓ i)]
-      [(β:fld/wrap 𝒾 ctx _ i) (format-symbol "~a@~a" (show-β:ctx ctx) i)]
+      [(β:fld/wrap 𝒾 ctx i) (format-symbol "~a@~a" (show-β:ctx ctx) i)]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
@@ -217,4 +217,8 @@
        `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
 
   (define (sexp->string [s : Sexp]) (format "~a" s))
+  
+  (define intern-H : (H → Index)
+    (let ([cache : (HashTable H Index) (make-hash)])
+      (λ (H) (hash-ref! cache H (λ () (hash-count cache))))))
   )

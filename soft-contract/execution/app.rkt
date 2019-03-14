@@ -35,7 +35,7 @@
      (λ (Vₕ)
        (define root (∪ W:root (V-root Vₕ)))
        (define Σ* (gc root Σ))
-       (ref-$! ($:Key:App Σ* ℓ Vₕ W)
+       (ref-$! (intern-$:Key ($:Key:App Σ* ℓ Vₕ W))
                (λ () (with-gc root Σ* (λ () (app₁ Σ* ℓ Vₕ W))))))
      (unpack Vₕ^ Σ))) 
 
@@ -127,9 +127,9 @@
         [(and T (or (? T:@?) (? γ?))) #:when (not (struct-mutable? 𝒾 i))
          (define T* (T:@ (-st-ac 𝒾 i) (list T)))
          (if (set-empty? (unpack T* Σ)) (values ⊥R ∅) (just T*))]
-        [(Guarded ctx (St/C _ αs ℓₕ) αᵥ)
+        [(Guarded (cons l+ l-) (St/C _ αs ℓₕ) αᵥ)
          (with-collapsing/R [(ΔΣ Ws) ((unchecked-app-st-ac 𝒾 i) Σ ℓ (unpack αᵥ Σ))]
-           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (unpack (list-ref αs i) Σ) (car (collapse-W^ Ws)))))]
+           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) (Ctx l+ l- ℓₕ ℓ) (unpack (list-ref αs i) Σ) (car (collapse-W^ Ws)))))]
         [(and V₀ (-● Ps))
          (case (sat Σ (-st-p 𝒾) {set V₀})
            [(✗) (values ⊥R ∅)]
@@ -159,8 +159,8 @@
     ((inst fold-ans V)
      (match-lambda
        [(St _ αs _) (just -void (mut (list-ref αs i) (blur V*)))]
-       [(Guarded ctx (St/C _ αs ℓₕ) αᵥ)
-        (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx-flip ctx) (unpack (list-ref αs i) Σ) V*)]
+       [(Guarded (cons l+ l-) (St/C _ αs ℓₕ) αᵥ)
+        (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) (unpack (list-ref αs i) Σ) V*)]
           (with-pre ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (unpack αᵥ Σ) V*)))]
        [_ (just -void (alloc (γ:hv #f) V*))])
      Vₓ))
@@ -170,40 +170,41 @@
     ; TODO massage raw result
     ((get-prim o) Σ ℓ Wₓ))
 
-  (: app-==>i : Ctx ==>i α → ⟦F⟧)
-  (define ((app-==>i ctx G αₕ) Σ₀-full ℓ Wₓ*)
+  (: app-==>i : (Pairof -l -l) ==>i α → ⟦F⟧)
+  (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
+    (match-define (cons l+ l-) ctx:saved)
     (define Wₓ (unpack-W Wₓ* Σ₀-full))
     (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full))
     (match-define (==>i (-var Doms ?Doms:rest) Rngs) G)
-    (define (@ [α : α]) (lookup α Σ₀))
 
-    (: mon-doms : Σ Ctx (Listof Dom) W → (Values R (℘ Err)))
-    (define (mon-doms Σ₀ ctx Doms₀ Wₓ₀)
-      (match-define (Ctx l+ l- ℓₒ ℓₘ) ctx)
+    (: mon-doms : Σ -l -l (Listof Dom) W → (Values R (℘ Err)))
+    (define (mon-doms Σ₀ l+ l- Doms₀ Wₓ₀)
       (let go ([Σ : Σ Σ₀] [Doms : (Listof Dom) Doms₀] [Wₓ : W Wₓ₀])
         (match* (Doms Wₓ)
           [('() '()) (values (hash ⊥ΔΣ {set '()}) ∅)]
           [((cons Dom Doms) (cons Vₓ Wₓ))
-           (with-each-path [(ΔΣₓ Wₓ*s) (mon-dom Σ ctx Dom Vₓ)]
+           (with-each-path [(ΔΣₓ Wₓ*s) (mon-dom Σ l+ l- Dom Vₓ)]
              (with-each-path [(ΔΣ* Ws*) (go (⧺ Σ ΔΣₓ) Doms Wₓ)]
                (just (cons (car (collapse-W^ Wₓ*s)) (collapse-W^ Ws*)) (⧺ ΔΣₓ ΔΣ*))))]
           [(_ _)
-           (err (blm l+ ℓ ℓₒ (map (compose1 (inst set V) Dom-ctc) Doms₀) Wₓ₀))])))
+           (err (blm l+ ℓ #|FIXME|# (ℓ-with-src +ℓ₀ 'Λ) (map (compose1 (inst set V) Dom-ctc) Doms₀) Wₓ₀))])))
 
-    (: mon-dom : Σ Ctx Dom V^ → (Values R (℘ Err)))
-    (define (mon-dom Σ ctx dom V)
+    (: mon-dom : Σ -l -l Dom V^ → (Values R (℘ Err)))
+    (define (mon-dom Σ l+ l- dom V)
       (match-define (Dom x c ℓₓ) dom)
+      (define ctx (Ctx l+ l- ℓₓ ℓ))
       (match c
+        ;; Dependent domain
         [(Clo (-var xs #f) E Ρ _)
          (define ΔΣ₀ (stack-copy Ρ Σ))
          (define Σ₀ (⧺ Σ ΔΣ₀))
          (with-each-path [(ΔΣ₁ Ws) (evl Σ₀ E)]
-           (match-define (list C) (collapse-W^ Ws)) ; FIXME catch
-           (with-each-path [(ΔΣ₂ Ws) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-site ctx ℓₓ) C V)]
-             (match-define (and W (list V*)) (collapse-W^ Ws)) ; FIXME catch 
+           (with-each-path [(ΔΣ₂ Ws) (mon (⧺ Σ₀ ΔΣ₁) ctx (car (collapse-W^ Ws)) V)]
+             (match-define (and W (list V*)) (collapse-W^ Ws)) ; FIXME catch
              (just W (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc (γ:lex x) V*)))))]
+        ;; Non-dependent domain
         [(? α? α)
-         (with-each-path [(ΔΣ Ws) (mon Σ (Ctx-with-site ctx ℓₓ) (@ α) V)]
+         (with-each-path [(ΔΣ Ws) (mon Σ ctx (Σ@ α Σ₀) V)]
            (match-define (and W (list V*)) (collapse-W^ Ws))
            (just W (⧺ ΔΣ (alloc (γ:lex x) V*))))]))
 
@@ -213,7 +214,7 @@
       (define-values (r es)
         (if Rngs
             (with-each-path [(ΔΣₐ Wₐs) (comp)]
-              (with-pre (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) ctx Rngs (collapse-W^ Wₐs))))
+              (with-pre (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) l+ l- Rngs (collapse-W^ Wₐs))))
             (with-pre ΔΣ-acc (comp))))
       (define rn (for/hash : (Immutable-HashTable α (Option α))
                      ([d (in-list Doms)]
@@ -227,32 +228,31 @@
                                           (C^-flat? (unpack (Dom-ctc d) Σ₀) Σ₀))
                               α]
                              [_ #f]))))
-      (values (fix-return rn (⧺ Σ₀ ΔΣ-acc) r) es))
+      (values (fix-return rn Σ₀ r) es))
 
     (with-guarded-arity Wₓ G ℓ
       [Wₓ
        #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
-       (with-each-path [(ΔΣₓ _) (mon-doms Σ₀ (Ctx-flip ctx) Doms Wₓ)]
+       (with-each-path [(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)]
          (define args (map Dom-ref Doms))
-         (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (@ αₕ) args))))]
+         (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args))))]
       [Wₓ
        #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
        (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
-       (define ctx* (Ctx-flip ctx))
-       (with-each-path [(ΔΣ-init _) (mon-doms Σ₀ ctx* Doms W₀)]
+       (with-each-path [(ΔΣ-init _) (mon-doms Σ₀ l- l+ Doms W₀)]
          (define-values (Vᵣ ΔΣᵣ) (alloc-rest (Dom-loc ?Doms:rest) Wᵣ))
-         (with-each-path [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) ctx* ?Doms:rest Vᵣ)]
+         (with-each-path [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) l- l+ ?Doms:rest Vᵣ)]
            (define args-init (map Dom-ref Doms))
            (define arg-rest (Dom-ref ?Doms:rest))
            (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
-             (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (@ αₕ) args-init arg-rest)))))]))
+             (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))]))
 
-  (: app-∀/C : Ctx ∀/C α → ⟦F⟧)
+  (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)
     (with-each-path [(ΔΣ Wₕ) (inst-∀/C Σ₀ ctx G α ℓ)]
       (with-pre ΔΣ (app (⧺ Σ₀ ΔΣ) ℓ (car (collapse-W^ Wₕ)) Wₓ))))
 
-  (: app-Case-=> : Ctx Case-=> α → ⟦F⟧)
+  (: app-Case-=> : (Pairof -l -l) Case-=> α → ⟦F⟧)
   (define ((app-Case-=> ctx G α) Σ ℓ Wₓ)
     (define n (length Wₓ))
     (match-define (Case-=> Cs) G)
@@ -373,9 +373,9 @@
   (: unalloc : V^ Σ → (Values (℘ W) Boolean))
   ;; Convert list in object language into one in meta-language
   (define (unalloc Vs Σ)
-    (define-set touched : α #:as-mutable-hash? #t)
+    (define-set touched : α #:mutable? #t)
     (define elems : (Mutable-HashTable Integer V^) (make-hasheq))
-    (define-set ends : Integer #:eq? #t #:as-mutable-hash? #t)
+    (define-set ends : Integer #:eq? #t #:mutable? #t)
     (define sound? : Boolean #t)
 
     (let touch! ([i : Integer 0] [Vs : V^ Vs])
@@ -396,11 +396,11 @@
                  (for/list : W ([i (in-range n)]) (hash-ref elems i))))
     (values Ws sound?))
 
-  (: inst-∀/C : Σ Ctx ∀/C α ℓ → (Values R (℘ Err)))
+  (: inst-∀/C : Σ (Pairof -l -l) ∀/C α ℓ → (Values R (℘ Err)))
   ;; Monitor function against freshly instantiated parametric contract
   (define (inst-∀/C Σ₀ ctx G α ℓ)
-    (match-define (∀/C xs c Ρ) G)
-    (define l-seal (Ctx-neg ctx))
+    (match-define (∀/C xs c Ρ ℓₒ) G)
+    (match-define (cons l+ (and l- l-seal)) ctx)
     (define ΔΣ₀
       (let ([ΔΣ:seals
              (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([x (in-list xs)])
@@ -413,7 +413,7 @@
     (define Σ₁ (⧺ Σ₀ ΔΣ₀))
     (with-each-path [(ΔΣ₁ W:c) (evl Σ₁ c)]
       (with-pre (⧺ ΔΣ₀ ΔΣ₁)
-        (mon (⧺ Σ₁ ΔΣ₁) ctx (car (collapse-W^ W:c)) (Σ@ α Σ₀)))))
+        (mon (⧺ Σ₁ ΔΣ₁) (Ctx l+ l- ℓₒ ℓ) (car (collapse-W^ W:c)) (Σ@ α Σ₀)))))
 
   (define-simple-macro (with-guarded-arity W f ℓ [p body ...] ...)
     (match W

@@ -72,28 +72,6 @@
   (define (unpack Vs Σ)
     (define seen : (Mutable-HashTable α #t) (make-hash))
 
-    (: V@ : -st-ac → V → V^)
-    (define (V@ ac)
-      (match-define (-st-ac 𝒾 i) ac)
-      (match-lambda
-        [(St (== 𝒾) αs Ps)
-         (define-values (V* _)
-           (refine (unpack-V^ (car (hash-ref Σ (list-ref αs i))) ∅)
-                   (ac-Ps ac Ps)
-                   Σ))
-         ;; TODO: explicitly enforce that store delta doesn't matter in this case
-         V*]
-        [(-● Ps)
-         (define Ps* (ac-Ps ac Ps))
-         (if (prim-struct? 𝒾)
-             {set (-● Ps*)}
-             (let ([Vs (unpack (γ:escaped-field 𝒾 i) Σ)])
-               (if (set-empty? Vs)
-                   ∅
-                   (let-values ([(Vs* _) (refine Vs Ps* Σ)])
-                     Vs*))))]
-        [_ ∅]))
-
     (: unpack-V : V V^ → V^)
     (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (V⊔₁ V acc)))
 
@@ -116,10 +94,29 @@
     (define (unpack-T:@ T acc)
       (match T
         [(T:@ (? -st-ac? ac) (list T*))
-         (V⊔ acc (set-union-map (V@ ac) (unpack-T T* ∅)))]
+         (V⊔ acc (set-union-map (λ ([V : V]) (V@ Σ ac V)) (unpack-T T* ∅)))]
         [_ acc]))
 
     (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
+
+  (: V@ : Σ -st-ac V → V^)
+  (define (V@ Σ ac V)
+    (match-define (-st-ac 𝒾 i) ac)
+    (match V
+      [(St (== 𝒾) αs Ps)
+       (define-values (V* _) (refine (unpack (list-ref αs i) Σ) (ac-Ps ac Ps) Σ))
+       ;; TODO: explicitly enforce that store delta doesn't matter in this case
+       V*]
+      [(-● Ps)
+       (define Ps* (ac-Ps ac Ps))
+       (if (prim-struct? 𝒾)
+           {set (-● Ps*)}
+           (let ([Vs (unpack (γ:escaped-field 𝒾 i) Σ)])
+             (if (set-empty? Vs)
+                 ∅
+                 (let-values ([(Vs* _) (refine Vs Ps* Σ)])
+                   Vs*))))]
+      [_ ∅]))
 
   (: unpack-W : W Σ → W)
   (define (unpack-W W Σ) (map (λ ([V^ : V^]) (unpack V^ Σ)) W))

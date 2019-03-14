@@ -63,11 +63,12 @@
              (unpack αᵢ Σ)))
          (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
          (just Vₐ* ΔΣ)]
-        [(Guarded ctx (St/C 𝒾 αs _) αᵥ)
+        [(Guarded (cons l+ l-) (St/C 𝒾 αs ℓₕ) αᵥ)
          (define Vᵥ* (unpack αᵥ Σ))
-         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
+         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
            (define Σ₀ (⧺ Σ ΔΣ₀))
            (define Vₐ (car (collapse-W^ Ws)))
+           (define ctx (Ctx l+ l- ℓₕ ℓ))
            (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
                      ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
              (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))

@@ -314,7 +314,7 @@
        (cond
          [(null? (-ctc-parameters))
           ;; TODO make sure no collision
-          #`(∀/C '(x ...) body ∅)]
+          #`(∀/C '(x ...) body ∅ #,(gen-stx-ℓ stx))]
          [else
           (with-syntax ([(esc ...)
                          (error 'TODO "generalize env")
@@ -322,7 +322,7 @@
                                    ([(x a) (in-hash (-ctc-parameters))])
                            #`(hash-set #,env '#,x (γ:imm #,a)))])
             ;; TODO make sure no collision
-            #`(∀/C '(x ...) body {set esc ...}))])]
+            #`(∀/C '(x ...) body {set esc ...} #,(gen-stx-ℓ stx)))])]
       [((~literal and/c) c ...)
        ((go* #'And/C #''any/c) (syntax->list #'(c ...)))]
       [((~literal or/c) c ...)
@@ -406,9 +406,9 @@
               (define/with-syntax rng (ctc->ast #'d))
               #'(cons (list dom ...) rng)])))
        #'(case-> (list cases ...) ℓ)]
-      [((~literal ∀/c) (x ...) c)
+      [(~and stx ((~literal ∀/c) (x ...) c))
        (define/with-syntax body (ctc->ast #'c))
-       #'(-∀/c '(x ...) body)]
+       #`(-∀/c '(x ...) body #,(gen-stx-ℓ #'stx))]
       [c (error 'ctc->ast "unimplemented: ~a" (syntax->datum #'c))]))
 
   ;; Based on domain and range, decide if interpreter can lift concrete op
@@ -434,8 +434,8 @@
                   [line (syntax-line s)]
                   [col (syntax-column s)]
                   [(t ...) tags])
-      #`(ℓ-with-id #,(-ℓ) (list 'src line col 't ...))
-      #;(loc->ℓ (loc 'src line col (list 't ...)))))
+      #;#`(ℓ-with-id #,(-ℓ) (list 'src line col 't ...))
+      #'(loc->ℓ (loc 'src line col (list 't ...)))))
 
   (define/contract (gen-==> inits ?rest rngs)
     (syntax? (or/c #f syntax?) syntax? . -> . syntax?)

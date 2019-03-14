@@ -35,6 +35,14 @@
   (define db:depth ((inst make-parameter Natural) 0))
   (define current-module ((inst make-parameter -l) 'scv))
 
+  ;;; For incremental
+  ;; Configurations that depend on result of current computation
+  (define dependants ((inst make-parameter (℘ $:K)) ∅eq))
+  ;; Map each configuration to the ones whose result depend on it
+  (define dependencies : (Mutable-HashTable $:K (℘ $:K)) (make-hasheq))
+  ;; Configurations whose entries in `$ₒᵤₜ` are invalidated
+  (define dirties : (℘ $:K) ∅eq)
+
   (: exec : (U -prog E) → (Values (℘ Err) $))
   (define (exec p)
     (define run (if (-prog? p)
@@ -42,31 +50,45 @@
                     (λ () (let-values ([(_ es) (evl ⊥Σ p)]) es))))
     (define dump-iter? (db:iter?)) 
     (define iter : Natural 0)
-    (define done? : (→ Boolean)
+    (define done? : (Natural → Boolean)
       (match (db:max-steps)
-        [(? values n) (λ () (>= iter n))]
-        [#f (λ () #f)]))
+        [(? values n) (λ (iter) (>= iter n))]
+        [#f (λ (_) #f)]))
     
-    (let loop ()
+    (let loop ([iter : Natural 0])
       (set! $ᵢₙ $ₒᵤₜ)
-      (set! $ₒᵤₜ ⊥$)
+      (set! $ₒᵤₜ (for/fold ([acc : $ $ₒᵤₜ]) ([k (in-set dirties)])
+                   (hash-remove acc k)))
       (when dump-iter?
-        (printf "iter: ~a (~a) ~n" iter (hash-count $ᵢₙ)))
-      (set! iter (+ 1 iter))
+        (printf "iter ~a: ~a in, ~a dirties ~n" iter (hash-count $ᵢₙ) (set-count dirties)))
+      (set! dirties ∅eq)
+      (hash-clear! dependencies)
       (define es (run))
-      (if (or (done?) (equal? $ᵢₙ $ₒᵤₜ))
+      (if (or (done? iter) (set-empty? dirties))
           (values (set-filter blame-on-transparent? es) $ᵢₙ)
-          (loop))))
+          (loop (+ 1 iter)))))
 
-  (: ref-$! : $:Key (→ (Values R (℘ Err))) → (Values R (℘ Err)))
+  (: ref-$! : $:K (→ (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (ref-$! key comp)
     (match (hash-ref $ₒᵤₜ key #f)
-      [(cons r es) (values r es)]
+      [(cons r es)
+       ;; Record all configurations whose result depend on cache entry
+       (hash-update! dependencies key (λ ([ks : (℘ $:K)]) (∪ ks (dependants))) mk-∅eq)
+       (values r es)]
       [#f
-       (set! $ₒᵤₜ (hash-set $ₒᵤₜ key (hash-ref $ᵢₙ key (λ () ⊥A))))
-       (define-values (r es) (comp))
-       (set! $ₒᵤₜ ($⊔ $ₒᵤₜ key r es))
-       (values r es)]))
+       (match-define (and res₀ (cons r₀ es₀)) (hash-ref $ᵢₙ key (λ () ⊥A)))
+       (set! $ₒᵤₜ (hash-set $ₒᵤₜ key res₀))
+       (define-values (r es) (parameterize ([dependants (set-add (dependants) key)])
+                               (comp)))
+       (define r* (m⊔ r₀ r))
+       (define es* (∪ es₀ es))
+       ;; If new result differ from cache entry, mark all dependcies as dirty
+       (unless (and (equal? r₀ r*) (equal? es₀ es*))
+         (set! $ₒᵤₜ (hash-set $ₒᵤₜ key (cons r* es*)))
+         (match (hash-ref dependencies key #f)
+           [(? values deps) (set! dirties (∪ dirties deps))]
+           [_ (void)]))
+       (values r* es*)]))
 
   (: just ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
   (define (just V [ΔΣ ⊥ΔΣ]) (values (R-of V ΔΣ) ∅))

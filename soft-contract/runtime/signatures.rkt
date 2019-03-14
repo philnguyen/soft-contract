@@ -7,8 +7,8 @@
          typed/racket/unit
          bnf
          unreachable
-         intern
          set-extras
+         intern
          (only-in "../utils/list.rkt" NeListof)
          "../ast/signatures.rkt" 
          )
@@ -24,7 +24,7 @@
                                (Empty-Set)
                                (Set-Of [elems : α])
                                Fn
-                               (Guarded [ctx : Ctx] [guard : Prox/C] [val : α])
+                               (Guarded [ctx : (Pairof -l -l)] [guard : Prox/C] [val : α])
                                (Sealed α)
                                C
                                T
@@ -50,7 +50,7 @@
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
-                                  (∀/C (Listof Symbol) E (℘ α))
+                                  (∀/C (Listof Symbol) E (℘ α) ℓ)
                                   (Case-=> (Listof ==>i))) 
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
                                  (Err:Undefined Symbol ℓ)
@@ -65,11 +65,10 @@
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
 (#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)))
-(#|Caches         |# $ .  ≜  . (Immutable-HashTable $:Key (Pairof R (℘ Err))))
+(#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
 (#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
-(#|Run-time Ctxs  |# -H .  ≜  . (Listof K))
 (#|Call Edge      |# K .  ≜  . (Pairof ℓ ℓ))
 (#|Addresses      |# α . ::= . γ (α:dyn β H))
 (#|Static Addrs   |# γ . ::= . (γ:lex Symbol)
@@ -92,7 +91,7 @@
                                ; struct field
                                (β:fld -𝒾 ℓ Natural)
                                ; wrapped struct field from monitoring
-                               (β:fld/wrap -𝒾 Ctx ℓ Natural)
+                               (β:fld/wrap -𝒾 Ctx Natural)
                                ; for varargs
                                (β:var:car (U ℓ Symbol) (Option Natural))
                                (β:var:cdr (U ℓ Symbol) (Option Natural))
@@ -144,6 +143,7 @@
 (#|Cache Tags     |# $:Tag . ::= . 'app 'mon 'flc)
 (#|Abstract Values|# V^ . ≜ . (℘ V))
 (#|Abs. Val. Lists|# W^ . ≜ . (℘ W))
+(#|Dynamic Context|# H  . ≜ . (℘ ℓ))
 (#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
                                                   [#:reuse (Listof Fn/C-Sig)])
 
@@ -154,10 +154,9 @@
 (#|Addr. Substitutions|# S . ≜ . (HashTable α α))
 (Renamings . ≜ . (Immutable-HashTable α (Option T)))
 
-
-(define-interner H -H
-  #:intern-function-name mk-H
-  #:unintern-function-name inspect-H)
+(define-interner $:K $:Key
+  #:intern-function-name intern-$:Key
+  #:unintern-function-name unintern-$:Key)
 
 ;; Convenient patterns
 (define-syntax-rule (define-St-matcher (P α ...) St-id)
@@ -173,10 +172,10 @@
 (define-St/G-matcher Guarded-Box -𝒾-box)
 
 (define ⊥R : R (hash))
-(define H₀ : H (mk-H '()))
+(define H₀ : H ∅eq)
 (define ⊥Σ : Σ (hash))
 (define ⊥ΔΣ : ΔΣ (hash))
-(define ⊥$ : $ (hash))
+(define ⊥$ : $ (hasheq))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Signatures
@@ -186,6 +185,7 @@
   ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
    [lookup : (α Σ → V^)]
    [Σ@ : (α Σ → V^)]
+   [V@ : (Σ -st-ac V → V^)]
    [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
    [unpack-W : (W Σ → W)]
    [alloc : (α V^ → ΔΣ)]
@@ -208,8 +208,7 @@
    [R⧺ΔΣ : (R ΔΣ → R)]
    [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
    [collapse-R/ΔΣ : (R → (Option ΔΣ))]
-   [split-by-arity : (W^ Natural → (Values W^ W^))]
-   [$⊔ : ($ $:Key R (℘ Err) → $)]))
+   [$⊔ : ($ $:K R (℘ Err) → $)]))
 
 (define-signature val^
   ([collapse-W^ : (W^ → W)]
@@ -222,6 +221,7 @@
             [V → V]
             [V^ → V^])]
    [Ctx-with-site : (Ctx ℓ → Ctx)]
+   [Ctx-with-origin : (Ctx ℓ → Ctx)]
    [Ctx-flip : (Ctx → Ctx)]
    [C-flat? : (V Σ → Boolean)]
    [C^-flat? : (V^ Σ → Boolean)]
@@ -235,20 +235,7 @@
                            [(U T -b) → (Option (U T -b))]))]
    [T-root : (T:@ → (℘ α))]
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
-   [merge/compact : (∀ (X) (X X → (Option (℘ X))) X (℘ X) → (℘ X))]
-   #;[fresh-sym! : (→ -s)]
-   #;[in-scope? : ((U α S) (℘ α) → Boolean)]
-   #;[cmp-sets : (?Cmp (℘ Any))]
-   #;[set-lift-cmp : (∀ (X) (?Cmp X) → (?Cmp (℘ X)))]
-   #;[fold-cmp : (∀ (X) (?Cmp X) (Listof X) (Listof X) → ?Ord)]
-   #;[join-by-max : (∀ (X) (?Cmp X) → (?Joiner X))]
-   #;[compact-with : (∀ (X) (?Joiner X) → (℘ X) X → (℘ X))]
-   #;[iter-⊔ : (∀ (X) ((℘ X) X → (℘ X)) → (℘ X) (℘ X) → (℘ X))]
-   
-   #;[Ctx-with-site : (Ctx ℓ → Ctx)]
-   #;[Ctx-with-origin : (Ctx ℓ → Ctx)]
-   #;[X/C->binder : (X/C → Symbol)]
-   #;[estimate-list-lengths : ((U Σ Σᵥ) V → (℘ (U #f Arity)))]
+   [merge/compact : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    ))
 
 (define-signature prover^

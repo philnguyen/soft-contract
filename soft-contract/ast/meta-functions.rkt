@@ -235,7 +235,7 @@
 
   (: first-forward-ref : (Listof -dom) → (Option Symbol))
   (define (first-forward-ref doms)
-    (define-set seen : Symbol #:eq? #t #:as-mutable-hash? #t)
+    (define-set seen : Symbol #:eq? #t #:mutable? #t)
     (for/or : (Option Symbol) ([dom (in-list doms)])
       (match-define (-dom x ?xs _ _) dom)
       (seen-add! x)
@@ -417,7 +417,7 @@
         [(-μ/c x e) (-μ/c x (go-e e))]
         [(? -->i? c) (go--->i c)]
         [(case--> cases) (case--> (map go--->i cases))]
-        [(-∀/c xs e) (-∀/c xs (go-e e))]
+        [(-∀/c xs e ℓ) (-∀/c xs (go-e e) ℓ)]
         [e e]))
 
     (define go-λ : (-λ → -λ)

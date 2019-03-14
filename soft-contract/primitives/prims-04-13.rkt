@@ -81,48 +81,48 @@
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-equal? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c hash-equal? (not/c immutable?) (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-equal? (not/c immutable?) (hash/c α β))])))
   (def make-hasheqv
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eqv? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c hash-eqv? (not/c immutable?) (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-eqv? (not/c immutable?) (hash/c α β))])))
   (def make-hasheq
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eq? hash-empty? (not/c immutable?))]
-          [(listof (cons/c α β)) . -> . (and/c hash-eq? (not/c immutable?) (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-eq? (not/c immutable?) (hash/c α β))])))
   (def make-immutable-hash
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-equal? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c hash-equal? immutable? (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-equal? immutable? (hash/c α β))])))
   (def make-immutable-hasheqv
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eqv? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c hash-eqv? immutable? (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-eqv? immutable? (hash/c α β))])))
   (def make-immutable-hasheq
     (∀/c (α β)
          (case->
           [-> (and/c hash? hash-eq? hash-empty? immutable?)]
-          [(listof (cons/c α β)) . -> . (and/c hash-eq? immutable? (hash/c α β))])))
+          [(listof (cons/c α β)) . -> . (and/c hash? hash-eq? immutable? (hash/c α β))])))
 
   (def make-weak-hash
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c hash-equal? hash-weak? (hash/c α β))))))
+          ((listof (cons/c α β)) . -> . (and/c hash? hash-equal? hash-weak? (hash/c α β))))))
   (def make-weak-hasheqv
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c hash-eqv? hash-weak? (hash/c α β))))))
+          ((listof (cons/c α β)) . -> . (and/c hash? hash-eqv? hash-weak? (hash/c α β))))))
   (def make-weak-hasheq
     (∀/c (α β)
          (case->
           (-> (and/c hash? hash-equal? hash-weak?))
-          ((listof (cons/c α β)) . -> . (and/c hash-eq? hash-weak? (hash/c α β))))))
+          ((listof (cons/c α β)) . -> . (and/c hash? hash-eq? hash-weak? (hash/c α β))))))
   (def hash-set!
     (∀/c (α β) ((and/c (not/c immutable?) (hash/c α β)) α β . -> . void?)))
   (def hash-set*! ; FIXME uses

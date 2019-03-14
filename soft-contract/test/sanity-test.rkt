@@ -171,8 +171,8 @@
   (test "safe/issues/refined-string2list.rkt" check-safe)
   (test "safe/issues/controlled-structs.rkt" check-safe)
   (test "safe/issues/issue-105a.rkt" check-safe)
-  (test '("safe/issues/issue-105b.rkt"
-          "safe/issues/issue-105c.rkt")
+  (test '("programs/safe/issues/issue-105b.rkt"
+          "programs/safe/issues/issue-105c.rkt")
         check-safe)
   (test "safe/issues/issue-102.rkt" check-safe)
   (test "safe/issues/issue-68.rkt" check-safe)
@@ -244,11 +244,6 @@
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
 
-  #;(test   "safe/games" check-safe)
-  #;(test "unsafe/games" check-fail)
-  
-  (test   "safe/games/snake.rkt" check-safe)
-  (test   "safe/games/tetris.rkt" check-safe)
-  (test "unsafe/games/snake.rkt" check-fail)
-  (test "unsafe/games/tetris.rkt" check-fail)
+  (test   "safe/games" check-safe)
+  (test "unsafe/games" check-fail)
   )

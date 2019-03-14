@@ -29,7 +29,7 @@
 
 (define-signature exec^ 
   ([exec : ((U E -prog) → (Values (℘ Err) $))]
-   [ref-$! : ($:Key (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
+   [ref-$! : ($:K (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
    [current-module : (Parameterof -l)]
    [just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
    [err : ((U (℘ Err) Err) → (Values R (℘ Err)))]

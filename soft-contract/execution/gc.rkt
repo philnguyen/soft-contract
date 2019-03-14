@@ -39,34 +39,34 @@
                  ([V (in-set Vs)]
                   [α* (in-set (V-root V))] #:unless (touched-has? α*))
         (touch α* Σ*)))
-    
-    (: remove-stale-refinements : Σ → Σ)
-    (define (remove-stale-refinements Σ₁)
-      (for/fold ([Σ₁ : Σ Σ₁]) ([(α r) (in-hash Σ₁)])
-        (match-define (cons Vs N) r)
-        (define Vs*
-          (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
-            (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
-            (define (replace-if-refinements-stale Ps mk-V)
-              (define Ps*
-                (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)] #:unless (⊆ (P-root P) touched))
-                  (set-remove Ps* P)))
-              ;; Try to reuse old instance
-              (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
-            (match Vᵢ
-              [(-● Ps) (replace-if-refinements-stale Ps -●)]
-              [(St 𝒾 αs Ps)
-               (replace-if-refinements-stale Ps (λ (Ps*) (St 𝒾 αs Ps*)))]
-              [_ Vs*])))
-        (cond [(eq? Vs* Vs) Σ₁] ; try to reuse old instance
-              [(set-empty? Vs*) (hash-remove Σ₁ α)]
-              [else (hash-set Σ₁ α (cons Vs* N))])))
 
     (let ([Σ* (set-fold touch ⊥Σ root)])
       (if (= (hash-count Σ*) (hash-count Σ₀))
           ;; Try to re-use old instance
           Σ₀
-          (remove-stale-refinements Σ*))))
+          (remove-stale-refinements touched Σ*))))
+
+  (: remove-stale-refinements : (℘ α) Σ → Σ)
+  (define (remove-stale-refinements root Σ₁)
+    (for/fold ([Σ₁ : Σ Σ₁]) ([(α r) (in-hash Σ₁)])
+      (match-define (cons Vs N) r)
+      (define Vs*
+        (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
+          (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
+          (define (replace-if-refinements-stale Ps mk-V)
+            (define Ps*
+              (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)] #:unless (⊆ (P-root P) root))
+                (set-remove Ps* P)))
+            ;; Try to reuse old instance
+            (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
+          (match Vᵢ
+            [(-● Ps) (replace-if-refinements-stale Ps -●)]
+            [(St 𝒾 αs Ps)
+             (replace-if-refinements-stale Ps (λ (Ps*) (St 𝒾 αs Ps*)))]
+            [_ Vs*])))
+      (cond [(eq? Vs* Vs) Σ₁] ; try to reuse old instance
+            [(set-empty? Vs*) (hash-remove Σ₁ α)]
+            [else (hash-set Σ₁ α (cons Vs* N))])))
 
   (: with-gc : (℘ α) Σ (→ (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (with-gc root Σ comp)
@@ -108,7 +108,7 @@
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]
-      [(∀/C _ _ Ρ) Ρ]
+      [(∀/C _ _ Ρ _) Ρ]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]

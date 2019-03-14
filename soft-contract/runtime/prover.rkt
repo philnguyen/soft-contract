@@ -175,33 +175,33 @@
   (define (refine-Ps Ps₀ P₀ Σ)
     ;; Combine 2 predicates for a more precise one.
     ;; Return `#f` if there's no single predicate that refines both
-    (define P+ : (P P → (Option (℘ P)))
+    (define P+ : (P P → (Option (Listof P)))
       (match-lambda**/symmetry
-       [(P Q) #:when (equal? '✓ (P⊢P Σ P Q)) {set P}]
+       [(P Q) #:when (equal? '✓ (P⊢P Σ P Q)) (list P)]
        [((or 'exact-integer? 'exact-nonnegative-integer?)
          (P:≥ (-b (and (? (between/c 0 1)) (not 0)))))
-        {set 'exact-positive-integer?}]
+        (list 'exact-positive-integer?)]
        [((or 'exact-integer? 'exact-nonnegative-integer?)
          (P:> (-b (and (? (between/c 0 1)) (not 1)))))
-        {set 'exact-positive-integer?}]
+        (list 'exact-positive-integer?)]
        [('exact-integer? (P:≥ (-b (and (? (between/c -1 0)) (not -1)))))
-        {set 'exact-nonnegative-integer?}]
+        (list 'exact-nonnegative-integer?)]
        [('exact-integer? (P:> (-b (and (? (between/c -1 0)) (not  0)))))
-        {set 'exact-nonnegative-integer?}]
+        (list 'exact-nonnegative-integer?)]
        [((or 'exact-integer? 'exact-nonnegative-integer?) 'zero?)
-        {set (P:≡ -zero)}]
+        (list (P:≡ -zero))]
        [('exact-nonnegative-integer? (P:¬ (P:= (-b 0))))
-        {set 'exact-positive-integer?}]
-       [('list? (P:¬ 'null?)) {set 'list? -cons?}]
-       [('list? (P:¬ -cons?)) {set 'null?}]
+        (list 'exact-positive-integer?)]
+       [('list? (P:¬ 'null?)) (list 'list? -cons?)]
+       [('list? (P:¬ -cons?)) (list 'null?)]
        [((and P (or (? P:>?) (? P:≥?) (? P:<?) (? P:≤?))) 'number?)
-        {set P 'real?}]
+        (list P 'real?)]
        #:else
        [(P₀ Q₀)
         (match* (P₀ Q₀)
           [((P:St acs P*) (P:St acs Q*))
            (match (P+ P* Q*)
-             [(? values Ps) (map/set (λ ([P : P]) (P:St acs P)) Ps)]
+             [(? values Ps) (map (λ ([P : P]) (P:St acs P)) Ps)]
              [_ #f])]
           [(_ _) #f])]))
     (if (P? P₀) (merge/compact P+ P₀ Ps₀) Ps₀))
@@ -422,10 +422,11 @@
     (: go-V : V V → ?Dec)
     (define go-V
       (match-lambda**
-       [((-b x) (-b y)) (bool->Dec (equal? x y))]
+       [((? -prim? x) (? -prim? y)) (bool->Dec (equal? x y))]
        [((-● Ps) (and T (or (? -b?) (? T?)))) (Ps⊢P Σ Ps (P:≡ T))]
        [((and T (or (? -b?) (? T?))) (-● Ps)) (Ps⊢P Σ Ps (P:≡ T))]
-       [((? -o? o₁) (? -o? o₂)) (bool->Dec (equal? o₁ o₂))]
+       [((? -prim?) (not (or (? -●?) (? T?) (? -prim?)))) '✗]
+       [((not (or (? -●?) (? T?) (? -prim?))) (? -prim?)) '✗]
        [((St 𝒾₁ αs₁ _) (St 𝒾₂ αs₂ _)) (if (equal? 𝒾₁ 𝒾₂) (go* αs₁ αs₂) '✗)]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
@@ -479,6 +480,8 @@
            (if (> (set-count bs) 1) #f '✓)
            '✗)]
       [((P:≡ (-b b)) (One-Of/C bs)) (bool->Dec (∋ bs b))]
+      [((P:≡ (? -b?)) (or (? -st-p?) 'vector? 'set? 'hash?)) '✗]
+      [((or (? -st-p?) 'vector? 'set? 'hash?) (P:≡ (? -b?))) '✗]
       ;; Negate
       [((P:¬ P) (P:¬ Q)) (case (simple-P⊢P Σ Q P)
                            [(✓) '✓]
@@ -555,7 +558,7 @@
   (define canonicalize
     (match-lambda
       ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ -zero)}]
-      ['exact-positive-integer? {set 'exact? 'integer? (P:≥ -zero) (P:¬ (P:= -zero))}]
+      ['exact-positive-integer? {set 'exact? 'integer? (P:> -zero)}]
       ['exact-integer? {set 'exact? 'integer?}]
       ['positive? (P:> -zero)]
       ['negative? (P:< -zero)]
@@ -576,7 +579,7 @@
                         'string? 'symbol?})])
     (: check-proper-list : Σ V → ?Dec)
     (define (check-proper-list Σ V₀)
-      (define-set seen : α #:as-mutable-hash? #t)
+      (define-set seen : α #:mutable? #t)
 
       (: go-α : α → ?Dec)
       (define (go-α α)

@@ -48,7 +48,7 @@
         [(Hash/C α₁ α₂ ℓ) (Hash/C (α/ α₁) (α/ α₂) ℓ)]
         [(Set/C α ℓ) (Set/C (α/ α) ℓ)]
         [(? ==>i? V) (==>i/ V)]
-        [(∀/C xs E αs) (∀/C xs E (map/set α/ αs))]
+        [(∀/C xs E αs ℓ) (∀/C xs E (map/set α/ αs) ℓ)]
         [(Case-=> Cs) (Case-=> (map ==>i/ Cs))]))
     (define P/ : (P → P)
       (match-lambda
@@ -93,7 +93,10 @@
   (define (W⊔ W₁ W₂) (map V⊔ W₁ W₂))
 
   (define Ctx-with-site : (Ctx ℓ → Ctx)
-    (match-lambda** [((Ctx l+ l- ℓ:o _) ℓ) (Ctx l+ l- ℓ:o ℓ)]))
+    (match-lambda** [((Ctx l+ l- ℓₒ _) ℓ) (Ctx l+ l- ℓₒ ℓ)]))
+
+  (define Ctx-with-origin : (Ctx ℓ → Ctx)
+    (match-lambda** [((Ctx l+ l- _ ℓ) ℓₒ) (Ctx l+ l- ℓₒ ℓ)]))
 
   (define Ctx-flip : (Ctx → Ctx)
     (match-lambda [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
@@ -101,7 +104,7 @@
   (: C-flat? : V Σ → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? C Σ)
-    (define-set seen : α #:as-mutable-hash? #t)
+    (define-set seen : α #:mutable? #t)
     (: go-α : α → Boolean)
     (define (go-α α)
       (cond [(seen-has? α) #t]
@@ -156,7 +159,7 @@
     (match-lambda
       [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity cases)]
-      [(∀/C _ E _)
+      [(∀/C _ E _ _)
        ;; TODO: real Racket just returns `(arity-at-least 0)`
        (cond [(E-arity E) => values] [else (error 'guard-arity "~a" E)])]))
 
@@ -167,7 +170,7 @@
     (match-lambda
       [(-->i doms _) (shape doms)]
       [(case--> cases) (map E-arity cases)]
-      [(-∀/c _ E) (E-arity E)]
+      [(-∀/c _ E _) (E-arity E)]
       [E (error 'E-arity "~a" E)]))
 
   (:* with-negative-party with-positive-party : -l V → V)
@@ -249,17 +252,30 @@
         (set-fold V⊔₁ Vs₂ Vs₁)))
 
   (: V⊔₁ : V V^ → V^)
-  (define (V⊔₁ V Vs) (merge/compact V⊕ V Vs))
+  (define (V⊔₁ V Vs) (merge/compact₁ V⊕ V Vs))
 
-  (define V⊕ : (V V → (Option V^))
+  (define V⊕ : (V V → (Option V))
     (match-lambda**
-     [((? -b? b) (and V (-● Qs))) (and (b∈Ps? b Qs) {set V})]
+     [((? -b? b) (and V (-● Qs))) (and (b∈Ps? b Qs) V)]
+     [((and V (-● Qs)) (? -b? b)) (and (b∈Ps? b Qs) V)]
      [((and V₁ (-● Ps)) (and V₂ (-● Qs)))
-      (cond [(Ps⇒Ps? Ps Qs) {set V₂}]
-            [(Ps⇒Ps? Qs Ps) {set V₁}]
+      (cond [(Ps⇒Ps? Ps Qs) V₂]
+            [(Ps⇒Ps? Qs Ps) V₁]
+            [(and (= 1 (set-count Ps))
+                  (= 1 (set-count Qs))
+                  (opposite? (set-first Ps) (set-first Qs)))
+             (-● ∅)]
             [else (define Ps* (∩ Ps Qs))
-                  (and (set-ormap -o? Ps*) {set (-● Ps*)})])]
-     [(V₁ V₂) (and (equal? V₁ V₂) {set V₁})]))
+                  (and (set-ormap -o? Ps*) (-● Ps*))])]
+     [(V₁ V₂) (and (equal? V₁ V₂) V₁)]))
+
+  (define opposite? : (P P → Boolean)
+    (match-lambda**
+     [((P:¬ Q) Q) #t]
+     [(Q (P:¬ Q)) #t]
+     [('values 'not) #t]
+     [('not 'values) #t]
+     [(_ _) #f]))
 
   (: b∈Ps? : -b (℘ P) → Boolean)
   (define (b∈Ps? b Ps)
@@ -313,23 +329,23 @@
       [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:≡ T)) (-b? T)]
       [(or (? P:arity-includes?) (? -o?)) #t]))
 
-  (: merge/compact (∀ (X) (X X → (Option (℘ X))) X (℘ X) → (℘ X)))
+  (: merge/compact (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X)))
   ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
   (define (merge/compact ⊕ x xs)
+    (let loop ([x : X x] [xs : (℘ X) xs])
+      (or (for/or : (Option (℘ X)) ([xᵢ (in-set xs)])
+            (cond [(equal? x xᵢ) xs]
+                  [else (define xs* (⊕ xᵢ x))
+                        (and xs* (foldl loop (set-remove xs xᵢ) xs*))]))
+          (set-add xs x))))
 
-    (: iter : X (℘ X) → (U (℘ X) (Pairof (℘ X) (℘ X))))
-    (define (iter x₀ xs₀)
-      (or (for/or : (Option (Pairof (℘ X) (℘ X))) ([xᵢ (in-set xs₀)])
-            (define xs* (⊕ xᵢ x₀))
-            (and xs* (cons (set-remove (set-remove xs₀ xᵢ) x₀) xs*)))
-          (set-add xs₀ x₀)))
-
-    (: repeat-compact (∀ (X) (X (℘ X) → (U (℘ X) (Pairof (℘ X) (℘ X)))) X (℘ X) → (℘ X)))
-    (define (repeat-compact f x xs)
-      (let loop ([x : X x] [xs : (℘ X) xs])
-        (match (f x xs)
-          [(cons xs₁ xs₂) (set-fold loop xs₁ xs₂)]
-          [(? set? s) s])))
-
-    (repeat-compact iter x xs))
+  (: merge/compact₁ (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X)))
+  ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
+  (define (merge/compact₁ ⊕ x xs)
+    (let loop ([x : X x] [xs : (℘ X) xs])
+      (or (for/or : (Option (℘ X)) ([xᵢ (in-set xs)])
+            (cond [(equal? x xᵢ) xs]
+                  [else (define x* (⊕ xᵢ x))
+                        (and x* (loop x* (set-remove xs xᵢ)))]))
+          (set-add xs x))))
   )

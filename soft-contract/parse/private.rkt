@@ -465,7 +465,7 @@
       [ctc:scv-parametric->/c
        (define-values (xs ρ) (parse-formals (attribute ctc.params)))
        (match-define (-var xs₀ #f) xs)
-       (-∀/c xs₀ (with-env ρ (parse-e (attribute ctc.body))))]
+       (-∀/c xs₀ (with-env ρ (parse-e (attribute ctc.body))) (syntax-ℓ #'ctc))]
       ;; Dependent contract (also subsumes non-dependent one)
       [e:scv-->i
        (define stx-init-doms (attribute e.init-domains))

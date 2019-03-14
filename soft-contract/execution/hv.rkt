@@ -22,6 +22,7 @@
           exec^ app^ gc^)
   (export hv^)
 
+  (define ℓₕᵥ (loc->ℓ (loc 'havoc 0 0 '())))
   (define ● {set (-● ∅)})
   (define ●* (list ●)) ; FIXME emulate *arbitrary* number of values
 
@@ -40,7 +41,7 @@
   (define (hv Σ αₕᵥ)
     (define root {set αₕᵥ})
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Hv Σ* αₕᵥ)
+    (ref-$! (intern-$:Key ($:Key:Hv Σ* αₕᵥ))
             (λ ()
               (with-gc root Σ*
                 (λ ()
@@ -74,11 +75,11 @@
        (define on-arity : ((U Natural arity-at-least) → (Values ΔΣ (℘ Err)))
          (match-lambda
            [(? index? k)
-            (collapse Σ αₕᵥ (app Σ (ℓ/tag 'app k) {set V} (make-list k ●)))]
+            (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set V} (make-list k ●)))]
            [(arity-at-least n)
             (define Vᵣ {set (-● {set 'list?})})
             (define W₀ (make-list n ●))
-            (collapse Σ αₕᵥ (app/rest Σ (ℓ/tag 'app 'varargs) {set V} W₀ Vᵣ))]))
+            (collapse Σ αₕᵥ (app/rest Σ ℓₕᵥ {set V} W₀ Vᵣ))]))
        (match (arity-of V)
          [(? list? ks)
           (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅])
@@ -89,13 +90,13 @@
       ;; Havoc and widen struct's public fields
       [(or (St 𝒾 _ _) (Guarded _ (St/C 𝒾 _ _) _))
        #:when 𝒾
-       (⊕ (collapse Σ αₕᵥ (app Σ (ℓ/tag 'st-ref (-𝒾-name 𝒾)) (get-public-accs 𝒾) (list {set V})))
-          (collapse Σ αₕᵥ (app Σ (ℓ/tag 'st-set! (-𝒾-name 𝒾)) (get-public-muts 𝒾) (list {set V} ●))))]
+       (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
+          (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-muts 𝒾) (list {set V} ●))))]
       ;; Havoc and widen vector's fields
       [(Guarded _ (or (? Vectof/C?) (? Vect/C?)) _)
        (define I (-● {set 'exact-nonnegative-integer?}))
-       (⊕ (collapse Σ αₕᵥ (app Σ (ℓ/tag 'vect-ref) {set 'vector-ref} (list {set V} {set I})))
-          (collapse Σ αₕᵥ (app Σ (ℓ/tag 'vect-set!) {set 'vector-set!} (list {set V} {set I} ●))))]
+       (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
+          (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
       [(Vect αs)
        (values (foldl (λ ([α : α] [ΔΣ : ΔΣ])
                         (⧺ ΔΣ (mut α ●) (track-leaks Σ αₕᵥ (unpack α Σ))))
@@ -105,10 +106,10 @@
        (values (⧺ (mut αᵥ ●) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
       ;; Hash
       [(or (? Hash-Of?) (Guarded _ (? Hash/C?) _))
-       (collapse Σ αₕᵥ (app Σ (ℓ/tag 'hash-ref) {set 'hash-ref} (list {set V} ●)))]
+       (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'hash-ref} (list {set V} ●)))]
       ;; Set
       [(or (? Set-Of?) (Guarded _ (? Set/C?) _))
-       (collapse Σ αₕᵥ (app Σ (ℓ/tag 'set-ref) {set 'set-first} (list {set V})))]
+       (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'set-first} (list {set V})))]
       ;; TODO apply contract to unknown
       [(? C?) (values ⊥ΔΣ ∅)]
       [_ (values ⊥ΔΣ ∅)]))
@@ -130,7 +131,7 @@
     (match-lambda
       [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity-of cases)]
-      [(∀/C _ E _) (E-arity-of E)]))
+      [(∀/C _ E _ _) (E-arity-of E)]))
 
   (: E-arity-of : (case->
                    [-->i → (U Natural arity-at-least)]
@@ -139,11 +140,8 @@
     (match-lambda
       [(-->i doms _) (shape doms)]
       [(case--> cases) (map E-arity-of cases)]
-      [(-∀/c _ E) (E-arity-of E)]
+      [(-∀/c _ E _) (E-arity-of E)]
       [_ ???]))
-
-  (: ℓ/tag : (U Symbol Integer) * → ℓ)
-  (define (ℓ/tag . tags) (loc->ℓ (loc 'havoc 0 0 tags)))
 
   (define-simple-macro (collapse Σ αₕᵥ e)
     (let-values ([(r es) e])
@@ -161,7 +159,7 @@
   ;; `#t` is a conservative answer "maybe yes"
   ;; `#f` is a strong answer "definitely no"
   (define (behavioral? V₀ Σ)
-    (define-set seen : α #:as-mutable-hash? #t)
+    (define-set seen : α #:mutable? #t)
 
     (: check-α : α → Boolean)
     (define (check-α α)
@@ -232,6 +230,19 @@
            (go-α αᵢ 𝒾 (assert i index?) acc))]
         [(Guarded ctx (St/C (and 𝒾 (not (? prim-struct?))) αs _) αᵥ) ; FIXME
          acc]
+        [(-● Ps)
+         (or (for/or : (Option ΔΣ) ([Pᵢ (in-set Ps)] #:when (-st-p? Pᵢ))
+               (match-define (-st-p 𝒾) Pᵢ)
+               (define m
+                 (for/fold ([m : (HashTable Index (℘ P)) (hash)]) ([Pᵢ (in-set Ps)])
+                   (match Pᵢ
+                     [(P:St (cons (-st-ac (== 𝒾) i) acs) Q)
+                      (define P* (if (null? acs) Q (P:St acs Q)))
+                      (hash-update m i (λ ([Ps : (℘ P)]) (set-add Ps P*)) mk-∅)]
+                     [_ m])))
+               (for/fold ([acc : ΔΣ acc]) ([(i Ps) (in-hash m)])
+                 (⧺ acc (alloc (γ:escaped-field 𝒾 i) {set (-● Ps)}))))
+             acc)]
         [_ acc]))
     
     (go-V^ Vs ⊥ΔΣ))

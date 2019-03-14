@@ -129,7 +129,7 @@
                 [(? values ds) `(values ,@(map show-dom ds))]))]
       [(case--> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
-      [(-∀/c xs c) `(parametric->/c ,xs ,(show-e c))]))
+      [(-∀/c xs c _) `(parametric->/c ,xs ,(show-e c))]))
 
   (: show-dom : -dom → Sexp)
   (define show-dom

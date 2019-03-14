@@ -87,7 +87,7 @@
             (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))])
             (case--> [cases : (Listof -->i)])
             (-x/c.tmp Symbol) ; hack
-            (-∀/c (Listof Symbol) -e)
+            (-∀/c (Listof Symbol) -e ℓ)
             )
 
 (-v . ::= . -prim

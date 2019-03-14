@@ -102,8 +102,9 @@
                                (list {set (Not/C (γ:imm 'set-empty?) +ℓ₀)})
                                (list {set (Empty-Set)})))]
         [(Set-Of α) (just (Σ@ α Σ))]
-        [(Guarded ctx (Set/C αₑ ℓₕ) α)
-         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'set-first} (list (Σ@ α Σ)))]
+        [(Guarded (cons l+ l-) (Set/C αₑ ℓₕ) α)
+         (define ctx (Ctx l+ l- ℓₕ ℓ))
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'set-first} (list (Σ@ α Σ)))]
            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws)))))]
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]

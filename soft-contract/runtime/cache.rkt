@@ -49,18 +49,10 @@
                          (values (ΔΣ⊔ ΔΣ* ΔΣ) (∪ Ws* Ws)))])
            (cons Ws ΔΣ))))
 
-  (: split-by-arity : W^ Natural → (Values W^ W^))
-  (define (split-by-arity Ws n)
-    ;; Favor common case where `Ws` is all ok, re-using old instance
-    (for/fold ([ok : W^ Ws] [er : W^ ∅]) ([W (in-set Ws)])
-      (if (= (length W) n)
-          (values ok er)
-          (values (set-remove ok W) (set-add er W)))))
-
-  (: $⊔ : $ $:Key R (℘ Err) → $)
-  (define ($⊔ $ key r es)
-    ((inst hash-update $:Key (Pairof R (℘ Err)))
-     $ key
+  (: $⊔ : $ $:K R (℘ Err) → $)
+  (define ($⊔ $ k r es)
+    ((inst hash-update $:K (Pairof R (℘ Err)))
+     $ k
      (match-lambda [(cons r₀ es₀) (cons (m⊔ r₀ r) (∪ es₀ es))])
      (λ () ⊥A)))
 

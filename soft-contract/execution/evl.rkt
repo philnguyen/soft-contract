@@ -71,7 +71,7 @@
   (define (evl Σ E)
     (define root (E-root E))
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Exp Σ* E)
+    (ref-$! (intern-$:Key ($:Key:Exp Σ* E))
             (λ () (with-gc root Σ* (λ () (do-evl Σ* E))))))
 
   (: do-evl : Σ E → (Values R (℘ Err)))
@@ -210,9 +210,9 @@
       [(case--> cases)
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
        (just (Case-=> Cases) ΔΣ)]
-      [(-∀/c xs E)
+      [(-∀/c xs E ℓ)
        (define-values (Ρ ΔΣ) (escape (fv E₀) Σ))
-       (just (∀/C xs E Ρ) ΔΣ)]))
+       (just (∀/C xs E Ρ ℓ) ΔΣ)]))
 
   (: bnd->renamings : (Listof Binding) (γ:lex → (Option T)) → Renamings)
   (define (bnd->renamings bnds f)

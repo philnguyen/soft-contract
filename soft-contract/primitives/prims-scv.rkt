@@ -63,8 +63,9 @@
                                 (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
                                 (list {set (Empty-Hash)})))]
         [(Hash-Of αₖ _) (just (Σ@ αₖ Σ))]
-        [(Guarded ctx (Hash/C αₖ _ _) α)
-         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'scv:hash-key} (list (Σ@ α Σ)))]
+        [(Guarded (cons l+ l-) (Hash/C αₖ _ ℓₕ) α)
+         (define ctx (Ctx l+ l- ℓₕ ℓ))
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'scv:hash-key} (list (Σ@ α Σ)))]
            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₖ Σ) (car (collapse-W^ Ws)))))]
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
@@ -79,8 +80,9 @@
                                 (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
                                 (list {set (Empty-Hash)})))]
         [(Hash-Of _ αᵥ) (just (Σ@ αᵥ Σ))]
-        [(Guarded ctx (Hash/C _ αᵥ _) α)
-         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓ {set 'scv:hash-val} (list (Σ@ α Σ)))]
+        [(Guarded (cons l+ l-) (Hash/C _ αᵥ ℓₕ) α)
+         (define ctx (Ctx l+ l- ℓₕ ℓ))
+         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'scv:hash-val} (list (Σ@ α Σ)))]
            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αᵥ Σ) (car (collapse-W^ Ws)))))]
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]

@@ -10,6 +10,7 @@
          set-extras
          unreachable
          (only-in "../utils/map.rkt" m⊔)
+         "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../execution/signatures.rkt"
@@ -35,20 +36,21 @@
     (fold-ans (λ ([C : V])
                 (define root (∪ (V-root C) args:root))
                 (define Σ* (gc root Σ))
-                (ref-$! ($:Key:Mon Σ* ctx C V^)
+                (ref-$! (intern-$:Key ($:Key:Mon Σ* ctx C V^))
                         (λ () (with-gc root Σ* (λ () ((mon₁ C) Σ* ctx V^))))))
               (unpack C^ Σ)))
 
   (: mon* : Σ Ctx W W → (Values R (℘ Err)))
   (define (mon* Σ₀ ctx Cs Vs)
+    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
     (if (= (length Cs) (length Vs))
-        (let loop ([ΔΣ : ΔΣ ⊥ΔΣ] [Σ : Σ Σ₀] [rev-As : W '()] [es : (℘ Err) ∅] [Cs : W Cs] [Vs : W Vs])
+        (let loop ([ΔΣ : ΔΣ ⊥ΔΣ] [Σ : Σ Σ₀] [rev-As : W '()] [es : (℘ Err) ∅] [Cs : W Cs] [Vs : W Vs] [i : Natural 0])
           (match* (Cs Vs)
             [((cons C₁ Cs*) (cons V₁ Vs*))
-             (define-values (r₁ es₁) (mon Σ ctx C₁ V₁))
+             (define-values (r₁ es₁) (mon Σ (Ctx-with-origin ctx (ℓ-with-id ℓₒ i)) C₁ V₁))
              (match (collapse-R r₁)
                [(cons (app collapse-W^ (app car A₁)) ΔΣ₁)
-                (loop (⧺ ΔΣ ΔΣ₁) (⧺ Σ ΔΣ₁) (cons A₁ rev-As) (∪ es es₁) Cs* Vs*)]
+                (loop (⧺ ΔΣ ΔΣ₁) (⧺ Σ ΔΣ₁) (cons A₁ rev-As) (∪ es es₁) Cs* Vs* (add1 i))]
                [#f (values ⊥R (∪ es es₁))])]
             [('() '())
              (values (R-of (reverse rev-As) ΔΣ) es)]))
@@ -73,7 +75,7 @@
 
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) Σ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (with-split-Σ Σ 'procedure? (list Vs)
       (λ (W ΔΣ₁)
         (define arity-check (P:arity-includes (guard-arity C)))
@@ -87,16 +89,21 @@
                         (cons (var-map Dom-name doms) (and rngs (map Dom-name rngs)))])])
                 (match C
                   [(? ==>i?) (sig C)]
-                  [(∀/C xs _ _) (cons (-var xs #f) #f)]
+                  [(∀/C xs _ _ _) (cons (-var xs #f) #f)]
                   [(Case-=> Cs) (map sig Cs)])))
-            (define αᵥ (α:dyn (β:fn ctx C:sig) H₀))
-            (just (Guarded ctx C αᵥ) (alloc αᵥ V*))])
+            (define-values (αᵥ ΔΣ)
+              (match V*
+                ;; Reduce allocation for common case
+                [{singleton-set (? -●? V)} (values (γ:imm V) ⊥ΔΣ)]
+                [_ (define αᵥ (α:dyn (β:fn ctx C:sig) H₀))
+                   (values αᵥ (alloc αᵥ V*))]))
+            (just (Guarded (cons l+ l-) C αᵥ) ΔΣ)])
           (λ (W _) (err (blm l+ ℓₒ ℓ (list {set arity-check}) W)))))
       (λ (W _) (err (blm l+ ℓₒ ℓ (list {set 'procedure?}) W)))))
 
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) Σ₀ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (match-define (St/C 𝒾 αs ℓₕ) C)
 
     (: mon-St/C-fields : Σ V^ → (Values R (℘ Err)))
@@ -106,7 +113,8 @@
           ['() (just (reverse Vs-rev) ΔΣ)]
           [(cons αᵢ αs*)
            (with-collapsing/R [(ΔΣ₀ Ws) (app (⧺ Σ ΔΣ) ℓ {set (-st-ac 𝒾 i)} (list V))]
-             (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx (unpack αᵢ Σ) (car (collapse-W^ Ws)))]
+             (define ctx* (Ctx-with-origin ctx (ℓ-with-id ℓₕ i)))
+             (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx* (Σ@ αᵢ Σ) (car (collapse-W^ Ws)))]
                (go (assert (+ 1 i) index?)
                    αs*
                    (cons (car (collapse-W^ Ws*)) Vs-rev)
@@ -115,13 +123,36 @@
     (with-split-Σ Σ₀ (-st-p 𝒾) (list Vs)
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
-          (define-values (αs ΔΣ**) (alloc-each (collapse-W^ Ws) (λ (i) (β:fld/wrap 𝒾 ctx ℓₕ i))))
-          (define V* {set (St 𝒾 αs ∅)})
+          (define-values (Vₐ ΔΣₐ)
+            (match (collapse-W^ Ws)
+              ;; Reduce allocation in common case
+              [(app ?singleton-opaques (? values l))
+               (define Ps
+                 (set-add
+                  (for/union : (℘ P) ([(Psᵢ i) (in-indexed l)])
+                    (map/set (λ ([P : P]) (P:St (list (-st-ac 𝒾 (assert i index?))) P))
+                             Psᵢ))
+                  (-st-p 𝒾)))
+               (values (-● Ps) (⧺ ΔΣ ΔΣ*))]
+              [W*
+               (define-values (αs ΔΣ**) (alloc-each W* (λ (i) (β:fld/wrap 𝒾 ctx i))))
+               (values (St 𝒾 αs ∅) (⧺ ΔΣ ΔΣ* ΔΣ**))]))
           (if (struct-all-immutable? 𝒾)
-              (just V* (⧺ ΔΣ ΔΣ* ΔΣ**))
+              (just Vₐ ΔΣₐ)
               (let ([α (α:dyn (β:st 𝒾 ctx) H₀)])
-                (just (Guarded ctx C α) (⧺ ΔΣ ΔΣ* ΔΣ** (alloc α V*)))))))
+                (just (Guarded (cons l+ l-) C α) (⧺ ΔΣₐ (alloc α {set Vₐ})))))))
       (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
+
+  (: ?singleton-opaques : W → (Option (Listof (℘ P))))
+  (define (?singleton-opaques W₀)
+    (let go ([W : W W₀])
+      (match W
+        ['() '()]
+        [(cons {singleton-set (-● Ps)} W*)
+         (match (go W*)
+           [(? values l) (cons Ps l)]
+           [_ #f])]
+        [_ #f])))
 
   (: mon-X/C : α → ⟦C⟧)
   ;; Need explicit contract reference to explicitly hint execution of loop
@@ -130,24 +161,24 @@
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
     (match-define (And/C α₁ α₂ ℓ) C)
-    (with-collapsing/R [(ΔΣ₁ Ws₁) (mon Σ ctx (unpack α₁ Σ) V^)]
+    (with-collapsing/R [(ΔΣ₁ Ws₁) (mon Σ (Ctx-with-origin ctx (ℓ-with-id ℓ 0)) (Σ@ α₁ Σ) V^)]
       (match-define (list V^*) (collapse-W^ Ws₁))
-      (with-pre ΔΣ₁ (mon (⧺ Σ ΔΣ₁) ctx (unpack α₂ Σ) V^*))))
+      (with-pre ΔΣ₁ (mon (⧺ Σ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) (Σ@ α₂ Σ) V^*))))
 
   (: mon-Or/C : Or/C → ⟦C⟧)
-  (define ((mon-Or/C C) Σ ctx V) 
+  (define ((mon-Or/C C) Σ ctx V)
+    (match-define (Or/C α₁ α₂ ℓ) C)
+
     (: chk : V^ V^ → (Values R (℘ Err)))
     (define (chk C-fo C-ho)
       (with-each-path [(ΔΣ₁ Ws₁) (fc Σ (Ctx-origin ctx) C-fo V)]
         (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W₁ (in-set Ws₁)])
           (match W₁
             [(list _) (values (m⊔ r (R-of W₁ ΔΣ₁)) es)]
-            [(list V* _) (define-values (r₂ es₂) (mon (⧺ Σ ΔΣ₁) ctx C-ho V*))
+            [(list V* _) (define-values (r₂ es₂) (mon (⧺ Σ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C-ho V*))
                          (values (m⊔ r (ΔΣ⧺R ΔΣ₁ r₂)) (∪ es es₂))]))))
-
-    (match-define (Or/C α₁ α₂ _) C)
-    (define C₁ (unpack α₁ Σ))
-    (define C₂ (unpack α₂ Σ))
+    (define C₁ (Σ@ α₁ Σ))
+    (define C₂ (Σ@ α₂ Σ))
     (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
           [(C^-flat? C₂ Σ) (chk C₂ C₁)]
           [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
@@ -156,7 +187,7 @@
   (define ((mon-Not/C C) Σ ctx V)
     (match-define (Not/C α _) C)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (with-each-path [(ΔΣ Ws) (fc Σ ℓₒ (unpack α Σ) V)]
+    (with-each-path [(ΔΣ Ws) (fc Σ ℓₒ (Σ@ α Σ) V)]
       (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([W (in-set Ws)])
         (match W
           [(list Vs* _) (values (m⊔ r (R-of Vs* ΔΣ)) es)]
@@ -171,37 +202,37 @@
 
   (: mon-Vectof/C : Vectof/C → ⟦C⟧)
   (define ((mon-Vectof/C C) Σ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (with-split-Σ Σ 'vector? (list Vs)
       (λ (W* ΔΣ₀)
-        (match-define (Vectof/C αₕ _) C)
+        (match-define (Vectof/C αₕ ℓₕ) C)
         (define N (-● {set 'exact-nonnegative-integer?}))
         (define Σ₀ (⧺ Σ ΔΣ₀))
-        (with-collapsing/R [(ΔΣ₁ Wₑs) (app Σ₀ ℓ {set 'vector-ref} (list (car W*) {set N}))]
-          (with-collapsing/R [(ΔΣ₂ Wₑs*) (mon (⧺ Σ₀ ΔΣ₁) ctx (unpack αₕ Σ) (car (collapse-W^ Wₑs)))]
+        (with-collapsing/R [(ΔΣ₁ Wₑs) (app Σ₀ ℓₒ {set 'vector-ref} (list (car W*) {set N}))]
+          (with-collapsing/R [(ΔΣ₂ Wₑs*) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓₕ 'vector-of:ref)) (Σ@ αₕ Σ) (car (collapse-W^ Wₑs)))]
             (define Vₑ (car (collapse-W^ Wₑs*)))
             (define αₑ (α:dyn (β:vct ℓ) H₀))
             (define αᵥ (α:dyn (β:unvct ctx) H₀))
-            (just (Guarded ctx C αᵥ)
+            (just (Guarded (cons l+ l-) C αᵥ)
                   (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc αₑ Vₑ) (alloc αᵥ {set (Vect-Of αₑ {set N})}))))))
       (λ (W* _) (err (blm l+ ℓₒ ℓ (list {set C}) W*)))))
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define ((mon-Vect/C C) Σ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (match-define (Vect/C αs _) C)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
+    (match-define (Vect/C αs ℓₕ) C)
     (define n (length αs))
-    (define (@ [α : α]) (unpack α Σ))
+    (define (@ [α : α]) (Σ@ α Σ))
 
     (define (blame [V : V]) (blm l+ ℓₒ ℓ (list {set C}) (list {set V})))
 
     (: check-elems+wrap : W → (Values R (℘ Err)))
     (define (check-elems+wrap W)
-      (with-collapsing/R [(ΔΣ Ws) (mon* Σ ctx (map @ αs) W)]
+      (with-collapsing/R [(ΔΣ Ws) (mon* Σ (Ctx-with-origin ctx ℓₕ) (map @ αs) W)]
         (define W* (collapse-W^ Ws))
         (define αᵥ (α:dyn (β:unvct ctx) H₀))
         (define-values (αs* ΔΣ*) (alloc-each W* (λ (i) (β:idx ℓ i))))
-        (just (Guarded ctx C αᵥ) (⧺ ΔΣ ΔΣ* (alloc αᵥ {set (Vect αs*)})))))
+        (just (Guarded (cons l+ l-) C αᵥ) (⧺ ΔΣ ΔΣ* (alloc αᵥ {set (Vect αs*)})))))
     
     ((inst fold-ans V)
      (match-lambda
@@ -233,7 +264,7 @@
 
   (: mon-Hash/C : Hash/C → ⟦C⟧)
   (define ((mon-Hash/C C) Σ₀ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (match-define (Hash/C αₖ αᵥ ℓₕ) C)
 
     (: chk-content : Σ V^ → (Values R (℘ Err)))
@@ -242,7 +273,7 @@
       (define (chk-with [ac : Symbol] [αₚ : α])
         (define-values (r es)
           (with-collapsing/R [(ΔΣ Ws) (app Σ dummy-ℓ {set ac} (list Vs))]
-            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₚ Σ₀) (car (collapse-W^ Ws))))))
+            (with-pre ΔΣ (mon (⧺ Σ ΔΣ) (Ctx-with-origin ctx (ℓ-with-id ℓₕ ac)) (Σ@ αₚ Σ₀) (car (collapse-W^ Ws))))))
         (values (or (collapse-R/ΔΣ r) ⊥ΔΣ) es))
       (define-values (ΔΣ₁ es₁) (chk-with 'scv:hash-key αₖ))
       (define-values (ΔΣ₂ es₂) (chk-with 'scv:hash-val αᵥ))
@@ -253,26 +284,26 @@
         (define Vᵤ (unpack (car W*) Σ₀))
         (with-collapsing/R [(ΔΣ₁ _) (chk-content (⧺ Σ₀ ΔΣ₀) Vᵤ)]
           (define αᵤ (α:dyn (β:unhsh ctx ℓₕ) H₀))
-          (just (Guarded ctx C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
+          (just (Guarded (cons l+ l-) C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
       (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-Set/C : Set/C → ⟦C⟧)
   (define ((mon-Set/C C) Σ₀ ctx Vs)
-    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (match-define (Set/C αₑ ℓₛ) C)
 
     (: chk-content : Σ V^ → (Values R (℘ Err)))
     (define (chk-content Σ Vs)
       (define dummy-ℓ (ℓ-with-src +ℓ₀ 'mon-set/c))
       (with-collapsing/R [(ΔΣ Ws) (app Σ dummy-ℓ {set 'set-first} (list Vs))]
-        (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws))))))
+        (with-pre ΔΣ (mon (⧺ Σ ΔΣ) (Ctx-with-origin ctx (ℓ-with-id ℓₛ 'set-first)) (Σ@ αₑ Σ) (car (collapse-W^ Ws))))))
 
     (with-split-Σ Σ₀ 'set? (list Vs)
       (λ (W* ΔΣ₀)
         (define Vᵤ (unpack (car W*) Σ₀))
         (with-collapsing/R [(ΔΣ₁ _) (chk-content (⧺ Σ₀ ΔΣ₀) Vᵤ)]
           (define αᵤ (α:dyn (β:unset ctx ℓₛ) H₀))
-          (just (Guarded ctx C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
+          (just (Guarded (cons l+ l-) C αᵤ) (⧺ ΔΣ₀ ΔΣ₁ (alloc αᵤ Vᵤ)))))
       (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-Seal/C : Seal/C → ⟦C⟧)
@@ -322,7 +353,7 @@
      (λ (C)
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
-       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
+       (ref-$! (intern-$:Key ($:Key:Fc Σ₀* ℓ C Vs))
                (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
      Cs))
 

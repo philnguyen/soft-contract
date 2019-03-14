@@ -88,7 +88,7 @@
            V)))
 
   (def (vector-ref Σ ℓ W)
-    #:init ([Vᵥ vector?] [Vᵢ integer?])
+    #:init ([Vᵥ vector?] [Vᵢ exact-nonnegative-integer?])
     ((inst fold-ans V)
      (match-lambda
        [(Vect αs)
@@ -99,16 +99,18 @@
         (r:just Vₐ)]
        [(Vect-Of α n)
         (r:just (unpack α Σ))]
-       [(Guarded ctx G αᵥ)
+       [(Guarded (cons l+ l-) G αᵥ)
         (define Vᵥ* (unpack αᵥ Σ)) 
         (match G
-          [(Vect/C αs ℓ)
+          [(Vect/C αs ℓₒ)
            (define (ref [i : Natural])
-             (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* {set (-b i)})))
+             (app Σ ℓₒ {set 'vector-ref} (list Vᵥ* {set (-b i)})))
+           (define ctx (Ctx l+ l- ℓₒ ℓ))
            (for/ans ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
              (with-collapsing/R [(ΔΣ W) (ref (assert i index?))]
                (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (unpack αᵢ Σ) (car (collapse-W^ W))))))]
-          {(Vectof/C α* ℓ)
+          {(Vectof/C α* ℓₒ)
+           (define ctx (Ctx l+ l- ℓₒ ℓ))
            (with-collapsing/R [(ΔΣ W) (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* Vᵢ))]
              (with-pre ΔΣ
                (mon (⧺ Σ ΔΣ) ctx (unpack α* Σ) (car (collapse-W^ W)))))})]
@@ -116,7 +118,7 @@
      (unpack Vᵥ Σ)))
   
   (def (vector-set! Σ ℓ W)
-    #:init ([V^ vector?] [Vᵢ integer?] [Vᵤ any/c])
+    #:init ([V^ vector?] [Vᵢ exact-nonnegative-integer?] [Vᵤ any/c])
     (define-values (ΔΣ* es*)
       (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set V^)])
         (match V
@@ -126,24 +128,25 @@
                      (ΔΣ⊔ acc (mut αᵢ Vᵤ)))
                    es)]
           [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ)) es)]
-          [(Guarded ctx G αᵥ)
-           (define ctx* (Ctx-flip ctx))
+          [(Guarded (cons l+ l-) G αᵥ)
            (define V*^ (unpack αᵥ Σ))
            (match G
-             [(Vect/C αs ℓ)
+             [(Vect/C αs ℓₒ)
+              (define ctx* (Ctx l- l+ ℓₒ ℓ))
               (for/fold ([acc : ΔΣ acc] [es : (℘ Err) es])
                         ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
                 (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack αᵢ Σ) Vᵤ)]
                   #:fail acc
                   (define Vᵤ* (car (collapse-W^ Ws)))
-                  (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) (Ctx-origin ctx) {set 'vector-set!} (list V*^ {set (-b i)} Vᵤ*))]
+                  (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set!} (list V*^ {set (-b i)} Vᵤ*))]
                     #:fail acc
                     (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) es))))]
-             [(Vect-Of α* ℓ*)
+             [(Vect-Of α* ℓₒ)
+              (define ctx* (Ctx l- l+ ℓₒ ℓ))
               (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack α* Σ) Vᵤ)]
                 #:fail acc
                 (define Vᵤ* (car (collapse-W^ Ws)))
-                (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) (Ctx-origin ctx) {set 'vector-set} V*^ Vᵢ Vᵤ*)]
+                (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set} V*^ Vᵢ Vᵤ*)]
                   (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) ∅)))])]
           [_ (values acc es)])))
     (values (hash ΔΣ* {set (list {set -void})}) es*))

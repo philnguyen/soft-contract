@@ -66,7 +66,7 @@
    (∀ (X Y) ([(HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X))] [(X → Boolean)] . ->* . Boolean)))
 ;; CHeck if 2 multimaps are equal up to the domain spanned by given set
 (define (map-equal?/spanning-root m₁ m₂ xs span [check? (λ _ #t)])
-  (define-set seen : X #:eq? (hash-eq? m₁) #:as-mutable-hash? #t)
+  (define-set seen : X #:eq? (hash-eq? m₁) #:mutable? #t)
   (let loop : Boolean ([xs : (℘ X) xs])
        (for/and : Boolean ([x (in-set xs)])
          (cond [(seen-has? x) #t]
