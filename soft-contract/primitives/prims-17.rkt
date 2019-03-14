@@ -8,7 +8,6 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
-         "../utils/map.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def.rkt"
@@ -72,7 +71,7 @@
            (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
                      ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
              (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))
-             (values (m⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
+             (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
         [_ (just (-● ∅))])
      Vᵥ))
 

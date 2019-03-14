@@ -22,7 +22,6 @@
          unreachable
          intern
          set-extras
-         (only-in "../utils/map.rkt" m⊔)
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          ) 
@@ -36,7 +35,6 @@
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fix-return : (Renamings Σ R → R)]
    [fold-ans : (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err)))]
-   [ans-map : ((ΔΣ W^ → (Values R (℘ Err))) R → (Values R (℘ Err)))]
    [with-split-Σ : (Σ V W
                       (W ΔΣ → (Values R (℘ Err)))
                       (W ΔΣ → (Values R (℘ Err)))
@@ -101,13 +99,15 @@
 (define-syntax-rule (with-collapsing/R [(ΔΣ Ws) e] body ...)
   (with-collapsing [(ΔΣ Ws) e] #:fail ⊥R body ...))
 
-(define-syntax-rule (with-each-path [(ΔΣ₀ Ws₀) e] body ...)
-  (let-values ([(r₀ es₀) e])
-    (for/fold ([r* : R ⊥R] [es* : (℘ Err) es₀])
-              ([(ΔΣ₀ Ws₀) (in-hash r₀)])
-      (define-values (r₁ es₁) (let () body ...))
-      ;; TODO replace m⊔ with more efficient one
-      (values (m⊔ r* r₁) (∪ es* es₁)))))
+(define-syntax with-each-path
+  (syntax-parser
+    [(_ [(ΔΣ₀ W₀) e] body ...)
+     (with-syntax ([R⊔ (format-id #'e "R⊔")])
+       #'(let-values ([(r₀ es₀) e])
+           (for/fold ([r* : R ⊥R] [es* : (℘ Err) es₀])
+                     ([(W₀ ΔΣ₀) (in-hash r₀)])
+             (define-values (r₁ es₁) (let () body ...))
+             (values (R⊔ r* r₁) (∪ es* es₁)))))]))
 
 (define-syntax with-pre
   (syntax-parser
@@ -116,12 +116,10 @@
        #'(let-values ([(r es) e])
            (values (ΔΣ⧺R ΔΣ r) es)))]))
 
-(define-syntax-rule (for/ans (clauses ...) body ...)
-  (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) (clauses ...)
-    (define-values (rᵢ esᵢ) (let () body ...))
-    (values (m⊔ r rᵢ) (∪ es esᵢ))))
-
-(define-syntax-rule (for*/ans (clauses ...) body ...)
-  (for*/fold ([r : R ⊥R] [es : (℘ Err) ∅]) (clauses ...)
-    (define-values (rᵢ esᵢ) (let () body ...))
-    (values (m⊔ r rᵢ) (∪ es esᵢ))))
+(define-syntax for/ans
+  (syntax-parser
+    [(for/ans (clauses ...) body ...)
+     (with-syntax ([R⊔ (format-id #'for/ans "R⊔")])
+       #'(for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) (clauses ...)
+           (define-values (rᵢ esᵢ) (let () body ...))
+           (values (R⊔ r rᵢ) (∪ es esᵢ))))]))

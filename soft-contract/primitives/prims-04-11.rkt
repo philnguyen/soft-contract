@@ -149,7 +149,7 @@
                 (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set} V*^ Vᵢ Vᵤ*)]
                   (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) ∅)))])]
           [_ (values acc es)])))
-    (values (hash ΔΣ* {set (list {set -void})}) es*))
+    (values (R-of -void ΔΣ*) es*))
   
   (def vector->list (∀/c (α) ((vectorof α) . -> . (listof α))))
   (def list->vector (∀/c (α) ((listof α) . -> . (vectorof α))))

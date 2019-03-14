@@ -105,14 +105,14 @@
                       ∅))
        (values r es)]
       [(-@ f xs ℓ)
-       (with-each-path [(ΔΣₕ Wsₕ) (evl/arity Σ f 1 ℓ)]
-         (match-define (list V^ₕ) (collapse-W^ Wsₕ))
+       (with-each-path [(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)]
+         (define V^ₕ (car Wₕ))
          (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
            (with-pre (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
       [(-if E E₁ E₂ ℓ)
-       (with-each-path [(ΔΣ Ws) (evl/arity Σ E 1 ℓ)]
+       (with-each-path [(ΔΣ W) (evl/arity Σ E 1 ℓ)]
          (define Σ* (⧺ Σ ΔΣ))
-         (with-split-Σ Σ* 'values (collapse-W^ Ws)
+         (with-split-Σ Σ* 'values W
            (λ (_ ΔΣ₁) (with-pre (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
            (λ (_ ΔΣ₂) (with-pre (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂)))))]
       [(-wcm k v e) (error 'TODO "with-current-continuation-mark")]
@@ -137,7 +137,7 @@
          (for/fold ([r : R ⊥R] [es : (℘ Err) es])
                    ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
            (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
-           (values (m⊔ r rᵢ) (∪ es esᵢ))))
+           (values (R⊔ r rᵢ) (∪ es esᵢ))))
        (define rn
          (let ([ΔΣₓ^ (set-fold ΔΣ⊔ ⊥ΔΣ ΔΣₓs)])
            (bnd->renamings bnds (λ (α)
@@ -225,8 +225,8 @@
     (define (evl-bnd [Σ : Σ] [bnd : Binding])
       (match-define (mk-Binding xs E) bnd)
       (define-values (r es) (evl/arity Σ E (length xs) ℓ))
-      (define ΔΣs (for/set: : (℘ ΔΣ) ([(ΔΣ rhs) (in-hash r)])
-                    (⧺ ΔΣ (alloc-lex* xs (collapse-W^ rhs)))))
+      (define ΔΣs (for/set: : (℘ ΔΣ) ([(rhs ΔΣ) (in-hash r)])
+                    (⧺ ΔΣ (alloc-lex* xs rhs))))
       (values ΔΣs es))
 
     (let step ([Σ : Σ Σ₀] [bnds : (Listof Binding) bnds])
@@ -263,12 +263,10 @@
   ;; Run expression with arity guard
   (define (evl/arity Σ E n ℓ)
     (define-values (r es) (evl Σ E))
-    (for/fold ([r* : R r] [es* : (℘ Err) es]) ([(ΔΣ Ws) (in-hash r)])
-      (define-values (Ws:ok Ws:er) ((inst set-partition W) (λ (W) (= n (length W))) Ws))
-      (define (es**) (set-add es* (Err:Values n E (collapse-W^ Ws:er) ℓ)))
-      (cond [(set-empty? Ws:er) (values r* es*)]
-            [(set-empty? Ws:ok) (values (hash-remove r* ΔΣ) (es**))]
-            [else (values (hash-set r* ΔΣ Ws:ok) (es**))])))
+    (for/fold ([r* : R r] [es* : (℘ Err) es]) ([W (in-hash-keys r)])
+      (if (= n (length W))
+          (values r* es*)
+          (values (hash-remove r* W) (set-add es* (Err:Values n E W ℓ))))))
 
   (: evl/discard/collapse : Σ E → (Values (Option ΔΣ) (℘ Err)))
   ;; Run expression for collapsed side-effect
@@ -287,8 +285,8 @@
       (for/fold ([Xs-rev : (Listof X) '()] [ΔΣ : ΔΣ ⊥ΔΣ]) ([E (in-list Es)])
         (define-values (rᵢ esᵢ) (evl Σ E))
         (assert (set-empty? esᵢ))
-        (match-define (list (cons ΔΣᵢ Wsᵢ)) (hash->list rᵢ))
-        (values (cons (assert (set-first (car (set-first Wsᵢ))) p?) Xs-rev) (⧺ ΔΣ ΔΣᵢ))))
+        (match-define (list (cons Wᵢ ΔΣᵢ)) (hash->list rᵢ))
+        (values (cons (assert (set-first (car Wᵢ)) p?) Xs-rev) (⧺ ΔΣ ΔΣᵢ))))
     (values (reverse Xs-rev) ΔΣ*))
 
   (: evl*/discard/collapse

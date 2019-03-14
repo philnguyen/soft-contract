@@ -75,10 +75,8 @@
 
   (: gc-R : (℘ α) Σ R → R)
   (define (gc-R root Σ r)
-    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
-      (define root* (apply ∪ root (set-map Ws W-root)))
-      (define ΔΣ* (gc root* ΔΣ (⧺ Σ ΔΣ)))
-      (hash-update acc ΔΣ* (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ Ws)) mk-∅)))
+    (for/hash : R ([(W ΔΣ) (in-hash r)])
+      (values W (gc (∪ root (W-root W)) ΔΣ (⧺ Σ ΔΣ)))))
 
   (define V-root : (V → (℘ α))
     (match-lambda

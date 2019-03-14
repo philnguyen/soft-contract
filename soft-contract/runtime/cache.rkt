@@ -12,19 +12,26 @@
          "../ast/signatures.rkt"
          "signatures.rkt")
 
+(require typed/racket/unsafe)
+(unsafe-require/typed racket/hash
+  [hash-union (∀ (α β) ([(Immutable-HashTable α β)]
+                        [#:combine (β β → β)]
+                        #:rest (Immutable-HashTable α β)
+                        . ->* .
+                        (Immutable-HashTable α β)))])
+
 (define-unit cache@
   (import sto^)
   (export cache^)
 
-  (define (⊥$) : $ (hash))
   (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
 
   (: R-of ([(U V V^ W)] [ΔΣ] . ->* . R))
   (define (R-of V [ΔΣ ⊥ΔΣ])
-    (define (with [A : W^]) (hash ΔΣ A))
-    (cond [(list? V) (with {set V})]
-          [(set? V) (if (set-empty? V) ⊥R (with {set (list V)}))]
-          [else (with {set (list {set V})})]))
+    (define (with [A : W]) (hash A ΔΣ))
+    (cond [(list? V) (with V)]
+          [(set? V) (if (set-empty? V) ⊥R (with (list V)))]
+          [else (with (list {set V}))]))
 
   (: ΔΣ⧺R : ΔΣ R → R)
   (define (ΔΣ⧺R ΔΣ R)
@@ -36,28 +43,25 @@
 
   (: collapse-R/ΔΣ : R → (Option ΔΣ))
   (define (collapse-R/ΔΣ R)
-    (match (hash-keys R)
+    (match (hash-values R)
       ['() #f]
       [(cons ΔΣ₀ ΔΣ*) (foldl ΔΣ⊔ ΔΣ₀ ΔΣ*)]))
 
   (: collapse-R : R → (Option (Pairof W^ ΔΣ)))
   (define (collapse-R R)
     (and (not (hash-empty? R))
-         (let-values ([(ΔΣ Ws)
-                       (for/fold ([ΔΣ* : ΔΣ ⊥ΔΣ] [Ws* : W^ ∅])
-                                 ([(ΔΣ Ws) (in-hash R)])
-                         (values (ΔΣ⊔ ΔΣ* ΔΣ) (∪ Ws* Ws)))])
+         (let-values ([(Ws ΔΣ)
+                       (for/fold ([Ws : W^ ∅] [ΔΣ* : ΔΣ ⊥ΔΣ])
+                                 ([(W ΔΣ) (in-hash R)])
+                         (values (set-add Ws W) (ΔΣ⊔ ΔΣ* ΔΣ)))])
            (cons Ws ΔΣ))))
 
-  (: $⊔ : $ $:K R (℘ Err) → $)
-  (define ($⊔ $ k r es)
-    ((inst hash-update $:K (Pairof R (℘ Err)))
-     $ k
-     (match-lambda [(cons r₀ es₀) (cons (m⊔ r₀ r) (∪ es₀ es))])
-     (λ () ⊥A)))
+  (: R⊔ : R R → R)
+  (define (R⊔ R₁ R₂)
+    ((inst hash-union W ΔΣ) R₁ R₂ #:combine ΔΣ⊔))
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)
-    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash R₀)])
-      (hash-update acc (f ΔΣ) (λ ([Ws₀ : W^]) (∪ Ws₀ Ws)) mk-∅)))
+    (for/hash : R ([(W ΔΣ) (in-hash R₀)])
+      (values W (f ΔΣ))))
 )

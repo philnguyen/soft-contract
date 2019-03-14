@@ -66,7 +66,7 @@
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
 (#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)))
 (#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K (Pairof R (℘ Err))))
-(#|Result         |# R .  ≜  . (Immutable-HashTable ΔΣ W^))
+(#|Result         |# R .  ≜  . (Immutable-HashTable W ΔΣ))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
 (#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
 (#|Call Edge      |# K .  ≜  . (Pairof ℓ ℓ))
@@ -208,7 +208,7 @@
    [R⧺ΔΣ : (R ΔΣ → R)]
    [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
    [collapse-R/ΔΣ : (R → (Option ΔΣ))]
-   [$⊔ : ($ $:K R (℘ Err) → $)]))
+   [R⊔ : (R R → R)]))
 
 (define-signature val^
   ([collapse-W^ : (W^ → W)]

@@ -98,7 +98,7 @@
       (define-values (Wₐ ΔΣ) (refine-ranges Σ refinements args ranges))
       (if ?range-wraps
           (with-pre ΔΣ (mon* (⧺ Σ ΔΣ) ctx (map {inst set V} ?range-wraps) Wₐ))
-          (values (hash ΔΣ {set Wₐ}) ∅)))
+          (just Wₐ ΔΣ)))
 
     (with-collapsing/R [(ΔΣ₀ args*)
                         (if doms:rest

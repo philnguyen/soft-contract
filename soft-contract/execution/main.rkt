@@ -80,7 +80,7 @@
        (set! $ₒᵤₜ (hash-set $ₒᵤₜ key res₀))
        (define-values (r es) (parameterize ([dependants (set-add (dependants) key)])
                                (comp)))
-       (define r* (m⊔ r₀ r))
+       (define r* (R⊔ r₀ r))
        (define es* (∪ es₀ es))
        ;; If new result differ from cache entry, mark all dependcies as dirty
        (unless (and (equal? r₀ r*) (equal? es₀ es*))
@@ -121,24 +121,18 @@
     (define (go-T [T : T]) (cond [(adjust-T T) => set]
                                  [else (unpack T (Σₑᵣ))]))
 
-    (for/fold ([acc : R ⊥R]) ([(ΔΣ Ws) (in-hash r)])
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣ)])
+    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣᵢ) (in-hash r)])
+      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
         (hash-update acc
-                     (go-ΔΣ ΔΣ)
-                     (λ ([Ws₀ : (℘ W)]) (∪ Ws₀ (map/set go-W Ws)))
-                     mk-∅))))
+                     (go-W Wᵢ)
+                     (λ ([ΔΣ₀ : ΔΣ]) (ΔΣ⊔ ΔΣ₀ (go-ΔΣ ΔΣᵢ)))
+                     (λ () ⊥ΔΣ)))))
 
   (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
   (define (fold-ans on-X Xs)
     (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([X (in-set Xs)])
       (define-values (r* es*) (on-X X))
-      (values (m⊔ r r*) (∪ es es*))))
-
-  (: ans-map : (ΔΣ W^ → (Values R (℘ Err))) R → (Values R (℘ Err)))
-  (define (ans-map on-ans r)
-    (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([(ΔΣ Ws) (in-hash r)])
-      (define-values (r* es*) (on-ans ΔΣ Ws))
-      (values (m⊔ r r*) (∪ es es*))))
+      (values (R⊔ r r*) (∪ es es*))))
 
   (: with-split-Σ : Σ V W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (with-split-Σ Σ P W on-t on-f)
@@ -149,7 +143,7 @@
     (define-values (r₂ es₂) (match W-ΔΣ:f
                               [(cons W ΔΣ) (on-f W ΔΣ)]
                               [#f (values ⊥R ∅)]))
-    (values (m⊔ r₁ r₂) (∪ es₁ es₂)))
+    (values (R⊔ r₁ r₂) (∪ es₁ es₂)))
 
   (: blame-on-transparent? : Err → Boolean)
   (define (blame-on-transparent? err)
