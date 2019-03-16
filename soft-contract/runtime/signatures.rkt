@@ -137,7 +137,7 @@
                                    ($:Key:App Σ ℓ V W)
                                    ($:Key:Hv Σ α))
 (#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
-(#|Cardinalities  |# N . ::= . 0 1 'N)
+(#|Cardinalities  |# N . ::= . 0 '? 1 'N)
 (#|Havoc Tags     |# HV-Tag . ≜ . (Option -l))
 (#|Mon. Contexts  |# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [origin : ℓ] [site : ℓ]))
 (#|Cache Tags     |# $:Tag . ::= . 'app 'mon 'flc)

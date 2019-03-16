@@ -133,18 +133,20 @@
       [(-quote b) (if (Base? b) (just (-b b)) (error 'TODO "(quote ~a)" b))]
       [(-let-values bnds E ℓ)
        (define-values (ΔΣₓs es) (evl-bnd* Σ ℓ bnds))
-       (define-values (r* es*)
-         (for/fold ([r : R ⊥R] [es : (℘ Err) es])
-                   ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
-           (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
-           (values (R⊔ r rᵢ) (∪ es esᵢ))))
-       (define rn
-         (let ([ΔΣₓ^ (set-fold ΔΣ⊔ ⊥ΔΣ ΔΣₓs)])
-           (bnd->renamings bnds (λ (α)
-                                  (match (hash-ref ΔΣₓ^ α #f)
-                                    [{singleton-set (? T? T)} T]
-                                    [_ #f])))))
-       (values (fix-return rn Σ r*) es*)]
+       (if (set-empty? ΔΣₓs)
+           (values ⊥R es)
+           (let-values ([(r* es*)
+                         (for/fold ([r : R ⊥R] [es : (℘ Err) es])
+                                   ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
+                           (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
+                           (values (R⊔ r rᵢ) (∪ es esᵢ)))])
+             (define rn
+               (let ([ΔΣₓ^ (set-fold ΔΣ⊔ (set-first ΔΣₓs) (set-rest ΔΣₓs))])
+                 (bnd->renamings bnds (λ (α)
+                                        (match (hash-ref ΔΣₓ^ α #f)
+                                          [{singleton-set (? T? T)} T]
+                                          [_ #f])))))
+             (values (fix-return rn Σ r*) es*)))]
       [(-letrec-values bnds E ℓ)
        (define ΔΣ₀
          (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
@@ -162,9 +164,10 @@
          (define α (if (symbol? X) (γ:lex X) (γ:top X)))
          (define rhs^ (blur (car (collapse-W^ rhs))))
          (define ΔΣ:mut
-           (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([α (in-set (Σ@ α Σ))])
-             (match-let ([(α:dyn (β:mut (== X)) _) α])
-               (ΔΣ⊔ acc (mut α rhs^)))))
+           (let ([muts (set-map (Σ@ α Σ)
+                                (match-lambda
+                                  [(and α (α:dyn (β:mut (== X)) _)) (mut α rhs^)]))])
+             (foldl ΔΣ⊔ (car muts) (cdr muts))))
          (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
       [(-μ/c x E)

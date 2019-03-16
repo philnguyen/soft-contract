@@ -82,10 +82,12 @@
             (collapse Σ αₕᵥ (app/rest Σ ℓₕᵥ {set V} W₀ Vᵣ))]))
        (match (arity-of V)
          [(? list? ks)
-          (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅])
-                    ([k (in-list ks)])
-            (⊕ (values ΔΣ es)
-               (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???)))]
+          (define-values (ΔΣ* es*)
+            (for/fold ([ΔΣ : (Option ΔΣ) #f] [es : (℘ Err) ∅])
+                      ([k (in-list ks)])
+              (⊕ (values ΔΣ es)
+                 (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???))))
+          (values (assert ΔΣ*) es*)]
          [(and k (or (? index?) (? arity-at-least?))) (on-arity k)])]
       ;; Havoc and widen struct's public fields
       [(or (St 𝒾 _ _) (Guarded _ (St/C 𝒾 _ _) _))
@@ -152,7 +154,7 @@
   (define-simple-macro (⊕ e₁ e₂)
     (let-values ([(ΔΣ₁ es₁) e₁]
                  [(ΔΣ₂ es₂) e₂])
-      (values (ΔΣ⊔ ΔΣ₁ ΔΣ₂) (∪ es₁ es₂))))
+      (values (if ΔΣ₁ (ΔΣ⊔ ΔΣ₁ ΔΣ₂) ΔΣ₂) (∪ es₁ es₂))))
 
   (: behavioral? : V Σ → Boolean)
   ;; Check if value maybe behavioral.

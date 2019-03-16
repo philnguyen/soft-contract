@@ -107,3 +107,9 @@
       (for/fold ([m : (Immutable-HashTable X (℘ Y)) m₂])
                 ([(x ys) (in-hash m₁)])
         (hash-update m x (λ ([ys₀ : (℘ Y)]) (∪ ys₀ ys)) mk-∅))))
+
+(: hash-first/rest (∀ (X Y) (Immutable-HashTable X Y) → (Values X Y (Immutable-HashTable X Y))))
+(define (hash-first/rest m)
+  (define i (assert (hash-iterate-first m)))
+  (define-values (k v) (hash-iterate-key+value m i))
+  (values k v (hash-remove m k)))

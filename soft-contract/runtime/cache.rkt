@@ -50,10 +50,11 @@
   (: collapse-R : R → (Option (Pairof W^ ΔΣ)))
   (define (collapse-R R)
     (and (not (hash-empty? R))
-         (let-values ([(Ws ΔΣ)
-                       (for/fold ([Ws : W^ ∅] [ΔΣ* : ΔΣ ⊥ΔΣ])
-                                 ([(W ΔΣ) (in-hash R)])
-                         (values (set-add Ws W) (ΔΣ⊔ ΔΣ* ΔΣ)))])
+         (let*-values ([(W₀ ΔΣ₀ R*) (hash-first/rest R)]
+                       [(Ws ΔΣ)
+                        (for/fold ([Ws : W^ {set W₀}] [ΔΣ* : ΔΣ ΔΣ₀])
+                                  ([(W ΔΣ) (in-hash R*)])
+                          (values (set-add Ws W) (ΔΣ⊔ ΔΣ* ΔΣ)))])
            (cons Ws ΔΣ))))
 
   (: R⊔ : R R → R)

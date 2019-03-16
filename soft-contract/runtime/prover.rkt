@@ -72,25 +72,29 @@
         (for*/fold ([Vs : V^ Vs] [ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
           (define-values (Vs* ΔΣ*) (refine Vs P Σ))
           (values Vs* (⧺ ΔΣ ΔΣ*)))
-        (for*/fold ([acc : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ])
-                   ([V (in-set Vs)]
-                    [P (if (α? P*) (in-set (unpack P* Σ)) (in-value P*))])
-          (case (sat₁ Σ P V)
-            [(✓) (values (set-add acc V) ΔΣ)]
-            [(✗) (values acc ΔΣ)]
-            [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
-                  (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))]))))
+        (let-values ([(acc ΔΣ*)
+                      (for*/fold ([acc : V^ ∅] [ΔΣ : (Option ΔΣ) #f])
+                                 ([V (in-set Vs)]
+                                  [P (if (α? P*) (in-set (unpack P* Σ)) (in-value P*))])
+                        (case (sat₁ Σ P V)
+                          [(✓) (values (set-add acc V) (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
+                          [(✗) (values acc (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
+                          [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
+                                (values (∪ acc V*) (?ΔΣ⊔ ΔΣ ΔΣ*))]))])
+          (values acc (assert ΔΣ*)))))
 
   (: refine-not : V^ V Σ → (Values V^ ΔΣ))
   (define (refine-not Vs P Σ)
-    (for*/fold ([acc : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ])
-               ([V (in-set Vs)]
-                [P (if (α? P) (in-set (unpack P Σ)) (in-value P))])
-      (case (sat₁ Σ P V)
-        [(✓) (values acc ΔΣ)]
-        [(✗) (values (set-add acc V) ΔΣ)]
-        [else (define-values (V* ΔΣ*) (refine-not₁ V P Σ))
-              (values (∪ acc V*) (ΔΣ⊔ ΔΣ ΔΣ*))])))
+    (define-values (acc ΔΣ*)
+      (for*/fold ([acc : V^ ∅] [ΔΣ : (Option ΔΣ) #f])
+                 ([V (in-set Vs)]
+                  [P (if (α? P) (in-set (unpack P Σ)) (in-value P))])
+        (case (sat₁ Σ P V)
+          [(✓) (values acc (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
+          [(✗) (values (set-add acc V) (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
+          [else (define-values (V* ΔΣ*) (refine-not₁ V P Σ))
+                (values (∪ acc V*) (?ΔΣ⊔ ΔΣ ΔΣ*))])))
+    (values acc (assert ΔΣ*)))
 
   (: refine₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine₁ V P Σ)
@@ -654,20 +658,22 @@
                    [(Vs:t ...) (generate-temporaries #'(Vs ...))]
                    [(Vs:f ...) (generate-temporaries #'(Vs ...))])
        #'(let-values ([(Vs:t ... ΔΣ:t Vs:f ... ΔΣ:f)
-                       (for*/fold ([Vs:t : V^ ∅] ... [ΔΣ:t : ΔΣ ⊥ΔΣ]
-                                   [Vs:f : V^ ∅] ... [ΔΣ:f : ΔΣ ⊥ΔΣ])
+                       (for*/fold ([Vs:t : V^ ∅] ... [ΔΣ:t : (Option ΔΣ) #f]
+                                   [Vs:f : V^ ∅] ... [ΔΣ:f : (Option ΔΣ) #f])
                                   ([V (in-set Vs)] ...)
                          (case (sat Σ P V ...)
-                           [(✓) (values (set-add Vs:t V) ... ΔΣ:t Vs:f ... ΔΣ:f)]
-                           [(✗) (values Vs:t ... ΔΣ:t (set-add Vs:f V) ... ΔΣ:f)]
+                           [(✓) (values (set-add Vs:t V) ... (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ)
+                                        Vs:f ... (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
+                           [(✗) (values Vs:t ... (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ)
+                                        (set-add Vs:f V) ... (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
                            [else (let-values ([(V:t ... ΔΣ:t*) (refine V ... P Σ)]
                                               [(V:f ... ΔΣ:f*) (refine-not V ... P Σ)])
-                                   (values (∪ Vs:t V:t) ... (ΔΣ⊔ ΔΣ:t ΔΣ:t*)
-                                           (∪ Vs:f V:f) ... (ΔΣ⊔ ΔΣ:f ΔΣ:f*)))]))])
+                                   (values (∪ Vs:t V:t) ... (?ΔΣ⊔ ΔΣ:t ΔΣ:t*)
+                                           (∪ Vs:f V:f) ... (?ΔΣ⊔ ΔΣ:f ΔΣ:f*)))]))])
            (values (and (not (or (set-empty? Vs:t) ...))
-                        (cons (list Vs:t ...) ΔΣ:t))
+                        (cons (list Vs:t ...) (assert ΔΣ:t)))
                    (and (not (or (set-empty? Vs:f) ...))
-                        (cons (list Vs:f ...) ΔΣ:f)))))])
+                        (cons (list Vs:f ...) (assert ΔΣ:f))))))])
 
   (: refine-both : V ((U T -b) → P) V ((U T -b) → P) Σ → (Values V^ V^ ΔΣ))
   (define (refine-both V₁ P₁ V₂ P₂ Σ)
@@ -678,4 +684,8 @@
                                  (refine₁ V₂ (P₂ V₁) Σ)
                                  (values {set V₂} ⊥ΔΣ)))
     (values V₁* V₂* (⧺ ΔΣ₁ ΔΣ₂)))
+
+  (: ?ΔΣ⊔ : (Option ΔΣ) ΔΣ → ΔΣ)
+  (define (?ΔΣ⊔ ?ΔΣ ΔΣ)
+    (if ?ΔΣ (ΔΣ⊔ ?ΔΣ ΔΣ) ΔΣ))
   )

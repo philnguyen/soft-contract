@@ -9,6 +9,7 @@
          racket/splicing
          set-extras
          unreachable
+         (only-in "../utils/map.rkt" dom)
          "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt")
@@ -186,10 +187,12 @@
               (match (hash-ref ΔΣ α #f)
                 [(cons Vs₀ N₀)
                  (match* (N₀ N₁)
-                   [(0 0) (cons Vs₁ 0)]
-                   [(0 1) (cons (V⊔ Vs₀ Vs₁) 1)]
-                   [(1 0) (cons Vs₁ 1)]
-                   [(_ _) (cons (V⊔ Vs₀ Vs₁) 'N)])]
+                   [((or 0 '?)  0) (cons Vs₁           0)]
+                   [(1          0) (cons Vs₁           1)]
+                   [((or 0 '?) '?) (cons (V⊔ Vs₀ Vs₁) '?)]
+                   [(1         '?) (cons (V⊔ Vs₀ Vs₁)  1)]
+                   [((or 0 '?)  1) (cons (V⊔ Vs₀ Vs₁)  1)]
+                   [(_          _) (cons (V⊔ Vs₀ Vs₁) 'N)])]
                 [#f r₁])))
 
   (: ⧺ˡ : α (Pairof V^ N) ΔΣ → ΔΣ)
@@ -199,40 +202,46 @@
     (match (hash-ref ΔΣ α #f)
       [(cons Vs₁ N₁)
        (match* (N₀ N₁)
-         [(0 0) ΔΣ]
-         [(0 1) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 1))]
-         [(1 0) (hash-set ΔΣ α (cons Vs₁ 1))]
-         [(_ _) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 'N))])]
+         [((or 0 '?) (or 0 '?)) ΔΣ]
+         [(1         (or 0 '?)) (hash-set ΔΣ α (cons Vs₁ 1))]
+         [((or 0 '?) 1        ) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 1))]
+         [(_         _        ) (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs₁) 'N))])]
       [#f (hash-set ΔΣ α r₀)]))
 
   (: ΔΣ⊔ : ΔΣ ΔΣ → ΔΣ)
   ;; Blur store deltas. Commutative.
   (define (ΔΣ⊔ ΔΣ₁ ΔΣ₂)
-    (if (> (hash-count ΔΣ₁) (hash-count ΔΣ₂))
-        (ΔΣ⊔ ΔΣ₂ ΔΣ₁)
-        (for/fold ([ΔΣ* : ΔΣ ΔΣ₂]) ([(α r) (in-hash ΔΣ₁)])
-          (⊔₁ α r ΔΣ*))))
+    (: add-both : ΔΣ α (Pairof V^ N) (Pairof V^ N) → ΔΣ)
+    (define (add-both acc α r₁ r₂)
+      (match-define (cons Vs₁ N₁) r₁)
+      (match-define (cons Vs₂ N₂) r₂)
+      (hash-set acc α (cons (V⊔ Vs₁ Vs₂) (N-max N₁ N₂))))
 
-  (: ⊔₁ : α (Pairof V^ N) ΔΣ → ΔΣ)
-  ;; Blur effect in store.
-  (define (⊔₁ α r ΔΣ)
-    (match-define (cons Vs N) r)
-    (match-define (cons Vs₀ N₀) (hash-ref ΔΣ α (λ () (cons ∅ 0))))
-    (hash-set ΔΣ α (cons (V⊔ Vs₀ Vs) (N-max N₀ N))))
+    (: add-one : ΔΣ α (Pairof V^ N) → ΔΣ)
+    (define (add-one acc α r)
+      (match-define (cons Vs N) r)
+      (case N
+        [(0)
+         ;; Either drop refinement for immutable address or
+         ;; turn strong to weak update for mutable address
+         (if (mutable? α) (hash-set acc α (cons Vs '?)) acc)]
+        [else (hash-set acc α r)]))
+
+    (for/fold ([ΔΣ* : ΔΣ ⊥ΔΣ]) ([α (in-set (∪ (dom ΔΣ₁) (dom ΔΣ₂)))])
+      (match (hash-ref ΔΣ₁ α #f)
+        [(? values r₁)
+         (match (hash-ref ΔΣ₂ α #f)
+           [(? values r₂) (add-both ΔΣ* α r₁ r₂)]
+           [#f (add-one ΔΣ* α r₁)])]
+        [#f (add-one ΔΣ* α (hash-ref ΔΣ₂ α))])))
 
   (: N-max : N N → N)
   ;; Take cardinalitt max
   (define (N-max N₁ N₂)
     (cond [(or (equal? 'N N₁) (equal? 'N N₂)) 'N]
           [(or (equal? 1 N₁) (equal? 1 N₂)) 1]
+          [(or (equal? '? N₁) (equal? '? N₂)) '?]
           [else 0]))
-  
-  (: N+ : N N → N)
-  ;; Add up cardinalities
-  (define (N+ N₀ N₁)
-    (cond [(equal? 0 N₀) N₁]
-          [(equal? 0 N₁) N₀]
-          [else 'N])) 
 
   (: stack-copy : (℘ α) Σ → ΔΣ)
   (define (stack-copy αs Σ)

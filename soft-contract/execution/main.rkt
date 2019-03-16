@@ -123,10 +123,12 @@
 
     (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣᵢ) (in-hash r)])
       (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
-        (hash-update acc
-                     (go-W Wᵢ)
-                     (λ ([ΔΣ₀ : ΔΣ]) (ΔΣ⊔ ΔΣ₀ (go-ΔΣ ΔΣᵢ)))
-                     (λ () ⊥ΔΣ)))))
+        (define W* (go-W Wᵢ))
+        (define ΔΣ* (go-ΔΣ ΔΣᵢ))
+        (hash-set acc W*
+                  (match (hash-ref acc W* #f)
+                    [(? values ΔΣ₀) (ΔΣ⊔ ΔΣ₀ ΔΣ*)]
+                    [#f ΔΣ*])))))
 
   (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
   (define (fold-ans on-X Xs)
