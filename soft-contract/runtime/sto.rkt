@@ -303,6 +303,53 @@
                     [(1) #f]
                     [(N) #t])])))
 
+  (: ΔΣ⊕ : ΔΣ ΔΣ → (Option ΔΣ))
+  (define (ΔΣ⊕ ΔΣ₁ ΔΣ₂)
+    (define-type Ord (U '= '≤ '≥ #f))
+    (: keep-if-preserve : Ord Ord → Ord)
+    (define (keep-if-preserve o₁ o₂)
+      (if (or (eq? o₁ o₂) (eq? '= o₂)) o₁ #f))
+    (define cmp-r : ((Pairof V^ N) (Pairof V^ N) → Ord)
+      (match-lambda**
+       [((cons Vs₁ N₁) (cons Vs₂ N₂))
+        (match* ((⊆ Vs₁ Vs₂) (⊆ Vs₂ Vs₁))
+          [(#t #t) (cmp-N N₁ N₂)]
+          [(#t _ ) (keep-if-preserve '≤ (cmp-N N₁ N₂))]
+          [(_  #t) (keep-if-preserve '≥ (cmp-N N₁ N₂))]
+          [(_  _ ) #f])]))
+    (define cmp-N : (N N → Ord)
+      (let ([ord : (N → Index)
+                 (λ (N) (case N
+                          [(0) 0]
+                          [(?) 1]
+                          [(1) 2]
+                          [(N) 3]))])
+            (λ (N₁ N₂)
+              (define o₁ (ord N₁))
+              (define o₂ (ord N₂))
+              (cond [(= o₁ o₂) '=]
+                    [(< o₁ o₂) '≤]
+                    [else '≥]))))
+    (cond [(= (hash-count ΔΣ₁) (hash-count ΔΣ₂))
+           (define cmp
+             (for/fold ([cmp : Ord '=])
+                       ([(α r₁) (in-hash ΔΣ₁)] #:break (not cmp))
+               (match (hash-ref ΔΣ₂ α #f)
+                 [(? values r₂)
+                  (match (cmp-r r₁ r₂)
+                    ['= cmp]
+                    [(and c (or '≤ '≥)) (keep-if-preserve c cmp)]
+                    [#f #f])]
+                 [#f #f])))
+           (case cmp
+             [(≥ =) ΔΣ₁]
+             [(≤  ) ΔΣ₂]
+             [else #f])]
+          [else #f]))
+
+  (: ΔΣ⊔₁ : ΔΣ (℘ ΔΣ) → (℘ ΔΣ))
+  (define (ΔΣ⊔₁ ΔΣ ΔΣs) (merge/compact₁ ΔΣ⊕ ΔΣ ΔΣs))
+
   (: collapse-ΔΣs : (℘ ΔΣ) → ΔΣ)
   (define (collapse-ΔΣs ΔΣs)
     (set-fold ΔΣ⊔ (set-first ΔΣs) (set-rest ΔΣs)))

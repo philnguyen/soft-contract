@@ -201,6 +201,7 @@
    [stack-copy : ((℘ α) Σ → ΔΣ)]
    [ambiguous? : (T Σ → Boolean)]
    [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
+   [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
    ))
 
 (define-signature cache^
@@ -236,7 +237,8 @@
                            [(U T -b) → (Option (U T -b))]))]
    [T-root : (T:@ → (℘ α))]
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
-   [merge/compact : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
+   [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
+   [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
    ))
 
 (define-signature prover^
