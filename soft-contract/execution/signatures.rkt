@@ -9,6 +9,7 @@
          with-collapsed with-collapsed/R
          with-collapsing with-collapsing/R
          with-each-path
+         with-each-ans
          with-pre
          for/ans)
 
@@ -101,13 +102,25 @@
 
 (define-syntax with-each-path
   (syntax-parser
-    [(_ [(ΔΣ₀ W₀) e] body ...)
+    [(_ [(ΔΣs₀ W₀) e] body ...)
      (with-syntax ([R⊔ (format-id #'e "R⊔")])
        #'(let-values ([(r₀ es₀) e])
            (for/fold ([r* : R ⊥R] [es* : (℘ Err) es₀])
-                     ([(W₀ ΔΣ₀) (in-hash r₀)])
+                     ([(W₀ ΔΣs₀) (in-hash r₀)])
              (define-values (r₁ es₁) (let () body ...))
              (values (R⊔ r* r₁) (∪ es* es₁)))))]))
+
+(define-syntax with-each-ans
+  (syntax-parser
+    [(_ [(ΔΣ₀ W₀) e] body ...)
+     (with-syntax ([R⊔ (format-id #'e "R⊔")]
+                   [collapse-ΔΣs (format-id #'e "collapse-ΔΣs")])
+       #'(let-values ([(r₀ es₀) e])
+           (for/fold ([r* : R ⊥R] [es* : (℘ Err) es₀])
+                     ([(W₀ ΔΣs₀) (in-hash r₀)])
+             (let ([ΔΣ₀ (collapse-ΔΣs ΔΣs₀)])
+               (define-values (r₁ es₁) (let () body ...))
+               (values (R⊔ r* r₁) (∪ es* es₁))))))]))
 
 (define-syntax with-pre
   (syntax-parser

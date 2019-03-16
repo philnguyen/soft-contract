@@ -170,7 +170,7 @@
 
     (: chk : V^ V^ → (Values R (℘ Err)))
     (define (chk C-fo C-ho)
-      (with-each-path [(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)]
+      (with-each-ans [(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)]
         (match W₁
           [(list _) (just W₁ ΔΣ₁)]
           [(list V* _)
@@ -186,7 +186,7 @@
   (define ((mon-Not/C C) Σ ctx V)
     (match-define (Not/C α _) C)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (with-each-path [(ΔΣ W) (fc Σ ℓₒ (Σ@ α Σ) V)]
+    (with-each-ans [(ΔΣ W) (fc Σ ℓₒ (Σ@ α Σ) V)]
       (match W
         [(list Vs* _) (just Vs* ΔΣ)]
         [(list _) (err (blm l+ ℓ ℓₒ (list {set C}) (list V)))])))
@@ -332,7 +332,7 @@
       [(✓) (just Vs)]
       [(✗) (err (blame))]
       [else
-       (with-each-path [(ΔΣ W) (fc Σ ℓₒ {set C} Vs)]
+       (with-each-ans [(ΔΣ W) (fc Σ ℓₒ {set C} Vs)]
          (match W
            [(list _) (just W ΔΣ)]
            [(list Vs* _) (err (blame))]))]))
@@ -396,7 +396,7 @@
                 (just (St 𝒾 αs* ∅) (⧺ ΔΣ ΔΣ*))]
                [(cons αᵢ αs*)
                 (with-collapsing/R [(ΔΣ:a Ws:a) (app Σ ℓ {set (-st-ac 𝒾 i)} W*)]
-                  (with-each-path [(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ (unpack αᵢ Σ) (car (collapse-W^ Ws:a)))]
+                  (with-each-ans [(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ (unpack αᵢ Σ) (car (collapse-W^ Ws:a)))]
                     (match Wᵢ
                       [(list Vᵢ)
                        (go (⧺ Σ ΔΣ:a ΔΣᵢ)
@@ -414,7 +414,7 @@
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
       [_
        (define ΔΣₓ (alloc γ-mon Vs))
-       (with-each-path [(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))]
+       (with-each-ans [(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))]
          (define Σ₁ (⧺ Σ₀ ΔΣₓ ΔΣ))
          (define Vs* (unpack γ-mon Σ₁))
          (with-split-Σ Σ₁ 'values W

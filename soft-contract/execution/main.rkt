@@ -121,14 +121,15 @@
     (define (go-T [T : T]) (cond [(adjust-T T) => set]
                                  [else (unpack T (Σₑᵣ))]))
 
-    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣᵢ) (in-hash r)])
+    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
+      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
       (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
         (define W* (go-W Wᵢ))
         (define ΔΣ* (go-ΔΣ ΔΣᵢ))
         (hash-set acc W*
                   (match (hash-ref acc W* #f)
-                    [(? values ΔΣ₀) (ΔΣ⊔ ΔΣ₀ ΔΣ*)]
-                    [#f ΔΣ*])))))
+                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
+                    [#f {set ΔΣ*}])))))
 
   (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
   (define (fold-ans on-X Xs)

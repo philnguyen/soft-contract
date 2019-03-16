@@ -301,7 +301,11 @@
             [(T:@? T) (ormap go (T:@-_1 T))]
             [else (case (cdr (hash-ref Σ T))
                     [(1) #f]
-                    [(N) #t])]))) 
+                    [(N) #t])])))
+
+  (: collapse-ΔΣs : (℘ ΔΣ) → ΔΣ)
+  (define (collapse-ΔΣs ΔΣs)
+    (set-fold ΔΣ⊔ (set-first ΔΣs) (set-rest ΔΣs)))
 
   (define mutable? : (α → Boolean)
     (match-lambda

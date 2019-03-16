@@ -189,7 +189,7 @@
   (: show-R : R → (Listof Sexp))
   (define (show-R r)
     (for/list : (Listof Sexp) ([(W ΔΣ) (in-hash r)])
-      `(,(show-W W) @ ,@(show-Σ ΔΣ))))
+      `(,(show-W W) @ ,@(set-map ΔΣ show-Σ))))
 
   (define show-Err : (Err → Sexp)
     (match-lambda

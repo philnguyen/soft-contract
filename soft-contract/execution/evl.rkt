@@ -105,16 +105,17 @@
                       ∅))
        (values r es)]
       [(-@ f xs ℓ)
-       (with-each-path [(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)]
+       (with-each-ans [(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)]
          (define V^ₕ (car Wₕ))
          (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
            (with-pre (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
       [(-if E E₁ E₂ ℓ)
-       (with-each-path [(ΔΣ W) (evl/arity Σ E 1 ℓ)]
-         (define Σ* (⧺ Σ ΔΣ))
-         (with-split-Σ Σ* 'values W
-           (λ (_ ΔΣ₁) (with-pre (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
-           (λ (_ ΔΣ₂) (with-pre (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂)))))]
+       (with-each-path [(ΔΣs W) (evl/arity Σ E 1 ℓ)]
+         (for/ans ([ΔΣ : ΔΣ (in-set ΔΣs)])
+           (define Σ* (⧺ Σ ΔΣ))
+           (with-split-Σ Σ* 'values W
+             (λ (_ ΔΣ₁) (with-pre (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
+             (λ (_ ΔΣ₂) (with-pre (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂))))))]
       [(-wcm k v e) (error 'TODO "with-current-continuation-mark")]
       [(-begin Es)
        (match Es
@@ -228,8 +229,8 @@
     (define (evl-bnd [Σ : Σ] [bnd : Binding])
       (match-define (mk-Binding xs E) bnd)
       (define-values (r es) (evl/arity Σ E (length xs) ℓ))
-      (define ΔΣs (for/set: : (℘ ΔΣ) ([(rhs ΔΣ) (in-hash r)])
-                    (⧺ ΔΣ (alloc-lex* xs rhs))))
+      (define ΔΣs (for/set: : (℘ ΔΣ) ([(rhs ΔΣs) (in-hash r)])
+                    (⧺ (collapse-ΔΣs ΔΣs) (alloc-lex* xs rhs))))
       (values ΔΣs es))
 
     (let step ([Σ : Σ Σ₀] [bnds : (Listof Binding) bnds])
@@ -288,8 +289,8 @@
       (for/fold ([Xs-rev : (Listof X) '()] [ΔΣ : ΔΣ ⊥ΔΣ]) ([E (in-list Es)])
         (define-values (rᵢ esᵢ) (evl Σ E))
         (assert (set-empty? esᵢ))
-        (match-define (list (cons Wᵢ ΔΣᵢ)) (hash->list rᵢ))
-        (values (cons (assert (set-first (car Wᵢ)) p?) Xs-rev) (⧺ ΔΣ ΔΣᵢ))))
+        (match-define (list (cons Wᵢ ΔΣsᵢ)) (hash->list rᵢ))
+        (values (cons (assert (set-first (car Wᵢ)) p?) Xs-rev) (⧺ ΔΣ (collapse-ΔΣs ΔΣsᵢ)))))
     (values (reverse Xs-rev) ΔΣ*))
 
   (: evl*/discard/collapse

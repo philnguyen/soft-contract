@@ -28,7 +28,7 @@
 
   (: R-of ([(U V V^ W)] [ΔΣ] . ->* . R))
   (define (R-of V [ΔΣ ⊥ΔΣ])
-    (define (with [A : W]) (hash A ΔΣ))
+    (define (with [A : W]) (hash A {set ΔΣ}))
     (cond [(list? V) (with V)]
           [(set? V) (if (set-empty? V) ⊥R (with (list V)))]
           [else (with (list {set V}))]))
@@ -45,24 +45,24 @@
   (define (collapse-R/ΔΣ R)
     (match (hash-values R)
       ['() #f]
-      [(cons ΔΣ₀ ΔΣ*) (foldl ΔΣ⊔ ΔΣ₀ ΔΣ*)]))
+      [(cons ΔΣs₀ ΔΣs*) (foldl ΔΣ⊔ (collapse-ΔΣs ΔΣs₀) (map collapse-ΔΣs ΔΣs*))]))
 
   (: collapse-R : R → (Option (Pairof W^ ΔΣ)))
   (define (collapse-R R)
     (and (not (hash-empty? R))
-         (let*-values ([(W₀ ΔΣ₀ R*) (hash-first/rest R)]
+         (let*-values ([(W₀ ΔΣs₀ R*) (hash-first/rest R)]
                        [(Ws ΔΣ)
-                        (for/fold ([Ws : W^ {set W₀}] [ΔΣ* : ΔΣ ΔΣ₀])
-                                  ([(W ΔΣ) (in-hash R*)])
-                          (values (set-add Ws W) (ΔΣ⊔ ΔΣ* ΔΣ)))])
+                        (for/fold ([Ws : W^ {set W₀}] [ΔΣ* : ΔΣ (collapse-ΔΣs ΔΣs₀)])
+                                  ([(W ΔΣs) (in-hash R*)])
+                          (values (set-add Ws W) (ΔΣ⊔ ΔΣ* (collapse-ΔΣs ΔΣs))))])
            (cons Ws ΔΣ))))
 
   (: R⊔ : R R → R)
   (define (R⊔ R₁ R₂)
-    ((inst hash-union W ΔΣ) R₁ R₂ #:combine ΔΣ⊔))
+    ((inst hash-union W (℘ ΔΣ)) R₁ R₂ #:combine set-union))
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)
-    (for/hash : R ([(W ΔΣ) (in-hash R₀)])
-      (values W (f ΔΣ))))
+    (for/hash : R ([(W ΔΣs) (in-hash R₀)])
+      (values W (map/set f ΔΣs))))
 )
