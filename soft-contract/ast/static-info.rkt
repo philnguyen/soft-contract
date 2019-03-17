@@ -198,6 +198,10 @@
   ;;;;; Superstructs
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  (: in-struct-tags : → (Sequenceof -𝒾))
+  (define (in-struct-tags)
+    (in-hash-keys (-static-info-structs (current-static-info))))
+
   (: set-parent-struct! : -𝒾 -𝒾 → Void)
   (define (set-parent-struct! 𝒾-sub 𝒾-sup)
     (define parentstruct (-static-info-parentstruct (current-static-info)))
@@ -242,5 +246,8 @@
     (hash-has-key? (-static-info-transparent-modules (current-static-info)) l))
 
   (: prim-struct? : -𝒾 → Boolean)
-  (define (prim-struct? 𝒾) (or (equal? 𝒾 -𝒾-cons) (equal? 𝒾 -𝒾-box)))
+  (define (prim-struct? 𝒾)
+    (or (equal? 𝒾 -𝒾-cons)
+        (equal? 𝒾 -𝒾-mcons)
+        (equal? 𝒾 -𝒾-box)))
   )

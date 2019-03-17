@@ -270,6 +270,7 @@
    [set-module-before! : (-l -l → Void)]
    [assignable? : ((U Symbol -𝒾) → Boolean)]
    [set-assignable! : ((U Symbol -𝒾) → Void)]
+   [in-struct-tags : (→ (Sequenceof -𝒾))]
    [set-parent-struct! : (-𝒾 -𝒾 → Void)]
    [substruct? : (-𝒾 -𝒾 → Boolean)]
    [field-offset : (-𝒾 → Index)]

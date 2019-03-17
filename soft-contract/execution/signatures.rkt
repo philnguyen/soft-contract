@@ -68,6 +68,7 @@
 
 (define-signature gc^
   ([gc : ([(℘ α) Σ] [Σ] . ->* . Σ)]
+   [clear-live-set-cache! : (→ Void)]
    [with-gc : ((℘ α) Σ (→ (Values R (℘ Err))) → (Values R (℘ Err)))]
    [V-root : (V → (℘ α))]
    [V^-root : (V^ → (℘ α))]

@@ -4,6 +4,7 @@
 
 (require racket/set
          racket/match
+         racket/splicing
          typed/racket/unit
          set-extras
          unreachable
@@ -113,9 +114,8 @@
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
-      [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+      [(? -prim? p) (prim-root p)]
       [(? P? P) (P-root P)]
-      [(? symbol? o) {set (γ:hv o)}]
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
 
   (define Clo-root : (Clo → (℘ α))
@@ -147,47 +147,71 @@
   (define Dom-root : (Dom → (℘ α))
     (match-lambda [(Dom _ C _) (if (Clo? C) (Clo-root C) {set C})]))
 
-  (: E-root : E → (℘ γ))
-  ;; Compute free variables for expression. Return set of variable names.
-  (define E-root
-    (let ([cache : (Mutable-HashTable E (℘ γ)) (make-hasheq)])
-      (λ (E)
-        (hash-ref!
-         cache E
-         (λ ()
-           (match E
-             [(? symbol? o) {set (γ:hv o)}]
-             [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
-             [(? -•?) {set (γ:hv #f)}]
-             [(-x x ℓ)
-              {set (cond [(symbol? x) (γ:lex x)]
-                         [(equal? (ℓ-src ℓ) (-𝒾-src x)) (γ:top x)]
-                         [else (γ:wrp x)])}]
-             [(-λ xs e _) (set-subtract (E-root e) (map/set γ:lex (formals->names xs #:eq? #f)))]
-             [(-case-λ cases _) (apply ∪ ∅ (map E-root cases))]
-             [(-@ f xs _) (apply ∪ (E-root f) (map E-root xs))]
-             [(-begin es) (apply ∪ ∅ (map E-root es))]
-             [(-begin0 e₀ es) (apply ∪ (E-root e₀) (map E-root es))]
-             [(-let-values bnds e _)
-              (define-values (bound rhs:E-root)
-                (for/fold ([bound : (℘ γ) ∅] [rhs:E-root : (℘ γ) ∅])
-                          ([bnd bnds])
-                  (match-define (cons xs rhs) bnd)
-                  (values (set-add* bound (map γ:lex xs)) (∪ rhs:E-root (E-root rhs)))))
-              (∪ rhs:E-root (set-subtract (E-root e) bound))]
-             [(-letrec-values bnds e _)
-              (define bound (for/fold ([bound : (℘ γ) ∅]) ([bnd bnds])
-                              (set-add* bound (map γ:lex (car bnd)))))
-              (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
-             [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
-             [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
-             [(-μ/c _ e) (E-root e)]
-             [(-->i (-var cs c) d)
-              (define dom-E-root : (-dom → (℘ γ))
-                (match-lambda
-                  [(-dom _ ?xs d _) (set-subtract (E-root d) (if ?xs (list->set (map γ:lex ?xs)) ∅))]))
-              (∪ (apply ∪ (if c (dom-E-root c) ∅) (map dom-E-root cs))
-                 (if d (apply ∪ ∅ (map dom-E-root d)) ∅))]
-             [(case--> cases) (apply ∪ ∅ (map E-root cases))]
-             [E (log-debug "E-ROOT⟦~a⟧ = ∅~n" E) ∅]))))))
+  (splicing-local
+      ((define E-root-cache : (Mutable-HashTable E (℘ γ)) (make-hasheq))
+       (define prim-root-cache : (Mutable-HashTable -prim (℘ γ)) (make-hash)))
+
+    (: E-root : E → (℘ γ))
+    ;; Compute free variables for expression. Return set of variable names.
+    (define (E-root E)
+      (hash-ref!
+       E-root-cache E
+       (λ ()
+         (match E
+           [(? -prim? p) (prim-root p)]
+           [(? -•?) {set (γ:hv #f)}]
+           [(-x x ℓ)
+            {set (cond [(symbol? x) (γ:lex x)]
+                       [(equal? (ℓ-src ℓ) (-𝒾-src x)) (γ:top x)]
+                       [else (γ:wrp x)])}]
+           [(-λ xs e _) (set-subtract (E-root e) (map/set γ:lex (formals->names xs #:eq? #f)))]
+           [(-case-λ cases _) (apply ∪ ∅ (map E-root cases))]
+           [(-@ f xs _) (apply ∪ (E-root f) (map E-root xs))]
+           [(-begin es) (apply ∪ ∅ (map E-root es))]
+           [(-begin0 e₀ es) (apply ∪ (E-root e₀) (map E-root es))]
+           [(-let-values bnds e _)
+            (define-values (bound rhs:E-root)
+              (for/fold ([bound : (℘ γ) ∅] [rhs:E-root : (℘ γ) ∅])
+                        ([bnd bnds])
+                (match-define (cons xs rhs) bnd)
+                (values (set-add* bound (map γ:lex xs)) (∪ rhs:E-root (E-root rhs)))))
+            (∪ rhs:E-root (set-subtract (E-root e) bound))]
+           [(-letrec-values bnds e _)
+            (define bound (for/fold ([bound : (℘ γ) ∅]) ([bnd bnds])
+                            (set-add* bound (map γ:lex (car bnd)))))
+            (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
+           [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
+           [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
+           [(-μ/c _ e) (E-root e)]
+           [(-->i (-var cs c) d)
+            (define dom-E-root : (-dom → (℘ γ))
+              (match-lambda
+                [(-dom _ ?xs d _) (set-subtract (E-root d) (if ?xs (list->set (map γ:lex ?xs)) ∅))]))
+            (∪ (apply ∪ (if c (dom-E-root c) ∅) (map dom-E-root cs))
+               (if d (apply ∪ ∅ (map dom-E-root d)) ∅))]
+           [(case--> cases) (apply ∪ ∅ (map E-root cases))]
+           [E (log-debug "E-ROOT⟦~a⟧ = ∅~n" E) ∅]))))
+
+    (: prim-root : -prim → (℘ γ))
+    (define (prim-root p)
+      (hash-ref!
+       prim-root-cache p
+       (λ ()
+         (match p
+           [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+           ['unsafe-struct-ref
+            (for*/set: : (℘ γ) ([𝒾 (in-struct-tags)]
+                                #:unless (prim-struct? 𝒾)
+                                [i (in-range (count-struct-fields 𝒾))])
+              (γ:escaped-field 𝒾 (assert i index?)))]
+           [(? symbol? o) {set (γ:hv o)}]
+           [_ ∅]))))
+
+    ;; Cache for computing live variables depend on specific program's information
+    ;; such as struct tags (for computing addresses to leaked fields kept live by
+    ;; `unsafe-struct-ref`),
+    ;; so can't be re-used across different programs
+    (define (clear-live-set-cache!)
+      (hash-clear! E-root-cache)
+      (hash-clear! prim-root-cache)))
   )

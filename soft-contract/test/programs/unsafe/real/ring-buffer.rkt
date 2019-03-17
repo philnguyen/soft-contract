@@ -49,16 +49,16 @@
 
 (define ring-buffer/c
   (struct/c ring-buffer
-            exact-nonnegative-integer?
-            exact-nonnegative-integer?
-            exact-nonnegative-integer?
+            integer?
+            integer?
+            integer?
             vector?))
 
 (provide/contract
  [empty-ring-buffer (exact-nonnegative-integer? . -> . ring-buffer?)]
  [ring-buffer? (any/c . -> . boolean?)]
- [ring-buffer-length (ring-buffer/c . -> . exact-nonnegative-integer?)]
- [ring-buffer-ref (ring-buffer/c exact-nonnegative-integer? . -> . (or/c any/c false/c))]
- [ring-buffer-set! (ring-buffer/c exact-nonnegative-integer? (and/c any/c (not/c false/c)) . -> . void)]
- [ring-buffer-push! (ring-buffer/c (and/c any/c (not/c false/c)) . -> . void)]
+ [ring-buffer-length (ring-buffer? . -> . exact-nonnegative-integer?)]
+ [ring-buffer-ref (ring-buffer? exact-nonnegative-integer? . -> . (or/c any/c false/c))]
+ [ring-buffer-set! (ring-buffer? exact-nonnegative-integer? (and/c any/c (not/c false/c)) . -> . void?)]
+ [ring-buffer-push! (ring-buffer? (and/c any/c (not/c false/c)) . -> . void?)]
  )

@@ -23,7 +23,7 @@
 (define-unit fix@
   (import static-info^
           sto^ cache^ val^
-          evl^
+          evl^ gc^
           prover^)
   (export exec^)
 
@@ -54,11 +54,15 @@
       (match (db:max-steps)
         [(? values n) (λ (iter) (>= iter n))]
         [#f (λ (_) #f)]))
+
+    ;; Make sure global states are properly reset from possibly previously
+    ;; verifying other programs in the same process
+    (begin
+      (set! $ₒᵤₜ ⊥$)
+      (set! $ᵢₙ $ₒᵤₜ)
+      (clear-live-set-cache!))
     
     (let loop ([iter : Natural 0])
-      (set! $ᵢₙ $ₒᵤₜ)
-      (set! $ₒᵤₜ (for/fold ([acc : $ $ₒᵤₜ]) ([k (in-set dirties)])
-                   (hash-remove acc k)))
       (when dump-iter?
         (printf "iter ~a: ~a in, ~a dirties ~n" iter (hash-count $ᵢₙ) (set-count dirties)))
       (set! dirties ∅eq)
@@ -66,7 +70,11 @@
       (define es (run))
       (if (or (done? iter) (set-empty? dirties))
           (values (set-filter blame-on-transparent? es) $ᵢₙ)
-          (loop (+ 1 iter)))))
+          (begin
+            (set! $ᵢₙ $ₒᵤₜ)
+            (set! $ₒᵤₜ (for/fold ([acc : $ $ₒᵤₜ]) ([k (in-set dirties)])
+                         (hash-remove acc k)))
+            (loop (+ 1 iter))))))
 
   (: ref-$! : $:K (→ (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (ref-$! key comp)
