@@ -105,7 +105,7 @@
                       ∅))
        (values r es)]
       [(-@ f xs ℓ)
-       (with-each-ans [(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)]
+       (with-each-ans ([(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)])
          (define V^ₕ (car Wₕ))
          (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
            (with-pre (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]

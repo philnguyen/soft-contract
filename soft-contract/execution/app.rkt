@@ -186,9 +186,9 @@
         (match* (Doms Wₓ)
           [('() '()) (values (R-of '()) ∅)]
           [((cons Dom Doms) (cons Vₓ Wₓ))
-           (with-each-ans [(ΔΣₓ Wₓ*) (mon-dom Σ l+ l- Dom Vₓ)]
-             (with-each-ans [(ΔΣ* W*) (go (⧺ Σ ΔΣₓ) Doms Wₓ)]
-               (just (cons (car Wₓ*) W*) (⧺ ΔΣₓ ΔΣ*))))]
+           (with-each-ans ([(ΔΣₓ Wₓ*) (mon-dom Σ l+ l- Dom Vₓ)]
+                           [(ΔΣ* W*) (go (⧺ Σ ΔΣₓ) Doms Wₓ)])
+             (just (cons (car Wₓ*) W*) (⧺ ΔΣₓ ΔΣ*)))]
           [(_ _)
            (err (blm l+ ℓ #|FIXME|# (ℓ-with-src +ℓ₀ 'Λ) (map (compose1 (inst set V) Dom-ctc) Doms₀) Wₓ₀))])))
 
@@ -201,13 +201,13 @@
         [(Clo (-var xs #f) E Ρ _)
          (define ΔΣ₀ (stack-copy Ρ Σ))
          (define Σ₀ (⧺ Σ ΔΣ₀))
-         (with-each-ans [(ΔΣ₁ W) (evl Σ₀ E)]
-           (with-each-ans [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)]
-             (match-define (list V*) W) ; FIXME catch
-             (just W (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc (γ:lex x) V*)))))]
+         (with-each-ans ([(ΔΣ₁ W) (evl Σ₀ E)]
+                         [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
+           (match-define (list V*) W) ; FIXME catch
+           (just W (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc (γ:lex x) V*))))]
         ;; Non-dependent domain
         [(? α? α)
-         (with-each-ans [(ΔΣ W) (mon Σ ctx (Σ@ α Σ₀) V)]
+         (with-each-ans ([(ΔΣ W) (mon Σ ctx (Σ@ α Σ₀) V)])
            (match-define (list V*) W)
            (just W (⧺ ΔΣ (alloc (γ:lex x) V*))))]))
 
@@ -216,7 +216,7 @@
     (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ (Values R (℘ Err)))]) 
       (define-values (r es)
         (if Rngs
-            (with-each-ans [(ΔΣₐ Wₐ) (comp)]
+            (with-each-ans ([(ΔΣₐ Wₐ) (comp)])
               (with-pre (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) l+ l- Rngs Wₐ)))
             (with-pre ΔΣ-acc (comp))))
       (define rn (for/hash : (Immutable-HashTable α (Option α))
@@ -236,23 +236,23 @@
     (with-guarded-arity Wₓ G ℓ
       [Wₓ
        #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
-       (with-each-ans [(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)]
+       (with-each-ans ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
          (define args (map Dom-ref Doms))
          (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args))))]
       [Wₓ
        #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
        (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
-       (with-each-ans [(ΔΣ-init _) (mon-doms Σ₀ l- l+ Doms W₀)]
-         (define-values (Vᵣ ΔΣᵣ) (alloc-rest (Dom-loc ?Doms:rest) Wᵣ))
-         (with-each-ans [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) l- l+ ?Doms:rest Vᵣ)]
-           (define args-init (map Dom-ref Doms))
-           (define arg-rest (Dom-ref ?Doms:rest))
-           (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
-             (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))]))
+       (define-values (Vᵣ ΔΣᵣ) (alloc-rest (Dom-loc ?Doms:rest) Wᵣ))
+       (with-each-ans ([(ΔΣ-init _) (mon-doms Σ₀ l- l+ Doms W₀)]
+                       [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) l- l+ ?Doms:rest Vᵣ)])
+         (define args-init (map Dom-ref Doms))
+         (define arg-rest (Dom-ref ?Doms:rest))
+         (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
+           (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest))))]))
 
   (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)
-    (with-each-ans [(ΔΣ Wₕ) (inst-∀/C Σ₀ ctx G α ℓ)]
+    (with-each-ans ([(ΔΣ Wₕ) (inst-∀/C Σ₀ ctx G α ℓ)])
       (with-pre ΔΣ (app (⧺ Σ₀ ΔΣ) ℓ (car Wₕ) Wₓ))))
 
   (: app-Case-=> : (Pairof -l -l) Case-=> α → ⟦F⟧)
@@ -273,7 +273,7 @@
   (define ((app-And/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans [(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)]
+       (with-each-ans ([(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
            (λ (_ ΔΣ*) (with-pre (⧺ ΔΣ₁ ΔΣ*) (app (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))
@@ -283,7 +283,7 @@
   (define ((app-Or/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans [(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)]
+       (with-each-ans ([(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
            (λ (_ ΔΣ*) (values (R-of W₁ (⧺ ΔΣ₁ ΔΣ*)) ∅))
@@ -293,7 +293,7 @@
   (define ((app-Not/C α ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans [(ΔΣ W) (app Σ ℓ (unpack α Σ) Wₓ)]
+       (with-each-ans ([(ΔΣ W) (app Σ ℓ (unpack α Σ) Wₓ)])
          (define Σ* (⧺ Σ ΔΣ))
          (with-split-Σ Σ* 'values W
            (λ (_ ΔΣ*) (just -ff (⧺ ΔΣ ΔΣ*)))
@@ -324,7 +324,7 @@
       ['() (just -tt)]
       [(cons α αs)
        (with-collapsing/R [(ΔΣᵢ Wᵢs) ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)]
-         (with-each-ans [(ΔΣₜ Wₜ) (app (⧺ Σ ΔΣᵢ) ℓ (unpack α Σ) (collapse-W^ Wᵢs))]
+         (with-each-ans ([(ΔΣₜ Wₜ) (app (⧺ Σ ΔΣᵢ) ℓ (unpack α Σ) (collapse-W^ Wᵢs))])
            (define ΔΣ (⧺ ΔΣᵢ ΔΣₜ))
            (define Σ* (⧺ Σ ΔΣ))
            (with-split-Σ Σ* 'values Wₜ
@@ -414,7 +414,7 @@
             [ΔΣ:stk (stack-copy Ρ Σ₀)])
         (⧺ ΔΣ:seals ΔΣ:stk)))
     (define Σ₁ (⧺ Σ₀ ΔΣ₀))
-    (with-each-ans [(ΔΣ₁ W:c) (evl Σ₁ c)]
+    (with-each-ans ([(ΔΣ₁ W:c) (evl Σ₁ c)])
       (with-pre (⧺ ΔΣ₀ ΔΣ₁)
         (mon (⧺ Σ₁ ΔΣ₁) (Ctx l+ l- ℓₒ ℓ) (car W:c) (Σ@ α Σ₀)))))
 
@@ -422,5 +422,4 @@
     (match W
       [p body ...] ...
       [_ (err (Err:Arity f (length W) ℓ))]))
-  
   )

@@ -14,6 +14,7 @@
          for/ans)
 
 (require (for-syntax racket/base
+                     (only-in racket/list append-map)
                      racket/syntax
                      syntax/parse)
          racket/match
@@ -113,15 +114,25 @@
 
 (define-syntax with-each-ans
   (syntax-parser
-    [(_ [(ΔΣ₀ W₀) e] body ...)
-     (with-syntax ([R⊔ (format-id #'e "R⊔")]
-                   [collapse-ΔΣs (format-id #'e "collapse-ΔΣs")])
-       #'(let-values ([(r₀ es₀) e])
-           (for/fold ([r* : R ⊥R] [es* : (℘ Err) es₀])
-                     ([(W₀ ΔΣs₀) (in-hash r₀)])
-             (let ([ΔΣ₀ (collapse-ΔΣs ΔΣs₀)])
+    [(with-each-ans ([(ΔΣᵢ Wᵢ) eᵢ] ...) body ...)
+     (with-syntax ([R⊔ (format-id #'with-each-ans "R⊔")]
+                   [collapse-ΔΣs (format-id #'with-each-ans "collapse-ΔΣs")])
+       (define mk-clause
+         (syntax-parser
+           [(ΔΣᵢ Wᵢ eᵢ)
+            (list
+             #'[(Wᵢ ΔΣsᵢ) (let-values ([(rᵢ esᵢ) eᵢ])
+                            (set! es (∪ es esᵢ))
+                            (in-hash rᵢ))]
+             #'[ΔΣᵢ (in-value (collapse-ΔΣs ΔΣsᵢ))])]))
+       #`(let ([es : (℘ Err) ∅])
+           (define r*
+             (for*/fold ([r* : R ⊥R])
+                        (#,@(append-map mk-clause (syntax->list #'([ΔΣᵢ Wᵢ eᵢ] ...))))
                (define-values (r₁ es₁) (let () body ...))
-               (values (R⊔ r* r₁) (∪ es* es₁))))))]))
+               (set! es (∪ es es₁))
+               (R⊔ r* r₁)))
+           (values r* es)))]))
 
 (define-syntax with-pre
   (syntax-parser
