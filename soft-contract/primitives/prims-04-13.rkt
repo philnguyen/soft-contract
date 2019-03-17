@@ -50,7 +50,8 @@
 
   (splicing-local
       ((: hash-helper : Σ ℓ W Symbol -o → (Values R (℘ Err)))
-       (define (hash-helper Σ ℓ Wₓ name eq)
+       (define (hash-helper Σ ℓ Wₓ-old name eq)
+         (define Wₓ (unpack-W Wₓ-old Σ))
          (cond
            [(null? Wₓ) (just (Empty-Hash))]
            [(even? (length Wₓ))

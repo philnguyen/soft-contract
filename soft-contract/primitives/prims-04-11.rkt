@@ -68,12 +68,12 @@
       (define W* (match W
                    [(list Vₙ) (list Vₙ {set (-b 0)})]
                    [_ W]))
-      (.internal-make-vector Σ ℓ W*)))
+      (.internal-make-vector Σ ℓ (unpack-W W* Σ))))
   
   (def (vector Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (define-values (αs ΔΣ) (alloc-each W (λ (i) (β:idx ℓ i))))
+    (define-values (αs ΔΣ) (alloc-each (unpack-W W Σ) (λ (i) (β:idx ℓ i))))
     (r:just (Vect αs) ΔΣ))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
