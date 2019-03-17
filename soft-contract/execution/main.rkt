@@ -116,7 +116,9 @@
                          ;; so should not increase cardinality
                          (if (hash-has-key? rn α) 0 (cdr r))))))
     (define (go-W [W : W]) (map go-V^ W))
-    (define (go-V^ [V^ : V^]) (set-union-map go-V V^))
+    (define (go-V^ [V^ : V^])
+      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
+      (foldl V⊔ Vs₀ Vs*))
     (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
     (define (go-T [T : T]) (cond [(adjust-T T) => set]
                                  [else (unpack T (Σₑᵣ))]))
