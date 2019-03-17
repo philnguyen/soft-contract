@@ -133,18 +133,21 @@
         [(and V₀ (-● Ps))
          (case (sat Σ (-st-p 𝒾) {set V₀})
            [(✗) (values ⊥R ∅)]
-           [else
-            (define V₁
-              (if (prim-struct? 𝒾)
-                  {set (-● ∅)}
-                  ;; Track access to user-defined structs
-                  (Σ@ (γ:escaped-field 𝒾 i) Σ)))
-            (define-values (Vₐ ΔΣₐ) (refine V₁ (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
-            (just Vₐ ΔΣₐ)])]
+           [else (just (st-ac-● 𝒾 i Ps Σ))])]
         [(? α? α) (fold-ans ac₁ (unpack α Σ))]
         [_ (values ⊥R ∅)]))
     
     (fold-ans ac₁ Vₓ))
+
+  (: st-ac-● : -𝒾 Index (℘ P) Σ → V^)
+  (define (st-ac-● 𝒾 i Ps Σ)
+    (define V
+      (if (prim-struct? 𝒾)
+          {set (-● ∅)}
+          ;; Track access to user-defined structs
+          (Σ@ (γ:escaped-field 𝒾 i) Σ)))
+    (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
+    V*)
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧)
   (define ((app-st-mut 𝒾 i) Σ ℓ Wₓ)

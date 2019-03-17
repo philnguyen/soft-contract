@@ -8,6 +8,7 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
+         "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def.rkt"
@@ -57,23 +58,31 @@
     ((inst fold-ans V)
      (match-lambda
        [(St 𝒾 αs Ps)
-         (define Vₐ
-           (for/union : V^ ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
-             (unpack αᵢ Σ)))
-         (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
-         (just Vₐ* ΔΣ)]
-        [(Guarded (cons l+ l-) (St/C 𝒾 αs ℓₕ) αᵥ)
-         (define Vᵥ* (unpack αᵥ Σ))
-         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
-           (define Σ₀ (⧺ Σ ΔΣ₀))
-           (define Vₐ (car (collapse-W^ Ws)))
-           (define ctx (Ctx l+ l- ℓₕ ℓ))
-           (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
-                     ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
-             (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))
-             (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
-        [_ (just (-● ∅))])
-     Vᵥ))
+        (define Vₐ
+          (for/union : V^ ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+                     (unpack αᵢ Σ)))
+        (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
+        (just Vₐ* ΔΣ)]
+       [(Guarded (cons l+ l-) (St/C 𝒾 αs ℓₕ) αᵥ)
+        (define Vᵥ* (unpack αᵥ Σ))
+        (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
+          (define Σ₀ (⧺ Σ ΔΣ₀))
+          (define Vₐ (car (collapse-W^ Ws)))
+          (define ctx (Ctx l+ l- ℓₕ ℓ))
+          (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
+                    ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+            (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))
+            (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
+       [(-● Ps)
+        (match Vᵢ
+          [{singleton-set (-b (? index? i))}
+           (just (or (for/or : (Option V^) ([P (in-set Ps)] #:when (-st-p? P))
+                       (match-define (-st-p 𝒾) P)
+                       (st-ac-● 𝒾 i Ps Σ))
+                     (-● ∅)))]
+          [_ (just (-● ∅))])]
+       [_ (values ⊥R ∅)])
+     (unpack Vᵥ Σ)))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

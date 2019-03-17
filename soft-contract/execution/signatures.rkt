@@ -52,7 +52,8 @@
 ;; Σ ⊢ V V… ⇓ᵃ A , ΔΣ
 (define-signature app^
   ([app : (Σ ℓ V^ W → (Values R (℘ Err)))]
-   [app/rest : (Σ ℓ V^ W V^ → (Values R (℘ Err)))]))
+   [app/rest : (Σ ℓ V^ W V^ → (Values R (℘ Err)))]
+   [st-ac-● : (-𝒾 Index (℘ P) Σ → V^)]))
 
 ;; Σ ⊢ V V ⇓ᵐ A , ΔΣ
 (define-signature mon^
