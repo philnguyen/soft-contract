@@ -176,8 +176,8 @@
           [(symbol? x) (γ:lex x)]
           [else (γ:top x)])) 
 
-  (: mut : α V^ → ΔΣ)
-  (define (mut α V^) (hash α (cons V^ 0)))
+  (: mut : α V^ Σ → ΔΣ)
+  (define (mut α V^ Σ) (hash α (cons V^ (if (ambiguous? α Σ) '? 0))))
 
   (: ⧺ʳ : ΔΣ α (Pairof V^ N) → ΔΣ)
   ;; Apply effect to store delta as if it happened *after* the delta

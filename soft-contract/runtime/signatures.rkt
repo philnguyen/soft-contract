@@ -195,7 +195,7 @@
    [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
    [alloc-each : (W (Natural → β) → (Values (Listof α) ΔΣ))]
    [resolve-lex : ((U Symbol -𝒾) → α)]
-   [mut : (α V^ → ΔΣ)]
+   [mut : (α V^ Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
    [escape : ((℘ Symbol) Σ → (Values (℘ α) ΔΣ))]
    [stack-copy : ((℘ α) Σ → ΔΣ)]

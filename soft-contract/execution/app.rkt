@@ -161,7 +161,7 @@
   (define ((unchecked-app-st-mut 𝒾 i) Σ ℓ Vₓ V*)
     ((inst fold-ans V)
      (match-lambda
-       [(St _ αs _) (just -void (mut (list-ref αs i) (blur V*)))]
+       [(St _ αs _) (just -void (mut (list-ref αs i) (blur V*) Σ))]
        [(Guarded (cons l+ l-) (St/C _ αs ℓₕ) αᵥ)
         (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) (unpack (list-ref αs i) Σ) V*)]
           (with-pre ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (unpack αᵥ Σ) V*)))]

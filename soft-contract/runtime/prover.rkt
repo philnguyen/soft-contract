@@ -109,14 +109,9 @@
         (let go ([T : (U T -b) T₀] [acs : (Listof -st-ac) '()])
           (match T
             [(T:@ (? -st-ac? ac) (list T*)) (go T* (cons ac acs))]
-            [(? α? α) (mut α (refine-V^ (unpack α Σ) (if (pair? acs) (P:St acs P) P) Σ))]
+            [(? α? α) (mut α (refine-V^ (unpack α Σ) (if (pair? acs) (P:St acs P) P) Σ) Σ)]
             [_ ⊥ΔΣ]))
-        ⊥ΔΣ)
-    
-    #;(match (lookup T Σ)
-        [{singleton-set (? T? T*)}
-         (mut (if (ambiguous? T* Σ) T T*) (refine-V^ (unpack T* Σ) P Σ))]
-        [_ (mut T (refine-V^ (unpack T Σ) P Σ))]))
+        ⊥ΔΣ))
 
   (: refine-not₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine-not₁ V P Σ)

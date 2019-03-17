@@ -125,9 +125,9 @@
           [(Vect αs)
            (values (for/fold ([acc : ΔΣ acc])
                              ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
-                     (ΔΣ⊔ acc (mut αᵢ Vᵤ)))
+                     (ΔΣ⊔ acc (mut αᵢ Vᵤ Σ)))
                    es)]
-          [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ)) es)]
+          [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ Σ)) es)]
           [(Guarded (cons l+ l-) G αᵥ)
            (define V*^ (unpack αᵥ Σ))
            (match G

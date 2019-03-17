@@ -101,11 +101,11 @@
           (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
       [(Vect αs)
        (values (foldl (λ ([α : α] [ΔΣ : ΔΣ])
-                        (⧺ ΔΣ (mut α ●) (track-leaks Σ αₕᵥ (unpack α Σ))))
+                        (⧺ ΔΣ (mut α ● Σ) (track-leaks Σ αₕᵥ (unpack α Σ))))
                       ⊥ΔΣ αs)
                ∅)]
       [(Vect-Of αᵥ _)
-       (values (⧺ (mut αᵥ ●) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
+       (values (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
       ;; Hash
       [(or (? Hash-Of?) (Guarded _ (? Hash/C?) _))
        (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'hash-ref} (list {set V} ●)))]

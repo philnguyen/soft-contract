@@ -167,7 +167,7 @@
          (define ΔΣ:mut
            (let ([muts (set-map (Σ@ α Σ)
                                 (match-lambda
-                                  [(and α (α:dyn (β:mut (== X)) _)) (mut α rhs^)]))])
+                                  [(and α (α:dyn (β:mut (== X)) _)) (mut α rhs^ Σ)]))])
              (foldl ΔΣ⊔ (car muts) (cdr muts))))
          (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
@@ -251,7 +251,7 @@
   (define ((evl-set-bnd ℓ) Σ bnd)
     (match-define (mk-Binding xs E) bnd)
     (: mut-lex : Symbol V^ ΔΣ → ΔΣ)
-    (define (mut-lex x V^ ΔΣ) (⧺ ΔΣ (mut (resolve-lex x) V^)))
+    (define (mut-lex x V^ ΔΣ) (⧺ ΔΣ (mut (resolve-lex x) V^ Σ)))
     (with-collapsing [(ΔΣ rhs) (evl/arity Σ E (length xs) ℓ)]
       (values (foldl mut-lex ΔΣ xs (collapse-W^ rhs)) ∅)))
 
