@@ -78,23 +78,6 @@
 (define hash-table-set-size! set-hash-table-size!)
 (define hash-table-set-entries! set-hash-table-entries!)
 
-(define hash-table/c
-  (struct/c hash-table
-            exact-nonnegative-integer?
-            (any/c exact-integer? . -> . integer?)
-            (any/c any/c . -> . boolean?)
-            (any/c (listof cons?) . -> . (or/c cons? not))
-            (vectorof (listof cons?))))
-
-#;(define-record-type <srfi-hash-table>
-  (%make-hash-table size hash compare associate entries)
-  hash-table?
-  (size hash-table-size hash-table-set-size!)
-  (hash hash-table-hash-function)
-  (compare hash-table-equivalence-function)
-  (associate hash-table-association-function)
-  (entries hash-table-entries hash-table-set-entries!))
-
 (define *default-table-size* 64)
 
 (define (appropriate-hash-function-for comparison)
@@ -284,53 +267,52 @@
 (define (hash-table-values hash-table)
   (hash-table-fold hash-table (lambda (key val acc) (cons val acc)) '()))
 
+(define (hash-on/c key/c)
+  (case->
+   [key/c . -> . exact-nonnegative-integer?]
+   [key/c exact-positive-integer? . -> . exact-nonnegative-integer?]))
+
 (provide
  (contract-out
-  [string-hash (string? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
-  [string-ci-hash (string? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
-  [symbol-hash (symbol? (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
-  [hash (any/c (and/c integer? (not/c zero?)) . -> . integer?)] ; TODO ->*
-  [hash-by-identity (any/c (and/c integer? (not/c zero?)) . -> . integer?)]; TODO ->*
-  [vector-hash (vector? (and/c integer? (not/c zero?)) . -> . integer?)]
+  [string-hash (hash-on/c string?)]
+  [string-ci-hash (hash-on/c string?)]
+  [symbol-hash (hash-on/c symbol?)]
+  [hash (hash-on/c any/c)]
+  [hash-by-identity (hash-on/c any/c)]
+  [vector-hash (vector? exact-positive-integer? . -> . exact-nonnegative-integer?)]
   [make-hash-table
-   ((any/c any/c . -> . boolean?)
-    (any/c . -> . integer?)
-    exact-positive-integer?
-    . -> . hash-table?)
-   #;(case->
-      [-> hash-table?]
-      [(any/c any/c . -> . boolean?)
-       . -> . hash-table?]
-      [(any/c any/c . -> . boolean?)
-       (any/c . -> . integer?)
-       . -> . hash-table?]
-      [(any/c any/c . -> . boolean?)
-       (any/c . -> . integer?)
-       exact-positive-integer?
-       . -> . hash-table?])] ; TODO `case->`
+   (case->
+    [-> hash-table?]
+    [(any/c any/c . -> . boolean?) . -> . hash-table?]
+    [(any/c any/c . -> . boolean?) (hash-on/c any/c) . -> . hash-table?]
+    [(any/c any/c . -> . boolean?) (hash-on/c any/c) exact-positive-integer? . -> . hash-table?])]
   [make-hash-table-maker
-   ((any/c any/c . -> . boolean?)
-    (any/c . -> . integer?)
-    . -> .
-    (exact-positive-integer? . -> . hash-table?))] ; TODO `case->`
+   ((any/c any/c . -> . boolean?) (hash-on/c any/c) . -> .
+    (exact-positive-integer? . -> . hash-table?))]
   [make-symbol-hash-table (exact-positive-integer? . -> . hash-table?)]
   [make-string-hash-table (exact-positive-integer? . -> . hash-table?)]
   [make-string-ci-hash-table (exact-positive-integer? . -> . hash-table?)]
   [make-integer-hash-table (exact-positive-integer? . -> . hash-table?)]
-  [hash-table-ref (hash-table/c any/c . -> . any/c)]
-  [hash-table-ref/default (hash-table/c any/c any/c . -> . any/c)]
-  [hash-table-set! (hash-table/c any/c any/c . -> . void?)]
-  [hash-table-update! (hash-table/c any/c (any/c . -> . any/c) . -> . void?)]
+  [hash-table-ref
+   (case->
+    [hash-table? any/c . -> . any/c]
+    [hash-table? any/c (-> any/c) . -> . any/c])]
+  [hash-table-ref/default (hash-table? any/c any/c . -> . any/c)]
+  [hash-table-set! (hash-table? any/c any/c . -> . void?)]
+  [hash-table-update!
+   (case->
+    [hash-table? any/c (any/c . -> . any/c) . -> . void?]
+    [hash-table? any/c (any/c . -> . any/c) (-> any/c) . -> . void?])]
   [hash-table-update!/default
-   (hash-table/c any/c (any/c . -> . any/c) any/c . -> . void?)]
-  [hash-table-delete! (hash-table/c any/c . -> . void?)]
-  [hash-table-exists? (hash-table/c any/c . -> . boolean?)]
-  [hash-table-walk (hash-table/c (any/c . -> . any/c) . -> . void?)]
-  [hash-table-fold (hash-table/c (any/c any/c . -> . any/c) any/c . -> . any/c)]
-  [alist->hash-table ((listof cons?) . -> . hash-table/c)]
-  [hash-table->alist (hash-table/c . -> . (listof cons?))]
-  [hash-table-copy (hash-table/c . -> . hash-table/c)]
-  [hash-table-merge! (hash-table/c hash-table/c . -> . hash-table/c)]
-  [hash-table-keys (hash-table/c . -> . list?)]
-  [hash-table-values (hash-table/c . -> . list?)]
+   (hash-table? any/c (any/c . -> . any/c) any/c . -> . void?)]
+  [hash-table-delete! (hash-table? any/c . -> . void?)]
+  [hash-table-exists? (hash-table? any/c . -> . boolean?)]
+  [hash-table-walk (hash-table? char? . -> . void?)]
+  [hash-table-fold (hash-table? (any/c any/c . -> . any/c) any/c . -> . any/c)]
+  [alist->hash-table ([(listof cons?)] #:rest list? . ->* . hash-table?)]
+  [hash-table->alist (hash-table? . -> . (listof cons?))]
+  [hash-table-copy (hash-table? . -> . hash-table?)]
+  [hash-table-merge! (hash-table? hash-table? . -> . hash-table?)]
+  [hash-table-keys (hash-table? . -> . list?)]
+  [hash-table-values (hash-table? . -> . list?)]
   ))

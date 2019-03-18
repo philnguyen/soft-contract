@@ -111,7 +111,11 @@
     (even? (=/c 2) . -> . exact-integer?)
     #:volatile? #f)
   (def* (quotient remainder modulo) ; FIXME: only error on exact 0
-    (integer? (and/c integer? (not/c zero?)) . -> . integer?))
+    (integer? (and/c integer? (not/c zero?)) . -> . integer?)
+    #:refinements
+    (exact-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+    (exact-integer? exact-integer? . -> . exact-integer?)
+    (integer? exact-nonnegative-integer? . -> . (>=/c 0)))
   (def quotient/remainder
     (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?)))
   (def add1
@@ -152,7 +156,10 @@
   (def* (gcd lcm) ((real?) #:rest (listof real?) . ->* . real?))
   (def* (round floor ceiling truncate)
     (real? . -> . (or/c integer? +inf.0 -inf.0 +nan.0)))
-  (def* (numerator denominator) (rational? . -> . integer?))
+  (def* (numerator denominator)
+    (rational? . -> . integer?)
+    #:refinements
+    (exact? . -> . exact-integer?))
   (def rationalize (real? real? . -> . real?))
 
   ;; 4.2.2.2 Number Comparison

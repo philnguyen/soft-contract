@@ -147,16 +147,15 @@
 
   (: alloc-rest ([(U Symbol ℓ) W] [#:tail V^] . ->* . (values V^ ΔΣ)))
   (define (alloc-rest x Wᵣ #:tail [tail {set -null}])
-    (if (null? Wᵣ)
-        (values tail ⊥ΔΣ)
-        (let* ([αₕ (α:dyn (β:var:car x #f) H₀)]
-               [αₜ (α:dyn (β:var:cdr x #f) H₀)]
-               [Vₚ (Cons αₕ αₜ)]
-               [ΔΣ₀ (alloc αₜ (set-add tail Vₚ))])
-          (values {set Vₚ}
-                  (let loop ([Vₕ (car Wᵣ)] [Wₜ (cdr Wᵣ)] [ΔΣ : ΔΣ ΔΣ₀])
-                    (define ΔΣ* (alloc-on αₕ Vₕ ΔΣ))
-                    (if (null? Wₜ) ΔΣ* (loop (car Wₜ) (cdr Wₜ) ΔΣ*)))))))
+    (let go ([Wᵣ : W Wᵣ] [i : Natural 0])
+      (match Wᵣ
+        ['() (values tail ⊥ΔΣ)]
+        [(cons Vᵢ Wᵣ*)
+         (define-values (Vₜ ΔΣₜ) (go Wᵣ* (add1 i)))
+         (define αₕ (α:dyn (β:var:car x i) H₀))
+         (define αₜ (α:dyn (β:var:cdr x i) H₀))
+         (define Vₚ (Cons αₕ αₜ))
+         (values {set Vₚ} (⧺ ΔΣₜ (alloc αₕ Vᵢ) (alloc αₜ Vₜ)))])))
 
   (: alloc-each : W (Natural → β) → (Values (Listof α) ΔΣ))
   (define (alloc-each Vs β-of)

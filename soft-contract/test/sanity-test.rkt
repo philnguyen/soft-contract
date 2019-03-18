@@ -204,8 +204,8 @@
   (test "unsafe/issues/issue-106.rkt" check-fail)
 
   ;; Slightly larger ones
-  #;(test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 1))
-  #;(test "safe/real/fector.rkt" (check 'Ok-pos 0 6)) ; depends count how
+  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 9)) ; duplicates
+  (test "safe/real/fector.rkt" (check 'Ok-pos 0 1))
   #;(test "safe/real/nucleic2-modular-fixed.rkt" check-safe)
   #;(test "safe/real/nucleic2-modular.rkt" check-fail)
 

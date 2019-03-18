@@ -536,6 +536,9 @@
       [((P:> T) (P:≤ T)) '✗]
       [((P:< T) (P:≤ T)) '✓]
       [((P:> T) (P:≥ T)) '✓]
+      ;; Arities
+      [((P:arity-includes a₁) (P:arity-includes a₂))
+       (bool->Dec (arity-includes? a₁ a₂))]
       ;; Default
       [(_ _) #f]))
 
