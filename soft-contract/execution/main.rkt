@@ -60,13 +60,12 @@
     (begin
       (set! $ₒᵤₜ ⊥$)
       (set! $ᵢₙ $ₒᵤₜ)
+      (hash-clear! dependencies)
       (clear-live-set-cache!))
     
     (let loop ([iter : Natural 0])
       (when dump-iter?
         (printf "iter ~a: ~a in, ~a dirties ~n" iter (hash-count $ᵢₙ) (set-count dirties)))
-      (set! dirties ∅eq)
-      (hash-clear! dependencies)
       (define es (run))
       (if (or (done? iter) (set-empty? dirties))
           (values (set-filter blame-on-transparent? es) $ᵢₙ)
@@ -74,6 +73,7 @@
             (set! $ᵢₙ $ₒᵤₜ)
             (set! $ₒᵤₜ (for/fold ([acc : $ $ₒᵤₜ]) ([k (in-set dirties)])
                          (hash-remove acc k)))
+            (set! dirties ∅eq)
             (loop (+ 1 iter))))))
 
   (: ref-$! : $:K (→ (Values R (℘ Err))) → (Values R (℘ Err)))
@@ -94,7 +94,9 @@
        (unless (and (equal? r₀ r*) (equal? es₀ es*))
          (set! $ₒᵤₜ (hash-set $ₒᵤₜ key (cons r* es*)))
          (match (hash-ref dependencies key #f)
-           [(? values deps) (set! dirties (∪ dirties deps))]
+           [(? values deps)
+            (set! dirties (∪ dirties deps))
+            (hash-remove! dependencies key)]
            [_ (void)]))
        (values r* es*)]))
 

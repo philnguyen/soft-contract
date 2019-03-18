@@ -376,7 +376,7 @@
          (match P
            [(P:< (-b (? real? x))) (and (<= x y) '✓)]
            [(P:≤ (-b (? real? x))) (and (<= x y) '✓)]
-           [(P:> (-b (? real? x))) (and (>  x y) '✗)]
+           [(P:> (-b (? real? x))) (and (>= x y) '✗)]
            [(P:≥ (-b (? real? x))) (and (>  x y) '✗)]
            [(P:= (-b (? real? x))) (bool->Dec (<= x y))]
            [_ #f]))]
@@ -389,10 +389,6 @@
       [((T:@ '+ (list (-b (? (<=/c 0))) T)) T) '✓]
       [(T (T:@ '+ (list T (-b (? (</c 0)))))) '✗]
       [(T (T:@ '+ (list (-b (? (</c 0))) T))) '✗]
-      [((? T? T₁) (? T? T₂))
-       (define Vs₁ (if (-b? T₁) {set T₁} (unpack T₁ Σ)))
-       (define Vs₂ (if (-b? T₂) {set T₂} (unpack T₂ Σ)))
-       (sat^₂ (λ (V₁ V₂) (check-≤ Σ V₁ V₂)) Vs₂ Vs₂)]
       [(_ _) #f]))
 
   (: check-equal? : Σ V V → ?Dec)
