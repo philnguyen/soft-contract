@@ -64,7 +64,7 @@
                                       [ctc : W]
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
-(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)))
+(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)) (P:vec-len Index))
 (#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K (Pairof R (℘ Err))))
 (#|Result         |# R .  ≜  . (Immutable-HashTable W (℘ ΔΣ)))
 (#|Decisions      |# Dec . ::= . '✓ '✗)

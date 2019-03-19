@@ -230,6 +230,16 @@
             (match (arity V₀)
               [(? values V₀:a) (bool->Dec (arity-includes? V₀:a a))]
               [#f '✗])]
+           [(P:vec-len n)
+            (match V₀
+              [(Vect αs) (bool->Dec (= n (length αs)))]
+              [(Vect-Of _ Vₙ) (sat^₂ (λ (V₁ V₂) (sat₂ Σ '= V₁ V₂)) {set (-b n)} Vₙ)]
+              [(Guarded _ G _)
+               (match G
+                 [(Vect/C αs _) (bool->Dec (= n (length αs)))]
+                 [(Vectof/C _ _) #f]
+                 [_ '✗])]
+              [_ '✗])]
            [(? symbol?)
             (define-simple-macro (with-base-predicates ([g:id ... o?] ...)
                                    c ...)

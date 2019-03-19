@@ -55,7 +55,8 @@
       [(P:≡ T) `(≡/c ,(show-T T))]
       [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
       [(P:¬ Q) `(¬/c ,(show-P Q))]
-      [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]))
+      [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]
+      [(P:vec-len n) `(vector-length/c ,n)]))
 
   (define (show-Ps [Ps : (℘ P)] [prefix : String]) : Symbol
     (string->symbol (string-join (set-map Ps (compose1 sexp->string show-P))

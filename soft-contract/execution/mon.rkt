@@ -207,7 +207,7 @@
         (define N (-● {set 'exact-nonnegative-integer?}))
         (define Σ₀ (⧺ Σ ΔΣ₀))
         (with-collapsing/R [(ΔΣ₁ Wₑs) (app Σ₀ ℓₒ {set 'vector-ref} (list (car W*) {set N}))]
-          (with-collapsing/R [(ΔΣ₂ Wₑs*) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓₕ 'vector-of:ref)) (Σ@ αₕ Σ) (car (collapse-W^ Wₑs)))]
+          (with-collapsing/R [(ΔΣ₂ Wₑs*) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓₕ 'mon-VectOf/C)) (Σ@ αₕ Σ) (car (collapse-W^ Wₑs)))]
             (define Vₑ (car (collapse-W^ Wₑs*)))
             (define αₑ (α:dyn (β:vct ℓ) H₀))
             (define αᵥ (α:dyn (β:unvct ctx) H₀))
@@ -216,49 +216,35 @@
       (λ (W* _) (err (blm l+ ℓₒ ℓ (list {set C}) W*)))))
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
-  (define ((mon-Vect/C C) Σ ctx Vs)
+  (define ((mon-Vect/C C) Σ₀ ctx Vs)
     (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (match-define (Vect/C αs ℓₕ) C)
     (define n (length αs))
-    (define (@ [α : α]) (Σ@ α Σ))
 
-    (define (blame [V : V]) (blm l+ ℓₒ ℓ (list {set C}) (list {set V})))
+    (: mon-fields : Σ V^ → (Values R (℘ Err)))
+    (define (mon-fields Σ₀ Vs)
+      (define (ref [Σ : Σ] [i : Natural])
+        (app Σ ℓₒ {set 'vector-ref} (list Vs {set (-b i)})))
+      (let go ([i : Natural 0] [αs : (Listof α) αs] [Σ : Σ Σ₀] [ΔΣ : ΔΣ ⊥ΔΣ])
+        (match αs
+          ['() (just -void ΔΣ)]
+          [(cons αᵢ αs*)
+           (with-collapsing/R [(ΔΣ₀ Ws) (ref Σ i)]
+             (define ctx* (Ctx-with-origin ctx (ℓ-with-id ℓₕ i)))
+             (define Σ₁ (⧺ Σ ΔΣ₀))
+             (with-collapsing/R [(ΔΣ₁ Ws*) (mon Σ₁ ctx* (Σ@ αᵢ Σ₀) (car (collapse-W^ Ws)))]
+               (go (+ 1 i) αs* (⧺ Σ₁ ΔΣ₁) (⧺ ΔΣ ΔΣ₀ ΔΣ₁))))])))
 
-    (: check-elems+wrap : W → (Values R (℘ Err)))
-    (define (check-elems+wrap W)
-      (with-collapsing/R [(ΔΣ Ws) (mon* Σ (Ctx-with-origin ctx ℓₕ) (map @ αs) W)]
-        (define W* (collapse-W^ Ws))
-        (define αᵥ (α:dyn (β:unvct ctx) H₀))
-        (define-values (αs* ΔΣ*) (alloc-each W* (λ (i) (β:idx ℓ i))))
-        (just (Guarded (cons l+ l-) C αᵥ) (⧺ ΔΣ ΔΣ* (alloc αᵥ {set (Vect αs*)})))))
-    
-    ((inst fold-ans V)
-     (match-lambda
-       [(Vect αs*)
-        #:when (= (length αs*) n)
-        (check-elems+wrap (map @ αs*))]
-       [(Vect-Of αᵥ Vₙ)
-        (check-elems+wrap (make-list n (@ αᵥ)))]
-       [(and V (? Guarded?))
-        (define-values (args-rev ΔΣ₀ es₀)
-          (for/fold ([args-rev : W '()] [ΔΣ : (Option ΔΣ) ⊥ΔΣ] [es : (℘ Err) ∅])
-                    ([i (in-range n)] #:when ΔΣ)
-            (define-values (rᵢ esᵢ) (app Σ ℓₒ {set 'vector-ref} (list {set V} {set (-b i)})))
-            (match (collapse-R rᵢ)
-              [(cons Wsᵢ ΔΣᵢ) (values (cons (car (collapse-W^ Wsᵢ)) args-rev)
-                                      (⧺ (assert ΔΣ) ΔΣᵢ)
-                                      (∪ es esᵢ))]
-              [#f (values '() #f (∪ es esᵢ))])))
-        (if ΔΣ₀
-            (let-values ([(r* es*) (check-elems+wrap (reverse args-rev))])
-              (values (ΔΣ⧺R ΔΣ₀ r*) (∪ es₀ es*)))
-            (values ⊥R es₀))]
-       [(and V (-● Ps))
-        (if (∋ Ps 'vector?)
-            (check-elems+wrap (make-list n {set (-● ∅)}))
-            (err (blame V)))]
-       [V (err (blame V))])
-     Vs))
+    (with-split-Σ Σ₀ 'vector? (list Vs)
+      (λ (W* ΔΣ₁)
+        (with-split-Σ Σ₀ (P:vec-len n) W*
+          (λ (W* ΔΣ₂)
+            (with-collapsing/R [(ΔΣ₃ _) (mon-fields (⧺ Σ₀ ΔΣ₁ ΔΣ₂) (car W*))]
+              (define αᵥ (α:dyn (β:unvct ctx) H₀))
+              (just (Guarded (cons l+ l-) C αᵥ)
+                    (⧺ ΔΣ₁ ΔΣ₂ ΔΣ₃ (alloc αᵥ (car W*))))))
+          (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
+      (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
   (: mon-Hash/C : Hash/C → ⟦C⟧)
   (define ((mon-Hash/C C) Σ₀ ctx Vs)

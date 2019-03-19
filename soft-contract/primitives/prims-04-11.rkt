@@ -85,7 +85,7 @@
              [(Vect-Of _ Vₙ) Vₙ]
              [(Guarded _ (Vect/C αs _) _) {set (-b (length αs))}]
              [_ {set (-● {set 'exact-nonnegative-integer?})}])
-           V)))
+           (unpack V Σ))))
 
   (def (vector-ref Σ ℓ W)
     #:init ([Vᵥ vector?] [Vᵢ exact-nonnegative-integer?])
