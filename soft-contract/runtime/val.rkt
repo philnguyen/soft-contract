@@ -125,6 +125,7 @@
         [(X/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
+        [(? P?) #t]
         [V (error 'C-flat? "unexpected: ~a" V)]))
     (go-V C))
 

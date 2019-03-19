@@ -61,7 +61,11 @@
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(St/C 𝒾 αs ℓ) #:when (C-flat? V Σ) (app-St/C 𝒾 αs ℓ)]
                 [(-● Ps) (app-opq Ps)]
-                [(P:= T) (app-= T)]
+                [(P:= T) (app-P '= T)]
+                [(P:> T) (app-P '< T)]
+                [(P:≥ T) (app-P '<= T)]
+                [(P:< T) (app-P '> T)]
+                [(P:≤ T) (app-P '>= T)]
                 [V (app-err V)]))
     (f Σ ℓ W))
 
@@ -343,8 +347,8 @@
           (λ _ (err (blm (ℓ-src ℓ) ℓ ℓₒ (list {set P-arity}) Wₕ)))))
       (λ _ (err (blm (ℓ-src ℓ) ℓ ℓₒ (list {set 'procedure?}) Wₕ)))))
 
-  (: app-= : (U T -b) → ⟦F⟧)
-  (define ((app-= T) Σ ℓ Wₓ) ((app-prim 'equal?) Σ ℓ (cons {set T} Wₓ)))
+  (: app-P : Symbol (U T -b) → ⟦F⟧)
+  (define ((app-P o T) Σ ℓ Wₓ) ((app-prim o) Σ ℓ (cons {set T} Wₓ)))
 
   (: app-err : V → ⟦F⟧)
   (define ((app-err V) Σ ℓ Wₓ)
