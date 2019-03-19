@@ -203,16 +203,18 @@
     (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
     (with-split-Σ Σ 'vector? (list Vs)
       (λ (W* ΔΣ₀)
+        (define V* (car W*))
         (match-define (Vectof/C αₕ ℓₕ) C)
         (define N (-● {set 'exact-nonnegative-integer?}))
         (define Σ₀ (⧺ Σ ΔΣ₀))
-        (with-collapsing/R [(ΔΣ₁ Wₑs) (app Σ₀ ℓₒ {set 'vector-ref} (list (car W*) {set N}))]
-          (with-collapsing/R [(ΔΣ₂ Wₑs*) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓₕ 'mon-VectOf/C)) (Σ@ αₕ Σ) (car (collapse-W^ Wₑs)))]
-            (define Vₑ (car (collapse-W^ Wₑs*)))
-            (define αₑ (α:dyn (β:vct ℓ) H₀))
-            (define αᵥ (α:dyn (β:unvct ctx) H₀))
-            (just (Guarded (cons l+ l-) C αᵥ)
-                  (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc αₑ Vₑ) (alloc αᵥ {set (Vect-Of αₑ {set N})}))))))
+        (with-collapsing/R [(ΔΣ₁ Wₑs) (app Σ₀ ℓₒ {set 'vector-ref} (list V* {set N}))]
+          (with-collapsing/R [(ΔΣ₂ _) (mon (⧺ Σ₀ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓₕ 'mon-VectOf/C)) (Σ@ αₕ Σ) (car (collapse-W^ Wₑs)))]
+            (define-values (αᵥ ΔΣ*)
+              (match V*
+                [{singleton-set (? -●? V)} (values (γ:imm V) ⊥ΔΣ)]
+                [_ (define αᵥ (α:dyn (β:unvct ctx) H₀))
+                   (values αᵥ (alloc αᵥ V*))]))
+            (just (Guarded (cons l+ l-) C αᵥ) (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ ΔΣ*)))))
       (λ (W* _) (err (blm l+ ℓₒ ℓ (list {set C}) W*)))))
 
   (: mon-Vect/C : Vect/C → ⟦C⟧)
@@ -239,10 +241,14 @@
       (λ (W* ΔΣ₁)
         (with-split-Σ Σ₀ (P:vec-len n) W*
           (λ (W* ΔΣ₂)
-            (with-collapsing/R [(ΔΣ₃ _) (mon-fields (⧺ Σ₀ ΔΣ₁ ΔΣ₂) (car W*))]
-              (define αᵥ (α:dyn (β:unvct ctx) H₀))
-              (just (Guarded (cons l+ l-) C αᵥ)
-                    (⧺ ΔΣ₁ ΔΣ₂ ΔΣ₃ (alloc αᵥ (car W*))))))
+            (define V* (car W*))
+            (with-collapsing/R [(ΔΣ₃ _) (mon-fields (⧺ Σ₀ ΔΣ₁ ΔΣ₂) V*)]
+              (define-values (αᵥ ΔΣ*)
+                (match V*
+                  [{singleton-set (? -●? V)} (values (γ:imm V) ⊥ΔΣ)]
+                  [_ (define αᵥ (α:dyn (β:unvct ctx) H₀))
+                     (values αᵥ (alloc αᵥ V*))]))
+              (just (Guarded (cons l+ l-) C αᵥ) (⧺ ΔΣ₁ ΔΣ₂ ΔΣ₃ ΔΣ*))))
           (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
       (λ (W* _) (err (blm l+ ℓ ℓₒ (list {set C}) W*)))))
 
