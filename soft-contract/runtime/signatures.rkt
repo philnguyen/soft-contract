@@ -17,7 +17,7 @@
 
 (#|Run-time Values|# V . ::= . -prim
                                (St -𝒾 (Listof α) (℘ P))
-                               (Vect Index ℓ H)
+                               (Vect α)
                                (Vect-Of [content : α] [length : #|restricted|# V^])
                                (Empty-Hash)
                                (Hash-Of [key : α] [val : α])
@@ -30,8 +30,9 @@
                                T
                                (-● (℘ P)))
 (#|Identities     |# T . ::= . α (T:@ -o (Listof (U T -b))))
-(#|Stores         |# Σ .  ≜  . (Immutable-HashTable α (Pairof V^ N)))
-(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof V^ N)))
+(#|Stores         |# Σ .  ≜  . (Immutable-HashTable α (Pairof S N)))
+(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
+(#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
 (#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E (℘ α) ℓ)
                                 (Case-Clo (Listof Clo) ℓ))
@@ -46,7 +47,7 @@
 (#|Proxies        |# Prox/C . ::= . Fn/C
                                (St/C -𝒾 (Listof α) ℓ)
                                (Vectof/C α ℓ)
-                               (Vect/C (U (Vectorof α) (Pairof Index H)) ℓ)
+                               (Vect/C α)
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
@@ -81,6 +82,7 @@
                                ;; Escaped struct field
                                (γ:escaped-field -𝒾 Index)) 
 (#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
+                               (γ:imm:blob (Vectorof V^))
                                ;; indirection for `listof` to keep in-sync with regular listof contracts
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
                                (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
@@ -97,8 +99,8 @@
                                (β:var:cdr (U ℓ Symbol) (Option Natural))
                                ;; for wrapped mutable struct
                                (β:st -𝒾 Ctx)
-                               ;; for vector indices
-                               (β:idx ℓ Natural)
+                               ;; for vector content blob
+                               (β:vect-elems ℓ Index)
                                ;; for vect-of content
                                (β:vct ℓ)
                                ;; for hash-of content
@@ -119,7 +121,7 @@
                                (β:or/c:r ℓ)
                                (β:not/c ℓ)
                                (β:x/c Symbol)
-                               (β:vect/c ℓ Natural)
+                               (β:vect/c-elems ℓ Index)
                                (β:vectof ℓ)
                                (β:hash/c:key ℓ)
                                (β:hash/c:val ℓ)
@@ -151,7 +153,6 @@
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (#|Changes           |# Ch . ::= . '↓ '↧)
 
-(#|Addr. Substitutions|# S . ≜ . (HashTable α α))
 (Renamings . ≜ . (Immutable-HashTable α (Option T)))
 
 (define-interner $:K $:Key
@@ -183,19 +184,21 @@
 
 (define-signature sto^
   ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
-   [lookup : (α Σ → V^)]
+   [lookup : (γ Σ → V^)]
    [Σ@ : (α Σ → V^)]
+   [Σ@/raw : (α Σ → S)]
+   [Σ@/blob : (α Σ → (Vectorof V^))]
    [V@ : (Σ -st-ac V → V^)]
    [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
    [unpack-W : (W Σ → W)]
-   [alloc : (α V^ → ΔΣ)]
+   [alloc : (α S → ΔΣ)]
    [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
    [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
    [alloc-vararg : (Symbol W → ΔΣ)]
    [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
    [alloc-each : (W (Natural → β) → (Values (Listof α) ΔΣ))]
    [resolve-lex : ((U Symbol -𝒾) → α)]
-   [mut : (α V^ Σ → ΔΣ)]
+   [mut : (α S Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
    [escape : ((℘ Symbol) Σ → (Values (℘ α) ΔΣ))]
    [stack-copy : ((℘ α) Σ → ΔΣ)]
@@ -239,8 +242,6 @@
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
    [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
-   [Vect-addresses : (Index ℓ H → (℘ α))]
-   [Vect/C-addresses : ((U (Vectorof α) (Pairof Index H)) ℓ → (℘ α))]
    ))
 
 (define-signature prover^

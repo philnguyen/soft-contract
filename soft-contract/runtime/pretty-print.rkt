@@ -27,7 +27,7 @@
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
       [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
-      [(Vect n ℓ H) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
+      [(Vect (α:dyn (β:vect-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
       [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
       [(Empty-Hash) 'empty-hash]
       [(Hash-Of αₖ αᵥ) `(hash-of ,(show-α αₖ) ,(show-α αᵥ))]
@@ -81,7 +81,7 @@
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
-      [(Vect/C αs ℓ) (format-symbol "vector/c:~a" (show-ℓ ℓ))]
+      [(Vect/C (α:dyn (β:vect/c-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
       [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
       [(Set/C α ℓ) `(set/c ,(show-α α))]))
 
@@ -135,7 +135,7 @@
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
-      [(β:idx ℓ i)  i(show-β:ℓ ℓ i)]
+      [(β:vect-elems ℓ n) (show-ℓ ℓ)]
       [(β:vct ℓ) (show-ℓ ℓ)]
       [(β:hash:key ℓ) (show-β:ℓ ℓ 0)]
       [(β:hash:val ℓ) (show-β:ℓ ℓ 1)]
@@ -149,7 +149,7 @@
       [(β:or/c:r ℓ) (show-β:ℓ ℓ 1)]
       [(β:not/c ℓ) (show-ℓ ℓ)]
       [(β:x/c x) (format-symbol "rec-~a/c" x)]
-      [(β:vect/c _ i) (format-symbol "vect/c@~a" i)]
+      [(β:vect/c-elems ℓ n) (show-ℓ ℓ)]
       [(β:vectof ℓ) (show-ℓ ℓ)]
       [(β:hash/c:key _) 'hash/c:key]
       [(β:hash/c:val _) 'hash/c:val]
@@ -179,13 +179,20 @@
   (: show-Σ : Σ → (Listof Sexp))
   (define (show-Σ Σ)
     (for/list : (Listof Sexp) ([(T r) (in-hash Σ)])
-      (match-define (cons Vs n) r)
+      (match-define (cons S n) r)
       (define ↦ (case n
                   [(0) '↦⁰]
                   [(1) '↦¹]
                   [(?) '↦?]
                   [(N) '↦ⁿ]))
-      `(,(show-T T) ,↦ ,@(show-V^ Vs))))
+      `(,(show-T T) ,↦ ,@(show-S S))))
+
+  (: show-S : S → (Listof Sexp))
+  (define (show-S S)
+    (if (vector? S)
+        (for/list : (Listof Sexp) ([Vs (in-vector S)])
+          (show-V^ Vs))
+        (list (show-V^ S))))
 
   (: show-R : R → (Listof Sexp))
   (define (show-R r)

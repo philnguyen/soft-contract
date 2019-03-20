@@ -344,7 +344,9 @@
       [((~literal vectorof) c)
        #`(Vectof/C #,(gen-ctc-α #'c) #,(gen-stx-ℓ stx))]
       [((~literal vector/c) c ...)
-       #`(Vect/C (vector-immutable #,@(map gen-ctc-α (syntax->list #'(c ...))))
+       #`(Vect/C (γ:imm:blob (vector-immutable
+                              #,@(for/list ([c (syntax->list #'(c ...))])
+                                   #`{set #,(gen-ctc-V c)})))
                  #,(gen-stx-ℓ stx))]
       [((~literal set/c) c)
        #`(Set/C #,(gen-ctc-α #'c) #,(gen-stx-ℓ stx))]

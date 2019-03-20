@@ -5,9 +5,11 @@
 (require racket/set
          racket/match
          racket/splicing
+         racket/vector
          typed/racket/unit
          set-extras
          unreachable
+         "../utils/vector.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
@@ -31,15 +33,21 @@
       (touched-add! α)
       ;; Look up full context to span addresses,
       ;; but only copy entries from the store-delta in focus
-      (define Vs (Σ@ α ctx))
       (define Σ*
         (match (hash-ref Σ₀ α #f)
           [(? values r) (hash-set Σ α r)]
           [#f Σ]))
-      (for*/fold ([Σ* : ΔΣ Σ*])
-                 ([V (in-set Vs)]
-                  [α* (in-set (V-root V))] #:unless (touched-has? α*))
-        (touch α* Σ*)))
+      (define S (Σ@/raw α ctx))
+      (if (vector? S)
+          (for*/fold ([Σ* : ΔΣ Σ*])
+                     ([Vs (in-vector S)]
+                      [V (in-set Vs)]
+                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
+            (touch α* Σ*))
+          (for*/fold ([Σ* : ΔΣ Σ*])
+                     ([V (in-set S)]
+                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
+            (touch α* Σ*))))
 
     (let ([Σ* (set-fold touch ⊥Σ root)])
       (if (= (hash-count Σ*) (hash-count Σ₀))
@@ -50,8 +58,10 @@
   (: remove-stale-refinements : (℘ α) Σ → Σ)
   (define (remove-stale-refinements root Σ₁)
     (for/fold ([Σ₁ : Σ Σ₁]) ([(α r) (in-hash Σ₁)])
-      (match-define (cons Vs N) r)
-      (define Vs*
+      (match-define (cons S N) r)
+
+      (: upd-Vs : V^ → V^)
+      (define (upd-Vs Vs)
         (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
           (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
           (define (replace-if-refinements-stale Ps mk-V)
@@ -65,9 +75,16 @@
             [(St 𝒾 αs Ps)
              (replace-if-refinements-stale Ps (λ (Ps*) (St 𝒾 αs Ps*)))]
             [_ Vs*])))
-      (cond [(eq? Vs* Vs) Σ₁] ; try to reuse old instance
-            [(set-empty? Vs*) (hash-remove Σ₁ α)]
-            [else (hash-set Σ₁ α (cons Vs* N))])))
+
+      (if (vector? S)
+          (let ([S* (vector-map upd-Vs S)])
+            (cond [(equal? S S*) Σ₁] ; try to reuse old instance
+                  [((inst vector-ormap V^ Boolean) set-empty? S*) (hash-remove Σ₁ α)]
+                  [else (hash-set Σ₁ α (cons S* N))]))
+          (let ([Vs* (upd-Vs S)])
+            (cond [(eq? Vs* S) Σ₁] ; try to reuse old instance
+                  [(set-empty? Vs*) (hash-remove Σ₁ α)]
+                  [else (hash-set Σ₁ α (cons Vs* N))])))))
 
   (: with-gc : (℘ α) Σ (→ (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (with-gc root Σ comp)
@@ -85,7 +102,7 @@
   (define V-root : (V → (℘ α))
     (match-lambda
       [(St _ αs _) (list->set αs)]
-      [(Vect n ℓ H) (Vect-addresses n ℓ H)]
+      [(Vect α) {set α}]
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
       [(Set-Of α) {set α}]
@@ -106,7 +123,7 @@
               (for/set: : (℘ α) ([i (in-range (count-struct-fields 𝒾))])
                 (γ:escaped-field 𝒾 (assert i index?)))))]
       [(Vectof/C α _) {set α}]
-      [(Vect/C αs ℓ) (Vect/C-addresses αs ℓ)]
+      [(Vect/C α) {set α}]
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]

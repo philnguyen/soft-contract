@@ -349,21 +349,4 @@
                   [else (define x* (⊕ xᵢ x))
                         (and x* (loop x* (set-remove xs xᵢ)))]))
           (set-add xs x))))
-
-  (define/memo (Vect-addresses [n : Index] [ℓ : ℓ] [H : H]) : (℘ α)
-    (for/set: : (℘ α) ([i (in-range n)])
-      (α:dyn (β:idx ℓ (assert i index?)) H)))
-
-  (define Vect/C-addresses : ((U (Vectorof α) (Pairof Index H)) ℓ → (℘ α))
-    (let ([vec-cache : (Mutable-HashTable (Vectorof α) (℘ α)) (make-hasheq)]
-          [idx-cache : (Mutable-HashTable (Pairof (Pairof Index H) ℓ) (℘ α)) (make-hash)])
-      (λ (αs ℓ)
-        (if (vector? αs)
-            (hash-ref! vec-cache αs
-                       (λ () (for/set: : (℘ α) ([α (in-vector αs)]) α)))
-            (hash-ref! idx-cache (cons αs ℓ)
-                       (λ ()
-                         (define H (cdr αs))
-                         (for/set: : (℘ α) ([i (in-range (car αs))])
-                           (α:dyn (β:vect/c ℓ (assert i index?)) H))))))))
   )

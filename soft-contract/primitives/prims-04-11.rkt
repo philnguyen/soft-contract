@@ -9,6 +9,7 @@
          racket/stream
          racket/dict
          racket/function
+         racket/vector
          (except-in racket/set for/set for/seteq for*/set for*/seteq)
          racket/flonum
          racket/fixnum
@@ -56,8 +57,8 @@
                     [Vᵥ any/c])
             (match Vₙ
               [(singleton-set (-b (? index? n)))
-               (define-values (_ ΔΣ) (alloc-each (make-list n Vᵥ) (λ (i) (β:idx ℓ i))))
-               (r:just (Vect n ℓ H₀) ΔΣ)]
+               (define α (α:dyn (β:vect-elems ℓ n) H₀))
+               (r:just (Vect α) (alloc α (make-vector n Vᵥ)))]
               [_
                (define α (α:dyn (β:vct ℓ) H₀))
                (r:just (Vect-Of α Vₙ) (alloc α Vᵥ))]))
@@ -73,17 +74,18 @@
   (def (vector Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (define-values (_ ΔΣ) (alloc-each (unpack-W W Σ) (λ (i) (β:idx ℓ i))))
-    (r:just (Vect (length W) ℓ H₀) ΔΣ))
+    (define S (list->vector W))
+    (define α (α:dyn (β:vect-elems ℓ (vector-length S)) H₀))
+    (r:just (Vect α) (alloc α S)))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
   (def (vector-length Σ ℓ W)
     #:init ([V vector?])
     (just (set-union-map
            (match-lambda
-             [(Vect n _ _) {set (-b n)}]
+             [(Vect (α:dyn (β:vect-elems _ n) _)) {set (-b n)}]
              [(Vect-Of _ Vₙ) Vₙ]
-             [(Guarded _ (Vect/C αs _) _) {set (-b (if (vector? αs) (vector-length αs) (car αs)))}]
+             [(Guarded _ (Vect/C (α:dyn (β:vect/c-elems _ n) _)) _) {set (-b n)}]
              [_ {set (-● {set 'exact-nonnegative-integer?})}])
            (unpack V Σ))))
 
@@ -91,28 +93,25 @@
     #:init ([Vᵥ vector?] [Vᵢ exact-nonnegative-integer?])
     ((inst fold-ans/collapsing V)
      (match-lambda
-       [(Vect n ℓ H)
+       [(Vect α)
         (define Vₐ
-          (for/fold ([acc : V^ ∅]) ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
-            (define αᵢ (α:dyn (β:idx ℓ (assert i index?)) H))
-            (∪ acc (unpack αᵢ Σ))))
+          (for/fold ([acc : V^ ∅])
+                    ([(Vs i) (in-indexed (Σ@/blob α Σ))] #:when (maybe=? Σ i Vᵢ))
+            (V⊔ acc Vs)))
         (r:just Vₐ)]
        [(Vect-Of α n)
         (r:just (unpack α Σ))]
        [(Guarded (cons l+ l-) G αᵥ)
         (define Vᵥ* (unpack αᵥ Σ)) 
         (match G
-          [(Vect/C αs ℓₒ)
+          [(Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₒ n) _)))
            (define (ref [i : Natural])
              (app Σ ℓₒ {set 'vector-ref} (list Vᵥ* {set (-b i)})))
+           (define Cs (Σ@/blob αₕ Σ))
            (define ctx (Ctx l+ l- ℓₒ ℓ))
-           (define n (if (vector? αs) (vector-length αs) (car αs)))
-           (for/ans ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
-             (define αᵢ (if (vector? αs)
-                            (vector-ref αs i)
-                            (α:dyn (β:vect/c ℓₒ (assert i index?)) (cdr αs))))
+           (for/ans ([(Cᵢ i) (in-indexed Cs)] #:when (maybe=? Σ i Vᵢ))
              (with-collapsing/R [(ΔΣ W) (ref (assert i index?))]
-               (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (unpack αᵢ Σ) (car (collapse-W^ W))))))]
+               (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx Cᵢ (car (collapse-W^ W))))))]
           {(Vectof/C α* ℓₒ)
            (define ctx (Ctx l+ l- ℓₒ ℓ))
            (with-collapsing/R [(ΔΣ W) (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* Vᵢ))]
@@ -126,25 +125,22 @@
     (define-values (ΔΣ* es*)
       (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set V^)])
         (match V
-          [(Vect n ℓ H)
-           (values (for/fold ([acc : ΔΣ acc])
-                             ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
-                     (define αᵢ (α:dyn (β:idx ℓ (assert i index?)) H))
-                     (ΔΣ⊔ acc (mut αᵢ Vᵤ Σ)))
-                   es)]
+          [(Vect α)
+           (define S (Σ@/blob α Σ))
+           (define S* (vector-copy S))
+           (for ([(Vs i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
+             (vector-set! S* i Vᵤ))
+           (values (mut α S* Σ) es)]
           [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ Σ)) es)]
           [(Guarded (cons l+ l-) G αᵥ)
            (define V*^ (unpack αᵥ Σ))
            (match G
-             [(Vect/C αs ℓₒ)
+             [(Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₒ n) _)))
               (define ctx* (Ctx l- l+ ℓₒ ℓ))
-              (define n (if (vector? αs) (vector-length αs) (car αs)))
+              (define Cs (Σ@/blob αₕ Σ))
               (for/fold ([acc : ΔΣ acc] [es : (℘ Err) es])
-                        ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
-                (define αᵢ (if (vector? αs)
-                               (vector-ref αs i)
-                               (α:dyn (β:vect/c ℓₒ (assert i index?)) (cdr αs))))
-                (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack αᵢ Σ) Vᵤ)]
+                        ([(Cᵢ i) (in-indexed Cs)] #:when (maybe=? Σ i Vᵢ))
+                (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* Cᵢ Vᵤ)]
                   #:fail acc
                   (define Vᵤ* (car (collapse-W^ Ws)))
                   (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set!} (list V*^ {set (-b i)} Vᵤ*))]

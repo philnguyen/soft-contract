@@ -10,6 +10,7 @@
          bnf
          set-extras
          unreachable
+         "../utils/vector.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
@@ -99,9 +100,11 @@
        (define I (-● {set 'exact-nonnegative-integer?}))
        (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
           (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
-      [(Vect n ℓ H)
-       (values (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([α (in-set (Vect-addresses n ℓ H))])
-                 (⧺ ΔΣ (mut α ● Σ) (track-leaks Σ αₕᵥ (unpack α Σ))))
+      [(Vect α)
+       (values (⧺ (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vs (in-vector (Σ@/blob α Σ))])
+                    (⧺ ΔΣ (track-leaks Σ αₕᵥ Vs)))
+                  (match-let ([(α:dyn (β:vect-elems _ n) _) α])
+                    (mut α (make-vector n ●) Σ)))
                ∅)]
       [(Vect-Of αᵥ _)
        (values (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
@@ -166,7 +169,10 @@
     (define (check-α α)
       (cond [(seen-has? α) #f]
             [else (seen-add! α)
-                  (set-ormap check (Σ@ α Σ))]))
+                  (check-V^ (Σ@ α Σ))]))
+
+    (: check-V^ : V^ → Boolean)
+    (define (check-V^ V^) (set-ormap check V^))
 
     (define check-==>i : (==>i → Boolean)
       (match-lambda
@@ -182,7 +188,7 @@
     (define check : (V → Boolean)
       (match-lambda
         [(St _ αs _) (ormap check-α αs)]
-        [(Vect n ℓ H) (set-ormap check-α (Vect-addresses n ℓ H))]
+        [(Vect α) (vector-ormap check-V^ (Σ@/blob α Σ))]
         [(Vect-Of α _) (check-α α)]
         [(Hash-Of αₖ αᵥ) (or (check-α αₖ) (check-α αᵥ))]
         [(Set-Of α) (check-α α)]

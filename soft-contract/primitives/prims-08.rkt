@@ -106,8 +106,9 @@
   (def (vector/c Σ ℓ W)
     #:init ()
     #:rest [W (listof contract?)]
-    (define-values (αs ΔΣ) (alloc-each W (λ (i) (β:vect/c ℓ i))))
-    (just (Vect/C (list->vector αs) ℓ) ΔΣ))
+    (define S (list->vector W))
+    (define α (α:dyn (β:vect/c-elems ℓ (vector-length S)) H₀))
+    (just (Vect/C α) (alloc α S)))
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def box/c ; FIXME uses

@@ -220,11 +220,11 @@
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define ((mon-Vect/C C) Σ₀ ctx Vs)
     (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
-    (match-define (Vect/C αs ℓₕ) C)
-    (define n (if (vector? αs) (vector-length αs) (car αs)))
+    (match-define (Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₕ n) _))) C)
 
     (: mon-fields : Σ V^ → (Values R (℘ Err)))
     (define (mon-fields Σ₀ Vs)
+      (define Cs (Σ@/blob αₕ Σ₀))
       (define (ref [Σ : Σ] [i : Natural])
         (app Σ ℓₒ {set 'vector-ref} (list Vs {set (-b i)})))
       (let go ([i : Natural 0] [Σ : Σ Σ₀] [ΔΣ : ΔΣ ⊥ΔΣ])
@@ -233,10 +233,8 @@
             (with-collapsing/R [(ΔΣ₀ Ws) (ref Σ i)]
               (define ctx* (Ctx-with-origin ctx (ℓ-with-id ℓₕ i)))
               (define Σ₁ (⧺ Σ ΔΣ₀))
-              (define αᵢ (if (vector? αs)
-                             (vector-ref αs i)
-                             (α:dyn (β:vect/c ℓₕ (assert i index?)) (cdr αs))))
-              (with-collapsing/R [(ΔΣ₁ Ws*) (mon Σ₁ ctx* (Σ@ αᵢ Σ₀) (car (collapse-W^ Ws)))]
+              (define Cᵢ (vector-ref Cs i))
+              (with-collapsing/R [(ΔΣ₁ Ws*) (mon Σ₁ ctx* Cᵢ (car (collapse-W^ Ws)))]
                 (go (+ 1 i) (⧺ Σ₁ ΔΣ₁) (⧺ ΔΣ ΔΣ₀ ΔΣ₁)))))))
 
     (with-split-Σ Σ₀ 'vector? (list Vs)

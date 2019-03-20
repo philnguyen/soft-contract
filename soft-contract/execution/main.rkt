@@ -5,6 +5,7 @@
 (require racket/set
          racket/list
          racket/match
+         racket/vector
          typed/racket/unit
          set-extras
          unreachable
@@ -119,13 +120,15 @@
                        [α* (in-value (adjust-T α))]
                        ;; TODO generalize this
                        #:when (α? α*))
-        (values α* (cons (go-V^ (car r))
+        (values α* (cons (go-S (car r))
                          ;; if `α` is new allocation within callee and
                          ;; `α*` is existing address, store-delta entry for `α*`
                          ;; should always be refinement,
                          ;; so should not increase cardinality
                          (if (hash-has-key? rn α) 0 (cdr r))))))
     (define (go-W [W : W]) (map go-V^ W))
+    (define (go-S [S : S])
+      (if (vector? S) (vector-map go-V^ S) (go-V^ S)))
     (define (go-V^ [V^ : V^])
       (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
       (foldl V⊔ Vs₀ Vs*))
