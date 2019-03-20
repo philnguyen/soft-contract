@@ -55,7 +55,7 @@
 
   (def (unsafe-struct-ref Σ ℓ W)
     #:init ([Vᵥ any/c] [Vᵢ integer?])
-    ((inst fold-ans V)
+    ((inst fold-ans/collapsing V)
      (match-lambda
        [(St 𝒾 αs Ps)
         (define Vₐ

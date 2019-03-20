@@ -141,7 +141,7 @@
         [(? α? α) (fold-ans ac₁ (unpack α Σ))]
         [_ (values ⊥R ∅)]))
     
-    (fold-ans ac₁ Vₓ))
+    (fold-ans/collapsing ac₁ Vₓ))
 
   (: st-ac-● : -𝒾 Index (℘ P) Σ → V^)
   (define (st-ac-● 𝒾 i Ps Σ)

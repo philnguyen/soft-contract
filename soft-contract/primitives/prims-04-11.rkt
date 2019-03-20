@@ -55,9 +55,9 @@
             #:init ([Vₙ exact-nonnegative-integer?]
                     [Vᵥ any/c])
             (match Vₙ
-              [(singleton-set (-b (? exact-nonnegative-integer? n)))
-               (define-values (αs ΔΣ) (alloc-each (make-list n Vᵥ) (λ (i) (β:idx ℓ i))))
-               (r:just (Vect αs) ΔΣ)]
+              [(singleton-set (-b (? index? n)))
+               (define-values (_ ΔΣ) (alloc-each (make-list n Vᵥ) (λ (i) (β:idx ℓ i))))
+               (r:just (Vect n ℓ H₀) ΔΣ)]
               [_
                (define α (α:dyn (β:vct ℓ) H₀))
                (r:just (Vect-Of α Vₙ) (alloc α Vᵥ))]))
@@ -73,28 +73,28 @@
   (def (vector Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (define-values (αs ΔΣ) (alloc-each (unpack-W W Σ) (λ (i) (β:idx ℓ i))))
-    (r:just (Vect αs) ΔΣ))
+    (define-values (_ ΔΣ) (alloc-each (unpack-W W Σ) (λ (i) (β:idx ℓ i))))
+    (r:just (Vect (length W) ℓ H₀) ΔΣ))
   (def vector-immutable
     (∀/c (α) (() #:rest (listof α) . ->* . (and/c (vectorof α) immutable?))))
   (def (vector-length Σ ℓ W)
     #:init ([V vector?])
     (just (set-union-map
            (match-lambda
-             [(Vect αs) {set (-b (length αs))}]
+             [(Vect n _ _) {set (-b n)}]
              [(Vect-Of _ Vₙ) Vₙ]
-             [(Guarded _ (Vect/C αs _) _) {set (-b (length αs))}]
+             [(Guarded _ (Vect/C αs _) _) {set (-b (if (vector? αs) (vector-length αs) (car αs)))}]
              [_ {set (-● {set 'exact-nonnegative-integer?})}])
            (unpack V Σ))))
 
   (def (vector-ref Σ ℓ W)
     #:init ([Vᵥ vector?] [Vᵢ exact-nonnegative-integer?])
-    ((inst fold-ans V)
+    ((inst fold-ans/collapsing V)
      (match-lambda
-       [(Vect αs)
+       [(Vect n ℓ H)
         (define Vₐ
-          (for/fold ([acc : V^ ∅])
-                    ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+          (for/fold ([acc : V^ ∅]) ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
+            (define αᵢ (α:dyn (β:idx ℓ (assert i index?)) H))
             (∪ acc (unpack αᵢ Σ))))
         (r:just Vₐ)]
        [(Vect-Of α n)
@@ -106,7 +106,11 @@
            (define (ref [i : Natural])
              (app Σ ℓₒ {set 'vector-ref} (list Vᵥ* {set (-b i)})))
            (define ctx (Ctx l+ l- ℓₒ ℓ))
-           (for/ans ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+           (define n (if (vector? αs) (vector-length αs) (car αs)))
+           (for/ans ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
+             (define αᵢ (if (vector? αs)
+                            (vector-ref αs i)
+                            (α:dyn (β:vect/c ℓₒ (assert i index?)) (cdr αs))))
              (with-collapsing/R [(ΔΣ W) (ref (assert i index?))]
                (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (unpack αᵢ Σ) (car (collapse-W^ W))))))]
           {(Vectof/C α* ℓₒ)
@@ -122,9 +126,10 @@
     (define-values (ΔΣ* es*)
       (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set V^)])
         (match V
-          [(Vect αs)
+          [(Vect n ℓ H)
            (values (for/fold ([acc : ΔΣ acc])
-                             ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+                             ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
+                     (define αᵢ (α:dyn (β:idx ℓ (assert i index?)) H))
                      (ΔΣ⊔ acc (mut αᵢ Vᵤ Σ)))
                    es)]
           [(Vect-Of α _) (values (ΔΣ⊔ acc (mut α Vᵤ Σ)) es)]
@@ -133,8 +138,12 @@
            (match G
              [(Vect/C αs ℓₒ)
               (define ctx* (Ctx l- l+ ℓₒ ℓ))
+              (define n (if (vector? αs) (vector-length αs) (car αs)))
               (for/fold ([acc : ΔΣ acc] [es : (℘ Err) es])
-                        ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
+                        ([i (in-range n)] #:when (maybe=? Σ i Vᵢ))
+                (define αᵢ (if (vector? αs)
+                               (vector-ref αs i)
+                               (α:dyn (β:vect/c ℓₒ (assert i index?)) (cdr αs))))
                 (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack αᵢ Σ) Vᵤ)]
                   #:fail acc
                   (define Vᵤ* (car (collapse-W^ Ws)))

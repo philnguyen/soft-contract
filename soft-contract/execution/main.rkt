@@ -149,6 +149,14 @@
       (define-values (r* es*) (on-X X))
       (values (R⊔ r r*) (∪ es es*))))
 
+  (: fold-ans/collapsing (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
+  (define (fold-ans/collapsing on-X Xs)
+    (define-values (r es) (fold-ans on-X Xs))
+    (values (match (collapse-R r)
+              [(cons Ws ΔΣ) (R-of (collapse-W^ Ws) ΔΣ)]
+              [#f ⊥R])
+            es))
+
   (: with-split-Σ : Σ V W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err))) → (Values R (℘ Err)))
   (define (with-split-Σ Σ P W on-t on-f)
     (define-values (W-ΔΣ:t W-ΔΣ:f) (check-plaus Σ P W))

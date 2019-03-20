@@ -232,11 +232,11 @@
               [#f '✗])]
            [(P:vec-len n)
             (match V₀
-              [(Vect αs) (bool->Dec (= n (length αs)))]
+              [(Vect m _ _) (bool->Dec (= n m))]
               [(Vect-Of _ Vₙ) (sat^₂ (λ (V₁ V₂) (sat₂ Σ '= V₁ V₂)) {set (-b n)} Vₙ)]
               [(Guarded _ G _)
                (match G
-                 [(Vect/C αs _) (bool->Dec (= n (length αs)))]
+                 [(Vect/C αs _) (bool->Dec (= n (if (vector? αs) (vector-length αs) (car αs))))]
                  [(Vectof/C _ _) #f]
                  [_ '✗])]
               [_ '✗])]

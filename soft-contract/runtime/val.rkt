@@ -31,8 +31,8 @@
                    (λ ([W₀ : W]) (W⊔ W₀ Wᵢ))
                    (λ () (make-list n ∅))))) 
 
-  (: V/ : S → V → V)
-  (define (V/ S)
+  #;(: V/ : S → V → V)
+  #;(define (V/ S)
     (define (α/ [α : α]) (hash-ref S α (λ () α)))
     (define Clo/ : (Clo → Clo)
       (match-lambda [(Clo xs E αs ℓ) (Clo xs E (map/set α/ αs) ℓ)]))
@@ -73,7 +73,7 @@
           [(? P? P) (P/ P)]
           [(? T? T) (T/ T)]
           [(St 𝒾 αs Ps) (St 𝒾 (map α/ αs) (map/set P/ Ps))]
-          [(Vect αs) (Vect (map α/ αs))]
+          [(Vect n ℓ H) (Vect (map α/ αs))]
           [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
           [(Hash-Of α₁ α₂) (Hash-Of (α/ α₁) (α/ α₂))]
           [(Set-Of α) (Set-Of (α/ α))]
@@ -349,4 +349,21 @@
                   [else (define x* (⊕ xᵢ x))
                         (and x* (loop x* (set-remove xs xᵢ)))]))
           (set-add xs x))))
+
+  (define/memo (Vect-addresses [n : Index] [ℓ : ℓ] [H : H]) : (℘ α)
+    (for/set: : (℘ α) ([i (in-range n)])
+      (α:dyn (β:idx ℓ (assert i index?)) H)))
+
+  (define Vect/C-addresses : ((U (Vectorof α) (Pairof Index H)) ℓ → (℘ α))
+    (let ([vec-cache : (Mutable-HashTable (Vectorof α) (℘ α)) (make-hasheq)]
+          [idx-cache : (Mutable-HashTable (Pairof (Pairof Index H) ℓ) (℘ α)) (make-hash)])
+      (λ (αs ℓ)
+        (if (vector? αs)
+            (hash-ref! vec-cache αs
+                       (λ () (for/set: : (℘ α) ([α (in-vector αs)]) α)))
+            (hash-ref! idx-cache (cons αs ℓ)
+                       (λ ()
+                         (define H (cdr αs))
+                         (for/set: : (℘ α) ([i (in-range (car αs))])
+                           (α:dyn (β:vect/c ℓ (assert i index?)) H))))))))
   )

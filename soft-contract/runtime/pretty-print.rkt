@@ -27,7 +27,7 @@
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
       [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
-      [(Vect αs) `(vector ,@(map show-α αs))]
+      [(Vect n ℓ H) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
       [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
       [(Empty-Hash) 'empty-hash]
       [(Hash-Of αₖ αᵥ) `(hash-of ,(show-α αₖ) ,(show-α αᵥ))]
@@ -81,7 +81,7 @@
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
-      [(Vect/C αs ℓ) `(vector/c ,@(map show-α αs))]
+      [(Vect/C αs ℓ) (format-symbol "vector/c:~a" (show-ℓ ℓ))]
       [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
       [(Set/C α ℓ) `(set/c ,(show-α α))]))
 
@@ -135,7 +135,7 @@
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
-      [(β:idx ℓ i) (format-symbol "@~a" i)]
+      [(β:idx ℓ i)  i(show-β:ℓ ℓ i)]
       [(β:vct ℓ) (show-ℓ ℓ)]
       [(β:hash:key ℓ) (show-β:ℓ ℓ 0)]
       [(β:hash:val ℓ) (show-β:ℓ ℓ 1)]

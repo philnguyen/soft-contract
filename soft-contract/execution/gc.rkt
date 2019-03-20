@@ -85,7 +85,7 @@
   (define V-root : (V → (℘ α))
     (match-lambda
       [(St _ αs _) (list->set αs)]
-      [(Vect αs) (list->set αs)]
+      [(Vect n ℓ H) (Vect-addresses n ℓ H)]
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
       [(Set-Of α) {set α}]
@@ -106,7 +106,7 @@
               (for/set: : (℘ α) ([i (in-range (count-struct-fields 𝒾))])
                 (γ:escaped-field 𝒾 (assert i index?)))))]
       [(Vectof/C α _) {set α}]
-      [(Vect/C αs _) (list->set αs)]
+      [(Vect/C αs ℓ) (Vect/C-addresses αs ℓ)]
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]

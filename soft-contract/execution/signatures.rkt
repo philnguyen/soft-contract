@@ -37,6 +37,7 @@
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fix-return : (Renamings Σ R → R)]
    [fold-ans : (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err)))]
+   [fold-ans/collapsing : (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err)))]
    [with-split-Σ : (Σ V W
                       (W ΔΣ → (Values R (℘ Err)))
                       (W ΔΣ → (Values R (℘ Err)))

@@ -109,7 +109,7 @@
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
-    (fold-ans ac₁ Vs))
+    (fold-ans/collapsing ac₁ Vs))
   (def set-rest (∀/c (α) ((set/c α) . -> . (set/c α))))
   (def set->stream (generic-set? . -> . stream?))
   (def set-copy (generic-set? . -> . generic-set?))

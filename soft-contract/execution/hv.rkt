@@ -99,10 +99,9 @@
        (define I (-● {set 'exact-nonnegative-integer?}))
        (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
           (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
-      [(Vect αs)
-       (values (foldl (λ ([α : α] [ΔΣ : ΔΣ])
-                        (⧺ ΔΣ (mut α ● Σ) (track-leaks Σ αₕᵥ (unpack α Σ))))
-                      ⊥ΔΣ αs)
+      [(Vect n ℓ H)
+       (values (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([α (in-set (Vect-addresses n ℓ H))])
+                 (⧺ ΔΣ (mut α ● Σ) (track-leaks Σ αₕᵥ (unpack α Σ))))
                ∅)]
       [(Vect-Of αᵥ _)
        (values (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
@@ -183,7 +182,7 @@
     (define check : (V → Boolean)
       (match-lambda
         [(St _ αs _) (ormap check-α αs)]
-        [(Vect αs) (ormap check-α αs)]
+        [(Vect n ℓ H) (set-ormap check-α (Vect-addresses n ℓ H))]
         [(Vect-Of α _) (check-α α)]
         [(Hash-Of αₖ αᵥ) (or (check-α αₖ) (check-α αᵥ))]
         [(Set-Of α) (check-α α)]

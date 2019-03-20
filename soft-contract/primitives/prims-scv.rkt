@@ -70,7 +70,7 @@
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
-    (fold-ans ac₁ Vₕ))
+    (fold-ans/collapsing ac₁ Vₕ))
 
   (def (scv:hash-val Σ ℓ W)
     #:init ([Vₕ hash?])
@@ -87,7 +87,7 @@
         [(? -●?) (just (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
-    (fold-ans ac₁ Vₕ))
+    (fold-ans/collapsing ac₁ Vₕ))
 
   ;; HACK for some internal uses of `make-sequence`
   (def (make-sequence Σ ℓ W)

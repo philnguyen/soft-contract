@@ -17,7 +17,7 @@
 
 (#|Run-time Values|# V . ::= . -prim
                                (St -𝒾 (Listof α) (℘ P))
-                               (Vect (Listof α))
+                               (Vect Index ℓ H)
                                (Vect-Of [content : α] [length : #|restricted|# V^])
                                (Empty-Hash)
                                (Hash-Of [key : α] [val : α])
@@ -46,7 +46,7 @@
 (#|Proxies        |# Prox/C . ::= . Fn/C
                                (St/C -𝒾 (Listof α) ℓ)
                                (Vectof/C α ℓ)
-                               (Vect/C (Listof α) ℓ)
+                               (Vect/C (U (Vectorof α) (Pairof Index H)) ℓ)
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
@@ -215,7 +215,7 @@
 (define-signature val^
   ([collapse-W^ : (W^ → W)]
    [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))] 
-   [V/ : (S → V → V)]
+   #;[V/ : (S → V → V)]
    [W⊔ : (W W → W)]
    [V⊔ : (V^ V^ → V^)]
    [V⊔₁ : (V V^ → V^)]
@@ -239,6 +239,8 @@
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
    [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
+   [Vect-addresses : (Index ℓ H → (℘ α))]
+   [Vect/C-addresses : ((U (Vectorof α) (Pairof Index H)) ℓ → (℘ α))]
    ))
 
 (define-signature prover^
