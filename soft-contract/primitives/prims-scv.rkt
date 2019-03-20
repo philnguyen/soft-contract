@@ -29,15 +29,12 @@
           prover^)
   (export)
 
-  ;; TODO: obsolete. Can be expressed directly in big step
-  #;(define ℓ:mon (loc->ℓ (loc 'scv:mon 0 0 '())))
-  #;(def (scv:mon Σ ℓ W)
+  (def (scv:mon Σ ℓ W)
     #:init ([src symbol?] [C contract?] [V any/c])
     (match src
-      [(or {singleton-set (-b (and (? symbol?) (app symbol->string l)))}
-           (-b (and (? symbol?) (app symbol->string l))))
-       #:when l
-       (define ctx (Ctx l (string->symbol (format "user-of-~a" l)) ℓ:mon ℓ))
+      [(or {singleton-set (-b (? symbol? name))})
+       (define l (current-module))
+       (define ctx (Ctx l #|TODO|# l ℓ ℓ))
        (mon Σ ctx C V)]
       [_ (error 'scv:mon "internal error")]))
 

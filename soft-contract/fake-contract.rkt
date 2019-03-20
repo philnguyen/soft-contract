@@ -212,9 +212,14 @@
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 
 (define-syntax define/contract
-  (syntax-rules ()
-    [(_ (f x ...) c e ...) (define f (dynamic-mon 'f c (λ (x ...) e ...)))]
-    [(_ x         c e    ) (define x (dynamic-mon 'x c e))]))
+  (syntax-parser
+    [(_ (f x ...) c e ...)
+     (with-syntax ([rhs (with-syntax-source #'(f x ...)
+                          #'(dynamic-mon 'f c (λ (x ...) e ...)))])
+       #'(define f rhs))]
+    [(_ x         c e    )
+     (with-syntax ([rhs (with-syntax-source #'x #'(dynamic-mon 'x c e))])
+       #'(define x rhs))]))
 
 (define (dynamic-mon x c e) e)
 

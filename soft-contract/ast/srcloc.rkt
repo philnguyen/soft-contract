@@ -70,10 +70,12 @@
   (match-define (loc src line col id) (ℓ->loc ℓ))
   (case src
     [(dummy) '□]
+    [(havoc) '|arbitrary site|]
     [else (format-symbol "~a:~a" line col)]))
 
 (define (show-full-ℓ [ℓ : ℓ])
   (match-define (loc src line col id) (ℓ->loc ℓ))
   (case src
     [(dummy) '□]
+    [(havoc) '|arbitrary site|]
     [else (format-symbol "~a:~a:~a" src line col)]))
