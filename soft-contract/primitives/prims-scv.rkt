@@ -46,8 +46,8 @@
      (match-lambda
        [(-st-mk 𝒾)
         (if (= (count-struct-fields 𝒾) (length Wᵣ))
-            (let-values ([(αs ΔΣ) (alloc-each Wᵣ (λ (i) (β:st/c 𝒾 ℓ i)))])
-              (just (St/C 𝒾 αs ℓ) ΔΣ))
+            (let ([α (α:dyn (β:st/c-elems ℓ 𝒾) H₀)])
+              (just (St/C α) (alloc α (list->vector Wᵣ))))
             (err (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ)))]
        [_ (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))])
      (unpack Vₖ Σ)))

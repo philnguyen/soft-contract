@@ -72,8 +72,8 @@
             (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
           (match Vᵢ
             [(-● Ps) (replace-if-refinements-stale Ps -●)]
-            [(St 𝒾 αs Ps)
-             (replace-if-refinements-stale Ps (λ (Ps*) (St 𝒾 αs Ps*)))]
+            [(St α Ps)
+             (replace-if-refinements-stale Ps (λ (Ps*) (St α Ps*)))]
             [_ Vs*])))
 
       (if (vector? S)
@@ -101,7 +101,7 @@
 
   (define V-root : (V → (℘ α))
     (match-lambda
-      [(St _ αs _) (list->set αs)]
+      [(St α _) {set α}]
       [(Vect α) {set α}]
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
@@ -115,13 +115,14 @@
       [(Not/C α _) {set α}]
       [(X/C α) {set α}]
       [(Seal/C α _) {set α}]
-      [(St/C 𝒾 αs _)
-       (∪ (list->set αs)
-          (if (prim-struct? 𝒾)
-              ∅
-              ;; TODO: this may not work properly with sub-structs
-              (for/set: : (℘ α) ([i (in-range (count-struct-fields 𝒾))])
-                (γ:escaped-field 𝒾 (assert i index?)))))]
+      [(? St/C? C)
+       (define-values (αₕ _ 𝒾) (St/C-fields C))
+       (set-add (if (prim-struct? 𝒾)
+                    ∅
+                    ;; TODO: this may not work properly with sub-structs
+                    (for/set: : (℘ α) ([i (in-range (count-struct-fields 𝒾))])
+                      (γ:escaped-field 𝒾 (assert i index?))))
+                αₕ)]
       [(Vectof/C α _) {set α}]
       [(Vect/C α) {set α}]
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]

@@ -57,21 +57,23 @@
     #:init ([Vᵥ any/c] [Vᵢ integer?])
     ((inst fold-ans/collapsing V)
      (match-lambda
-       [(St 𝒾 αs Ps)
+       [(St (and α (α:dyn (β:st-elems _ 𝒾) _)) Ps)
         (define Vₐ
-          (for/union : V^ ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
-                     (unpack αᵢ Σ)))
+          (for/union : V^ ([(Xᵢ i) (in-indexed (Σ@/blob α Σ))] #:when (maybe=? Σ i Vᵢ))
+            Xᵢ))
         (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
         (just Vₐ* ΔΣ)]
-       [(Guarded (cons l+ l-) (St/C 𝒾 αs ℓₕ) αᵥ)
+       [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
+        (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
+        (define S (Σ@/blob αₕ Σ))
         (define Vᵥ* (unpack αᵥ Σ))
         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
           (define Σ₀ (⧺ Σ ΔΣ₀))
           (define Vₐ (car (collapse-W^ Ws)))
           (define ctx (Ctx l+ l- ℓₕ ℓ))
           (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
-                    ([(αᵢ i) (in-indexed αs)] #:when (maybe=? Σ i Vᵢ))
-            (define-values (rᵢ esᵢ) (mon Σ₀ ctx (unpack αᵢ Σ₀) Vₐ))
+                    ([(Cᵢ i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
+            (define-values (rᵢ esᵢ) (mon Σ₀ ctx Cᵢ Vₐ))
             (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
        [(-● Ps)
         (match Vᵢ

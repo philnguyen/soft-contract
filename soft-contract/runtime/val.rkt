@@ -109,7 +109,11 @@
     (define (go-α α)
       (cond [(seen-has? α) #t]
             [else (seen-add! α)
-                  (set-andmap go-V (Σ@ α Σ))]))
+                  (define S (Σ@/raw α Σ))
+                  (if (vector? S) (vector-andmap go-V^ S) (go-V^ S))]))
+
+    (: go-V^ : V^ → Boolean)
+    (define (go-V^ [Vs : V^]) (set-andmap go-V Vs))
     (: go-V : V → Boolean)
     (define go-V
       (match-lambda
@@ -117,7 +121,7 @@
         [(Or/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
         [(? Not/C?) #t]
         [(? One-Of/C?) #t]
-        [(St/C _ αs _) (andmap go-α αs)]
+        [(St/C α) (go-α α)]
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
@@ -356,4 +360,18 @@
        (match α
          [(α:dyn (β:vect/c-elems ℓ n) _) (values α ℓ n)]
          [(γ:imm:blob S ℓ) (values α ℓ (vector-length S))])]))
+
+  (define St/C-fields : (St/C → (Values α ℓ -𝒾))
+    (match-lambda
+      [(St/C α)
+       (match α
+         [(α:dyn (β:st/c-elems ℓ 𝒾) _) (values α ℓ 𝒾)]
+         [(γ:imm:blob:st _ ℓ 𝒾) (values α ℓ 𝒾)])]))
+
+  (define St/C-tag : (St/C → -𝒾)
+    (match-lambda
+      [(St/C α)
+       (match α
+         [(α:dyn (β:st/c-elems _ 𝒾) _) 𝒾]
+         [(γ:imm:blob:st _ _ 𝒾) 𝒾])]))
   )

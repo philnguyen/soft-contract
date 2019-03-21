@@ -91,7 +91,7 @@
           (values (assert ΔΣ*) es*)]
          [(and k (or (? index?) (? arity-at-least?))) (on-arity k)])]
       ;; Havoc and widen struct's public fields
-      [(or (St 𝒾 _ _) (Guarded _ (St/C 𝒾 _ _) _))
+      [(or (St (α:dyn (β:st-elems _ 𝒾) _) _) (Guarded _ (? St/C? (app St/C-tag 𝒾)) _))
        #:when 𝒾
        (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
           (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-muts 𝒾) (list {set V} ●))))]
@@ -169,7 +169,8 @@
     (define (check-α α)
       (cond [(seen-has? α) #f]
             [else (seen-add! α)
-                  (check-V^ (Σ@ α Σ))]))
+                  (define S (Σ@/raw α Σ))
+                  (if (vector? S) (vector-ormap check-V^ S) (check-V^ S))]))
 
     (: check-V^ : V^ → Boolean)
     (define (check-V^ V^) (set-ormap check V^))
@@ -187,7 +188,7 @@
 
     (define check : (V → Boolean)
       (match-lambda
-        [(St _ αs _) (ormap check-α αs)]
+        [(St α _) (check-α α)]
         [(Vect α) (vector-ormap check-V^ (Σ@/blob α Σ))]
         [(Vect-Of α _) (check-α α)]
         [(Hash-Of αₖ αᵥ) (or (check-α αₖ) (check-α αᵥ))]
@@ -214,16 +215,7 @@
 
   (: track-field-leaks : V^ Σ → ΔΣ)
   (define (track-field-leaks Vs Σ)
-    (define seen : (HashTable α #t) (make-hash))
-
-    (: go-α : α -𝒾 Index ΔΣ → ΔΣ)
-    (define (go-α α 𝒾 i acc)
-      (if (hash-has-key? seen α)
-          acc
-          (let ()
-            (hash-set! seen α #t)
-            (define Vs (Σ@ α Σ))
-            (go-V^ Vs (⧺ acc (alloc (γ:escaped-field 𝒾 i) Vs))))))
+    (define-set seen : α)
 
     (: go-V^ : V^ ΔΣ → ΔΣ)
     (define (go-V^ V^ acc) (set-fold go-V acc V^))
@@ -231,11 +223,13 @@
     (: go-V : V ΔΣ → ΔΣ)
     (define (go-V V acc)
       (match V
-        [(St (and 𝒾 (not (? prim-struct?))) αs _)
+        [(St (and α (α:dyn (β:st-elems _ (and 𝒾 (not (? prim-struct?)))) _)) _)
+         #:when (not (seen-has? α))
+         (seen-add! α)
          ;; Bucket values by fields, breaking correlation between fields
-         (for/fold ([acc : ΔΣ acc]) ([αᵢ (in-list αs)] [i (in-naturals)])
-           (go-α αᵢ 𝒾 (assert i index?) acc))]
-        [(Guarded ctx (St/C (and 𝒾 (not (? prim-struct?))) αs _) αᵥ) ; FIXME
+         (for/fold ([acc : ΔΣ acc]) ([(Vᵢ i) (in-indexed (Σ@/blob α Σ))])
+           (go-V^ Vᵢ (⧺ acc (alloc (γ:escaped-field 𝒾 (assert i index?)) Vᵢ))))]
+        [(Guarded ctx (St/C (? St/C? (app St/C-tag (and 𝒾 (not (? prim-struct?)))))) αᵥ) ; FIXME
          acc]
         [(-● Ps)
          (or (for/or : (Option ΔΣ) ([Pᵢ (in-set Ps)] #:when (-st-p? Pᵢ))

@@ -15,7 +15,8 @@
          )
 
 (define-unit pretty-print@
-  (import ast-pretty-print^ static-info^)
+  (import ast-pretty-print^ static-info^
+          val^)
   (export pretty-print^)
 
   (define show-V : (V → Sexp)
@@ -26,7 +27,7 @@
       [(? Clo? clo) (show-Clo clo)]
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
-      [(St 𝒾 αs Ps) `(,(-𝒾-name 𝒾) ,@(map show-α αs) ,(show-Ps Ps "_"))]
+      [(St (α:dyn (β:st-elems ctx 𝒾) _) Ps) `(,(-𝒾-name 𝒾) ,(show-ctx/ℓ ctx) ,(show-Ps Ps "_"))]
       [(Vect (α:dyn (β:vect-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
       [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
       [(Empty-Hash) 'empty-hash]
@@ -79,7 +80,8 @@
       [(? ==>i? V) (show-==>i V)]
       [(∀/C xs C Ρ _) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
-      [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
+      [(? St/C? C) (define-values (_ ℓ 𝒾) (St/C-fields C))
+                   (format-symbol "~a/c@~a" (-𝒾-name 𝒾) (show-ℓ ℓ))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
       [(Vect/C α) `(vector/c ,(show-α α))]
       [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
@@ -124,15 +126,13 @@
       [(γ:imm V) (show-V V)]
       [(γ:imm:blob _ ℓ) (show-ℓ ℓ)]
       [(γ:imm:listof x V _) (format-symbol "~a:listof" x)]
-      [(γ:imm:ref-listof x V _) (format-symbol "~a:ref-listof" x)]
       [(γ:escaped-field 𝒾 i) (format-symbol "escaped-~a" (show-o (-st-ac 𝒾 i)))]))
 
   (define show-β : (β → Symbol)
     (match-lambda
       [(? symbol? x) x]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
-      [(β:fld 𝒾 ℓ i) (show-β:ℓ ℓ i)]
-      [(β:fld/wrap 𝒾 ctx i) (format-symbol "~a@~a" (show-β:ctx ctx) i)]
+      [(β:st-elems ctx 𝒾) (format-symbol "~a-~a" (-𝒾-name 𝒾) (show-ctx/ℓ ctx))]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
       [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
       [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
@@ -155,7 +155,7 @@
       [(β:hash/c:key _) 'hash/c:key]
       [(β:hash/c:val _) 'hash/c:val]
       [(β:set/c:elem _) 'set/c:elem]
-      [(β:st/c 𝒾 ℓ i) (show-β:ℓ ℓ i)]
+      [(β:st/c-elems ℓ 𝒾) (show-ℓ ℓ)]
       [(β:dom ℓ) (show-ℓ ℓ)]
       [(β:fn ctx _) (show-β:ctx ctx)]
       [(β:sealed x _) (format-symbol "⦇~a⦈" x)]))
@@ -231,4 +231,12 @@
   (define intern-H : (H → Index)
     (let ([cache : (HashTable H Index) (make-hash)])
       (λ (H) (hash-ref! cache H (λ () (hash-count cache))))))
+
+  (define show-ctx/ℓ : ((U Ctx ℓ (Pairof (U Symbol ℓ) (Option Index))) → Symbol)
+    (match-lambda
+      [(? integer? ℓ) (show-ℓ ℓ)]
+      [(Ctx l+ _ ℓₒ ℓ)
+       (format-symbol "~a-~a-~a" (if (transparent-module? l+) '⊕ '⊖) (show-ℓ ℓₒ) (show-ℓ ℓ))]
+      [(cons x i)
+       (format-symbol "~a@~a" (if (symbol? x) x (show-ℓ x)) (if i i 'N))]))
   )

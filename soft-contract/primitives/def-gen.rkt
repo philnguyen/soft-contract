@@ -328,9 +328,9 @@
       [((~literal or/c) c ...)
        ((go* #'Or/C #''none/c) (syntax->list #'(c ...)))]
       [((~literal cons/c) c d)
-       #`(St/C -𝒾-cons
-               (list #,(gen-ctc-α #'c) #,(gen-ctc-α #'d))
-               #,(gen-stx-ℓ stx))]
+       #`(St/C (γ:imm:blob:st (vector-immutable {set #,(gen-ctc-V #'c)} {set #,(gen-ctc-V #'d)})
+                              #,(gen-stx-ℓ stx)
+                              -𝒾-cons))]
       [((~literal listof) c)
        (define/with-syntax C (gen-ctc-V #'c))
        (define/with-syntax ℓ (gen-stx-ℓ #'c))

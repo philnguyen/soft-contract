@@ -73,19 +73,19 @@
       (match-lambda
         [(γ:imm V) {set V}]
         [(γ:imm:blob S _) S]
+        [(γ:imm:blob:st S _ _) S]
         [(and α (γ:imm:listof x Cₑ ℓ))
          (hash-ref!
           cache-listof α
           (λ ()
-            (define Cₚ (St/C -𝒾-cons (list (γ:imm Cₑ) (γ:imm:ref-listof x Cₑ ℓ))
-                             (ℓ-with-id ℓ 'imm:pair)))
-            {set (Or/C γ:null? (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or))}))]
-        [(and α (γ:imm:ref-listof x Cₑ ℓ))
-         (hash-ref! cache-listof α (λ () {set (X/C (γ:imm:listof x Cₑ ℓ))}))])))
+            (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (X/C α)})
+                                            (ℓ-with-id ℓ 'imm:pair)
+                                            -𝒾-cons)))
+            {set (Or/C γ:null? (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or))}))])))
 
   (: unpack : (U V V^) Σ → V^)
   (define (unpack Vs Σ)
-    (define seen : (Mutable-HashTable α #t) (make-hash))
+    (define-set seen : α)
 
     (: unpack-V : V V^ → V^)
     (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (V⊔₁ V acc)))
@@ -101,8 +101,8 @@
 
     (: unpack-α : α V^ → V^)
     (define (unpack-α α acc)
-      (cond [(hash-has-key? seen α) acc]
-            [else (hash-set! seen α #t)
+      (cond [(seen-has? α) acc]
+            [else (seen-add! α)
                   (set-fold unpack-V acc (Σ@ α Σ))]))
 
     (: unpack-T:@ : T:@ V^ → V^)
@@ -118,8 +118,9 @@
   (define (V@ Σ ac V)
     (match-define (-st-ac 𝒾 i) ac)
     (match V
-      [(St (== 𝒾) αs Ps)
-       (define-values (V* _) (refine (unpack (list-ref αs i) Σ) (ac-Ps ac Ps) Σ))
+      [(St (and α (α:dyn (β:st-elems _ (== 𝒾)) _)) Ps)
+       (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
+       (define-values (V* _) (refine (unpack Vᵢ Σ) (ac-Ps ac Ps) Σ))
        ;; TODO: explicitly enforce that store delta doesn't matter in this case
        V*]
       [(-● Ps)
@@ -166,10 +167,8 @@
         ['() (values tail ⊥ΔΣ)]
         [(cons Vᵢ Wᵣ*)
          (define-values (Vₜ ΔΣₜ) (go Wᵣ* (add1 i)))
-         (define αₕ (α:dyn (β:var:car x i) H₀))
-         (define αₜ (α:dyn (β:var:cdr x i) H₀))
-         (define Vₚ (Cons αₕ αₜ))
-         (values {set Vₚ} (⧺ ΔΣₜ (alloc αₕ Vᵢ) (alloc αₜ Vₜ)))])))
+         (define α (α:dyn (β:st-elems (cons x (assert i index?)) -𝒾-cons) H₀))
+         (values {set (St α ∅)} (⧺ ΔΣₜ (alloc α (vector-immutable Vᵢ Vₜ))))])))
 
   (: alloc-each : W (Natural → β) → (Values (Listof α) ΔΣ))
   (define (alloc-each Vs β-of)
@@ -290,7 +289,7 @@
       (match-lambda
         [(? T? T) (go-T T)]
         [(-● Ps) (-● (map/set go-P Ps))]
-        [(St 𝒾 αs Ps) (St 𝒾 αs (map/set go-P Ps))]
+        [(St α Ps) (St α (map/set go-P Ps))]
         [V V]))
     (define go-P : (P → P)
       (match-lambda
@@ -389,8 +388,8 @@
     (match-lambda
       [(α:dyn β _)
        (match β
-         [(? β:mut?) #t]
-         [(β:fld 𝒾 _ i) (struct-mutable? 𝒾 i)]
+         [(or (? β:mut?) (? β:vect-elems?)) #t]
+         [(β:st-elems _ 𝒾) (not (struct-all-immutable? 𝒾))]
          [_ #f])]
       [(? γ:escaped-field?) #t]
       [_ #f]))
@@ -402,7 +401,7 @@
       [(α:dyn β _)
        (match β
          [(or (? β:mut?) (? β:vect-elems?)) #t]
-         [(β:fld 𝒾 _ i) (struct-mutable? 𝒾 i)]
+         [(β:st-elems _ 𝒾) (not (struct-all-immutable? 𝒾))]
          [_ #f])]
       ;; Care if "stack addresses" are singular so we can use them as symbolic name
       ;; With current implementation, these addresses should be singular by construction

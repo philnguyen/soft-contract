@@ -16,7 +16,7 @@
 (E . ≜ . -e)
 
 (#|Run-time Values|# V . ::= . -prim
-                               (St -𝒾 (Listof α) (℘ P))
+                               (St α (℘ P))
                                (Vect α)
                                (Vect-Of [content : α] [length : #|restricted|# V^])
                                (Empty-Hash)
@@ -45,7 +45,7 @@
                                (Seal/C α -l)
                                P)
 (#|Proxies        |# Prox/C . ::= . Fn/C
-                               (St/C -𝒾 (Listof α) ℓ)
+                               (St/C α)
                                (Vectof/C α ℓ)
                                (Vect/C α)
                                (Hash/C α α ℓ)
@@ -83,17 +83,14 @@
                                (γ:escaped-field -𝒾 Index)) 
 (#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
                                (γ:imm:blob (Vectorof V^) ℓ)
-                               ;; indirection for `listof` to keep in-sync with regular listof contracts
-                               (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
-                               (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
+                               (γ:imm:blob:st (Vectorof V^) ℓ -𝒾)
+                               (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ))
 (#|Addr. Bases    |# β . ::= . ; escaped parameter
                                Symbol
                                ; mutable cell
                                (β:mut (U Symbol -𝒾))
                                ; struct field
-                               (β:fld -𝒾 ℓ Natural)
-                               ; wrapped struct field from monitoring
-                               (β:fld/wrap -𝒾 Ctx Natural)
+                               (β:st-elems (U ℓ Ctx (Pairof (U ℓ Symbol) (Option Index))) -𝒾)
                                ; for varargs
                                (β:var:car (U ℓ Symbol) (Option Natural))
                                (β:var:cdr (U ℓ Symbol) (Option Natural))
@@ -126,7 +123,7 @@
                                (β:hash/c:key ℓ)
                                (β:hash/c:val ℓ)
                                (β:set/c:elem ℓ)
-                               (β:st/c -𝒾 ℓ Natural)
+                               (β:st/c-elems ℓ -𝒾)
                                (β:dom ℓ)
                                ;; for wrapped function
                                (β:fn Ctx Fn/C-Sig)
@@ -158,19 +155,6 @@
 (define-interner $:K $:Key
   #:intern-function-name intern-$:Key
   #:unintern-function-name unintern-$:Key)
-
-;; Convenient patterns
-(define-syntax-rule (define-St-matcher (P α ...) St-id)
-  (define-match-expander P
-    (syntax-rules () [(_ α ...) (St (== St-id) (list α ...) _)])
-    (syntax-rules () [(_ α ...) (St St-id (list α ...) ∅)])))
-(define-syntax-rule (define-St/G-matcher P St-id)
-  (define-match-expander P
-    (syntax-rules () [(_ α) (Guarded _ (St/C (== St-id) _ _) α)])))
-(define-St-matcher (Cons αₕ αₜ) -𝒾-cons)
-(define-St/G-matcher Guarded-Cons -𝒾-cons)
-(define-St-matcher (Box α) -𝒾-box)
-(define-St/G-matcher Guarded-Box -𝒾-box)
 
 (define ⊥R : R (hash))
 (define H₀ : H ∅eq)
@@ -243,6 +227,8 @@
    [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
    [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
+   [St/C-fields : (St/C → (Values α ℓ -𝒾))]
+   [St/C-tag : (St/C → -𝒾)]
    ))
 
 (define-signature prover^

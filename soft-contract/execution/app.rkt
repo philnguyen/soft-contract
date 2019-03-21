@@ -5,6 +5,7 @@
 (require racket/set
          racket/list
          racket/match
+         racket/vector
          typed/racket/unit
          syntax/parse/define
          set-extras
@@ -59,7 +60,7 @@
                 [(Not/C α ℓ) (app-Not/C α ℓ)]
                 [(X/C α) (app-X/C α)]
                 [(One-Of/C bs) (app-One-Of/C bs)]
-                [(St/C 𝒾 αs ℓ) #:when (C-flat? V Σ) (app-St/C 𝒾 αs ℓ)]
+                [(? St/C?) #:when (C-flat? V Σ) (app-St/C V)]
                 [(-● Ps) (app-opq Ps)]
                 [(P:= T) (app-P '= T)]
                 [(P:> T) (app-P '< T)]
@@ -101,8 +102,8 @@
   (define ((app-st-mk 𝒾) Σ ℓ Wₓ)
     (define n (count-struct-fields 𝒾))
     (if (= n (length Wₓ))
-        (let-values ([(αs ΔΣ) (alloc-each (unpack-W Wₓ Σ) (λ (i) (β:fld 𝒾 ℓ i)))])
-          (just (St 𝒾 αs ∅) ΔΣ))
+        (let ([α (α:dyn (β:st-elems ℓ 𝒾) H₀)])
+          (just (St α ∅) (alloc α (list->vector (unpack-W Wₓ Σ)))))
         (err (Err:Arity (-st-mk 𝒾) (length Wₓ) ℓ))))
 
   (: app-st-p : -𝒾 → ⟦F⟧)
@@ -124,16 +125,19 @@
   (define ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)
     (define ac₁ : (V → (Values R (℘ Err)))
       (match-lambda
-        [(St _ αs Ps)
+        [(St α Ps)
+         (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
          (define-values (V* ΔΣ)
-           (refine (unpack (list-ref αs i) Σ) (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
+           (refine (unpack Vᵢ Σ) (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
          (just V* ΔΣ)]
         [(and T (or (? T:@?) (? γ?))) #:when (not (struct-mutable? 𝒾 i))
          (define T* (T:@ (-st-ac 𝒾 i) (list T)))
          (if (set-empty? (unpack T* Σ)) (values ⊥R ∅) (just T*))]
-        [(Guarded (cons l+ l-) (St/C _ αs ℓₕ) αᵥ)
+        [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
+         (define-values (αₕ ℓₕ _) (St/C-fields C))
+         (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
          (with-collapsing/R [(ΔΣ Ws) ((unchecked-app-st-ac 𝒾 i) Σ ℓ (unpack αᵥ Σ))]
-           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) (Ctx l+ l- ℓₕ ℓ) (unpack (list-ref αs i) Σ) (car (collapse-W^ Ws)))))]
+           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) (Ctx l+ l- ℓₕ ℓ) Cᵢ (car (collapse-W^ Ws)))))]
         [(and V₀ (-● Ps))
          (case (sat Σ (-st-p 𝒾) {set V₀})
            [(✗) (values ⊥R ∅)]
@@ -165,9 +169,15 @@
   (define ((unchecked-app-st-mut 𝒾 i) Σ ℓ Vₓ V*)
     ((inst fold-ans V)
      (match-lambda
-       [(St _ αs _) (just -void (mut (list-ref αs i) (blur V*) Σ))]
-       [(Guarded (cons l+ l-) (St/C _ αs ℓₕ) αᵥ)
-        (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) (unpack (list-ref αs i) Σ) V*)]
+       [(St α _)
+        (define S (Σ@/blob α Σ))
+        (define S* (vector-copy S))
+        (vector-set! S* i (blur V*))
+        (just -void (mut α S* Σ))]
+       [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
+        (define-values (αₕ ℓₕ _) (St/C-fields C))
+        (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
+        (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) Cᵢ V*)]
           (with-pre ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (unpack αᵥ Σ) V*)))]
        [_ (just -void (alloc (γ:hv #f) V*))])
      Vₓ))
@@ -314,26 +324,28 @@
          (λ (_ ΔΣ) (just -tt ΔΣ))
          (λ (_ ΔΣ) (just -ff ΔΣ)))]))
 
-  (: app-St/C : -𝒾 (Listof α) ℓ → ⟦F⟧)
-  (define ((app-St/C 𝒾 αs ℓₕ) Σ ℓ Wₓ)
+  (: app-St/C : St/C → ⟦F⟧)
+  (define ((app-St/C C) Σ ℓ Wₓ)
+    (define-values (α ℓₕ 𝒾) (St/C-fields C))
+    (define S (Σ@/blob α Σ))
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list Vₓ)
        (with-split-Σ Σ (-st-p 𝒾) Wₓ
-         (λ (Wₓ* ΔΣ*) (with-pre ΔΣ* ((app-St/C-fields 𝒾 0 αs ℓₕ) (⧺ Σ ΔΣ*) ℓ (car Wₓ*))))
+         (λ (Wₓ* ΔΣ*) (with-pre ΔΣ* ((app-St/C-fields 𝒾 0 S ℓₕ) (⧺ Σ ΔΣ*) ℓ (car Wₓ*))))
          (λ (_ ΔΣ*) (just -ff ΔΣ*)))]))
 
-  (: app-St/C-fields : -𝒾 Index (Listof α) ℓ → Σ ℓ V^ → (Values R (℘ Err)))
-  (define ((app-St/C-fields 𝒾 i αs ℓₕ) Σ ℓ Vₓ)
-    (match αs
-      ['() (just -tt)]
-      [(cons α αs)
-       (with-collapsing/R [(ΔΣᵢ Wᵢs) ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)]
-         (with-each-ans ([(ΔΣₜ Wₜ) (app (⧺ Σ ΔΣᵢ) ℓ (unpack α Σ) (collapse-W^ Wᵢs))])
-           (define ΔΣ (⧺ ΔΣᵢ ΔΣₜ))
-           (define Σ* (⧺ Σ ΔΣ))
-           (with-split-Σ Σ* 'values Wₜ
-             (λ _ (with-pre ΔΣ ((app-St/C-fields 𝒾 (assert (+ 1 i) index?) αs ℓₕ) Σ* ℓ Vₓ)))
-             (λ _ (just -ff ΔΣ)))))]))
+  (: app-St/C-fields : -𝒾 Index (Vectorof V^) ℓ → Σ ℓ V^ → (Values R (℘ Err)))
+  (define ((app-St/C-fields 𝒾 i Cs ℓₕ) Σ₀ ℓ Vₓ)
+    (let loop ([i : Index 0] [Σ : Σ Σ₀])
+      (if (>= i (vector-length Cs))
+          (just -tt)
+          (with-collapsing/R [(ΔΣᵢ Wᵢs) ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)]
+            (with-each-ans ([(ΔΣₜ Wₜ) (app (⧺ Σ ΔΣᵢ) ℓ (vector-ref Cs i) (collapse-W^ Wᵢs))])
+              (define ΔΣ (⧺ ΔΣᵢ ΔΣₜ))
+              (define Σ* (⧺ Σ ΔΣ))
+              (with-split-Σ Σ* 'values Wₜ
+                (λ _ (with-pre ΔΣ (loop (assert (+ 1 i) index?) Σ*)))
+                (λ _ (just -ff ΔΣ))))))))
 
   (: app-opq : (℘ P) → ⟦F⟧)
   (define ((app-opq Ps) Σ ℓ Wₓ*)
@@ -388,13 +400,14 @@
     (let touch! ([i : Integer 0] [Vs : V^ Vs])
       (for ([V (in-set Vs)])
         (match V
-          [(Cons αₕ αₜ)
-           (hash-update! elems i (λ ([V₀ : V^]) (V⊔ V₀ (Σ@ αₕ Σ))) mk-∅)
-           (cond [(touched-has? αₜ)
+          [(St (and α (α:dyn (β:st-elems _ (== -𝒾-cons)) _)) _)
+           (match-define (vector Vₕ Vₜ) (Σ@/blob α Σ))
+           (hash-update! elems i (λ ([V₀ : V^]) (V⊔ V₀ Vₕ)) mk-∅)
+           (cond [(touched-has? α)
                   (set! sound? #f)
                   (ends-add! (+ 1 i))]
-                 [else (touched-add! αₜ)
-                       (touch! (+ 1 i) (Σ@ αₜ Σ))])]
+                 [else (touched-add! α)
+                       (touch! (+ 1 i) Vₜ)])]
           [(-b '()) (ends-add! i)]
           [_ (set! sound? #f)
              (ends-add! i)])))

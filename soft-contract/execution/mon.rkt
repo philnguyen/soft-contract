@@ -5,6 +5,7 @@
 (require racket/set
          racket/list
          racket/match
+         racket/vector
          typed/racket/unit
          bnf
          set-extras
@@ -103,19 +104,21 @@
   (: mon-St/C : St/C → ⟦C⟧)
   (define ((mon-St/C C) Σ₀ ctx Vs)
     (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
-    (match-define (St/C 𝒾 αs ℓₕ) C)
+    (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
+    (define S (Σ@/blob αₕ Σ₀))
+    (define n (vector-length S))
 
     (: mon-St/C-fields : Σ V^ → (Values R (℘ Err)))
     (define (mon-St/C-fields Σ V)
-      (let go ([i : Index 0] [αs : (Listof α) αs] [Vs-rev : W '()] [ΔΣ : ΔΣ ⊥ΔΣ])
-        (match αs
-          ['() (just (reverse Vs-rev) ΔΣ)]
-          [(cons αᵢ αs*)
+      (let go ([i : Index 0] [Vs-rev : W '()] [ΔΣ : ΔΣ ⊥ΔΣ])
+        (cond
+          [(>= i n) (just (reverse Vs-rev) ΔΣ)]
+          [else
            (with-collapsing/R [(ΔΣ₀ Ws) (app (⧺ Σ ΔΣ) ℓ {set (-st-ac 𝒾 i)} (list V))]
              (define ctx* (Ctx-with-origin ctx (ℓ-with-id ℓₕ i)))
-             (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx* (Σ@ αᵢ Σ) (car (collapse-W^ Ws)))]
+             (define Cᵢ (vector-ref S i))
+             (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx* Cᵢ (car (collapse-W^ Ws)))]
                (go (assert (+ 1 i) index?)
-                   αs*
                    (cons (car (collapse-W^ Ws*)) Vs-rev)
                    (⧺ ΔΣ ΔΣ₀ ΔΣ₁))))])))
 
@@ -134,8 +137,8 @@
                   (-st-p 𝒾)))
                (values (-● Ps) (⧺ ΔΣ ΔΣ*))]
               [W*
-               (define-values (αs ΔΣ**) (alloc-each W* (λ (i) (β:fld/wrap 𝒾 ctx i))))
-               (values (St 𝒾 αs ∅) (⧺ ΔΣ ΔΣ* ΔΣ**))]))
+               (define α (α:dyn (β:st-elems ctx 𝒾) H₀))
+               (values (St α ∅) (⧺ ΔΣ ΔΣ* (alloc α (list->vector W*))))]))
           (if (struct-all-immutable? 𝒾)
               (just Vₐ ΔΣₐ)
               (let ([α (α:dyn (β:st 𝒾 ctx) H₀)])
@@ -377,27 +380,33 @@
        (with-split-Σ Σ₀ (One-Of/C bs) (list Vs)
          just
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
-      [(St/C 𝒾 αs _)
+      [(? St/C? C)
+       (define-values (αₕ _ 𝒾) (St/C-fields C))
+       (define S (Σ@/blob αₕ Σ₀))
+       (define n (vector-length S))
        (with-split-Σ Σ₀ (-st-p 𝒾) (list Vs)
          (λ (W* ΔΣ*)
            (define n (count-struct-fields 𝒾))
-           (let go ([Σ : Σ Σ₀] [αs : (Listof α) αs] [i : Index 0] [ΔΣ : ΔΣ ΔΣ*] [rev-W : W '()])
-             (match αs
-               ['()
-                (define-values (αs* ΔΣ*) (alloc-each (reverse rev-W) (λ (i) (β:fld 𝒾 ℓ i))))
-                (just (St 𝒾 αs* ∅) (⧺ ΔΣ ΔΣ*))]
-               [(cons αᵢ αs*)
+           (let go ([Σ : Σ Σ₀] [i : Index 0] [ΔΣ : ΔΣ ΔΣ*] [rev-W : W '()])
+             (cond
+               [(>= i n)
+                (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
+                (just (St α ∅) (⧺ ΔΣ (alloc α (list->vector (reverse rev-W)))))]
+               [else
+                (define Cᵢ (vector-ref S i))
                 (with-collapsing/R [(ΔΣ:a Ws:a) (app Σ ℓ {set (-st-ac 𝒾 i)} W*)]
-                  (with-each-ans ([(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ (unpack αᵢ Σ) (car (collapse-W^ Ws:a)))])
+                  (with-each-ans ([(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ Cᵢ (car (collapse-W^ Ws:a)))])
                     (match Wᵢ
                       [(list Vᵢ)
                        (go (⧺ Σ ΔΣ:a ΔΣᵢ)
-                           αs* (assert (+ 1 i) index?)
+                           (assert (+ 1 i) index?)
                            (⧺ ΔΣ ΔΣ:a ΔΣᵢ) (cons Vᵢ rev-W))]
                       [(list Vᵢ _)
-                       (define fields (append (reverse rev-W) (make-list (- n i 1) {set (-● ∅)})))
-                       (define-values (αs* ΔΣ*) (alloc-each fields (λ (i) (β:fld 𝒾 ℓ i))))
-                       (just (list {set (St 𝒾 αs* ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ ΔΣ*))])))])))
+                       (define fields ((inst vector-append V^)
+                                       (list->vector (reverse rev-W))
+                                       (make-vector (- n i 1) {set (-● ∅)})))
+                       (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
+                       (just (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
       [(X/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
       [(? -b? b)

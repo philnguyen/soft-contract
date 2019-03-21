@@ -61,7 +61,7 @@
       ['not {set -ff}]
       ['set-empty? {set (Empty-Set)}]
       ['hash-empty? {set (Empty-Hash)}]
-      [(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) {set (St 𝒾 '() ∅)}]
+      ;[(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) {set (St 𝒾 '() ∅)}]
       [(P:≡ (? -b? b)) {set b}]
       [_ #f]))
 
@@ -166,7 +166,7 @@
        (match P
          [(One-Of/C bs) (refine-V^ (map/set -b bs) Ps Σ)]
          [_ (reify (refine-Ps Ps P Σ))])]
-      [(St 𝒾 α Ps) {set (St 𝒾 α (refine-Ps Ps P Σ))}]
+      [(St α Ps) {set (St α (refine-Ps Ps P Σ))}]
       [_ {set V}]))
 
   (: refine-Ps : (℘ P) V Σ → (℘ P))
@@ -215,7 +215,8 @@
       [_ (match P
            [(-st-p 𝒾)
             (match V₀
-              [(or (St 𝒾* _ _) (Guarded _ (St/C 𝒾* _ _) _))
+              [(or (St (α:dyn (β:st-elems _ 𝒾*) _) _)
+                   (Guarded _ (? St/C? (app St/C-tag 𝒾*)) _))
                (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
               [_ '✗])]
            [(One-Of/C bs) (bool->Dec (and (-b? V₀) (∋ bs (-b-unboxed V₀))))]
@@ -412,16 +413,6 @@
           ; TODO watch out for loops
           (go-V^ (unpack T₁ Σ) (unpack T₂ Σ)))) 
     
-    (: go* : (Listof α) (Listof α) → ?Dec)
-    (define go*
-      (match-lambda**
-       [('() '()) '✓]
-       [((cons α₁ αs₁) (cons α₂ αs₂))
-        (case (go α₁ α₂)
-          [(✓) (go* αs₁ αs₂)]
-          [(✗) '✗]
-          [else #f])]))
-
     (: go-V^ : V^ V^ → ?Dec)
     (define (go-V^ Vs₁ Vs₂) (sat^₂ go-V Vs₁ Vs₂))
 
@@ -433,7 +424,19 @@
        [((and T (or (? -b?) (? T?))) (-● Ps)) (Ps⊢P Σ Ps (P:≡ T))]
        [((? -prim?) (not (or (? -●?) (? T?) (? -prim?)))) '✗]
        [((not (or (? -●?) (? T?) (? -prim?))) (? -prim?)) '✗]
-       [((St 𝒾₁ αs₁ _) (St 𝒾₂ αs₂ _)) (if (equal? 𝒾₁ 𝒾₂) (go* αs₁ αs₂) '✗)]
+       [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
+         (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))
+        (cond [(not (equal? 𝒾₁ 𝒾₂)) #f]
+              [(and (equal? α₁ α₂) (not (ambiguous? α₁ Σ))) '✓]
+              [else
+               (for/fold ([acc : ?Dec '✓])
+                         ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
+                          [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
+                          #:break (eq? acc '✗))
+                 (case (go-V^ Vs₁ Vs₂)
+                   [(✓) acc]
+                   [(✗) '✗]
+                   [(#f) #f]))])]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
@@ -594,7 +597,9 @@
       (define (go-α α)
         (cond [(seen-has? α) '✓]
               [else (seen-add! α)
-                    (go* (unpack α Σ))]))
+                    (match (Σ@/raw α Σ)
+                      [(vector _ V) (go* V)]
+                      [(? set? V) (go* V)])]))
 
       (: go* : V^ → ?Dec)
       (define (go* Vs)
@@ -605,8 +610,8 @@
 
       (define go : (V → ?Dec)
         (match-lambda
-          [(Cons _ α) (go-α α)]
-          [(Guarded-Cons α) (go-α α)]
+          [(St (and α (α:dyn (β:st-elems _ (== -𝒾-cons)) _)) _) (go-α α)]
+          [(Guarded _ (? St/C? (app St/C-tag (== -𝒾-cons))) α) (go-α α)]
           [(-b b) (bool->Dec (null? b))]
           [(-● Ps) (cond [(∋ Ps 'list?) '✓]
                          [(set-ormap list-excl? Ps) '✗]
