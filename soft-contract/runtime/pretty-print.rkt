@@ -81,7 +81,7 @@
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(St/C 𝒾 αs ℓ) `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-α αs))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
-      [(Vect/C (α:dyn (β:vect/c-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
+      [(Vect/C α) `(vector/c ,(show-α α))]
       [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
       [(Set/C α ℓ) `(set/c ,(show-α α))]))
 
@@ -122,6 +122,7 @@
       [(γ:wrp x) (format-symbol "⟨~a⟩" (-𝒾-name x))]
       [(γ:hv hv-tag) (format-symbol "hv:~a" (show-HV-Tag hv-tag))]
       [(γ:imm V) (show-V V)]
+      [(γ:imm:blob _ ℓ) (show-ℓ ℓ)]
       [(γ:imm:listof x V _) (format-symbol "~a:listof" x)]
       [(γ:imm:ref-listof x V _) (format-symbol "~a:ref-listof" x)]
       [(γ:escaped-field 𝒾 i) (format-symbol "escaped-~a" (show-o (-st-ac 𝒾 i)))]))

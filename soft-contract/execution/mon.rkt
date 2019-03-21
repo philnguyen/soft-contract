@@ -220,7 +220,7 @@
   (: mon-Vect/C : Vect/C → ⟦C⟧)
   (define ((mon-Vect/C C) Σ₀ ctx Vs)
     (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
-    (match-define (Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₕ n) _))) C)
+    (define-values (αₕ ℓₕ n) (Vect/C-fields C))
 
     (: mon-fields : Σ V^ → (Values R (℘ Err)))
     (define (mon-fields Σ₀ Vs)

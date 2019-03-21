@@ -72,7 +72,7 @@
                            [γ:imm* → S])
       (match-lambda
         [(γ:imm V) {set V}]
-        [(γ:imm:blob S) S]
+        [(γ:imm:blob S _) S]
         [(and α (γ:imm:listof x Cₑ ℓ))
          (hash-ref!
           cache-listof α

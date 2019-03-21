@@ -236,7 +236,8 @@
               [(Vect-Of _ Vₙ) (sat^₂ (λ (V₁ V₂) (sat₂ Σ '= V₁ V₂)) {set (-b n)} Vₙ)]
               [(Guarded _ G _)
                (match G
-                 [(Vect/C (α:dyn (β:vect/c-elems _ m) _)) (bool->Dec (= n m))]
+                 [(? Vect/C?) (define-values (_₁ _₂ m) (Vect/C-fields G))
+                              (bool->Dec (= n m))]
                  [(Vectof/C _ _) #f]
                  [_ '✗])]
               [_ '✗])]

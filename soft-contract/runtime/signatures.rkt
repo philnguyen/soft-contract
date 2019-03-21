@@ -82,7 +82,7 @@
                                ;; Escaped struct field
                                (γ:escaped-field -𝒾 Index)) 
 (#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
-                               (γ:imm:blob (Vectorof V^))
+                               (γ:imm:blob (Vectorof V^) ℓ)
                                ;; indirection for `listof` to keep in-sync with regular listof contracts
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ)
                                (γ:imm:ref-listof Symbol #|elem, ok with care|# V ℓ))
@@ -242,6 +242,7 @@
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
    [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
+   [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
    ))
 
 (define-signature prover^

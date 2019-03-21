@@ -349,4 +349,11 @@
                   [else (define x* (⊕ xᵢ x))
                         (and x* (loop x* (set-remove xs xᵢ)))]))
           (set-add xs x))))
+
+  (define Vect/C-fields : (Vect/C → (Values α ℓ Index))
+    (match-lambda
+      [(Vect/C α)
+       (match α
+         [(α:dyn (β:vect/c-elems ℓ n) _) (values α ℓ n)]
+         [(γ:imm:blob S ℓ) (values α ℓ (vector-length S))])]))
   )

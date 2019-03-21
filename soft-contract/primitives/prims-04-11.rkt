@@ -85,7 +85,9 @@
            (match-lambda
              [(Vect (α:dyn (β:vect-elems _ n) _)) {set (-b n)}]
              [(Vect-Of _ Vₙ) Vₙ]
-             [(Guarded _ (Vect/C (α:dyn (β:vect/c-elems _ n) _)) _) {set (-b n)}]
+             [(Guarded _ (? Vect/C? C) _)
+              (define-values (_₁ _₂ n) (Vect/C-fields C))
+              {set (-b (assert n))}]
              [_ {set (-● {set 'exact-nonnegative-integer?})}])
            (unpack V Σ))))
 
@@ -104,7 +106,8 @@
        [(Guarded (cons l+ l-) G αᵥ)
         (define Vᵥ* (unpack αᵥ Σ)) 
         (match G
-          [(Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₒ n) _)))
+          [(? Vect/C?)
+           (define-values (αₕ ℓₒ n) (Vect/C-fields G))
            (define (ref [i : Natural])
              (app Σ ℓₒ {set 'vector-ref} (list Vᵥ* {set (-b i)})))
            (define Cs (Σ@/blob αₕ Σ))
@@ -135,7 +138,8 @@
           [(Guarded (cons l+ l-) G αᵥ)
            (define V*^ (unpack αᵥ Σ))
            (match G
-             [(Vect/C (and αₕ (α:dyn (β:vect/c-elems ℓₒ n) _)))
+             [(? Vect/C?)
+              (define-values (αₕ ℓₒ n) (Vect/C-fields G))
               (define ctx* (Ctx l- l+ ℓₒ ℓ))
               (define Cs (Σ@/blob αₕ Σ))
               (for/fold ([acc : ΔΣ acc] [es : (℘ Err) es])
