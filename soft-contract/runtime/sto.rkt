@@ -395,16 +395,10 @@
       [_ #f]))
 
   ;; HACK to reduce redundant iterations
-  (define care-if-singular? : (α → Boolean)
-    (match-lambda
-      ;; Care if mutable addreses are singular so we can do strong update
-      [(α:dyn β _)
-       (match β
-         [(or (? β:mut?) (? β:vect-elems?)) #t]
-         [(β:st-elems _ 𝒾) (not (struct-all-immutable? 𝒾))]
-         [_ #f])]
-      ;; Care if "stack addresses" are singular so we can use them as symbolic name
-      ;; With current implementation, these addresses should be singular by construction
-      [(or (? γ:lex?) (? γ:top?) (? γ:wrp?)) #t]
-      [_ #f]))
+  (: care-if-singular? : α → Boolean)
+  (define (care-if-singular? α)
+    (or (mutable? α)
+        ;; Care if "stack addresses" are singular so we can use them as symbolic name
+        ;; With current implementation, these addresses should be singular by construction
+        (γ:lex? α) (γ:top? α)))
   )
