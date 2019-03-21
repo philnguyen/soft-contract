@@ -177,11 +177,11 @@
   (:* with-negative-party with-positive-party : -l V → V)
   (define with-negative-party
     (match-lambda**
-     [(l- (Guarded (Ctx l+ _ ℓₒ ℓ) C α)) (Guarded (Ctx l+ l- ℓₒ ℓ) C α)]
+     [(l- (Guarded (cons l+ 'dummy-) C α)) (Guarded (cons l+ l-) C α)]
      [(_ V) V]))
   (define with-positive-party
     (match-lambda**
-     [(l+ (Guarded (Ctx _ l- ℓₒ ℓ) C α)) (Guarded (Ctx l+ l- ℓₒ ℓ) C α)]
+     [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
      [(_ V) V]))
 
   (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)

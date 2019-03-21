@@ -87,18 +87,22 @@
        (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
        (just (Case-Clo Cases ℓ) ΔΣ)]
       [(-x x ℓ)
-       (define-values (α modify-V)
+       (define-values (α modify-Vs)
          (cond [(symbol? x)
-                (values (γ:lex x) (inst values V))]
+                (values (γ:lex x) (inst values V^))]
                [(equal? (ℓ-src ℓ) (-𝒾-src x))
-                (values (γ:top x) (inst values V))]
+                (values (γ:top x) (inst values V^))]
                [else
                 (values (γ:wrp x)
                         (if (symbol? (-𝒾-src x))
-                            (λ ([V : V]) (with-negative-party (ℓ-src ℓ) V))
-                            (λ ([V : V]) (with-positive-party 'dummy+
-                                           (with-negative-party (ℓ-src ℓ) V)))))]))
-       (define res (map/set modify-V (lookup α Σ)))
+                            (λ ([Vs : V^])
+                              (for/set: : V^ ([V (in-set (unpack Vs Σ))])
+                                (with-negative-party (ℓ-src ℓ) V)))
+                            (λ ([Vs : V^])
+                              (for/set: : V^ ([V (in-set (unpack Vs Σ))])
+                                (with-positive-party 'dummy+
+                                  (with-negative-party (ℓ-src ℓ) V))))))]))
+       (define res (modify-Vs (lookup α Σ)))
        (define r (R-of (if (set? res) (set-remove res -undefined) res)))
        (define es (if (∋ (unpack res Σ) -undefined)
                       {set (Err:Undefined (if (-𝒾? x) (-𝒾-name x) x) ℓ)}

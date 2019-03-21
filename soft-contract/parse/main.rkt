@@ -18,8 +18,7 @@
   (define (parse-files ps)
     (define ms (pre:parse-files (map pre:canonicalize-path ps)))
     (for-each collect-public-accs! ms)
-    (for ([m ms])
-      (add-transparent-module! (-module-path m)))
+    (for-each collect-transparent-modules! ms)
     ms)
 
   (: parse-module : Syntax → -module)
@@ -65,6 +64,13 @@
     (for ([(x mut) (in-hash mut-defs)] #:when (hash-has-key? decs x))
       (match-define (-st-mut 𝒾 _) mut)
       (add-public-mut! 𝒾 mut)))
+
+  (define collect-transparent-modules! : (-module → Void)
+    (match-lambda
+      [(-module l body)
+       (add-transparent-module! l)
+       (for ([form (in-list body)] #:when (-module? form))
+         (collect-transparent-modules! form))]))
 
   (define canonicalize-path pre:canonicalize-path)
   )
