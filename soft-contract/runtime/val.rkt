@@ -130,6 +130,7 @@
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
         [(? P?) #t]
+        [(? α? α) (go-α α)]
         [V (error 'C-flat? "unexpected: ~a" V)]))
     (go-V C))
 
