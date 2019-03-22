@@ -170,15 +170,6 @@
          (define α (α:dyn (β:st-elems (cons x (assert i index?)) -𝒾-cons) H₀))
          (values {set (St α ∅)} (⧺ ΔΣₜ (alloc α (vector-immutable Vᵢ Vₜ))))])))
 
-  (: alloc-each : W (Natural → β) → (Values (Listof α) ΔΣ))
-  (define (alloc-each Vs β-of)
-    (define-values (αs:rev ΔΣ*)
-      (for/fold ([αs:rev : (Listof α) '()] [ΔΣ* : ΔΣ ⊥ΔΣ])
-                ([Vᵢ (in-list Vs)] [i : Natural (in-naturals)])
-        (define αᵢ (α:dyn (β-of i) H₀))
-        (values (cons αᵢ αs:rev) (alloc-on αᵢ Vᵢ ΔΣ*))))
-    (values (reverse αs:rev) ΔΣ*))
-
   (: alloc-on : α V^ ΔΣ → ΔΣ)
   (define (alloc-on α V^ ΔΣ) (⧺ʳ ΔΣ α (cons V^ 1))) ; FIXME apply `care-if-singular?`
 

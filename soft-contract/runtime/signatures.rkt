@@ -180,7 +180,6 @@
    [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
    [alloc-vararg : (Symbol W → ΔΣ)]
    [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
-   [alloc-each : (W (Natural → β) → (Values (Listof α) ΔΣ))]
    [resolve-lex : ((U Symbol -𝒾) → α)]
    [mut : (α S Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
