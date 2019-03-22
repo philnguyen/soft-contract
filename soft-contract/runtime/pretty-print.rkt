@@ -186,14 +186,19 @@
                   [(1) '↦¹]
                   [(?) '↦?]
                   [(N) '↦ⁿ]))
-      `(,(show-T T) ,↦ ,@(show-S S))))
+      `(,(show-T T) ,↦ ,(show-S S))))
 
-  (: show-S : S → (Listof Sexp))
+  (: show-S : S → Sexp)
   (define (show-S S)
     (if (vector? S)
-        (for/list : (Listof Sexp) ([Vs (in-vector S)])
-          (show-V^ Vs))
-        (list (show-V^ S))))
+        (string->symbol
+         (string-join
+          (for/list : (Listof String) ([Vs (in-vector S)])
+            (format "~a" (show-V^ Vs)))
+          " "
+          #:before-first "["
+          #:after-last "]"))
+        (show-V^ S)))
 
   (: show-R : R → (Listof Sexp))
   (define (show-R r)
