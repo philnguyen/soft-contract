@@ -78,4 +78,5 @@
   (case src
     [(dummy) '□]
     [(havoc) '|arbitrary site|]
-    [else (format-symbol "~a:~a:~a" src line col)]))
+    [else
+     (if (symbol? src) src (format-symbol "~a:~a:~a" src line col))]))
