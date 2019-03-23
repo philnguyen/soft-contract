@@ -61,6 +61,7 @@
       ['not {set -ff}]
       ['set-empty? {set (Empty-Set)}]
       ['hash-empty? {set (Empty-Hash)}]
+      ['void? {set -void}]
       ;[(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) {set (St 𝒾 '() ∅)}]
       [(P:≡ (? -b? b)) {set b}]
       [_ #f]))
