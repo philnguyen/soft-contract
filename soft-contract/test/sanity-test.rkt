@@ -179,6 +179,7 @@
   (test "safe/issues/issue-107.rkt" check-safe) ; FIXME current false poz due to imprecise rest-arg reasoning
   (test "safe/issues/define-contract.rkt" check-safe)
   (test "safe/issues/sub-module.rkt" check-safe)
+  (test "safe/issues/base-types.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
