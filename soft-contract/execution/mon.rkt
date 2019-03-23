@@ -412,7 +412,9 @@
       [(? -b? b)
        (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
          (λ (_ ΔΣ) (just b ΔΣ))
-         (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
+         (λ (W ΔΣ)
+           (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ b)) Σ₀))
+           (just (list V* -FF) (⧺ ΔΣ ΔΣ*))))]
       [_
        (define ΔΣₓ (alloc γ-mon Vs))
        (with-each-ans ([(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))])

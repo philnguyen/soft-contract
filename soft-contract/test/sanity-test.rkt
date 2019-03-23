@@ -179,6 +179,8 @@
   (test "safe/issues/issue-107.rkt" check-safe) ; FIXME current false poz due to imprecise rest-arg reasoning
   (test "safe/issues/define-contract.rkt" check-safe)
   (test "safe/issues/sub-module.rkt" check-safe)
+  (test "safe/issues/base-types.rkt" check-safe)
+  (test "safe/issues/base-disjunct.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -206,6 +208,7 @@
   (test "unsafe/issues/issue-106.rkt" check-fail)
   (test "unsafe/issues/define-contract.rkt" check-fail)
   (test "unsafe/issues/sub-module.rkt" check-fail)
+  (test "unsafe/issues/base-disjunct.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 11)) ; duplicates
