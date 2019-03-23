@@ -100,7 +100,7 @@
   (: refine₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine₁ V P Σ)
     (match V
-      [(? -●?) (values (refine-V V P Σ) ⊥ΔΣ)]
+      [(or (? -●?) (? St?)) (values (refine-V V P Σ) ⊥ΔΣ)]
       [(? T? T) (values {set T} (if (ambiguous? T Σ) ⊥ΔΣ (refine-T T P Σ)))]
       [_ (values {set V} ⊥ΔΣ)]))
 
