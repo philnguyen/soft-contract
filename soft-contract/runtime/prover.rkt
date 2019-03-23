@@ -576,7 +576,7 @@
   (define canonicalize
     (match-lambda
       ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ -zero)}]
-      ['exact-positive-integer? {set 'exact? 'integer? (P:≥ -one)}]
+      ['exact-positive-integer? {set 'exact? 'integer? (P:> -zero)}]
       ['exact-integer? {set 'exact? 'integer?}]
       ['positive? (P:> -zero)]
       ['negative? (P:< -zero)]
