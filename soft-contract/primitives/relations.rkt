@@ -16,7 +16,8 @@
    ;; numbers
    [zero? ⇒ byte?]
    [byte? ⇒ fixnum?]
-   [fixnum? ⇒ integer?]
+   [byte? ⇒ exact-nonnegative-integer?]
+   [fixnum? ⇒ exact-integer?]
    [integer? ⇒ rational?]
    [real? ⇒ number?]
    [float-complex? ⇒ number?]
