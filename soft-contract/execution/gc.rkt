@@ -128,7 +128,7 @@
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]
-      [(∀/C _ _ Ρ _) Ρ]
+      [(∀/C xs c H _) (E-H-root xs c H)]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
@@ -137,8 +137,16 @@
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
 
   (define Clo-root : (Clo → (℘ α))
-    (match-lambda
-      [(Clo _ E Ρ _) (∪ Ρ (set-filter (match-lambda [(γ:lex (? symbol?)) #f] [_ #t]) (E-root E)))]))
+    (match-lambda [(Clo fml E H _) (E-H-root fml E H)]))
+
+  (define E-H-root : ((U -formals (Listof Symbol)) E H → (℘ α))
+    (let ([$ : (Mutable-HashTable E (Mutable-HashTable H (℘ α))) (make-hasheq)])
+      (λ (fml E H*)
+        (define $* (hash-ref! $ E (λ () ((inst make-hash H (℘ α))))))
+        (hash-ref! $* H*
+                   (λ ()
+                     (∪ (Clo-escapes fml E H*)
+                        (set-filter (match-lambda [(γ:lex (? symbol?)) #f] [_ #t]) (E-root E))))))))
 
   (define P-root : (P → (℘ α))
     (match-lambda

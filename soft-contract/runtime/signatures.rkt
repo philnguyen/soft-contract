@@ -34,7 +34,7 @@
 (#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
-(#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E (℘ α) ℓ)
+(#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E H ℓ)
                                 (Case-Clo (Listof Clo) ℓ))
 (#|Contracts      |# C . ::= . (And/C α α ℓ)
                                (Or/C α α ℓ)
@@ -51,7 +51,7 @@
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
-                                  (∀/C (Listof Symbol) E (℘ α) ℓ)
+                                  (∀/C (Listof Symbol) E H ℓ)
                                   (Case-=> (Listof ==>i))) 
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
                                  (Err:Undefined Symbol ℓ)
@@ -183,7 +183,7 @@
    [resolve-lex : ((U Symbol -𝒾) → α)]
    [mut : (α S Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [escape : ((℘ Symbol) Σ → (Values (℘ α) ΔΣ))]
+   [escape : ((℘ Symbol) Σ → ΔΣ)]
    [stack-copy : ((℘ α) Σ → ΔΣ)]
    [ambiguous? : (T Σ → Boolean)]
    [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
@@ -228,6 +228,7 @@
    [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
+   [Clo-escapes : ((U -formals (Listof Symbol)) E H → (℘ α))]
    ))
 
 (define-signature prover^
@@ -244,6 +245,7 @@
 (define-signature pretty-print^
   ([show-α : (α → Sexp)]
    [show-V : (V → Sexp)]
+   [show-S : (S → Sexp)]
    [show-V^ : (V^ → Sexp)]
    [show-W : (W → (Listof Sexp))]
    [show-Σ : (Σ → (Listof Sexp))]

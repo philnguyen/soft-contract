@@ -80,9 +80,7 @@
     (match E₀
       [(? -prim? p) (just p)]
       [(-•) (just (-● ∅))]
-      [(-λ Xs E ℓ)
-       (define-values (Ρ ΔΣ) (escape (fv E₀) Σ))
-       (just (Clo Xs E Ρ ℓ) ΔΣ)]
+      [(-λ Xs E ℓ) (just (Clo Xs E H₀ ℓ) (escape (fv E₀) Σ))]
       [(-case-λ cases ℓ)
        (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
        (just (Case-Clo Cases ℓ) ΔΣ)]
@@ -219,8 +217,7 @@
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
        (just (Case-=> Cases) ΔΣ)]
       [(-∀/c xs E ℓ)
-       (define-values (Ρ ΔΣ) (escape (fv E₀) Σ))
-       (just (∀/C xs E Ρ ℓ) ΔΣ)]))
+       (just (∀/C xs E H₀ ℓ) (escape (fv E₀) Σ))]))
 
   (: bnd->renamings : (Listof Binding) (γ:lex → (Option T)) → Renamings)
   (define (bnd->renamings bnds f)
@@ -263,8 +260,8 @@
   (define (evl-dom Σ dom)
     (match-define (-dom _ ?deps c ℓ) dom)
     (if ?deps
-        (let-values ([(Ρ ΔΣ) (escape (set-subtract (fv c) (list->seteq ?deps)) Σ)])
-          (values (cons (Clo (-var ?deps #f) c Ρ ℓ) ΔΣ) ∅))
+        (let ([ΔΣ (escape (set-subtract (fv c) (list->seteq ?deps)) Σ)])
+          (values (cons (Clo (-var ?deps #f) c H₀ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
 
   (: evl/arity : Σ E Natural ℓ → (Values R (℘ Err)))

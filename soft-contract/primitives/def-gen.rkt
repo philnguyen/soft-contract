@@ -314,7 +314,7 @@
        (cond
          [(null? (-ctc-parameters))
           ;; TODO make sure no collision
-          #`(∀/C '(x ...) body ∅ #,(gen-stx-ℓ stx))]
+          #`(∀/C '(x ...) body H₀ #,(gen-stx-ℓ stx))]
          [else
           (with-syntax ([(esc ...)
                          (error 'TODO "generalize env")
@@ -322,7 +322,7 @@
                                    ([(x a) (in-hash (-ctc-parameters))])
                            #`(hash-set #,env '#,x (γ:imm #,a)))])
             ;; TODO make sure no collision
-            #`(∀/C '(x ...) body {set esc ...} #,(gen-stx-ℓ stx)))])]
+            #`(∀/C '(x ...) body {set (α:dyn esc H₀) ...} #,(gen-stx-ℓ stx)))])]
       [((~literal and/c) c ...)
        ((go* #'And/C #''any/c) (syntax->list #'(c ...)))]
       [((~literal or/c) c ...)

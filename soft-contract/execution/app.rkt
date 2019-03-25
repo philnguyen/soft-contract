@@ -72,13 +72,13 @@
 
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
-    (match-define (Clo fml E Ρ ℓₕ) Vₕ)
+    (match-define (Clo fml E H ℓₕ) Vₕ)
     (cond [(arity-includes? (shape fml) (length Wₓ*))
            (match-define (-var xs xᵣ) fml)
            (define Wₓ (unpack-W Wₓ* Σ))
            (define ΔΣₓ
              (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (stack-copy Ρ Σ)
+               (⧺ (stack-copy (Clo-escapes fml E H) Σ)
                   (alloc-lex* xs W₀)
                   (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
            ;; gc one more time against unpacked arguments
@@ -212,8 +212,8 @@
       (define ctx (Ctx l+ l- ℓₓ ℓ))
       (match c
         ;; Dependent domain
-        [(Clo (-var xs #f) E Ρ _)
-         (define ΔΣ₀ (stack-copy Ρ Σ))
+        [(Clo (-var xs #f) E H _)
+         (define ΔΣ₀ (stack-copy (Clo-escapes xs E H) Σ))
          (define Σ₀ (⧺ Σ ΔΣ₀))
          (with-each-ans ([(ΔΣ₁ W) (evl Σ₀ E)]
                          [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
@@ -419,7 +419,7 @@
   (: inst-∀/C : Σ (Pairof -l -l) ∀/C α ℓ → (Values R (℘ Err)))
   ;; Monitor function against freshly instantiated parametric contract
   (define (inst-∀/C Σ₀ ctx G α ℓ)
-    (match-define (∀/C xs c Ρ ℓₒ) G)
+    (match-define (∀/C xs c H ℓₒ) G)
     (match-define (cons l+ (and l- l-seal)) ctx)
     (define ΔΣ₀
       (let ([ΔΣ:seals
@@ -428,7 +428,7 @@
                (⧺ acc
                   (alloc αₓ ∅)
                   (alloc (γ:lex x) {set (Seal/C αₓ l-seal)})))]
-            [ΔΣ:stk (stack-copy Ρ Σ₀)])
+            [ΔΣ:stk (stack-copy (Clo-escapes xs c H) Σ₀)])
         (⧺ ΔΣ:seals ΔΣ:stk)))
     (define Σ₁ (⧺ Σ₀ ΔΣ₀))
     (with-each-ans ([(ΔΣ₁ W:c) (evl Σ₁ c)])

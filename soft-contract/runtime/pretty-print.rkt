@@ -78,7 +78,7 @@
   (define show-Prox/C : (Prox/C → Sexp)
     (match-lambda
       [(? ==>i? V) (show-==>i V)]
-      [(∀/C xs C Ρ _) `(∀/C ,xs …)]
+      [(∀/C xs C _ _) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(? St/C? C) (define-values (_ ℓ 𝒾) (St/C-fields C))
                    (format-symbol "~a/c@~a" (-𝒾-name 𝒾) (show-ℓ ℓ))]

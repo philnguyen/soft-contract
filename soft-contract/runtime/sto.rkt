@@ -259,11 +259,11 @@
         (values α (γ:lex x))))
     (copy/rename rn Σ))
 
-  (: escape : (℘ Symbol) Σ → (Values (℘ α) ΔΣ))
+  (: escape : (℘ Symbol) Σ → ΔΣ)
   (define (escape Xs Σ)
     (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
                  (values (γ:lex x) (α:dyn x H₀))))
-    (values (list->set (hash-values rn)) (copy/rename rn Σ)))
+    (copy/rename rn Σ))
 
   (: copy/rename : (Immutable-HashTable α α) Σ → Σ)
   (define (copy/rename rn Σ₀)
