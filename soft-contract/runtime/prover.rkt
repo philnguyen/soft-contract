@@ -623,7 +623,8 @@
                          [(set-ormap list-excl? Ps) '✗]
                          [else #f])]
           [(? α? α) (go-α α)]
-          [(? T:@? T) (go* (unpack T Σ))]))
+          [(? T:@? T) (go* (unpack T Σ))]
+          [_ '✗]))
       
       (go V₀)))
 
