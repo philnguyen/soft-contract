@@ -179,8 +179,9 @@
         (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
         (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) Cᵢ V*)]
           (with-pre ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (unpack αᵥ Σ) V*)))]
-       [_ (just -void (alloc (γ:hv #f) V*))])
-     Vₓ))
+       [(? -●?) (just -void (alloc (γ:hv #f) V*))]
+       [_ (values ⊥R ∅)])
+     (unpack Vₓ Σ)))
 
   (: app-prim : Symbol → ⟦F⟧)
   (define ((app-prim o) Σ ℓ Wₓ)

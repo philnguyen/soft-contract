@@ -3,12 +3,16 @@
 (provide (all-defined-out)
          (all-from-out "arity.rkt" "srcloc.rkt"))
 
-(require racket/match
+(require (for-syntax racket/base
+                     racket/syntax
+                     racket/pretty)
+         racket/match
          racket/set
          racket/list
          racket/extflonum 
          racket/splicing
          typed/racket/unit
+         syntax/parse/define
          bnf
          set-extras
          "../utils/pretty.rkt"
@@ -106,10 +110,40 @@
            (-st-mut -𝒾 Index)
            (-st-mk -𝒾))
 
-(define -𝒾-values (-𝒾 'values 'Λ))
-(define -𝒾-cons (-𝒾 'cons 'Λ))
-(define -𝒾-mcons (-𝒾 'mcons 'Λ))
-(define -𝒾-box (-𝒾 'box 'Λ))
+(define-syntax-parser dec-prim-struct
+  [(_ st:id fld:id ... #:mutable? mut:boolean)
+   (with-syntax* ([-𝒾-name (format-id #'st "-𝒾-~a" #'st)]
+                  [-st (format-id #'st "-~a" #'st)]
+                  [-st? (format-id #'st "-~a?" #'st)]
+                  [(def-ac ...)
+                   (for/list ([f (in-list (syntax->list #'(fld ...)))]
+                              [i (in-naturals)])
+                     #`(define #,(format-id #'st "-~a" f) (-st-ac -𝒾-name #,i)))]
+                  [(def-set ...)
+                   (cond
+                     [(not (syntax-e #'mut))
+                      '()]
+                     [(= 1 (length (syntax->list #'(fld ...))))
+                      #`((define #,(format-id #'st "-set-~a!" #'st) (-st-mut -𝒾-name 0)))]
+                     [else
+                      (for/list ([f (in-list (syntax->list #'(fld ...)))]
+                                 [i (in-naturals)])
+                        #`(define #,(format-id #'st "-set-~a!" f) (-st-mut -𝒾-name #,i)))])])
+     #'(begin
+         (define -𝒾-name (-𝒾 'st 'Λ))
+         (define -st (-st-mk -𝒾-name))
+         (define -st? (-st-p -𝒾-name))
+         def-ac ...
+         def-set ...))])
+
+(dec-prim-struct cons car cdr #:mutable? #f)
+(dec-prim-struct mcons mcar mcdr #:mutable? #t)
+(dec-prim-struct box unbox #:mutable? #t)
+(dec-prim-struct thread-cell thread-cell-ref #:mutable? #t)
+
+;; FIXME: HACKS for Scheme programs
+(define -set-car! (-st-mut -𝒾-cons 0))
+(define -set-cdr! (-st-mut -𝒾-cons 1))
 
 (define-type Subst (Immutable-HashTable Symbol -e))
 
@@ -125,27 +159,8 @@
 (define -null-char (-b #\null))
 (define -undefined (-b undefined))
 
-(define -cons (-st-mk -𝒾-cons))
-(define -car (-st-ac -𝒾-cons 0))
-(define -cdr (-st-ac -𝒾-cons 1))
-(define -set-cdr! (-st-mut -𝒾-cons 1)) ; HACK for running some scheme programs
-(define -set-car! (-st-mut -𝒾-cons 0)) ; HACK for running some scheme programs
-(define -cons? (-st-p -𝒾-cons))
-
-(define -mcons (-st-mk -𝒾-mcons))
-(define -mcar (-st-ac -𝒾-mcons 0))
-(define -mcdr (-st-ac -𝒾-mcons 1))
-(define -set-mcar! (-st-mut -𝒾-mcons 0))
-(define -set-mcdr! (-st-mut -𝒾-mcons 1))
-(define -mpair? (-st-p -𝒾-mcons))
-
 (define -zero (-b 0))
 (define -one (-b 1))
-
-(define -box? (-st-p -𝒾-box))
-(define -unbox (-st-ac -𝒾-box 0))
-(define -box (-st-mk -𝒾-box))
-(define -set-box! (-st-mut -𝒾-box 0))
 
 (: var-map (∀ (X Y) (X → Y) (-var X) → (-var Y)))
 (define (var-map f v)
