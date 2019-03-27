@@ -12,4 +12,6 @@
  (contract-out
   [f (-> parent?)]
   [g (-> parent/c)]
-  [child (string? integer? . -> . parent/c)]))
+  [child (string? integer? . -> . parent/c)]
+  [child-age (child? . -> . integer?)]
+  [parent-name (parent? . -> . string?)]))

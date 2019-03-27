@@ -49,8 +49,9 @@
     (define structs (-static-info-structs (current-static-info)))
     (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
 
+  ;; Return number of fields that this struct directly declares
   (define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
-  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (vector-ref (get-struct-info 𝒾) i))
+  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (vector-ref (get-struct-info 𝒾) (- i (struct-offset 𝒾))))
   (define (struct-all-immutable? [𝒾 : -𝒾])
     (not (for/or : Boolean ([mut? (in-vector (get-struct-info 𝒾))])
            mut?)))
@@ -222,20 +223,20 @@
             [(hash-ref parentstruct 𝒾 #f) => loop]
             [else #f])))
 
-  (: field-offset : -𝒾 → Index)
-  (define (field-offset 𝒾)
+  (: struct-offset : -𝒾 → Index)
+  ;; Return the total number of fields from super-structs
+  (define (struct-offset 𝒾)
     ;; NOTE: maybe unsafe to memoize this function because it depends on parameter
     (define parentstruct (-static-info-parentstruct (current-static-info)))
     (let loop ([𝒾 : -𝒾 𝒾] [n : Index 0])
-      (cond [(hash-ref parentstruct 𝒾 #f)
-             =>
-             (λ ([𝒾* : -𝒾])
-               (loop 𝒾* (assert (+ n (count-direct-struct-fields 𝒾*)) index?)))]
-            [else n])))
+      (match (hash-ref parentstruct 𝒾 #f)
+        [(? values 𝒾*) (loop 𝒾* (assert (+ n (count-direct-struct-fields 𝒾*)) index?))]
+        [#f n])))
 
   (: count-struct-fields : -𝒾 → Index)
+  ;; Return the total number of fields in struct, including its super-structs
   (define (count-struct-fields 𝒾)
-    (assert (+ (field-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
+    (assert (+ (struct-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
 
   (: add-transparent-module! : -l → Void)
   (define (add-transparent-module! l)

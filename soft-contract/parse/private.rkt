@@ -274,7 +274,7 @@
                       (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         (let ([offset (field-offset 𝒾)])
+         (let ([offset (struct-offset 𝒾)])
            (for/list ([ac (in-list (attribute d.field-names))]
                       [st-dom st-doms]
                       [i (in-naturals)] #:when (>= i offset))
@@ -320,7 +320,7 @@
          [(attribute d.?parent) =>
           (λ (p)
             (set-parent-struct! 𝒾 (hash-ref (struct-map) (id->𝒾 p))))])
-       (define offset (field-offset 𝒾))
+       (define offset (struct-offset 𝒾))
 
        ;; Parse for direct field accessors/mutators
        (match-define (cons accs muts) (attribute d.accessors+mutators))

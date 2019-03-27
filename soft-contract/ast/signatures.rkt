@@ -273,7 +273,7 @@
    [in-struct-tags : (→ (Sequenceof -𝒾))]
    [set-parent-struct! : (-𝒾 -𝒾 → Void)]
    [substruct? : (-𝒾 -𝒾 → Boolean)]
-   [field-offset : (-𝒾 → Index)]
+   [struct-offset : (-𝒾 → Index)]
    [count-struct-fields : (-𝒾 → Index)]
    [add-transparent-module! : (-l → Void)]
    [transparent-module? : (-l → Boolean)]
