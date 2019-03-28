@@ -122,6 +122,7 @@
         [(? Not/C?) #t]
         [(? One-Of/C?) #t]
         [(St/C α) (go-α α)]
+        [(or (? Vectof/C?) (? Vect/C?)) #f]
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
