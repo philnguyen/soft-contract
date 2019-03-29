@@ -182,6 +182,7 @@
   (test "safe/issues/base-types.rkt" check-safe)
   (test "safe/issues/base-disjunct.rkt" check-safe)
   (test "safe/issues/thread-cells.rkt" check-safe)
+  (test "safe/issues/accum-loop.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -213,7 +214,7 @@
   (test "unsafe/issues/thread-cells.rkt" check-fail)
 
   ;; Slightly larger ones
-  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 11)) ; duplicates
+  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 14)) ; duplicates, depending on counting
   (test "safe/real/fector.rkt" (check 'Ok-pos 0 1))
   #;(test "safe/real/nucleic2-modular-fixed.rkt" check-safe)
   #;(test "safe/real/nucleic2-modular.rkt" check-fail)
