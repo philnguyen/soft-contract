@@ -100,7 +100,7 @@
   (: show-V^ : V^ → Sexp)
   (define (show-V^ V^)
     (string->symbol (string-join (set-map V^ (compose1 sexp->string show-V))
-                                 "," #:before-first "{" #:after-last "}")))
+                                 "|" #:before-first "{" #:after-last "}")))
 
   (: show-W : W → (Listof Sexp))
   (define (show-W W) (map show-V^ W))
