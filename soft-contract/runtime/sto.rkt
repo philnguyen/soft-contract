@@ -33,8 +33,9 @@
     (foldl ⧺₁ ΔΣ₀ ΔΣs))
   (splicing-local
       ((define undef {set -undefined})
-       (define (ensure-val [s : S]) (if (vector? s) !!! s))
-       (define (ensure-blob [s : S]) (if (vector? s) s !!!)))
+       (define get-mt-blob : (Index → (Vectorof V^))
+         (let ([cache : (Mutable-HashTable Index (Vectorof V^)) (make-hasheq)])
+           (λ (n) (hash-ref! cache n (λ () ((inst make-vector V^) n ∅)))))))
 
     (: lookup : γ Σ → V^)
     (define (lookup γ Σ)
@@ -45,24 +46,29 @@
              [(singleton-set (? T? T)) (if (α? T) (go T) {set T})]
              [(? set?) (if (γ? α) {set α} S)]
              [_ !!!])]
-          [#f (if (γ:imm? α) (resolve-imm α) undef)])))
+          [#f (if (γ:imm? α) (resolve-imm α) (begin (printf "undef ~a~n" (show-α γ)) undef))])))
 
     (: Σ@ : α Σ → V^)
-    (define (Σ@ α Σ) (ensure-val (Σ@/raw α Σ)))
+    (define (Σ@ α Σ) (assert (Σ@/raw α Σ) set?))
 
     (: Σ@/blob : α Σ → (Vectorof V^))
-    (define (Σ@/blob α Σ) (ensure-blob (Σ@/raw α Σ)))
+    (define (Σ@/blob α Σ) (assert (Σ@/raw α Σ) vector?))
 
     (: Σ@/raw : α Σ → S)
     (define (Σ@/raw α Σ)
       (cond
         [(hash-ref Σ α #f) => car]
         [(γ:imm*? α) (resolve-imm α)]
-        [(or (γ:hv? α)
-             (γ:escaped-field? α)
-             (and (α:dyn? α) (β:sealed? (α:dyn-_0 α))))
-         ∅]
-        [else undef])))
+        [else
+         (match α
+           [(α:dyn β _)
+            (match β
+              [(β:st-elems _ 𝒾) (get-mt-blob (count-struct-fields 𝒾))]
+              [(β:vect-elems _ n) (get-mt-blob n)]
+              [(β:vect/c-elems _ n) (get-mt-blob n)]
+              [(β:st/c-elems _ 𝒾) (get-mt-blob (count-struct-fields 𝒾))]
+              [_ ∅])]
+           [_ ∅])])))
 
   (splicing-local
       ((define γ:null? (γ:imm 'null?))
