@@ -42,7 +42,7 @@
   (define (hv Σ αₕᵥ)
     (define root {set αₕᵥ})
     (define Σ* (gc root Σ))
-    (ref-$! (intern-$:Key ($:Key:Hv Σ* αₕᵥ))
+    (ref-$! ($:Key:Hv Σ* αₕᵥ)
             (λ ()
               (with-gc root Σ*
                 (λ ()

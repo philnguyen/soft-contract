@@ -77,8 +77,9 @@
                          (hash-remove acc k)))
             (loop (+ 1 iter))))))
 
-  (: ref-$! : $:K (→ (Values R (℘ Err))) → (Values R (℘ Err)))
-  (define (ref-$! key comp)
+  (: ref-$! : $:Key (→ (Values R (℘ Err))) → (Values R (℘ Err)))
+  (define (ref-$! key* comp)
+    (define key (intern-$:Key key*))
     (match (hash-ref $ₒᵤₜ key #f)
       [(cons r es)
        ;; Record all configurations whose result depend on cache entry

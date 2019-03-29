@@ -36,7 +36,7 @@
      (λ (Vₕ)
        (define root (∪ W:root (V-root Vₕ)))
        (define Σ* (gc root Σ))
-       (ref-$! (intern-$:Key ($:Key:App Σ* ℓ Vₕ W))
+       (ref-$! ($:Key:App Σ* ℓ Vₕ W)
                (λ () (with-gc root Σ* (λ () (app₁ Σ* ℓ Vₕ W))))))
      (unpack Vₕ^ Σ))) 
 

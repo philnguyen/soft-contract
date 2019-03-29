@@ -36,7 +36,7 @@
     (fold-ans (λ ([C : V])
                 (define root (∪ (V-root C) args:root))
                 (define Σ* (gc root Σ))
-                (ref-$! (intern-$:Key ($:Key:Mon Σ* ctx C V^))
+                (ref-$! ($:Key:Mon Σ* ctx C V^)
                         (λ () (with-gc root Σ* (λ () ((mon₁ C) Σ* ctx V^))))))
               (unpack C^ Σ)))
 
@@ -345,7 +345,7 @@
      (λ (C)
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
-       (ref-$! (intern-$:Key ($:Key:Fc Σ₀* ℓ C Vs))
+       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
                (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
      Cs))
 
