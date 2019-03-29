@@ -37,7 +37,7 @@
         (match (hash-ref Σ₀ α #f)
           [(? values r) (hash-set Σ α r)]
           [#f Σ]))
-      (define S (Σ@/raw α ctx))
+      (define S (Σ@/raw α ctx)) ; `Σ@` instead of just `hash-ref` takes care of `γ:imm`
       (if (vector? S)
           (for*/fold ([Σ* : ΔΣ Σ*])
                      ([Vs (in-vector S)]
