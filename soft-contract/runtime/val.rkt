@@ -190,8 +190,8 @@
      [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
      [(_ V) V]))
 
-  (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
-  (define (make-renamings fml W)
+  (: make-renamings : (U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)
+  (define (make-renamings fml W prevent?)
     (define xs (if (-var? fml) (-var-init fml) fml))
     (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
                                (split-at W (length xs))
@@ -199,7 +199,8 @@
     (define m
       (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
         (values (γ:lex x)
-                (and (= 1 (set-count Vs))
+                (and (not (prevent? x))
+                     (= 1 (set-count Vs))
                      (let ([V (set-first Vs)])
                        (and (T? V) V))))))
     (match fml

@@ -217,7 +217,7 @@
    [guard-arity : (Fn/C → Arity)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
-   [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
+   [make-renamings : ((U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)]
    [rename : (Renamings → (case->
                            [T → (Option T)]
                            [(U T -b) → (Option (U T -b))]))]

@@ -143,13 +143,7 @@
                                    ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
                            (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
                            (values (R⊔ r rᵢ) (∪ es esᵢ)))])
-             (define rn
-               (let ([ΔΣₓ^ (set-fold ΔΣ⊔ (set-first ΔΣₓs) (set-rest ΔΣₓs))])
-                 (bnd->renamings bnds (λ (α)
-                                        (match (hash-ref ΔΣₓ^ α #f)
-                                          [{singleton-set (? T? T)} T]
-                                          [_ #f])))))
-             (values (fix-return rn Σ r*) es*)))]
+             (values (fix-return (make-erasure bnds) Σ r*) es*)))]
       [(-letrec-values bnds E ℓ)
        (define ΔΣ₀
          (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
@@ -160,8 +154,7 @@
          (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
            (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
            (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E))))
-       (define rn (bnd->renamings bnds (λ _ #f)))
-       (values (fix-return rn Σ r*) es*)]
+       (values (fix-return (make-erasure bnds) Σ r*) es*)]
       [(-set! X E ℓ)
        (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define α (if (symbol? X) (γ:lex X) (γ:top X)))
@@ -219,11 +212,10 @@
       [(-∀/c xs E ℓ)
        (just (∀/C xs E H₀ ℓ) (escape (fv E₀) Σ))]))
 
-  (: bnd->renamings : (Listof Binding) (γ:lex → (Option T)) → Renamings)
-  (define (bnd->renamings bnds f)
+  (: make-erasure : (Listof Binding) → Renamings)
+  (define (make-erasure bnds)
     (for*/hash : Renamings ([bnd (in-list bnds)] [x (in-list (car bnd))])
-      (define α (γ:lex x))
-      (values α (f α))))
+      (values (γ:lex x) #f)))
 
   (: evl-bnd* : Σ ℓ (Listof Binding) → (Values (℘ ΔΣ) (℘ Err)))
   (define (evl-bnd* Σ₀ ℓ bnds)

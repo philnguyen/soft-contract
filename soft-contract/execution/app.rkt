@@ -106,7 +106,7 @@
                  (hash-set! global-stores k Σ*)
                  (parameterize ([current-chain stk*])
                    (evl Σ* E)))) ; no `ΔΣₓ` in result
-             (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ*))))
+             (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ* assignable?))))
              (values (fix-return rn Σ₁ (ΔΣ⧺R ΔΣₓ rₐ)) es))]
           [else (err (Err:Arity ℓₕ (length Wₓ*) ℓ))]))
 
