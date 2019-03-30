@@ -49,9 +49,13 @@
   (def (apply Σ ℓ args)
     #:init ()
     #:rest [args (listof any/c)] ; manual arity check instead
-    (match args ; Make sure there is at least the function and rest args
-      [(list Vₕ Wₓ ... Vᵣ) (app/rest Σ ℓ Vₕ (cast Wₓ W) Vᵣ)]
-      [_ (err (Err:Arity 'apply args ℓ))]))
+    (define n (length args))
+    ;; Instead of pattern matching to get around TR cast
+    (if (>= n 2)
+        (match-let-values ([(Vₕ) (car args)]
+                           [(Wₓ (list Vᵣ)) (split-at (cdr args) (- n 2))])
+          (app/rest Σ ℓ Vₕ Wₓ Vᵣ))
+        (err (Err:Arity 'apply args ℓ))))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
