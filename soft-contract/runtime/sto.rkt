@@ -153,7 +153,7 @@
     (define α* (if (symbol? x) (γ:lex x) (γ:top x)))
     (if (assignable? x)
         (let ([α (resolve-lex x)])
-          (alloc-on α V^ (alloc α* {set α})))
+          (⧺ (alloc α V^) (alloc α* {set α})))
         (alloc α* V^)))
 
   (: alloc-lex* : (Listof (U Symbol -𝒾)) W → ΔΣ)
@@ -175,9 +175,6 @@
          (define-values (Vₜ ΔΣₜ) (go Wᵣ* (add1 i)))
          (define α (α:dyn (β:st-elems (cons x (assert i index?)) -𝒾-cons) H₀))
          (values {set (St α ∅)} (⧺ ΔΣₜ (alloc α (vector-immutable Vᵢ Vₜ))))])))
-
-  (: alloc-on : α V^ ΔΣ → ΔΣ)
-  (define (alloc-on α V^ ΔΣ) (⧺ʳ ΔΣ α (cons V^ 1))) ; FIXME apply `care-if-singular?`
 
   (: resolve-lex : (U Symbol -𝒾) → α)
   (define (resolve-lex x)
