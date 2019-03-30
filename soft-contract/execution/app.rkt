@@ -29,6 +29,13 @@
           exec^ evl^ mon^ hv^ gc^)
   (export app^)
 
+  ;; A call history tracks the call chain that leads to the current expression, modulo loops
+  (Stk . ≜ . (Listof E))
+  (define current-chain ((inst make-parameter Stk) '()))
+  ;; Global table remembering the widest store for each chain
+  ;; FIXME: memory leak. Reset for each program.
+  (define global-stores : (HashTable (Pairof Stk Σ) Σ) (make-hash))
+
   (: app : Σ ℓ V^ W → (Values R (℘ Err)))
   (define (app Σ ℓ Vₕ^ W)
     (define W:root (W-root W))
@@ -84,11 +91,29 @@
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            (let ([root (∪ (V-root Vₕ) (W-root Wₓ))])
-             (define Σ* (gc root Σ))
-             (define-values (rₐ es) (evl (⧺ Σ* ΔΣₓ) E)) ; no `ΔΣₓ` in result
+             (define Σ₁ (gc root Σ))
+             (define-values (rₐ es)
+               (let* ([stk (current-chain)]
+                      [Σ₂ (⧺ Σ₁ ΔΣₓ)]
+                      [Σ₂:stk (Σ-stk Σ₂)]
+                      [stk* (match (memq E stk)
+                              [(? values stk*) stk*]
+                              [#f (cons E stk)])]
+                      [k (cons stk* Σ₂:stk)]
+                      [Σ* (match (hash-ref global-stores k #f)
+                            [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₂)]
+                            [#f Σ₂])])
+                 (hash-set! global-stores k Σ*)
+                 (parameterize ([current-chain stk*])
+                   (evl Σ* E)))) ; no `ΔΣₓ` in result
              (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ*))))
-             (values (fix-return rn Σ* (ΔΣ⧺R ΔΣₓ rₐ)) es))]
+             (values (fix-return rn Σ₁ (ΔΣ⧺R ΔΣₓ rₐ)) es))]
           [else (err (Err:Arity ℓₕ (length Wₓ*) ℓ))]))
+
+  (: Σ-stk : Σ → Σ)
+  (define (Σ-stk Σ₀)
+    (for/fold ([Σ* : Σ Σ₀]) ([α (in-hash-keys Σ₀)] #:unless (γ:lex? α))
+      (hash-remove Σ* α)))
 
   (: app-Case-Clo : Case-Clo → ⟦F⟧)
   (define ((app-Case-Clo Vₕ) Σ ℓ Wₓ)

@@ -46,7 +46,7 @@
              [(singleton-set (? T? T)) (if (α? T) (go T) {set T})]
              [(? set?) (if (γ? α) {set α} S)]
              [_ !!!])]
-          [#f (if (γ:imm? α) (resolve-imm α) (begin (printf "undef ~a~n" (show-α γ)) undef))])))
+          [#f (if (γ:imm? α) (resolve-imm α) undef)])))
 
     (: Σ@ : α Σ → V^)
     (define (Σ@ α Σ) (assert (Σ@/raw α Σ) set?))

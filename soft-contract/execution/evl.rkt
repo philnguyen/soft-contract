@@ -70,7 +70,7 @@
   (: evl : Σ E → (Values R (℘ Err)))
   (define (evl Σ E)
     (define root (E-root E))
-    (define Σ* (gc-root Σ))
+    (define Σ* (gc root Σ))
     (ref-$! ($:Key:Exp Σ* E)
             (λ () (with-gc root Σ* (λ () (do-evl Σ* E))))))
 
