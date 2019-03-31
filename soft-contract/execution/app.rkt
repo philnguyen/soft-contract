@@ -45,7 +45,16 @@
        (define Σ* (gc root Σ))
        (ref-$! ($:Key:App Σ* ℓ Vₕ W)
                (λ () (with-gc root Σ* (λ () (app₁ Σ* ℓ Vₕ W))))))
-     (unpack Vₕ^ Σ))) 
+     (unpack Vₕ^ Σ)))
+
+  (: app/C : Σ ℓ V^ W → (Values R (℘ Err)))
+  (define (app/C Σ ℓ Cs W)
+    (define-values (bs Cs*) (set-partition -b? Cs))
+    (define-values (r₁ es₁) (cond [(set-empty? Cs*) (values ⊥R ∅)]
+                                  [else (app Σ ℓ Cs* W)]))
+    (define-values (r₂ es₂) (cond [(set-empty? bs) (values ⊥R ∅)]
+                                  [else (app₁ Σ ℓ 'equal? (cons bs W))]))
+    (values (R⊔ r₁ r₂) (∪ es₁ es₂)))
 
   (: app₁ : Σ ℓ V W → (Values R (℘ Err)))
   (define (app₁ Σ ℓ V W)
@@ -313,34 +322,34 @@
   (define ((app-And/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (unpack α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
-           (λ (_ ΔΣ*) (with-pre (⧺ ΔΣ₁ ΔΣ*) (app (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))
+           (λ (_ ΔΣ*) (with-pre (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))
            (λ (_ ΔΣ*) (values (R-of -ff (⧺ ΔΣ₁ ΔΣ*)) ∅))))]))
 
   (: app-Or/C : α α ℓ → ⟦F⟧)
   (define ((app-Or/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ₁ W₁) (app Σ ℓ (unpack α₁ Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (unpack α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
            (λ (_ ΔΣ*) (values (R-of W₁ (⧺ ΔΣ₁ ΔΣ*)) ∅))
-           (λ (_ ΔΣ*) (with-pre (⧺ ΔΣ₁ ΔΣ*) (app (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))))]))
+           (λ (_ ΔΣ*) (with-pre (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))))]))
 
   (: app-Not/C : α ℓ → ⟦F⟧)
   (define ((app-Not/C α ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ W) (app Σ ℓ (unpack α Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ W) (app/C Σ ℓ (unpack α Σ) Wₓ)])
          (define Σ* (⧺ Σ ΔΣ))
          (with-split-Σ Σ* 'values W
            (λ (_ ΔΣ*) (just -ff (⧺ ΔΣ ΔΣ*)))
            (λ (_ ΔΣ*) (just -tt (⧺ ΔΣ ΔΣ*)))))]))
 
   (: app-X/C : α → ⟦F⟧)
-  (define ((app-X/C α) Σ ℓ Wₓ) (app Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
+  (define ((app-X/C α) Σ ℓ Wₓ) (app/C Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
 
   (: app-One-Of/C : (℘ Base) → ⟦F⟧)
   (define ((app-One-Of/C bs) Σ ℓ Wₓ)
@@ -366,7 +375,7 @@
       (if (>= i (vector-length Cs))
           (just -tt)
           (with-collapsing/R [(ΔΣᵢ Wᵢs) ((unchecked-app-st-ac 𝒾 i) Σ ℓ Vₓ)]
-            (with-each-ans ([(ΔΣₜ Wₜ) (app (⧺ Σ ΔΣᵢ) ℓ (vector-ref Cs i) (collapse-W^ Wᵢs))])
+            (with-each-ans ([(ΔΣₜ Wₜ) (app/C (⧺ Σ ΔΣᵢ) ℓ (vector-ref Cs i) (collapse-W^ Wᵢs))])
               (define ΔΣ (⧺ ΔΣᵢ ΔΣₜ))
               (define Σ* (⧺ Σ ΔΣ))
               (with-split-Σ Σ* 'values Wₜ
