@@ -385,7 +385,6 @@
          [(or (? β:mut?) (? β:vect-elems?)) #t]
          [(β:st-elems _ 𝒾) (not (struct-all-immutable? 𝒾))]
          [_ #f])]
-      [(? γ:escaped-field?) #t]
       [_ #f]))
 
   ;; HACK to reduce redundant iterations
