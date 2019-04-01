@@ -27,7 +27,7 @@
 
 
   ;; 15.2.2 Files
-  (def file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
+  (def file-exists? (path-string? . -> . boolean?))
   (def delete-file (path-string? . -> . void?))
 
   ;; 15.2.6 More File and Directory Utilities
@@ -39,7 +39,7 @@
 ;;;;; 15.7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f)
-  (def putenv (string? string? . -> . boolean?) #:lift-concrete? #f)
+  (def getenv (string? . -> . (or/c string? not)))
+  (def putenv (string? string? . -> . boolean?))
   )
 

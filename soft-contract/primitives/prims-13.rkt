@@ -47,13 +47,11 @@
   (def read-char
     (case->
      [-> (or/c char? eof-object?)]
-     [input-port? . -> . (or/c char? eof-object?)])
-    #:lift-concrete? #f)
+     [input-port? . -> . (or/c char? eof-object?)]))
   (def peek-char
     (case->
      [-> (or/c char? eof-object?)]
-     [input-port? . -> . (or/c char? eof-object?)])
-    #:lift-concrete? #f)
+     [input-port? . -> . (or/c char? eof-object?)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

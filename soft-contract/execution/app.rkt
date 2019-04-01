@@ -228,7 +228,7 @@
        [(St α _)
         (define S (Σ@/blob α Σ))
         (define S* (vector-copy S))
-        (vector-set! S* i (blur V*))
+        (vector-set! S* i V*)
         (just -void (mut α S* Σ))]
        [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
         (define-values (αₕ ℓₕ _) (St/C-fields C))

@@ -216,8 +216,7 @@
      [-> (and/c inexact-real? (>/c 0) (</c 1))]
      [exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
      [exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?])
-    #:volatile? #t
-    #:lift-concrete? #f)
+    #:volatile? #t)
   (def random-seed ((and/c exact-integer? positive?) . -> . void?))
   (def make-pseudo-random-generator (-> pseudo-random-generator?))
   (def-pred pseudo-random-generator?)
@@ -274,7 +273,7 @@
      [real? (or/c 2 4 8) boolean? . -> . bytes?]
      [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) . -> . bytes?]
      [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) exact-nonnegative-integer? . -> . bytes?]))
-  (def system-big-endian? (-> boolean?) #:lift-concrete? #f)
+  (def system-big-endian? (-> boolean?))
 
   ;; 4.2.2.10 Extra Functions
   (def-const pi)
@@ -306,7 +305,7 @@
   (def make-flrectangular (flonum? flonum? . -> . float-complex?))
   (def* (flreal-part flimag-part) ; FIXME correct domain
     (float-complex? . -> . flonum?))
-  (def flrandom (pseudo-random-generator? . -> . (and/c flonum? (>/c 0) (</c 1))) #:lift-concrete? #f)
+  (def flrandom (pseudo-random-generator? . -> . (and/c flonum? (>/c 0) (</c 1))))
 
   ;; 4.2.3.2 Flonum Vectors
   (def-pred flvector?)

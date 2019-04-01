@@ -58,9 +58,7 @@
         (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:volatile? volatile?:boolean)
-                   #:defaults ([volatile? #'#t]))
-        (~optional (~seq #:lift-concrete? lift?:boolean)
-                   #:defaults ([lift? #'#t])))
+                   #:defaults ([volatile? #'#t])))
 
      (check-shape-ok #'o #'sig (syntax->list #'(ref ...)))
      (define/with-syntax .o (prefix-id #'o))
@@ -91,7 +89,6 @@
                              [-sig #'sig]
                              [-Vⁿ (gen-ids #'W 'V max-inits)]
                              [-Vᵣ (format-id #'W "Vᵣ")]
-                             [-gen-lift? (syntax-e #'lift?)]
                              [-refinements (syntax->list #'(ref ...))]
                              [-volatile? (syntax-e #'volatile?)])
                 (gen-cases))))

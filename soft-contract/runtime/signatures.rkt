@@ -206,9 +206,6 @@
    [W⊔ : (W W → W)]
    [V⊔ : (V^ V^ → V^)]
    [V⊔₁ : (V V^ → V^)]
-   [blur : (case->
-            [V → V]
-            [V^ → V^])]
    [Ctx-with-site : (Ctx ℓ → Ctx)]
    [Ctx-with-origin : (Ctx ℓ → Ctx)]
    [Ctx-flip : (Ctx → Ctx)]

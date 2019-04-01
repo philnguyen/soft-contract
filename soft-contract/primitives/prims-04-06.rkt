@@ -49,8 +49,7 @@
     (case->
      [-> symbol?]
      [(or/c string? symbol?) . -> . symbol?])
-    #:volatile? #t
-    #:lift-concrete? #f)
+    #:volatile? #t)
   (def-pred symbol<? (symbol? symbol?))
   
   )

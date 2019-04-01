@@ -47,7 +47,6 @@
     [-sig syntax? #f]
     [-Vⁿ (listof identifier?) #f]
     [-Vᵣ (or/c #f identifier?) #f]
-    [-gen-lift? boolean? #f]
     [-refinements (listof syntax?) '()]
     [-ctc-parameters (listof identifier?) '()]
     [-volatile? boolean? #t]
@@ -82,66 +81,13 @@
          [_ (r:err (Err:Arity '#,(-o) (length #,(-W)) #,(-ℓ)))])))
 
   ;; Generate abstract result from contract.
-  ;; For primitives that take and return base values shared between
-  ;; object-language and meta-language, also lift concrete case.
   (define/contract (gen-case dom-inits ?dom-rst rngs)
     ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . syntax?)
     (define/with-syntax pats
       (let ([arg-inits (take (-Vⁿ) (length dom-inits))])
         (if ?dom-rst #`(list* #,@arg-inits #,(-Vᵣ)) #`(list #,@arg-inits))))
-    (define/with-syntax (body ...)
-      (let ([body-general (gen-case-general dom-inits ?dom-rst rngs)])
-        (if (and (-gen-lift?) (should-lift? dom-inits ?dom-rst rngs))
-            (gen-case-lift dom-inits ?dom-rst rngs body-general)
-            body-general)))
+    (define/with-syntax (body ...) (gen-case-general dom-inits ?dom-rst rngs))
     #'[pats body ...])
-
-  ;; Generated lifted concrete op before resorting to `body`
-  (define/contract (gen-case-lift dom-inits ?dom-rst rngs body)
-    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) (listof syntax?) . -> . (listof syntax?))
-    (hack:make-available (-o) W->bs r:just)
-
-    (define n-inits (length dom-inits))
-    
-    ;; Generate basic patterns for init arguments
-    (define/with-syntax (bᵢ ...) (gen-ids (-W) 'b (length dom-inits)))
-    (define/with-syntax bᵣ (format-id (-W) "bᵣ"))
-    (define/with-syntax (a ...) (gen-ids (-W) 'a (length rngs)))
-    (define/with-syntax (Vᵢ ...)
-      (for/list ([c (in-list dom-inits)] [x (in-syntax-list #'(bᵢ ...))])
-        (syntax-parse (?flatten-ctc c)
-          [(~or () (~literal any/c)) #`{singleton-set (-b #,x)}]
-          [(p ...)
-           (with-syntax ([(p* ...) (map for-TR (syntax->list #'(p ...)))])
-             #`{singleton-set (-b (and #,x (? p*) ...))})])))
-
-    ;; Generate guards for rest argument list
-    (define/with-syntax (pat+grd ...)
-      (syntax-parse ?dom-rst
-        [#f #'((Vᵢ ...))]
-        [((~literal listof) c)
-         (define/with-syntax pᵣ
-           (syntax-parse (?flatten-ctc #'c)
-             [(o) (for-TR #'o)]
-             [(o ...)
-              (define/with-syntax (o* ...) (map for-TR (syntax->list #'(o ...))))
-              #'(λ ([x : Base]) (and (o* x) ...))]))
-         #'((Vᵢ ... (app W->bs bᵣ)) #:when (and bᵣ (andmap pᵣ bᵣ)))]
-        [_ #'((Vᵢ ... (app W->bs bᵣ)) #:when bᵣ)]))
-    (define/with-syntax compute-ans
-      (if ?dom-rst #`(apply #,(-o) bᵢ ... bᵣ) #`(#,(-o) bᵢ ...)))
-    (list
-     (if ?dom-rst
-         #`(match* (#,@(take (-Vⁿ) n-inits) #,(-Vᵣ))
-             [pat+grd ...
-              (define-values (a ...) compute-ans)
-              (r:just (list {set (-b a)} ...))]
-             [(#,@(make-list n-inits #'_) _) #,@body])
-         #`(match* #,(take (-Vⁿ) n-inits)
-             [pat+grd ...
-              (define-values (a ...) compute-ans)
-              (r:just (list {set (-b a)} ...))]
-             [#,(make-list n-inits #'_) #,@body]))))
 
   ;; Generate abstract case for primitive
   (define/contract (gen-case-general dom-inits ?dom-rst rngs)
@@ -412,16 +358,6 @@
        (define/with-syntax body (ctc->ast #'c))
        #`(-∀/c '(x ...) body #,(gen-stx-ℓ #'stx))]
       [c (error 'ctc->ast "unimplemented: ~a" (syntax->datum #'c))]))
-
-  ;; Based on domain and range, decide if interpreter can lift concrete op
-  (define/contract (should-lift? doms ?rst rngs)
-    ((listof syntax?) (or/c #f syntax?) (or/c 'any (listof syntax?)) . -> . boolean?)
-    (and (andmap liftable-base? doms)
-         (?rst . implies . (syntax-parse ?rst
-                             [((~literal listof) c) (liftable-base? #'c)]
-                             [(~or (~literal list?) (~literal null?)) #t]
-                             [_ #f]))
-         (and (list? rngs) (andmap liftable-base? rngs))))
 
   ;; Map object-language's primitive to meta-language's representation
   (define/contract o->v (identifier? . -> . syntax?)

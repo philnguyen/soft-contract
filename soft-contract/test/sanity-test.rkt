@@ -214,10 +214,8 @@
   (test "unsafe/issues/thread-cells.rkt" check-fail)
 
   ;; Slightly larger ones
-  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 14)) ; duplicates, depending on counting
+  (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
   (test "safe/real/fector.rkt" (check 'Ok-pos 0 1))
-  #;(test "safe/real/nucleic2-modular-fixed.rkt" check-safe)
-  #;(test "safe/real/nucleic2-modular.rkt" check-fail)
 
   (test   "safe/real/leftist-tree.rkt" check-safe)
   (test "unsafe/real/leftist-tree.rkt" check-fail)
@@ -258,4 +256,9 @@
 
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail)
+
+  ;; big ones
+  (test "safe/real/nucleic2-modular-fixed.rkt" (check 'Ok-pos 0 8))
+  (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 10))
+  (test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
   )

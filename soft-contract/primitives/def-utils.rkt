@@ -301,50 +301,6 @@
   (pattern _:fc)
   (pattern ((~literal values) _:fc _:fc _:fc ...)))
 
-(define liftable-base?
-  ;; Ones that fit in implementation's `Base`
-  (syntax-parser
-    [(~or (~literal not)
-          (~literal fixnum?)
-          (~literal integer?)
-          (~literal rational?)
-          (~literal real?)
-          (~literal number?)
-          (~literal positive?)
-          (~literal negative?)
-          (~literal zero?)
-          (~literal exact?)
-          (~literal inexact?)
-          (~literal inexact-real?)
-          (~literal exact-integer?)
-          (~literal exact-positive-integer?)
-          (~literal exact-nonnegative-integer?)
-          (~literal exact-integer?)
-          (~literal flonum?)
-          (~literal single-flonum?)
-          (~literal boolean?)
-          (~literal path-string?)
-          (~literal string?)
-          (~literal symbol?)
-          (~literal keyword?)
-          (~literal char?)
-          (~literal null?)
-          ;(~literal void?) ; shouldn't 
-          (~literal eof-object?)
-          (~literal immutable?)
-          (~literal byte?)
-          (~literal bytes?)
-          (~literal complex?)
-          (~literal float-complex?)
-          (~literal extflonum?)
-          (~literal regexp?)
-          (~literal pregexp?)
-          (~literal byte-regexp?)
-          (~literal byte-pregexp?)
-          (~literal path?))
-     #t]
-    [_ #f]))
-
 (define for-TR
   (syntax-parser
     [(~literal integer?) #'exact-nonnegative-integer?]

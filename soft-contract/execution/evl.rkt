@@ -162,7 +162,7 @@
       [(-set! X E ℓ)
        (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define α (if (symbol? X) (γ:lex X) (γ:top X)))
-         (define rhs^ (blur (car (collapse-W^ rhs))))
+         (define rhs^ (car (collapse-W^ rhs)))
          (define ΔΣ:mut
            (let ([muts (set-map (Σ@ α Σ)
                                 (match-lambda

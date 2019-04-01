@@ -298,29 +298,6 @@
       (for/or : Boolean ([P (in-set Ps)])
         (P⊢P-without-store? P Q))))
 
-  (define blur : (case->
-                  [V → V]
-                  [V^ → V^])
-    (match-lambda
-      [(-b (app blur-b (? values P))) (-● {set P})]
-      [(? set? Vs) (map/set blur Vs)]
-      [(and V (not (? set?))) V]))
-
-  (: blur-b : Base → (Option P))
-  (define (blur-b b)
-    (define-syntax-rule (try-each p? ...)
-      (cond [(p? b) 'p?] ... [else #f]))
-    (try-each
-     exact-positive-integer?
-     exact-nonnegative-integer?
-     exact-integer?
-     integer?
-     real?
-     number?
-     string?
-     char?
-     regexp?))
-
   (: P⊢P-without-store? : P P → Boolean)
   (define (P⊢P-without-store? P Q)
     (or (equal? P Q)
