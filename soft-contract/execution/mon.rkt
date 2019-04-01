@@ -173,12 +173,15 @@
 
     (: chk : V^ V^ → (Values R (℘ Err)))
     (define (chk C-fo C-ho)
-      (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)])
-        (match W₁
-          [(list _) (just W₁ ΔΣ₁)]
-          [(list V* _)
-           (with-pre ΔΣ₁
-             (mon (⧺ Σ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C-ho V*))])))
+      (with-collapsing/R
+        [(ΔΣ Ws)
+         (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)])
+           (match W₁
+             [(list _) (just W₁ ΔΣ₁)]
+             [(list V* _)
+              (with-pre ΔΣ₁
+                (mon (⧺ Σ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C-ho V*))]))]
+        (just (collapse-W^ Ws) ΔΣ)))
     (define C₁ (Σ@ α₁ Σ))
     (define C₂ (Σ@ α₂ Σ))
     (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
