@@ -145,6 +145,7 @@
   (define arity
     (match-lambda
       [(Guarded _ (? Fn/C? G) _) (guard-arity G)]
+      [(-λ xs _ _) (shape xs)]
       [(Clo xs _ _ _) (shape xs)]
       [(Case-Clo clos _) (map arity clos)]
       [(? And/C?) 1]

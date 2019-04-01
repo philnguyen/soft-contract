@@ -106,6 +106,7 @@
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
       [(Set-Of α) {set α}]
+      [(? -λ? V) (E-root V)]
       [(? Clo? V) (Clo-root V)]
       [(Case-Clo clos _) (apply ∪ ∅ (map Clo-root clos))]
       [(Guarded _ C α) (set-add (V-root C) α)]

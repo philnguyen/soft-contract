@@ -34,7 +34,8 @@
 (#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
-(#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E H ℓ)
+(#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
+                                (Clo -formals E H ℓ)
                                 (Case-Clo (Listof Clo) ℓ))
 (#|Contracts      |# C . ::= . (And/C α α ℓ)
                                (Or/C α α ℓ)

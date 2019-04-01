@@ -24,6 +24,7 @@
       [(-b b) (show-b b)]
       [(-● Ps) (show-Ps Ps "●")]
       [(? -o? o) (show-o o)]
+      [(? -λ? V) (show-e V)]
       [(? Clo? clo) (show-Clo clo)]
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]

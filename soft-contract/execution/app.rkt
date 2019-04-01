@@ -37,14 +37,15 @@
   (define global-stores : (HashTable (Pairof Stk Σ) Σ) (make-hash))
 
   (: app : Σ ℓ V^ W → (Values R (℘ Err)))
-  (define (app Σ ℓ Vₕ^ W)
+  (define (app Σ ℓ Vₕ^ W*)
+    (define-values (W ΔΣ) (escape-clos Σ W*))
     (define W:root (W-root W))
     ((inst fold-ans V)
      (λ (Vₕ)
        (define root (∪ W:root (V-root Vₕ)))
-       (define Σ* (gc root Σ))
+       (define Σ* (gc root (⧺ Σ ΔΣ)))
        (ref-$! ($:Key:App Σ* ℓ Vₕ W)
-               (λ () (with-gc root Σ* (λ () (app₁ Σ* ℓ Vₕ W))))))
+               (λ () (with-gc root Σ* (λ () (with-pre ΔΣ (app₁ Σ* ℓ Vₕ W)))))))
      (unpack Vₕ^ Σ)))
 
   (: app/C : Σ ℓ V^ W → (Values R (℘ Err)))
@@ -59,6 +60,7 @@
   (: app₁ : Σ ℓ V W → (Values R (℘ Err)))
   (define (app₁ Σ ℓ V W)
     (define f (match V
+                [(? -λ? V) (app-λ V)]
                 [(? Clo? V) (app-Clo V)]
                 [(? Case-Clo? V) (app-Case-Clo V)]
                 [(-st-mk 𝒾) (app-st-mk 𝒾)]
@@ -86,6 +88,26 @@
                 [V (app-err V)]))
     (f Σ ℓ W))
 
+  (: app-λ : -λ → ⟦F⟧)
+  (define ((app-λ Vₕ) Σ ℓ Wₓ*)
+    (match-define (-λ fml E ℓₕ) Vₕ)
+    (cond [(arity-includes? (shape fml) (length Wₓ*))
+           (match-define (-var xs xᵣ) fml)
+           (define Wₓ (unpack-W Wₓ* Σ))
+           (define ΔΣₓ
+             (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
+               (⧺ (alloc-lex* xs W₀)
+                  (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
+           ;; gc one more time against unpacked arguments
+           ;; TODO: clean this up so only need to gc once?
+           ;; TODO: code dup
+           (let ([root (∪ (E-root Vₕ) (W-root Wₓ))])
+             (define Σ₁ (gc root Σ))
+             (define-values (rₐ es) (evl/history (⧺ Σ₁ ΔΣₓ) E))
+             (define rn (trim-renamings (make-renamings fml Wₓ* assignable?)))
+             (values (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))) es))]
+          [else (err (Err:Arity ℓₕ (length Wₓ*) ℓ))]))
+
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
     (match-define (Clo fml E H ℓₕ) Vₕ)
@@ -101,23 +123,23 @@
            ;; TODO: clean this up so only need to gc once?
            (let ([root (∪ (V-root Vₕ) (W-root Wₓ))])
              (define Σ₁ (gc root Σ))
-             (define-values (rₐ es)
-               (let* ([stk (current-chain)]
-                      [Σ₂ (⧺ Σ₁ ΔΣₓ)]
-                      [Σ₂:stk (Σ-stk Σ₂)]
-                      [stk* (match (memq E stk)
-                              [(? values stk*) stk*]
-                              [#f (cons E stk)])]
-                      [k (cons stk* Σ₂:stk)]
-                      [Σ* (match (hash-ref global-stores k #f)
-                            [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₂)]
-                            [#f Σ₂])])
-                 (hash-set! global-stores k Σ*)
-                 (parameterize ([current-chain stk*])
-                   (evl Σ* E)))) ; no `ΔΣₓ` in result
+             (define-values (rₐ es) (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
              (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ* assignable?))))
-             (values (fix-return rn Σ₁ (ΔΣ⧺R ΔΣₓ rₐ)) es))]
+             (values (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))) es))]
           [else (err (Err:Arity ℓₕ (length Wₓ*) ℓ))]))
+
+  (: evl/history : Σ E → (Values R (℘ Err)))
+  (define (evl/history Σ₁ E)
+    (define stk (current-chain))
+    (define stk* (cond [(memq E stk) => values]
+                       [else (cons E stk)]))
+    (define k (cons stk* (Σ-stk Σ₁)))
+    (define Σ* (match (hash-ref global-stores k #f)
+                 [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₁)]
+                 [_ Σ₁]))
+    (hash-set! global-stores k Σ*)
+    (parameterize ([current-chain stk*])
+      (evl Σ* E)))
 
   (: Σ-stk : Σ → Σ)
   (define (Σ-stk Σ₀)

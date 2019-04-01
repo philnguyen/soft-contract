@@ -8,6 +8,7 @@
          racket/set
          racket/list
          racket/match
+         racket/vector
          typed/racket/unit
          (only-in typed-racket-hacks/unsafe unsafe-cast)
          syntax/parse/define
@@ -80,10 +81,13 @@
     (match E₀
       [(? -prim? p) (just p)]
       [(-•) (just (-● ∅))]
-      [(-λ Xs E ℓ) (just (Clo Xs E H₀ ℓ) (escape (fv E₀) Σ))]
+      [(-λ Xs E ℓ) (just E₀)]
       [(-case-λ cases ℓ)
-       (define-values (Cases ΔΣ) (evl/special Σ cases Clo?))
-       (just (Case-Clo Cases ℓ) ΔΣ)]
+       (define-values (Cases-rev ΔΣ*)
+         (for/fold ([Cases-rev : (Listof Clo) '()] [ΔΣ : ΔΣ ⊥ΔΣ]) ([E (in-list cases)])
+           (define-values (V ΔΣ*) (escape-clo Σ E))
+           (values (cons V Cases-rev) (⧺ ΔΣ ΔΣ*))))
+       (just (Case-Clo (reverse Cases-rev) ℓ) ΔΣ*)]
       [(-x x ℓ)
        (define-values (α modify-Vs)
          (cond [(symbol? x)
@@ -143,7 +147,7 @@
                                    ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
                            (define-values (rᵢ esᵢ) (with-pre ΔΣₓ (evl (⧺ Σ ΔΣₓ) E)))
                            (values (R⊔ r rᵢ) (∪ es esᵢ)))])
-             (values (fix-return (make-erasure bnds) Σ r*) es*)))]
+             (values (fix-return (make-erasure bnds) Σ (R-escape-clos Σ r*)) es*)))]
       [(-letrec-values bnds E ℓ)
        (define ΔΣ₀
          (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
@@ -154,7 +158,7 @@
          (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
            (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
            (with-pre ΔΣ* (evl (⧺ Σ ΔΣ*) E))))
-       (values (fix-return (make-erasure bnds) Σ r*) es*)]
+       (values (fix-return (make-erasure bnds) Σ (R-escape-clos Σ r*)) es*)]
       [(-set! X E ℓ)
        (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define α (if (symbol? X) (γ:lex X) (γ:top X)))
@@ -211,6 +215,53 @@
        (just (Case-=> Cases) ΔΣ)]
       [(-∀/c xs E ℓ)
        (just (∀/C xs E H₀ ℓ) (escape (fv E₀) Σ))]))
+
+  (: escape-clo : Σ -λ → (Values Clo ΔΣ))
+  (define (escape-clo Σ E₀)
+    (match-define (-λ Xs E ℓ) E₀)
+    (values (Clo Xs E H₀ ℓ) (escape (fv E₀) Σ)))
+
+  (: V^-escape-clos : Σ V^ → (Values V^ ΔΣ))
+  (define (V^-escape-clos Σ Vs)
+    (for/fold ([Vs : V^ Vs] [ΔΣ : ΔΣ ⊥ΔΣ]) ([V (in-set Vs)] #:when (-λ? V))
+      (define-values (V* ΔΣ*) (escape-clo Σ V))
+      (values (set-add (set-remove Vs V) V*) (⧺ ΔΣ ΔΣ*))))
+
+  (: escape-clos : Σ W → (Values W ΔΣ))
+  (define (escape-clos Σ W)
+    (define ΔΣ* : ΔΣ ⊥ΔΣ)
+    (define W* (map (λ ([Vs : V^]) (let-values ([(Vs* ΔΣ) (V^-escape-clos Σ Vs)])
+                                     (set! ΔΣ* (⧺ ΔΣ* ΔΣ))
+                                     Vs*))
+                    W))
+    (values W* ΔΣ*))
+
+  (: R-escape-clos : Σ R → R)
+  (define (R-escape-clos Σ₀ r)
+
+    (: S-escape-clos : Σ S → (Values S ΔΣ))
+    (define (S-escape-clos Σ S)
+      (if (vector? S)
+          (let ([ΔΣ : ΔΣ ⊥ΔΣ])
+            (define S* (vector-map (λ ([Vs : V^])
+                                     (let-values ([(Vs* ΔΣ*) (V^-escape-clos Σ Vs)])
+                                       (set! ΔΣ (⧺ ΔΣ ΔΣ*))
+                                       Vs*))
+                                   S))
+            (values S* ΔΣ))
+          (V^-escape-clos Σ S)))
+
+    (: ΔΣ-escape-clos : Σ ΔΣ → ΔΣ)
+    (define (ΔΣ-escape-clos Σ ΔΣ₀)
+      (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([(α r) (in-hash ΔΣ₀)])
+        (match-define (cons Vs N) r)
+        (define-values (Vs* ΔΣ*) (S-escape-clos Σ Vs))
+        (⧺ (hash-set acc α (cons Vs* N)) ΔΣ*)))
+
+    (for*/fold ([acc : R ⊥R]) ([(W ΔΣs) (in-hash r)] [ΔΣᵢ : ΔΣ (in-set ΔΣs)])
+      (define Σ* (⧺ Σ₀ ΔΣᵢ))
+      (define-values (W* ΔΣ*) (escape-clos Σ* W))
+      (R⊔ acc (R-of W* (⧺ ΔΣ* (ΔΣ-escape-clos Σ* ΔΣᵢ))))))
 
   (: make-erasure : (Listof Binding) → Renamings)
   (define (make-erasure bnds)

@@ -49,7 +49,9 @@
 ;; Σ ⊢ E ⇓ A , ΔΣ
 (define-signature evl^
   ([evl-prog : (-prog → (Values (Option ΔΣ) (℘ Err)))]
-   [evl : (Σ E → (Values R (℘ Err)))]))
+   [evl : (Σ E → (Values R (℘ Err)))]
+   [escape-clos : (Σ W → (Values W ΔΣ))]
+   [R-escape-clos : (Σ R → R)]))
 
 ;; Σ ⊢ V V… ⇓ᵃ A , ΔΣ
 (define-signature app^
