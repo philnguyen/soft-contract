@@ -254,7 +254,7 @@
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
 
-  (test "  safe/interp/main.rkt" check-safe)
+  (test   "safe/interp/main.rkt" check-safe)
   (test "unsafe/interp/main.rkt" check-fail)
   
   (test   "safe/games" check-safe)
