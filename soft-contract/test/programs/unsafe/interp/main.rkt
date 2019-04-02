@@ -20,8 +20,6 @@
 ;; Big-step
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (evl e) (ev e '()))
-
 (define/contract (ev e ρ)
   (Exp/c Env/c . -> . Val/c)
   (match e
@@ -100,20 +98,16 @@
 ;; Compile then run
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (evl/comp e) ((comp e) '()))
+(define ⟦Exp⟧/c (Env/c . -> . Val/c))
 
-;; Value representation in the meta-language
-(define ⟦Val⟧/c (or/c integer?
-                      prim?
-                      ((recursive-contract ⟦Val⟧/c #:chaperone)
-                       . -> .
-                       (recursive-contract ⟦Val⟧/c #:chaperone))))
-(define ⟦Env⟧/c (listof (cons/c Var? ⟦Val⟧/c)))
 (define/contract comp
-  (Exp/c . -> . (⟦Env⟧/c . -> . ⟦Val⟧/c))
+  (Exp/c . -> . ⟦Exp⟧/c)
   (match-lambda
     [(Lam x e)      (define ⟦e⟧ (comp e))
-                    (λ (ρ) (λ (v) (⟦e⟧ (cons (cons x v) ρ))))]
+                    ;; BUG: can't re-use `Clo` here while only checking for `Clo?`
+                    ;; in `Env/c`, which monitors what this module receives
+                    ;; from outside.
+                    (λ (ρ) (Clo x ⟦e⟧ ρ))]
     [(? integer? i) (λ _ i)]
     [(? prim? p)    (λ _ p)]
     [(? Var? x)     (λ (ρ) (cond [(assoc x ρ) => cdr]
@@ -124,13 +118,8 @@
                       (define v₁ (⟦f⟧ ρ))
                       (define v₂ (⟦x⟧ ρ))
                       (match v₁
-                        [(? procedure? f) (f v₂)]
-                        [(? prim? p)
-                         (case p
-                           [(add1) (if (integer? v₂) (add1 v₂) (error 'add1))]
-                           [(integer?) (if (integer? v₂) 0 1)]
-                           [(procedure?) (if (or (procedure? v₂) (prim? v₂)) 0 1)]
-                           [else (error 'δ)])]
+                        [(Clo x ⟦e⟧ ρ) (⟦e⟧ (cons (cons x v₂) ρ))]
+                        [(? prim? p) (δ p v₂)]
                         [(? integer?) (error 'ap)]))]
     [(If0 e₀ e₁ e₂) (define ⟦e₀⟧ (comp e₀))
                     (define ⟦e₁⟧ (comp e₁))
@@ -143,6 +132,6 @@
   [struct App ([fun Exp/c] [arg Exp/c])]
   [struct Lam ([var Var?] [body Exp/c])]
   [struct If0 ([cnd Exp/c] [thn Exp/c] [els Exp/c])]
-  [evl (Exp/c . -> . Val/c)]
+  [ev (Exp/c Env/c . -> . Val/c)]
   [ev/step (Exp/c . -> . Val/c)]
-  [evl/comp (Exp/c . -> . ⟦Val⟧/c)]))
+  [comp (Exp/c . -> . ⟦Exp⟧/c)]))

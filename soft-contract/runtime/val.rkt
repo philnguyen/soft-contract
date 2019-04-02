@@ -356,9 +356,9 @@
          [(α:dyn (β:st/c-elems _ 𝒾) _) 𝒾]
          [(γ:imm:blob:st _ _ 𝒾) 𝒾])]))
 
-  (define Clo-escapes : ((U -formals (Listof Symbol)) E H → (℘ α))
+  (define Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))
     (let ([$ : (Mutable-HashTable E (Mutable-HashTable H (℘ α))) (make-hasheq)])
-      (λ (fml E H*)
+      (λ (fml E H* ℓ)
         (define $* (hash-ref! $ E (λ () ((inst make-hash H (℘ α))))))
         (hash-ref!
          $* H*
@@ -366,5 +366,5 @@
            (define bvs (if (list? fml) (list->seteq fml) (formals->names fml)))
            (define fvs (set-subtract (fv E) bvs))
            (for/set: : (℘ α) ([x (in-set fvs)])
-             (α:dyn x H*)))))))
+             (α:dyn (β:esc x ℓ) H*)))))))
   )

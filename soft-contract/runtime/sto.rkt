@@ -258,14 +258,14 @@
   (define (stack-copy αs Σ)
     (define rn
       (for/hash : (Immutable-HashTable α γ) ([α (in-set αs)])
-        (match-define (α:dyn (? symbol? x) _) α)
+        (match-define (α:dyn (β:esc (? symbol? x) _) _) α)
         (values α (γ:lex x))))
     (copy/rename rn Σ))
 
-  (: escape : (℘ Symbol) Σ → ΔΣ)
-  (define (escape Xs Σ)
+  (: escape : ℓ (℘ Symbol) Σ → ΔΣ)
+  (define (escape ℓ Xs Σ)
     (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
-                 (values (γ:lex x) (α:dyn x H₀))))
+                 (values (γ:lex x) (α:dyn (β:esc x ℓ) H₀))))
     (copy/rename rn Σ))
 
   (: copy/rename : (Immutable-HashTable α α) Σ → Σ)

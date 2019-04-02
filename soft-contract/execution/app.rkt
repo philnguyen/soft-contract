@@ -116,7 +116,7 @@
            (define Wₓ (unpack-W Wₓ* Σ))
            (define ΔΣₓ
              (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (stack-copy (Clo-escapes fml E H) Σ)
+               (⧺ (stack-copy (Clo-escapes fml E H ℓₕ) Σ)
                   (alloc-lex* xs W₀)
                   (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
            ;; gc one more time against unpacked arguments
@@ -269,8 +269,8 @@
       (define ctx (Ctx l+ l- ℓₓ ℓ))
       (match c
         ;; Dependent domain
-        [(Clo (-var xs #f) E H _)
-         (define ΔΣ₀ (stack-copy (Clo-escapes xs E H) Σ))
+        [(Clo (-var xs #f) E H ℓ)
+         (define ΔΣ₀ (stack-copy (Clo-escapes xs E H ℓ) Σ))
          (define Σ₀ (⧺ Σ ΔΣ₀))
          (with-each-ans ([(ΔΣ₁ W) (evl Σ₀ E)]
                          [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
@@ -485,7 +485,7 @@
                (⧺ acc
                   (alloc αₓ ∅)
                   (alloc (γ:lex x) {set (Seal/C αₓ l-seal)})))]
-            [ΔΣ:stk (stack-copy (Clo-escapes xs c H) Σ₀)])
+            [ΔΣ:stk (stack-copy (Clo-escapes xs c H ℓₒ) Σ₀)])
         (⧺ ΔΣ:seals ΔΣ:stk)))
     (define Σ₁ (⧺ Σ₀ ΔΣ₀))
     (with-each-ans ([(ΔΣ₁ W:c) (evl Σ₁ c)])

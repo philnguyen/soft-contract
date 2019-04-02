@@ -87,7 +87,7 @@
                                (γ:imm:blob:st (Vectorof V^) ℓ -𝒾)
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ))
 (#|Addr. Bases    |# β . ::= . ; escaped parameter
-                               Symbol
+                               (β:esc Symbol ℓ)
                                ; mutable cell
                                (β:mut (U Symbol -𝒾))
                                ; struct field
@@ -184,7 +184,7 @@
    [resolve-lex : ((U Symbol -𝒾) → α)]
    [mut : (α S Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [escape : ((℘ Symbol) Σ → ΔΣ)]
+   [escape : (ℓ (℘ Symbol) Σ → ΔΣ)]
    [stack-copy : ((℘ α) Σ → ΔΣ)]
    [ambiguous? : (T Σ → Boolean)]
    [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
@@ -226,7 +226,7 @@
    [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
-   [Clo-escapes : ((U -formals (Listof Symbol)) E H → (℘ α))]
+   [Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))]
    ))
 
 (define-signature prover^

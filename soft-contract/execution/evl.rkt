@@ -214,12 +214,12 @@
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
        (just (Case-=> Cases) ΔΣ)]
       [(-∀/c xs E ℓ)
-       (just (∀/C xs E H₀ ℓ) (escape (fv E₀) Σ))]))
+       (just (∀/C xs E H₀ ℓ) (escape ℓ (fv E₀) Σ))]))
 
   (: escape-clo : Σ -λ → (Values Clo ΔΣ))
   (define (escape-clo Σ E₀)
     (match-define (-λ Xs E ℓ) E₀)
-    (values (Clo Xs E H₀ ℓ) (escape (fv E₀) Σ)))
+    (values (Clo Xs E H₀ ℓ) (escape ℓ (fv E₀) Σ)))
 
   (: V^-escape-clos : Σ V^ → (Values V^ ΔΣ))
   (define (V^-escape-clos Σ Vs)
@@ -303,7 +303,7 @@
   (define (evl-dom Σ dom)
     (match-define (-dom _ ?deps c ℓ) dom)
     (if ?deps
-        (let ([ΔΣ (escape (set-subtract (fv c) (list->seteq ?deps)) Σ)])
+        (let ([ΔΣ (escape ℓ (set-subtract (fv c) (list->seteq ?deps)) Σ)])
           (values (cons (Clo (-var ?deps #f) c H₀ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
 
