@@ -131,7 +131,7 @@
 
   (define show-β : (β → Symbol)
     (match-lambda
-      [(? symbol? x) x]
+      [(β:esc x ℓ) (format-symbol "~a:~a" x (show-ℓ ℓ))]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
       [(β:st-elems ctx 𝒾) (format-symbol "~a-~a" (-𝒾-name 𝒾) (show-ctx/ℓ ctx))]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
