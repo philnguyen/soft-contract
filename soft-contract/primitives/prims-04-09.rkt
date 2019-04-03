@@ -58,7 +58,7 @@
   (def length (list? . -> . exact-nonnegative-integer?)
     #:refinements
     (pair? . -> . exact-positive-integer?)
-    (null? . -> . zero?))
+    (null? . -> . 0))
   (def list-ref (∀/c (α) ((and/c (listof α) pair?) exact-nonnegative-integer? . -> . α))) ; FIXME mismatch
   (def list-tail (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def append (∀/c (α) (() #:rest (listof (listof α)) . ->* . (listof α))))

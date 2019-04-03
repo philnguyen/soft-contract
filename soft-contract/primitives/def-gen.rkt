@@ -239,7 +239,7 @@
                 (format "don't know what `~a` means" (syntax-e #'α))
                 (-sig)
                 #'α)])]
-      [l:lit #'(-b l)]
+      [l:lit #'(P:≡ (-b l))]
       [((~literal not/c) c*)
        #`(Not/C #,(gen-ctc-α #'c*) #,(gen-stx-ℓ #'c*))]
       [(o:cmp r:number)

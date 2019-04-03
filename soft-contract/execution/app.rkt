@@ -80,6 +80,7 @@
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(? St/C?) #:when (C-flat? V Σ) (app-St/C V)]
                 [(-● Ps) (app-opq Ps)]
+                [(P:≡ T) (app-P 'equal? T)]
                 [(P:= T) (app-P '= T)]
                 [(P:> T) (app-P '< T)]
                 [(P:≥ T) (app-P '<= T)]

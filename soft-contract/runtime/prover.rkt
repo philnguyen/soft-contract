@@ -357,9 +357,7 @@
     (define (go [V₁ : V] [V₂ : V]) : ?Dec
       (case P
         [(equal? eq? char=? string=?) (check-equal? Σ V₁ V₂)]
-        [(=) (match* (V₁ V₂)
-               [((-b (? real? x)) (-b (? real? y))) (bool->Dec (= x y))]
-               [(_ _) #f])]
+        [(=) (check-= Σ V₁ V₂)]
         [(<=) (check-≤ Σ V₁ V₂)]
         [(<) (neg (check-≤ Σ V₂ V₁))]
         [(>=) (check-≤ Σ V₂ V₁)]
@@ -376,6 +374,26 @@
                                      (sat^₂ go {set V₁} (unpack V₂ Σ))
                                      (sat^₂ go (unpack V₁ Σ) (unpack V₂ Σ)))]
           [else #f]))
+
+  (: check-= : Σ V V → ?Dec)
+  (define (check-= Σ V₁ V₂)
+    (: check-Ps-= : (℘ P) Real → ?Dec)
+    (define (check-Ps-= Ps x)
+      (define check-P : (P → ?Dec)
+        (match-lambda
+          ['exact-nonnegative-integer? (if (< x 0) '✗ #f)]
+          ['exact-positive-integer? (if (< x 1) '✗ #f)]
+          ['zero? (bool->Dec (= x 0))]
+          [(or (P:= (-b (? real? y)))
+               (P:≡ (-b (? real? y))))
+           (bool->Dec (= x (assert y)))]
+          [_ #f]))
+      (set-ormap check-P Ps))
+    (match* (V₁ V₂)
+      [((-b (? real? x)) (-b (? real? y))) (bool->Dec (= x y))]
+      [((-● Ps) (-b (? real? x))) (check-Ps-= Ps x)]
+      [((-b (? real? x)) (-● Ps)) (check-Ps-= Ps x)]
+      [(_ _) (check-equal? Σ V₁ V₂)]))
 
   (: check-≤ : Σ V V → ?Dec)
   (define (check-≤ Σ V₁ V₂)
@@ -397,6 +415,8 @@
            [(P:> (-b (? real? x))) (and (>= x y) '✗)]
            [(P:≥ (-b (? real? x))) (and (>  x y) '✗)]
            [(P:= (-b (? real? x))) (bool->Dec (<= x y))]
+           ['exact-nonnegaive-integer? #:when (< y 0) '✗]
+           ['exact-positive-integer? #:when (< y 1) '✗]
            [_ #f]))]
       ;; More special cases to avoid SMT
       [((T:@ 'sub1 (list T)) T) '✓]
@@ -411,6 +431,11 @@
 
   (: check-equal? : Σ V V → ?Dec)
   (define (check-equal? Σ V₁ V₂)
+
+    (: singleton-pred : (℘ P) → (Option P))
+    (define (singleton-pred Ps)
+      (for/or : (Option P) ([P (in-set Ps)] #:when (?concretize P))
+        P))
 
     (: go : T T → ?Dec)
     (define (go T₁ T₂)
@@ -429,6 +454,11 @@
        [((-● Ps) (and T (or (? -b?) (? T?)))) (Ps⊢P Σ Ps (P:≡ T))]
        [((and T (or (? -b?) (? T?))) (-● Ps)) (Ps⊢P Σ Ps (P:≡ T))]
        [((? -prim?) (not (or (? -●?) (? T?) (? -prim?)))) '✗]
+       [((-● Ps) (-● Qs))
+        (match* ((singleton-pred Ps) (singleton-pred Qs))
+          [(#f _) #f]
+          [(_ #f) #f]
+          [(P Q) (bool->Dec (equal? P Q))])]
        [((not (or (? -●?) (? T?) (? -prim?))) (? -prim?)) '✗]
        [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
          (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))

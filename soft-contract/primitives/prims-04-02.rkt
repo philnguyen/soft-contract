@@ -74,6 +74,7 @@
   (def +
     (() #:rest (listof number?)  . ->* . number?)
     #:refinements
+    ((exact-positive-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-positive-integer?)
     (() #:rest (listof exact-positive-integer?) . ->* . exact-positive-integer?)
     (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
     (() #:rest (listof exact-integer?) . ->* . exact-integer?)
