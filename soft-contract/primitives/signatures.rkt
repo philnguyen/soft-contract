@@ -38,12 +38,12 @@
                 alias-table-count
                 in-alias-table)
 
-(⟦O⟧ . ≜ . (Σ ℓ W → (Values R (℘ Err))))
+(⟦O⟧ . ≜ . (Σ ℓ W → R))
 
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
   ([make-total-pred : (Index → Symbol → ⟦O⟧)]
-   [implement-predicate : (Σ -o W → (Values R (℘ Err)))]
+   [implement-predicate : (Σ -o W → R)]
    [W->bs : (W → (Option (Listof Base)))]
    [make-static-listof : (Symbol (→ (Values V ℓ)) → V)]
    [make-listof : (V ℓ → V)]
@@ -55,7 +55,7 @@
          #:rng-wrap (Option (Listof V))
          #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
          #:args W
-         → (Values R (℘ Err)))]
+         → R)]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -82,12 +82,10 @@
    #;[mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
 
    ;; HACK re-exported stuff to avoid confusing dependency in `def`
-   [r:err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
-   [r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
+   [r:err! : ((U (℘ Err) Err) → Void)]
    [r:blm : (-l ℓ ℓ W W → (℘ Blm))]
    [r:reify : ((℘ P) → V^)]
-   [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
-                        → (Values R (℘ Err)))]
+   [r:with-split-Σ : (Σ P W (W ΔΣ → R) (W ΔΣ → R) → R)]
    [r:⧺ : (ΔΣ ΔΣ * → ΔΣ)]
    [r:ΔΣ⧺R : (ΔΣ R → R)]
    ))

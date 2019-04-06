@@ -79,7 +79,7 @@
   (def (set/c Σ ℓ W)
     #:init ([V contract? #|TODO chaperone-contract?|#])
     (define α (α:dyn (β:set:elem ℓ) H₀))
-    (r:just (Set/C α ℓ) (alloc α V)))
+    (R-of (Set/C α ℓ) (alloc α V)))
 
 ;;;;; 4.16.3 Generic Set Interface
 
@@ -96,17 +96,18 @@
     ((not/c set-empty?) . -> . exact-positive-integer?))
   (def (set-first Σ ℓ W)
     #:init ([Vs set?])
-    (define ac₁ : (V → (Values R (℘ Err)))
+    (define ac₁ : (V → R)
       (match-lambda
-        [(Empty-Set) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'set-first)
-                               (list {set (Not/C (γ:imm 'set-empty?) +ℓ₀)})
-                               (list {set (Empty-Set)})))]
-        [(Set-Of α) (just (Σ@ α Σ))]
+        [(Empty-Set) (err! (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'set-first)
+                                (list {set (Not/C (γ:imm 'set-empty?) +ℓ₀)})
+                                (list {set (Empty-Set)})))
+                     ⊥R]
+        [(Set-Of α) (R-of (Σ@ α Σ))]
         [(Guarded (cons l+ l-) (Set/C αₑ ℓₕ) α)
          (define ctx (Ctx l+ l- ℓₕ ℓ))
          (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'set-first} (list (Σ@ α Σ)))]
-           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws)))))]
-        [(? -●?) (just (-● ∅))]
+           (ΔΣ⧺R ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (R-of (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
     (fold-ans/collapsing ac₁ Vs))

@@ -74,11 +74,12 @@
           [((~literal ∀/c) (x ...) c)
            (parameterize ([-ctc-parameters (syntax->list #'(x ...))])
              (go #'c))])))
-    (hack:make-available (-o) r:err)
+    (hack:make-available (-o) r:err!)
     (list
      #`(match #,(-W)
          #,@cases
-         [_ (r:err (Err:Arity '#,(-o) (length #,(-W)) #,(-ℓ)))])))
+         [_ (r:err! (Err:Arity '#,(-o) (length #,(-W)) #,(-ℓ)))
+            ⊥R])))
 
   ;; Generate abstract result from contract.
   (define/contract (gen-case dom-inits ?dom-rst rngs)
@@ -158,11 +159,11 @@
       (hack:make-available (-o) r:with-split-Σ r:⧺ r:ΔΣ⧺R)
       (list
        #`(r:with-split-Σ #,(-Σ) '#,c (list #,x)
-           (λ (#,(-W) ΔΣ) (let-values ([(r es) (let ()
-                                                 #,(match body
-                                                     [(list e) e]
-                                                     [_ #`(begin #,@body)]))])
-                            (values (r:ΔΣ⧺R ΔΣ r) es)))
+           (λ (#,(-W) ΔΣ) (let ([r (let ()
+                                     #,(match body
+                                         [(list e) e]
+                                         [_ #`(begin #,@body)]))])
+                            (r:ΔΣ⧺R ΔΣ r)))
            (λ _ (blm '#,c #,x)))))
 
     (define/contract gen-inits
@@ -183,20 +184,20 @@
       (hack:make-available (-o) r:with-split-Σ r:ΔΣ⧺R)
       (if ?rst
           (list
-           #`(let go : (Values R (℘ Err)) ([rests : W #,(-Vᵣ)])
+           #`(let go : R ([rests : W #,(-Vᵣ)])
                (match rests
                  [(cons V^ rests*)
                   (r:with-split-Σ #,(-Σ) '#,?rst (list V^)
-                    (λ (#,(-W) ΔΣ) (let-values ([(r es) (go rests*)])
-                                     (values (r:ΔΣ⧺R ΔΣ r) es)))
+                    (λ (#,(-W) ΔΣ) (r:ΔΣ⧺R ΔΣ (go rests*)))
                     (λ _ (blm '#,?rst V^)))]
                  ['() #,@body])))
           body))
-    (hack:make-available (-o) r:err r:blm)
+    (hack:make-available (-o) r:err! r:blm)
     (cons
      #`(define (blm [ctc : V] [val : V^])
          (define ℓₒ (loc->ℓ (loc '#,(-o) 0 0 '())))
-         (r:err (r:blm (ℓ-src #,(-ℓ)) #,(-ℓ) ℓₒ (list {set ctc}) (list val))))
+         (r:err! (r:blm (ℓ-src #,(-ℓ)) #,(-ℓ) ℓₒ (list {set ctc}) (list val)))
+         ⊥R)
      (gen-inits doms (-Vⁿ))))
 
   ;; See if range needs to go through general contract monitoring

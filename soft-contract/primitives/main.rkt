@@ -31,7 +31,7 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → Σ ℓ W → (Values R (℘ Err)))
+  (: get-prim : Symbol → Σ ℓ W → R)
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 

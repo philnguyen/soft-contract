@@ -140,7 +140,7 @@
                    #:defaults ([cᵣ #'null?]
                                [Vᵣ #'dummy]))
         e ...)
-     (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial! r:err)
+     (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial! r:err!)
      (define/with-syntax ok-pat
        (syntax-parse #'cᵣ
          [(~literal null?) #'(list V ...)]
@@ -184,7 +184,8 @@
                                            ?c-elem
                                            (syntax->list #'(e ...)))]
                       [_
-                       (r:err (Err:Arity '#,(-o) (length W) ℓ))])]))))
+                       (r:err! (Err:Arity '#,(-o) (length W) ℓ))
+                       ⊥R])]))))
      (define/contract maybe-set-partial (listof syntax?)
        (let ([n (+ (apply + (map count-leaves (syntax->list #'(c ...))))
                    (syntax-parse #'cᵣ

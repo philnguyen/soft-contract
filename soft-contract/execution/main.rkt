@@ -28,9 +28,9 @@
           prover^)
   (export exec^)
 
-  (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
   (define $ᵢₙ  : $ ⊥$)
   (define $ₒᵤₜ : $ ⊥$) ; TODO strange that set! below complains without ann
+  (define errs : (℘ Err) ∅)
   (define db:iter? ((inst make-parameter Boolean) #f))
   (define db:max-steps ((inst make-parameter (Option Index)) #f))
   (define db:depth ((inst make-parameter Natural) 0))
@@ -47,8 +47,8 @@
   (: exec : (U -prog E) → (Values (℘ Err) $))
   (define (exec p)
     (define run (if (-prog? p)
-                    (λ () (let-values ([(_ es) (evl-prog p)]) es))
-                    (λ () (let-values ([(_ es) (evl ⊥Σ p)]) es))))
+                    (λ () (evl-prog p))
+                    (λ () (evl ⊥Σ p))))
     (define dump-iter? (db:iter?)) 
     (define iter : Natural 0)
     (define done? : (Natural → Boolean)
@@ -61,6 +61,7 @@
     (begin
       (set! $ₒᵤₜ ⊥$)
       (set! $ᵢₙ $ₒᵤₜ)
+      (set! errs ∅)
       (hash-clear! dependencies)
       (clear-live-set-cache!))
     
@@ -68,45 +69,42 @@
       (when dump-iter?
         (printf "iter ~a: ~a in, ~a dirties ~n" iter (hash-count $ᵢₙ) (set-count dirties)))
       (set! dirties ∅eq)
-      (define es (run))
+      (run)
       (if (or (done? iter) (set-empty? dirties))
-          (values (set-filter blame-on-transparent? es) $ᵢₙ)
+          (values (set-filter blame-on-transparent? errs) $ᵢₙ)
           (begin
             (set! $ᵢₙ $ₒᵤₜ)
             (set! $ₒᵤₜ (for/fold ([acc : $ $ₒᵤₜ]) ([k (in-set dirties)])
                          (hash-remove acc k)))
             (loop (+ 1 iter))))))
 
-  (: ref-$! : $:Key (→ (Values R (℘ Err))) → (Values R (℘ Err)))
+  (: ref-$! : $:Key (→ R) → R)
   (define (ref-$! key* comp)
     (define key (intern-$:Key key*))
     (match (hash-ref $ₒᵤₜ key #f)
-      [(cons r es)
+      [(? values r)
        ;; Record all configurations whose result depend on cache entry
        (hash-update! dependencies key (λ ([ks : (℘ $:K)]) (∪ ks (dependants))) mk-∅eq)
-       (values r es)]
+       r]
       [#f
-       (match-define (and res₀ (cons r₀ es₀)) (hash-ref $ᵢₙ key (λ () ⊥A)))
-       (set! $ₒᵤₜ (hash-set $ₒᵤₜ key res₀))
-       (define-values (r es) (parameterize ([dependants (set-add (dependants) key)])
-                               (comp)))
+       (define r₀ (hash-ref $ᵢₙ key (λ () ⊥R)))
+       (set! $ₒᵤₜ (hash-set $ₒᵤₜ key r₀))
+       (define r (parameterize ([dependants (set-add (dependants) key)])
+                   (comp)))
        (define r* (R⊔ r₀ r))
-       (define es* (∪ es₀ es))
        ;; If new result differ from cache entry, mark all dependcies as dirty
-       (unless (and (equal? r₀ r*) (equal? es₀ es*))
-         (set! $ₒᵤₜ (hash-set $ₒᵤₜ key (cons r* es*)))
+       (unless (equal? r₀ r*)
+         (set! $ₒᵤₜ (hash-set $ₒᵤₜ key r*))
          (match (hash-ref dependencies key #f)
            [(? values deps)
             (set! dirties (∪ dirties deps))
             (hash-remove! dependencies key)]
            [_ (void)]))
-       (values r* es*)]))
+       r*]))
 
-  (: just ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
-  (define (just V [ΔΣ ⊥ΔΣ]) (values (R-of V ΔΣ) ∅))
-
-  (: err ((U (℘ Err) Err) → (Values R (℘ Err))))
-  (define (err er) (values ⊥R (if (set? er) er {set er})))
+  (: err! ((U (℘ Err) Err) → Void))
+  (define (err! er)
+    (set! errs (if (set? er) (∪ errs er) (set-add errs er))))
 
   (: blm : -l ℓ ℓ W W → (℘ Blm))
   (define (blm l+ ℓ ℓₒ ctc val)
@@ -147,30 +145,27 @@
                     [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
                     [#f {set ΔΣ*}])))))
 
-  (: fold-ans (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
+  (: fold-ans (∀ (X) (X → R) (℘ X) → R))
   (define (fold-ans on-X Xs)
-    (for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) ([X (in-set Xs)])
-      (define-values (r* es*) (on-X X))
-      (values (R⊔ r r*) (∪ es es*))))
+    (for/fold ([r : R ⊥R]) ([X (in-set Xs)])
+      (R⊔ r (on-X X))))
 
-  (: fold-ans/collapsing (∀ (X) (X → (Values R (℘ Err))) (℘ X) → (Values R (℘ Err))))
+  (: fold-ans/collapsing (∀ (X) (X → R) (℘ X) → R))
   (define (fold-ans/collapsing on-X Xs)
-    (define-values (r es) (fold-ans on-X Xs))
-    (values (match (collapse-R r)
-              [(cons Ws ΔΣ) (R-of (collapse-W^ Ws) ΔΣ)]
-              [#f ⊥R])
-            es))
+    (match (collapse-R (fold-ans on-X Xs))
+      [(cons Ws ΔΣ) (R-of (collapse-W^ Ws) ΔΣ)]
+      [#f ⊥R]))
 
-  (: with-split-Σ : Σ V W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err))) → (Values R (℘ Err)))
+  (: with-split-Σ : Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)
   (define (with-split-Σ Σ P W on-t on-f)
     (define-values (W-ΔΣ:t W-ΔΣ:f) (check-plaus Σ P W))
-    (define-values (r₁ es₁) (match W-ΔΣ:t
-                              [(cons W ΔΣ) (on-t W ΔΣ)]
-                              [#f (values ⊥R ∅)]))
-    (define-values (r₂ es₂) (match W-ΔΣ:f
-                              [(cons W ΔΣ) (on-f W ΔΣ)]
-                              [#f (values ⊥R ∅)]))
-    (values (R⊔ r₁ r₂) (∪ es₁ es₂)))
+    (define r₁ (match W-ΔΣ:t
+                 [(cons W ΔΣ) (on-t W ΔΣ)]
+                 [#f ⊥R]))
+    (define r₂ (match W-ΔΣ:f
+                 [(cons W ΔΣ) (on-f W ΔΣ)]
+                 [#f ⊥R]))
+    (R⊔ r₁ r₂))
 
   (: blame-on-transparent? : Err → Boolean)
   (define (blame-on-transparent? err)

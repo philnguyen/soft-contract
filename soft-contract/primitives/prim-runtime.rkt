@@ -30,20 +30,18 @@
       (λ (Σ ℓ W)
         (cond
           [(equal? n (length W))
-           (define-values (r es₀) (implement-predicate Σ o W))
            ;; Disallow even "total" predicate on sealed values as a strict enforcement of parametricity
-           (define es₁
-             (for*/set: : (℘ Err) ([Vs (in-list W)] [V (in-set (unpack Vs Σ))] #:when (Sealed? V))
-               (match-define (Sealed (α:dyn (β:sealed x _) _)) V)
-               (Err:Sealed x ℓ)))
-           (values r (∪ es₀ es₁))]
-          [else (err (Err:Arity o n ℓ))]))))
+           (for* ([Vs (in-list W)] [V (in-set (unpack Vs Σ))] #:when (Sealed? V))
+             (match-define (Sealed (α:dyn (β:sealed x _) _)) V)
+             (err! (Err:Sealed x ℓ)))
+           (implement-predicate Σ o W)]
+          [else (err! (Err:Arity o n ℓ)) ⊥R]))))
 
-  (: implement-predicate : Σ -o W → (Values R (℘ Err)))
+  (: implement-predicate : Σ -o W → R)
   (define (implement-predicate Σ o W)
     (with-split-Σ Σ o W
-      (λ (_ ΔΣ) (just -tt ΔΣ))
-      (λ (_ ΔΣ) (just -ff ΔΣ))))
+      (λ (_ ΔΣ) (R-of -tt ΔΣ))
+      (λ (_ ΔΣ) (R-of -ff ΔΣ))))
 
   (: W->bs : W → (Option (Listof Base)))
   (define W->bs
@@ -63,7 +61,7 @@
      #:rng-wrap (Option (Listof V))
      #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
      #:args W
-     → (Values R (℘ Err)))
+     → R)
   (define (exec-prim
            Σ₀ ℓ o
            #:volatile? volatile?
@@ -97,8 +95,8 @@
     (define (mk-rng [Σ : Σ])
       (define-values (Wₐ ΔΣ) (refine-ranges Σ refinements args ranges))
       (if ?range-wraps
-          (with-pre ΔΣ (mon* (⧺ Σ ΔΣ) ctx (map {inst set V} ?range-wraps) Wₐ))
-          (just Wₐ ΔΣ)))
+          (ΔΣ⧺R ΔΣ (mon* (⧺ Σ ΔΣ) ctx (map {inst set V} ?range-wraps) Wₐ))
+          (R-of Wₐ ΔΣ)))
 
     (with-collapsing/R [(ΔΣ₀ args*)
                         (if doms:rest
@@ -108,17 +106,17 @@
                                                   (mon* Σ₀ ctx* (map (inst set V) doms:init) args:init)]
                                 (with-collapsing/R [(ΔΣ₁ args:rest*)
                                                     (mon* (⧺ Σ₀ ΔΣ₀) ctx* (make-list (length args:rest) {set doms:rest}) args:rest)]
-                                  (just (append (collapse-W^ args:init*) (collapse-W^ args:rest*)) (⧺ ΔΣ₀ ΔΣ₁)))))
+                                  (R-of (append (collapse-W^ args:init*) (collapse-W^ args:rest*)) (⧺ ΔΣ₀ ΔΣ₁)))))
                             (mon* Σ₀ ctx* (map (inst set V) doms:init) args))]
-      (cond [(no-return?) (values ⊥R ∅)]
-            [(simple-pred?) (with-pre ΔΣ₀ (implement-predicate (⧺ Σ₀ ΔΣ₀) o (collapse-W^ args*)))]
+      (cond [(no-return?) ⊥R]
+            [(simple-pred?) (ΔΣ⧺R ΔΣ₀ (implement-predicate (⧺ Σ₀ ΔΣ₀) o (collapse-W^ args*)))]
             [(args:behavioral? args*)
              =>
              (λ (Vs)
                (define Σ₁ (⧺ Σ₀ ΔΣ₀))
                (with-collapsing/R [(ΔΣ₁ _) (leak Σ₁ (γ:hv #f) Vs)]
-                 (with-pre (⧺ ΔΣ₀ ΔΣ₁) (mk-rng (⧺ Σ₁ ΔΣ₁)))))]
-            [else (with-pre ΔΣ₀ (mk-rng (⧺ Σ₀ ΔΣ₀)))])))
+                 (ΔΣ⧺R (⧺ ΔΣ₀ ΔΣ₁) (mk-rng (⧺ Σ₁ ΔΣ₁)))))]
+            [else (ΔΣ⧺R ΔΣ₀ (mk-rng (⧺ Σ₀ ΔΣ₀)))])))
 
   (define alias-table : Alias-Table (make-alias-table #:phase 0))
   (define const-table : Parse-Prim-Table (make-parse-prim-table #:phase 0))
@@ -280,16 +278,13 @@
       (check-inits dom-inits args)))
 
   ;; Eta-expand to get aroudn undefined and init-depend
-  (: r:err : (U (℘ Err) Err) → (Values R (℘ Err)))
-  (define (r:err e) (err e))
-  (: r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err))))
-  (define (r:just V [ΔΣ ⊥ΔΣ]) (just V ΔΣ))
+  (: r:err! : (U (℘ Err) Err) → Void)
+  (define (r:err! e) (err! e))
   (: r:blm : (-l ℓ ℓ W W → (℘ Blm)))
   (define (r:blm l+ ℓ ℓₒ ctc val) (blm l+ ℓ ℓₒ ctc val))
   (: r:reify : (℘ P) → V^)
   (define (r:reify Cs) (reify Cs))
-  (: r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
-                         → (Values R (℘ Err))))
+  (: r:with-split-Σ : (Σ P W (W ΔΣ → R) (W ΔΣ → R) → R))
   (define (r:with-split-Σ Σ P W on-t on-f) (with-split-Σ Σ P W on-t on-f))
   (: r:⧺ : ΔΣ ΔΣ * → ΔΣ)
   (define (r:⧺ ΔΣ₀ . ΔΣs) (apply ⧺ ΔΣ₀ ΔΣs))

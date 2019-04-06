@@ -27,8 +27,8 @@
    [canonicalize-path : (Path-String → Path-String)]))
 
 (define-signature prims^ ; TODO
-  ([get-prim : (Symbol → Σ ℓ W → (Values R (℘ Err)))]
-   [implement-predicate : (Σ -o W → (Values R (℘ Err)))]
+  ([get-prim : (Symbol → Σ ℓ W → R)]
+   [implement-predicate : (Σ -o W → R)]
    [prim-arity : (Symbol → Arity)]
    [get-conservative-range : (Symbol → Symbol)]
    [get-exclusions : (Symbol → (℘ Symbol))]

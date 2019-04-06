@@ -19,7 +19,7 @@
 (define-unit prims-08@
   (import meta-functions^
           prim-runtime^
-          val^ sto^
+          val^ sto^ cache^
           exec^
           prover^)
   (export)
@@ -37,7 +37,7 @@
   (def none/c (any/c . -> . not))
 
   (splicing-local
-      ((: reduce-contracts : Σ ℓ W (ℓ V^ V^ → (Values V ΔΣ)) V^ → (Values R (℘ Err)))
+      ((: reduce-contracts : Σ ℓ W (ℓ V^ V^ → (Values V ΔΣ)) V^ → R)
        (define (reduce-contracts Σ ℓ W-fields comb V₀)
          (define-values (Vₐ ΔΣₐ)
            (match W-fields
@@ -50,7 +50,7 @@
                    (define-values (Vᵣ ΔΣᵣ) (loop Vₗ* Wᵣ* (+ 1 i)))
                    (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) Vₗ Vᵣ))
                    (values {set V*} (⧺ ΔΣᵣ ΔΣ*))]))]))
-         (just Vₐ ΔΣₐ)))
+         (R-of Vₐ ΔΣₐ)))
     
     (def (or/c Σ ℓ₀ W)
       #:init []
@@ -76,7 +76,7 @@
     #:init ([V flat-contract?])
     (define α (α:dyn (β:not/c ℓ) H₀))
     (define ℓ* (ℓ-with-id ℓ 'not/c))
-    (just (Not/C α ℓ) (alloc α V)))
+    (R-of (Not/C α ℓ) (alloc α V)))
   (def* (=/c </c >/c <=/c >=/c) ; TODO
     (real? . -> . flat-contract?))
   (def between/c (real? real? . -> . flat-contract?))
@@ -95,20 +95,20 @@
              [(singleton-set (-b b)) b]
              [V^ (error 'one-of/c "only support simple values, got ~a" V^)])
            W))
-    (just (One-Of/C (list->set vals)) ⊥ΔΣ))
+    (R-of (One-Of/C (list->set vals)) ⊥ΔΣ))
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
   (def (vectorof Σ ℓ W) ; FIXME uses
     #:init ([V contract?])
     (define α (α:dyn (β:vectof ℓ) H₀))
-    (just (Vectof/C α ℓ) (alloc α V)))
+    (R-of (Vectof/C α ℓ) (alloc α V)))
   (def vector-immutableof (contract? . -> . contract?))
   (def (vector/c Σ ℓ W)
     #:init ()
     #:rest [W (listof contract?)]
     (define S (list->vector W))
     (define α (α:dyn (β:vect/c-elems ℓ (vector-length S)) H₀))
-    (just (Vect/C α) (alloc α S)))
+    (R-of (Vect/C α) (alloc α S)))
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def box/c ; FIXME uses
@@ -123,7 +123,7 @@
     (define αₚ (α:dyn (β:st/c-elems ℓ -𝒾-cons) H₀))
     (define Cons (St/C αₚ))
     (define Cₐ {set (X/C αₗ)})
-    (just Cₐ (⧺ (alloc αₗ {set Disj})
+    (R-of Cₐ (⧺ (alloc αₗ {set Disj})
                 (alloc α₁ {set Cons})
                 (alloc αₚ (vector-immutable (unpack C Σ) Cₐ)))))
   (def non-empty-listof (contract? . -> . list-contract?))
@@ -139,7 +139,7 @@
     #:init ([Vₖ contract?] [Vᵥ contract?])
     (define αₖ (α:dyn (β:hash/c:key ℓ) H₀))
     (define αᵥ (α:dyn (β:hash/c:val ℓ) H₀))
-    (just (Hash/C αₖ αᵥ ℓ) (⧺ (alloc αₖ Vₖ) (alloc αᵥ Vᵥ))))
+    (R-of (Hash/C αₖ αᵥ ℓ) (⧺ (alloc αₖ Vₖ) (alloc αᵥ Vᵥ))))
   (def channel/c (contract? . -> . contract?))
   (def continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]

@@ -47,41 +47,45 @@
        [(-st-mk 𝒾)
         (if (= (count-struct-fields 𝒾) (length Wᵣ))
             (let ([α (α:dyn (β:st/c-elems ℓ 𝒾) H₀)])
-              (just (St/C α) (alloc α (list->vector Wᵣ))))
-            (err (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ)))]
-       [_ (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))])
+              (R-of (St/C α) (alloc α (list->vector Wᵣ))))
+            (begin (err! (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ))
+                   ⊥R))]
+       [_ (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))
+          ⊥R])
      (unpack Vₖ Σ)))
 
   (def (scv:hash-key Σ ℓ W)
     #:init ([Vₕ hash?])
-    (define ac₁ : (V → (Values R (℘ Err)))
+    (define ac₁ : (V → R)
       (match-lambda
-        [(Empty-Hash) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
-                                (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
-                                (list {set (Empty-Hash)})))]
-        [(Hash-Of αₖ _) (just (Σ@ αₖ Σ))]
+        [(Empty-Hash) (err! (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
+                                 (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
+                                 (list {set (Empty-Hash)})))
+                      ⊥R]
+        [(Hash-Of αₖ _) (R-of (Σ@ αₖ Σ))]
         [(Guarded (cons l+ l-) (Hash/C αₖ _ ℓₕ) α)
          (define ctx (Ctx l+ l- ℓₕ ℓ))
          (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'scv:hash-key} (list (Σ@ α Σ)))]
-           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₖ Σ) (car (collapse-W^ Ws)))))]
-        [(? -●?) (just (-● ∅))]
+           (ΔΣ⧺R ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₖ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (R-of (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
     (fold-ans/collapsing ac₁ Vₕ))
 
   (def (scv:hash-val Σ ℓ W)
     #:init ([Vₕ hash?])
-    (define ac₁ : (V → (Values R (℘ Err)))
+    (define ac₁ : (V → R)
       (match-lambda
-        [(Empty-Hash) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
-                                (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
-                                (list {set (Empty-Hash)})))]
-        [(Hash-Of _ αᵥ) (just (Σ@ αᵥ Σ))]
+        [(Empty-Hash) (err! (Blm (ℓ-src ℓ) ℓ (ℓ-with-src ℓ 'hash-ref)
+                                 (list {set (Not/C (γ:imm 'hash-empty?) +ℓ₀)})
+                                 (list {set (Empty-Hash)})))
+                      ⊥R]
+        [(Hash-Of _ αᵥ) (R-of (Σ@ αᵥ Σ))]
         [(Guarded (cons l+ l-) (Hash/C _ αᵥ ℓₕ) α)
          (define ctx (Ctx l+ l- ℓₕ ℓ))
          (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'scv:hash-val} (list (Σ@ α Σ)))]
-           (with-pre ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αᵥ Σ) (car (collapse-W^ Ws)))))]
-        [(? -●?) (just (-● ∅))]
+           (ΔΣ⧺R ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αᵥ Σ) (car (collapse-W^ Ws)))))]
+        [(? -●?) (R-of (-● ∅))]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
     (fold-ans/collapsing ac₁ Vₕ))
@@ -90,5 +94,5 @@
   (def (make-sequence Σ ℓ W)
     #:init ()
     #:rest [_ (listof any/c)]
-    (just (list {set -car} {set -cdr} {set 'values} {set -one} {set -cons?} {set -ff} {set -ff})))
+    (R-of (list {set -car} {set -cdr} {set 'values} {set -one} {set -cons?} {set -ff} {set -ff})))
   )

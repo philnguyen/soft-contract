@@ -86,11 +86,6 @@
                   [(set-empty? Vs*) (hash-remove Σ₁ α)]
                   [else (hash-set Σ₁ α (cons Vs* N))])))))
 
-  (: with-gc : (℘ α) Σ (→ (Values R (℘ Err))) → (Values R (℘ Err)))
-  (define (with-gc root Σ comp)
-    (define-values (r es) (comp))
-    (values (gc-R root Σ r) es))
-
   (: gc-R : (℘ α) Σ R → R)
   (define (gc-R root Σ r)
     (for/hash : R ([(W ΔΣs) (in-hash r)])

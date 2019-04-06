@@ -38,7 +38,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-13@
-  (import sto^
+  (import sto^ cache^
           prim-runtime^
           exec^
           prover^)
@@ -49,11 +49,11 @@
     (hash? . -> . boolean?))
 
   (splicing-local
-      ((: hash-helper : Σ ℓ W Symbol -o → (Values R (℘ Err)))
+      ((: hash-helper : Σ ℓ W Symbol -o → R)
        (define (hash-helper Σ ℓ Wₓ-old name eq)
          (define Wₓ (unpack-W Wₓ-old Σ))
          (cond
-           [(null? Wₓ) (just (Empty-Hash))]
+           [(null? Wₓ) (R-of (Empty-Hash))]
            [(even? (length Wₓ))
             (define αₖ (α:dyn (β:hash:key ℓ) H₀))
             (define αᵥ (α:dyn (β:hash:val ℓ) H₀))
@@ -63,8 +63,9 @@
                   [(list* Vₖ Vᵥ W*)
                    (go W* (⧺ acc (alloc αₖ Vₖ) (alloc αᵥ Vᵥ)))]
                   [_ acc])))
-            (just (Hash-Of αₖ αᵥ) ΔΣ₀)]
-           [else (err (Err:Raised "even number of args" ℓ))])))
+            (R-of (Hash-Of αₖ αᵥ) ΔΣ₀)]
+           [else (err! (Err:Raised "even number of args" ℓ))
+                 ⊥R])))
     (def (hash Σ ℓ W)
       #:init ()
       #:rest [W (listof any/c)]

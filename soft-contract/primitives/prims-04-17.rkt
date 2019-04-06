@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import val^
+  (import val^ cache^
           prim-runtime^ prover^
           exec^ app^)
   (export)
@@ -55,7 +55,8 @@
         (match-let-values ([(Vₕ) (car args)]
                            [(Wₓ (list Vᵣ)) (split-at (cdr args) (- n 2))])
           (app/rest Σ ℓ Vₕ Wₓ Vᵣ))
-        (err (Err:Arity 'apply args ℓ))))
+        (begin (err! (Err:Arity 'apply args ℓ))
+               ⊥R)))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
@@ -73,7 +74,7 @@
   ;[keyword-apply #|FIXME uses|#]
   (def (procedure-arity Σ ℓ W)
     #:init ([Vₕ procedure?])
-    (just (for/set : V^ ([V (in-set Vₕ)])
+    (R-of (for/set : V^ ([V (in-set Vₕ)])
             (cond [(arity V) => -b] [else (-● ∅)]))))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses

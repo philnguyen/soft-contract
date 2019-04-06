@@ -62,7 +62,7 @@
           (for/union : V^ ([(Xᵢ i) (in-indexed (Σ@/blob α Σ))] #:when (maybe=? Σ i Vᵢ))
             Xᵢ))
         (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
-        (just Vₐ* ΔΣ)]
+        (R-of Vₐ* ΔΣ)]
        [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
         (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
         (define S (Σ@/blob αₕ Σ))
@@ -71,19 +71,18 @@
           (define Σ₀ (⧺ Σ ΔΣ₀))
           (define Vₐ (car (collapse-W^ Ws)))
           (define ctx (Ctx l+ l- ℓₕ ℓ))
-          (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
-                    ([(Cᵢ i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
-            (define-values (rᵢ esᵢ) (mon Σ₀ ctx Cᵢ Vₐ))
-            (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
+          (for/fold ([r : R ⊥R]) ([(Cᵢ i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
+            (define rᵢ (mon Σ₀ ctx Cᵢ Vₐ))
+            (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ))))]
        [(-● Ps)
         (match Vᵢ
           [{singleton-set (-b (? index? i))}
-           (just (or (for/or : (Option V^) ([P (in-set Ps)] #:when (-st-p? P))
+           (R-of (or (for/or : (Option V^) ([P (in-set Ps)] #:when (-st-p? P))
                        (match-define (-st-p 𝒾) P)
                        (st-ac-● 𝒾 i Ps Σ))
                      (-● ∅)))]
-          [_ (just (-● ∅))])]
-       [_ (values ⊥R ∅)])
+          [_ (R-of (-● ∅))])]
+       [_ ⊥R])
      (unpack Vᵥ Σ)))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))

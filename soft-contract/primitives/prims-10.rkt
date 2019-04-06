@@ -14,7 +14,8 @@
          "def.rkt")
 
 (define-unit prims-10@
-  (import prim-runtime^
+  (import cache^
+          prim-runtime^
           exec^)
   (export)
 
@@ -25,7 +26,7 @@
   (def (values Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (just W))
+    (R-of W))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

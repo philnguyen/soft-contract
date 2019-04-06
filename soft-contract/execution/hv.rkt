@@ -27,10 +27,10 @@
   (define ● {set (-● ∅)})
   (define ●* (list ●)) ; FIXME emulate *arbitrary* number of values
 
-  (: leak : Σ γ:hv V^ → (Values R (℘ Err)))
+  (: leak : Σ γ:hv V^ → R)
   (define (leak Σ αₕᵥ Vs)
     (define ΔΣ (track-leaks Σ αₕᵥ Vs))
-    (with-pre ΔΣ (hv (⧺ Σ ΔΣ) αₕᵥ)))
+    (ΔΣ⧺R ΔΣ (hv (⧺ Σ ΔΣ) αₕᵥ)))
 
   (: track-leaks : Σ γ:hv V^ → ΔΣ)
   (define (track-leaks Σ αₕᵥ Vs)
@@ -38,23 +38,21 @@
        ;; only track field leaks for `havoc` for now
        (if (γ:hv-_0 αₕᵥ) ⊥ΔΣ (track-field-leaks Vs Σ))))
 
-  (: hv : Σ γ:hv → (Values R (℘ Err)))
+  (: hv : Σ γ:hv → R)
   (define (hv Σ αₕᵥ)
     (define root {set αₕᵥ})
     (define Σ* (gc root Σ))
     (ref-$! ($:Key:Hv Σ* αₕᵥ)
             (λ ()
-              (with-gc root Σ*
-                (λ ()
-                  ;; Next "productive" havoc step on each leaked value
-                  (define-values (ΔΣ₁ es₁)
-                    (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅])
-                              ([Vᵢ (in-set (unpack αₕᵥ Σ*))])
-                      (⊕ (values ΔΣ es) (do-hv Σ* αₕᵥ Vᵢ))))
+              (gc-R root Σ*
+                (let ([ΔΣ₁
+                       ;; Next "productive" havoc step on each leaked value
+                       (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vᵢ (in-set (unpack αₕᵥ Σ*))])
+                         (ΔΣ⊔ ΔΣ (do-hv Σ* αₕᵥ Vᵢ)))])
                   ;; Recursively havoc again
                   (with-collapsing [(ΔΣ* _) (hv (⧺ Σ* ΔΣ₁) αₕᵥ)]
                     #:fail (R-of ●* ΔΣ₁)
-                    (values (R-of ●* (ΔΣ⊔ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*))) es₁)))))))
+                    (R-of ●* (ΔΣ⊔ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*)))))))))
 
   (: gen-havoc-expr : ((Listof -module) → E))
   (define (gen-havoc-expr ms)
@@ -67,13 +65,13 @@
         (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
     (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
 
-  (: do-hv : Σ γ:hv V → (Values ΔΣ (℘ Err)))
+  (: do-hv : Σ γ:hv V → ΔΣ)
   ;; Havoc the value and collect behavioral values discovered
   (define (do-hv Σ αₕᵥ V)
     (match V
       ;; Apply function to appropriate number of args
       [(or (? Clo?) (? Case-Clo?) (Guarded _ (? Fn/C?) _))
-       (define on-arity : ((U Natural arity-at-least) → (Values ΔΣ (℘ Err)))
+       (define on-arity : ((U Natural arity-at-least) → ΔΣ)
          (match-lambda
            [(? index? k)
             (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set V} (make-list k ●)))]
@@ -83,31 +81,29 @@
             (collapse Σ αₕᵥ (app/rest Σ ℓₕᵥ {set V} W₀ Vᵣ))]))
        (match (arity-of V)
          [(? list? ks)
-          (define-values (ΔΣ* es*)
-            (for/fold ([ΔΣ : (Option ΔΣ) #f] [es : (℘ Err) ∅])
-                      ([k (in-list ks)])
-              (⊕ (values ΔΣ es)
-                 (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???))))
-          (values (assert ΔΣ*) es*)]
+          (define ΔΣ*
+            (for/fold ([ΔΣ : (Option ΔΣ) #f]) ([k (in-list ks)])
+              (define ΔΣ* (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???))
+              (if ΔΣ (ΔΣ⊔ ΔΣ ΔΣ*) ΔΣ*)))
+          (assert ΔΣ*)]
          [(and k (or (? index?) (? arity-at-least?))) (on-arity k)])]
       ;; Havoc and widen struct's public fields
       [(or (St (α:dyn (β:st-elems _ 𝒾) _) _) (Guarded _ (? St/C? (app St/C-tag 𝒾)) _))
        #:when 𝒾
-       (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
+       (ΔΣ⊔ (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
           (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-muts 𝒾) (list {set V} ●))))]
       ;; Havoc and widen vector's fields
       [(Guarded _ (or (? Vectof/C?) (? Vect/C?)) _)
        (define I (-● {set 'exact-nonnegative-integer?}))
-       (⊕ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
-          (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
+       (ΔΣ⊔ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
+            (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
       [(Vect α)
-       (values (⧺ (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vs (in-vector (Σ@/blob α Σ))])
-                    (⧺ ΔΣ (track-leaks Σ αₕᵥ Vs)))
-                  (match-let ([(α:dyn (β:vect-elems _ n) _) α])
-                    (mut α (make-vector n ●) Σ)))
-               ∅)]
+       (⧺ (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vs (in-vector (Σ@/blob α Σ))])
+            (⧺ ΔΣ (track-leaks Σ αₕᵥ Vs)))
+          (match-let ([(α:dyn (β:vect-elems _ n) _) α])
+            (mut α (make-vector n ●) Σ)))]
       [(Vect-Of αᵥ _)
-       (values (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ))) ∅)]
+       (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ)))]
       ;; Hash
       [(or (? Hash-Of?) (Guarded _ (? Hash/C?) _))
        (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'hash-ref} (list {set V} ●)))]
@@ -115,8 +111,8 @@
       [(or (? Set-Of?) (Guarded _ (? Set/C?) _))
        (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'set-first} (list {set V})))]
       ;; TODO apply contract to unknown
-      [(? C?) (values ⊥ΔΣ ∅)]
-      [_ (values ⊥ΔΣ ∅)]))
+      [(? C?) ⊥ΔΣ]
+      [_ ⊥ΔΣ]))
 
   (: arity-of
      (case->
@@ -148,15 +144,11 @@
       [_ ???]))
 
   (define-simple-macro (collapse Σ αₕᵥ e)
-    (let-values ([(r es) e])
+    (let ([r e])
       (match (collapse-R r)
         [(cons Ws ΔΣ)
-         (values (⧺ ΔΣ (track-leaks (⧺ Σ ΔΣ) αₕᵥ (apply ∪ ∅ (set-map Ws W->V^)))) es)]
-        [#f (values ⊥ΔΣ es)])))
-  (define-simple-macro (⊕ e₁ e₂)
-    (let-values ([(ΔΣ₁ es₁) e₁]
-                 [(ΔΣ₂ es₂) e₂])
-      (values (if ΔΣ₁ (ΔΣ⊔ ΔΣ₁ ΔΣ₂) ΔΣ₂) (∪ es₁ es₂))))
+         (⧺ ΔΣ (track-leaks (⧺ Σ ΔΣ) αₕᵥ (apply ∪ ∅ (set-map Ws W->V^))))]
+        [#f ⊥ΔΣ])))
 
   (: behavioral? : V Σ → Boolean)
   ;; Check if value maybe behavioral.
