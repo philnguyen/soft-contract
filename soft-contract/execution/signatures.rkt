@@ -36,7 +36,6 @@
    [err! : ((U (℘ Err) Err) → Void)]
    [current-module : (Parameterof -l)]
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
-   [fix-return : (Renamings Σ R → R)]
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
    [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
    [with-split-Σ : (Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)]

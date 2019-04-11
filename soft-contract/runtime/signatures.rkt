@@ -29,13 +29,21 @@
                                C
                                T
                                (-● (℘ P)))
-(#|Identities     |# T . ::= . α (T:@ -o (Listof (U T -b))))
-(#|Stores         |# Σ .  ≜  . (Immutable-HashTable α (Pairof S N)))
-(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
-(#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
+(#|Identities     |# T . ::= . γ (T:@ -o (Listof (U T -b))))
+(#|Environments   |# Γ .  ≜  . (Immutable-HashTable γ S*))
+(#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
+(#|Memories       |# Σ .  ≜  . (Pairof Ξ Γ))
+(#|Env. Deltas    |# ΔΓ . ≜  . Γ)
+(#|Store Deltas   |# ΔΞ . ≜  . Ξ)
+(#|Memory Deltas  |# ΔΣ . ≜  . (Pairof ΔΞ ΔΓ))
+(#|Stackabls      |# S* . ≜ . (U #|Values          |# V^
+                                 #|Mutable Locations|# α))
+(#|Storables      |# S .  ≜  . (U #|Stackables      |# S*
+                                  #|Memory Blobs     |# (Vectorof V^)
+                                  #|Closure Contexts |# Γ))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
 (#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
-                                (Clo -formals E H ℓ)
+                                (Clo -formals E α)
                                 (Case-Clo (Listof Clo) ℓ))
 (#|Contracts      |# C . ::= . (And/C α α ℓ)
                                (Or/C α α ℓ)
@@ -52,7 +60,7 @@
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
-                                  (∀/C (Listof Symbol) E H ℓ)
+                                  (∀/C (Listof Symbol) E α)
                                   (Case-=> (Listof ==>i))) 
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
                                  (Err:Undefined Symbol ℓ)
@@ -86,8 +94,8 @@
                                (γ:imm:blob (Vectorof V^) ℓ)
                                (γ:imm:blob:st (Vectorof V^) ℓ -𝒾)
                                (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ))
-(#|Addr. Bases    |# β . ::= . ; escaped parameter
-                               (β:esc Symbol ℓ)
+(#|Addr. Bases    |# β . ::= . ; closure's environment
+                               (β:clo ℓ)
                                ; mutable cell
                                (β:mut (U Symbol -𝒾))
                                ; struct field
@@ -151,16 +159,18 @@
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (#|Changes           |# Ch . ::= . '↓ '↧)
 
-(Renamings . ≜ . (Immutable-HashTable α (Option T)))
-
 (define-interner $:K $:Key
   #:intern-function-name intern-$:Key
   #:unintern-function-name unintern-$:Key)
 
 (define ⊥R : R (hash))
 (define H₀ : H ∅eq)
-(define ⊥Σ : Σ (hash))
-(define ⊥ΔΣ : ΔΣ (hash))
+(define ⊥Ξ : Ξ (hash))
+(define ⊥ΔΞ : ΔΞ ⊥Ξ)
+(define ⊤Γ : Γ (hash))
+(define ⊤ΔΓ : ΔΓ ⊤Γ)
+(define ⊥Σ : Σ (cons ⊥Ξ ⊤Γ))
+(define ⊥ΔΣ : ΔΣ ⊥Σ)
 (define ⊥$ : $ (hasheq))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -169,26 +179,27 @@
 
 (define-signature sto^
   ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
-   [lookup : (γ Σ → V^)]
    [Σ@ : (α Σ → V^)]
    [Σ@/raw : (α Σ → S)]
    [Σ@/blob : (α Σ → (Vectorof V^))]
-   [V@ : (Σ -st-ac V → V^)]
+   [Σ@/env : (α Σ → Γ)]
+   [resolve : ((U Symbol -𝒾) Σ → V^)]
    [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
    [unpack-W : (W Σ → W)]
    [alloc : (α S → ΔΣ)]
-   [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
-   [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
-   [alloc-vararg : (Symbol W → ΔΣ)]
+   [alloc-top : (-𝒾 V^ → ΔΣ)]
+   [alloc-top* : ((Listof -𝒾) W → ΔΣ)]
+   [alloc-lex : (Σ Symbol V^ → ΔΣ)]
+   [alloc-lex* : (Σ (Listof Symbol) W → ΔΣ)]
+   [alloc-vararg : (Σ Symbol W → ΔΣ)]
    [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
-   [resolve-lex : ((U Symbol -𝒾) → α)]
    [mut : (α S Σ → ΔΣ)]
    [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [escape : (ℓ (℘ Symbol) Σ → ΔΣ)]
-   [stack-copy : ((℘ α) Σ → ΔΣ)]
-   [ambiguous? : (T Σ → Boolean)]
    [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
    [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
+   [S-andmap : (∀ (X) (V^ → X) (α → X) S → (U X #t))]
+   [S-ormap : (∀ (X) (V^ → X) (α → X) S → (U X #f))]
+   [S-map : (∀ (X Y) (V^ → V^) S → S)]
    ))
 
 (define-signature cache^
@@ -215,18 +226,13 @@
    [guard-arity : (Fn/C → Arity)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
-   [make-renamings : ((U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)]
-   [rename : (Renamings → (case->
-                           [T → (Option T)]
-                           [(U T -b) → (Option (U T -b))]))]
-   [T-root : (T:@ → (℘ α))]
    [ac-Ps : (-st-ac (℘ P) → (℘ P))]
    [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
    [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
    [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
-   [Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))]
+   [T-refers-to? : (T (℘ Symbol) → Boolean)]
    ))
 
 (define-signature prover^

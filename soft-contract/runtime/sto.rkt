@@ -11,6 +11,7 @@
          set-extras
          unreachable
          (only-in "../utils/map.rkt" dom)
+         "../utils/vector.rkt"
          "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt")
@@ -24,29 +25,45 @@
   ;; Combine store deltas. *Not* commutative due to strong updates when possible.
   ;; (A store is a special case of store-delta where the cardinality is positive)
   (define (⧺ ΔΣ₀ . ΔΣs)
+    (: comb (∀ (X Y)
+               (X Y (Immutable-HashTable X Y) → (Immutable-HashTable X Y))
+               ((Immutable-HashTable X Y) X Y → (Immutable-HashTable X Y))
+               (Immutable-HashTable X Y)
+               (Immutable-HashTable X Y)
+               → (Immutable-HashTable X Y)))
+    (define (comb ⧺ˡ ⧺ʳ m acc)
+      (if (> (hash-count acc) (hash-count m))
+          (for/fold ([acc : (Immutable-HashTable X Y) acc]) ([(x y) (in-hash m)])
+            (⧺ʳ acc x y))
+          (for/fold ([m : (Immutable-HashTable X Y) m]) ([(x y) (in-hash acc)])
+            (⧺ˡ x y m))))
     (define (⧺₁ [ΔΣᵢ : ΔΣ] [acc : ΔΣ])
-      (if (> (hash-count acc) (hash-count ΔΣᵢ))
-          (for/fold ([acc : ΔΣ acc]) ([(α rᵢ) (in-hash ΔΣᵢ)])
-            (⧺ʳ acc α rᵢ))
-          (for/fold ([ΔΣᵢ : ΔΣ ΔΣᵢ]) ([(α r₀) (in-hash acc)])
-            (⧺ˡ α r₀ ΔΣᵢ))))
+      (match-define (cons ΔΞᵢ ΔΓᵢ) ΔΣᵢ)
+      (match-define (cons ΔΞₐ ΔΓₐ) acc)
+      (cons (comb Ξ:⧺ˡ Ξ:⧺ʳ ΔΞᵢ ΔΞₐ) (comb Γ:⧺ˡ Γ:⧺ʳ ΔΓᵢ ΔΓₐ)))
     (foldl ⧺₁ ΔΣ₀ ΔΣs))
+
   (splicing-local
       ((define undef {set -undefined})
        (define get-mt-blob : (Index → (Vectorof V^))
          (let ([cache : (Mutable-HashTable Index (Vectorof V^)) (make-hasheq)])
            (λ (n) (hash-ref! cache n (λ () ((inst make-vector V^) n ∅)))))))
 
-    (: lookup : γ Σ → V^)
-    (define (lookup γ Σ)
-      (let go ([α : α γ])
-        (match (hash-ref Σ α #f)
-          [(cons S _)
-           (match S
-             [(singleton-set (? T? T)) (if (α? T) (go T) {set T})]
-             [(? set?) (if (γ? α) {set α} S)]
-             [_ !!!])]
-          [#f (if (γ:imm? α) (resolve-imm α) undef)])))
+    (: resolve : (U Symbol -𝒾) Σ → V^)
+    (define (resolve x Σ)
+      (match-define (cons Ξ Γ) Σ)
+
+      (: on-rhs : γ S → V^)
+      (define (on-rhs lhs rhs)
+        (match rhs
+          [(and alias {singleton-set (? T? T)}) alias]
+          [(== undef) undef]
+          [(? set?) {set lhs}]
+          [(? α? α) (assert (car (hash-ref Ξ α)) set?)]))
+
+      (if (symbol? x)
+          (on-rhs (γ:lex x) (hash-ref Γ (γ:lex x) (λ () undef)))
+          (on-rhs (γ:top x) (car (hash-ref Ξ (γ:top x) (λ () (cons undef 0)))))))
 
     (: Σ@ : α Σ → V^)
     (define (Σ@ α Σ) (assert (Σ@/raw α Σ) set?))
@@ -54,10 +71,15 @@
     (: Σ@/blob : α Σ → (Vectorof V^))
     (define (Σ@/blob α Σ) (assert (Σ@/raw α Σ) vector?))
 
+    (: Σ@/env : α Σ → Γ)
+    (define (Σ@/env α Σ) (assert (Σ@/raw α Σ) hash?))
+
     (: Σ@/raw : α Σ → S)
     (define (Σ@/raw α Σ)
+      (match-define (cons Ξ Γ) Σ)
       (cond
-        [(hash-ref Σ α #f) => car]
+        [(γ:lex? α) (hash-ref Γ α)]
+        [(hash-ref Ξ α #f) => car]
         [(γ:imm*? α) (resolve-imm α)]
         [else
          (match α
@@ -67,6 +89,7 @@
               [(β:vect-elems _ n) (get-mt-blob n)]
               [(β:vect/c-elems _ n) (get-mt-blob n)]
               [(β:st/c-elems _ 𝒾) (get-mt-blob (count-struct-fields 𝒾))]
+              [(β:clo _) ⊤Γ]
               [_ ∅])]
            [_ ∅])])))
 
@@ -109,62 +132,81 @@
     (define (unpack-α α acc)
       (cond [(seen-has? α) acc]
             [else (seen-add! α)
-                  (set-fold unpack-V acc (Σ@ α Σ))]))
+                  (match (Σ@/raw α Σ)
+                    [(? set? Vs) (set-fold unpack-V acc Vs)]
+                    [(? α? α*) (unpack-α α* acc)])]))
 
     (: unpack-T:@ : T:@ V^ → V^)
     (define (unpack-T:@ T acc)
       (match T
         [(T:@ (? -st-ac? ac) (list T*))
-         (V⊔ acc (set-union-map (λ ([V : V]) (V@ Σ ac V)) (unpack-T T* ∅)))]
+         (V⊔ acc (set-union-map (λ ([V : V]) (V@ ac V)) (unpack-T T* ∅)))]
         [_ acc]))
 
-    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
+    (: V@ : -st-ac V → V^)
+    (define (V@ ac V)
+      (match-define (-st-ac 𝒾 i) ac)
+      (match V
+        [(St (and α (α:dyn (β:st-elems _ (== 𝒾)) _)) Ps)
+         (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
+         (define-values (V* _) (refine (unpack Vᵢ Σ) (ac-Ps ac Ps) Σ))
+         ;; TODO: explicitly enforce that store delta doesn't matter in this case
+         V*]
+        [(-● Ps)
+         (define Ps* (ac-Ps ac Ps))
+         (if (prim-struct? 𝒾)
+             {set (-● Ps*)}
+             (let ([Vs (unpack (γ:escaped-field 𝒾 i) Σ)])
+               (if (set-empty? Vs)
+                   ∅
+                   (let-values ([(Vs* _) (refine Vs Ps* Σ)])
+                     Vs*))))]
+        [_ ∅]))
 
-  (: V@ : Σ -st-ac V → V^)
-  (define (V@ Σ ac V)
-    (match-define (-st-ac 𝒾 i) ac)
-    (match V
-      [(St (and α (α:dyn (β:st-elems _ (== 𝒾)) _)) Ps)
-       (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
-       (define-values (V* _) (refine (unpack Vᵢ Σ) (ac-Ps ac Ps) Σ))
-       ;; TODO: explicitly enforce that store delta doesn't matter in this case
-       V*]
-      [(-● Ps)
-       (define Ps* (ac-Ps ac Ps))
-       (if (prim-struct? 𝒾)
-           {set (-● Ps*)}
-           (let ([Vs (unpack (γ:escaped-field 𝒾 i) Σ)])
-             (if (set-empty? Vs)
-                 ∅
-                 (let-values ([(Vs* _) (refine Vs Ps* Σ)])
-                   Vs*))))]
-      [_ ∅]))
+    (if (set? Vs) (unpack-V^ Vs ∅) (unpack-V Vs ∅)))
 
   (: unpack-W : W Σ → W)
   (define (unpack-W W Σ) (map (λ ([V^ : V^]) (unpack V^ Σ)) W))
 
   (: alloc : α S → ΔΣ)
   (define (alloc α S)
-    (define n (if (care-if-singular? α) 1 'N))
-    (hash α (cons S n)))
+    (if (γ:lex? α)
+        (if (or (set? S) (α? S)) (cons ⊥Ξ (hash α S)) !!!)
+        (let ([n (if (care-if-singular? α) 1 'N)])
+          (cons (hash α (cons S n)) ⊤Γ))))
 
-  (: alloc-lex : (U Symbol -𝒾) V^ → ΔΣ)
-  (define (alloc-lex x V^)
-    (define α* (if (symbol? x) (γ:lex x) (γ:top x)))
+  (: alloc-top : -𝒾 V^ → ΔΣ)
+  (define (alloc-top 𝒾 V^)
+    (define α (γ:top 𝒾))
+    (cons (if (assignable? 𝒾)
+              (let ([α* (α:dyn (β:mut 𝒾) H₀)])
+                (hash α* (cons V^ 1)
+                      α  (cons α* 1)))
+              (hash α (cons V^ 1)))
+          ⊤Γ))
+
+  (: alloc-top* : (Listof -𝒾) W → ΔΣ)
+  (define (alloc-top* xs W)
+    (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([x (in-list xs)] [Vs (in-list W)])
+      (⧺ ΔΣ (alloc-top x Vs))))
+
+  (: alloc-lex : Σ Symbol V^ → ΔΣ)
+  (define (alloc-lex Σ x V^)
+    (define α (γ:lex x))
     (if (assignable? x)
-        (let ([α (resolve-lex x)])
-          (⧺ (alloc α V^) (alloc α* {set α})))
-        (alloc α* V^)))
+        (let ([α* (α:dyn (β:mut x) H₀)])
+          (cons (hash α* (cons (unpack V^ Σ) 1)) (hash α α*)))
+        (cons ⊥Ξ (hash α V^))))
 
-  (: alloc-lex* : (Listof (U Symbol -𝒾)) W → ΔΣ)
-  (define (alloc-lex* xs W)
+  (: alloc-lex* : Σ (Listof Symbol) W → ΔΣ)
+  (define (alloc-lex* Σ xs W)
     (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([x (in-list xs)] [V (in-list W)])
-      (⧺ ΔΣ (alloc-lex x V))))
+      (⧺ ΔΣ (alloc-lex Σ x V))))
 
-  (: alloc-vararg : Symbol W → ΔΣ)
-  (define (alloc-vararg x W)
+  (: alloc-vararg : Σ Symbol W → ΔΣ)
+  (define (alloc-vararg Σ x W)
     (define-values (Vᵣ ΔΣ) (alloc-rest x W))
-    (⧺ ΔΣ (alloc-lex x Vᵣ)))
+    (⧺ ΔΣ (alloc-lex Σ x Vᵣ)))
 
   (: alloc-rest ([(U Symbol ℓ) W] [#:tail V^] . ->* . (values V^ ΔΣ)))
   (define (alloc-rest x Wᵣ #:tail [tail {set -null}])
@@ -176,21 +218,26 @@
          (define α (α:dyn (β:st-elems (cons x (assert i index?)) -𝒾-cons) H₀))
          (values {set (St α ∅)} (⧺ ΔΣₜ (alloc α (vector-immutable Vᵢ Vₜ))))])))
 
-  (: resolve-lex : (U Symbol -𝒾) → α)
-  (define (resolve-lex x)
-    (cond [(assignable? x) (α:dyn (β:mut x) H₀)]
-          [(symbol? x) (γ:lex x)]
-          [else (γ:top x)])) 
-
   (: mut : α S Σ → ΔΣ)
-  (define (mut α S Σ) (hash α (cons S (if (ambiguous? α Σ) '? 0))))
+  (define (mut α S Σ)
+    (define ambig?
+      (case (cdr (hash-ref (car Σ) α))
+        [(1) #f]
+        [(N) #t]))
+    (cons (hash α (cons S (if ambig? '? 0))) ⊤Γ))
 
-  (: ⧺ʳ : ΔΣ α (Pairof S N) → ΔΣ)
+  (: Γ:⧺ʳ : ΔΓ γ S* → ΔΓ)
+  (define (Γ:⧺ʳ ΔΓ x Vs) (hash-set ΔΓ x Vs))
+
+  (: Γ:⧺ˡ : γ S* ΔΓ → ΔΓ)
+  (define (Γ:⧺ˡ x Vs ΔΓ) (if (hash-has-key? ΔΓ x) ΔΓ (hash-set ΔΓ x Vs)))
+
+  (: Ξ:⧺ʳ : ΔΞ α (Pairof S N) → ΔΞ)
   ;; Apply effect to store delta as if it happened *after* the delta
-  (define (⧺ʳ ΔΣ α r₁)
+  (define (Ξ:⧺ʳ ΔΞ α r₁)
     (match-define (cons S₁ N₁) r₁)
-    (hash-set ΔΣ α
-              (match (hash-ref ΔΣ α #f)
+    (hash-set ΔΞ α
+              (match (hash-ref ΔΞ α #f)
                 [(cons S₀ N₀)
                  (match* (N₀ N₁)
                    [((or 0 '?)  0) (cons S₁           0)]
@@ -201,50 +248,77 @@
                    [(_          _) (cons (S⊔ S₀ S₁) 'N)])]
                 [#f r₁])))
 
-  (: ⧺ˡ : α (Pairof S N) ΔΣ → ΔΣ)
+  (: Ξ:⧺ˡ : α (Pairof S N) Ξ → ΔΞ)
   ;; Apply effect to store delta as if it happened *before* the delta
-  (define (⧺ˡ α r₀ ΔΣ)
+  (define (Ξ:⧺ˡ α r₀ ΔΞ)
     (match-define (cons S₀ N₀) r₀)
-    (match (hash-ref ΔΣ α #f)
+    (match (hash-ref ΔΞ α #f)
       [(cons S₁ N₁)
        (match* (N₀ N₁)
-         [((or 0 '?) (or 0 '?)) ΔΣ]
-         [(1         (or 0 '?)) (hash-set ΔΣ α (cons S₁ 1))]
-         [((or 0 '?) 1        ) (hash-set ΔΣ α (cons (S⊔ S₀ S₁) 1))]
-         [(_         _        ) (hash-set ΔΣ α (cons (S⊔ S₀ S₁) 'N))])]
-      [#f (hash-set ΔΣ α r₀)]))
+         [((or 0 '?) (or 0 '?)) ΔΞ]
+         [(1         (or 0 '?)) (hash-set ΔΞ α (cons S₁ 1))]
+         [((or 0 '?) 1        ) (hash-set ΔΞ α (cons (S⊔ S₀ S₁) 1))]
+         [(_         _        ) (hash-set ΔΞ α (cons (S⊔ S₀ S₁) 'N))])]
+      [#f (hash-set ΔΞ α r₀)]))
 
-  (: ΔΣ⊔ : ΔΣ ΔΣ → ΔΣ)
+  (: ΔΓ⊔ : ΔΓ ΔΓ → ΔΓ)
+  (define (ΔΓ⊔ ΔΓ₁ ΔΓ₂)
+    (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([x (in-set (∪ (dom ΔΓ₁) (dom ΔΓ₂)))])
+      (match (hash-ref ΔΓ₁ x #f)
+        [(? values Vs₁)
+         (match (hash-ref ΔΓ₂ x #f)
+           [(? values Vs₂)
+            (define Vs* (if (and (set? Vs₁) (set? Vs₂))
+                            (V⊔ Vs₁ Vs₂)
+                            (begin0 Vs₁
+                              (assert (equal? Vs₁ Vs₂)))))
+            (hash-set acc x Vs*)]
+           [#f acc])]
+        [#f acc])))
+
+  (: ΔΞ⊔ : ΔΞ ΔΞ → ΔΞ)
   ;; Blur store deltas. Commutative.
-  (define (ΔΣ⊔ ΔΣ₁ ΔΣ₂)
-    (: add-both : ΔΣ α (Pairof S N) (Pairof S N) → ΔΣ)
+  (define (ΔΞ⊔ ΔΞ₁ ΔΞ₂)
+    (: add-both : ΔΞ α (Pairof S N) (Pairof S N) → ΔΞ)
     (define (add-both acc α r₁ r₂)
       (match-define (cons S₁ N₁) r₁)
       (match-define (cons S₂ N₂) r₂)
       (hash-set acc α (cons (S⊔ S₁ S₂) (N-max N₁ N₂))))
 
-    (: add-one : ΔΣ α (Pairof S N) → ΔΣ)
+    (: add-one : ΔΞ α (Pairof S N) → ΔΞ)
     (define (add-one acc α r)
       (match-define (cons S N) r)
       (case N
-        [(0)
-         ;; Either drop refinement for immutable address or
-         ;; turn strong to weak update for mutable address
-         (if (mutable? α) (hash-set acc α (cons S '?)) acc)]
+        ;; Turn strong to weak update
+        [(0) (hash-set acc α (cons S '?))]
         [else (hash-set acc α r)]))
 
-    (for/fold ([ΔΣ* : ΔΣ ⊥ΔΣ]) ([α (in-set (∪ (dom ΔΣ₁) (dom ΔΣ₂)))])
-      (match (hash-ref ΔΣ₁ α #f)
+    (for/fold ([ΔΞ* : ΔΞ ⊥ΔΞ]) ([α (in-set (∪ (dom ΔΞ₁) (dom ΔΞ₂)))])
+      (match (hash-ref ΔΞ₁ α #f)
         [(? values r₁)
-         (match (hash-ref ΔΣ₂ α #f)
-           [(? values r₂) (add-both ΔΣ* α r₁ r₂)]
-           [#f (add-one ΔΣ* α r₁)])]
-        [#f (add-one ΔΣ* α (hash-ref ΔΣ₂ α))])))
+         (match (hash-ref ΔΞ₂ α #f)
+           [(? values r₂) (add-both ΔΞ* α r₁ r₂)]
+           [#f (add-one ΔΞ* α r₁)])]
+        [#f (add-one ΔΞ* α (hash-ref ΔΞ₂ α))])))
+
+  (: ΔΣ⊔ : ΔΣ ΔΣ → ΔΣ)
+  (define (ΔΣ⊔ ΔΣ₁ ΔΣ₂)
+    (match-define (cons ΔΞ₁ ΔΓ₁) ΔΣ₁)
+    (match-define (cons ΔΞ₂ ΔΓ₂) ΔΣ₂)
+    (cons (ΔΞ⊔ ΔΞ₁ ΔΞ₂) (ΔΓ⊔ ΔΓ₁ ΔΓ₂)))
 
   (define S⊔ : (S S → S)
     (match-lambda**
      [((? vector? Vs₁) (? vector? Vs₂)) (vector-map V⊔ Vs₁ Vs₂)]
-     [((? set? Vs₁) (? set? Vs₂)) (V⊔ Vs₁ Vs₂)]))
+     [((? hash? Γ₁) (? hash? Γ₂)) (for/hash : Γ ([(x Vs₁) (in-hash Γ₁)])
+                                    (define Vs₂ (hash-ref Γ₂ x))
+                                    (values x
+                                            (if (and (set? Vs₁) (set? Vs₂))
+                                                (V⊔ Vs₁ Vs₂)
+                                                (begin0 Vs₁
+                                                  (assert (equal? Vs₁ Vs₂))))))]
+     [((? set? Vs₁) (? set? Vs₂)) (V⊔ Vs₁ Vs₂)]
+     [((? α? α₁) (? α? α₂)) (assert (equal? α₁ α₂)) α₁]))
 
   (: N-max : N N → N)
   ;; Take cardinalitt max
@@ -253,67 +327,6 @@
           [(or (equal? 1 N₁) (equal? 1 N₂)) 1]
           [(or (equal? '? N₁) (equal? '? N₂)) '?]
           [else 0]))
-
-  (: stack-copy : (℘ α) Σ → ΔΣ)
-  (define (stack-copy αs Σ)
-    (define rn
-      (for/hash : (Immutable-HashTable α γ) ([α (in-set αs)])
-        (match-define (α:dyn (β:esc (? symbol? x) _) _) α)
-        (values α (γ:lex x))))
-    (copy/rename rn Σ))
-
-  (: escape : ℓ (℘ Symbol) Σ → ΔΣ)
-  (define (escape ℓ Xs Σ)
-    (define rn (for/hash : (Immutable-HashTable γ α) ([x (in-set Xs)])
-                 (values (γ:lex x) (α:dyn (β:esc x ℓ) H₀))))
-    (copy/rename rn Σ))
-
-  (: copy/rename : (Immutable-HashTable α α) Σ → Σ)
-  (define (copy/rename rn Σ₀)
-    (define adjust : (case-> [α → α]
-                             [T → T]
-                             [(U T -b) → (U T -b)])
-      (let ([f (rename rn)])
-        (λ (T)
-          (define T* (f T))
-          (if (α? T) (assert T* α?) (assert T*)))))
-    (define (go-S [S : S]) (if (vector? S) (vector-map go-V^ S) (go-V^ S)))
-    (define (go-V^ [V^ : V^]) (map/set go-V V^))
-    (define go-V : (V → V)
-      (match-lambda
-        [(? T? T) (go-T T)]
-        [(-● Ps) (-● (map/set go-P Ps))]
-        [(St α Ps) (St α (map/set go-P Ps))]
-        [V V]))
-    (define go-P : (P → P)
-      (match-lambda
-        [(P:¬ Q) (P:¬ (go-Q Q))]
-        [(P:St acs P) (P:St acs (go-P P))]
-        [(? Q? Q) (go-Q Q)]))
-    (define go-Q : (Q → Q)
-      (match-lambda
-        [(P:> T) (P:> (adjust T))]
-        [(P:≥ T) (P:≥ (adjust T))]
-        [(P:< T) (P:< (adjust T))]
-        [(P:≤ T) (P:≤ (adjust T))]
-        [(P:= T) (P:= (adjust T))]
-        [(P:≡ T) (P:≡ (adjust T))]
-        [Q Q]))
-    (define (go-T [T : T]) (cond [(adjust T) => values] [else T]))
-    (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([(α r) (in-hash Σ₀)])
-      (define S (car r))
-      (cond [(hash-ref rn α #f) => (λ (α*) (⧺ acc (alloc α* (go-S S))))]
-            [else acc])))
-
-  (: ambiguous? : T Σ → Boolean)
-  ;; Check if identity `T` is ambiguous under store `Σ`
-  (define (ambiguous? T₀ Σ)
-    (let go ([T : (U T -b) T₀])
-      (cond [(-b? T) #f]
-            [(T:@? T) (ormap go (T:@-_1 T))]
-            [else (case (cdr (hash-ref Σ T))
-                    [(1) #f]
-                    [(N) #t])])))
 
   (: ΔΣ⊕ : ΔΣ ΔΣ → (Option ΔΣ))
   (define (ΔΣ⊕ ΔΣ₁ ΔΣ₂)
@@ -339,8 +352,17 @@
         (for/fold ([acc : Ord '=])
                   ([Vs₁ (in-vector S₁)] [Vs₂ (in-vector S₂)] #:break (not acc))
           (max-ord acc (cmp-Vs Vs₁ Vs₂)))]
+       [((? hash? Γ₁) (? hash? Γ₂))
+        (for/fold ([acc : Ord '=])
+                  ([(x D₁) (in-hash Γ₁)] #:break (not acc))
+          (match (hash-ref Γ₂ x #f)
+            [(? set? D₂) (max-ord acc (cmp-Vs (assert D₁ set?) D₂))]
+            [(? α? D₂) (max-ord acc (begin0 '=
+                                      (assert (equal? D₁ D₂))))]
+            [#f #f]))]
        [((? set? S₁) (? set? S₂))
-        (cmp-Vs S₁ S₂)]))
+        (cmp-Vs S₁ S₂)]
+       [((? α? α₁) (? α? α₂)) (and (equal? α₁ α₂) '=)]))
 
     (define cmp-r : ((Pairof S N) (Pairof S N) → Ord)
       (match-lambda**
@@ -352,24 +374,53 @@
                           [(?) 1]
                           [(1) 2]
                           [(N) 3]))])
-            (λ (N₁ N₂)
-              (define o₁ (ord N₁))
-              (define o₂ (ord N₂))
-              (cond [(= o₁ o₂) '=]
-                    [(< o₁ o₂) '≤]
-                    [else '≥]))))
-    (cond [(= (hash-count ΔΣ₁) (hash-count ΔΣ₂))
-           (define cmp
-             (for/fold ([cmp : Ord '=])
-                       ([(α r₁) (in-hash ΔΣ₁)] #:break (not cmp))
-               (match (hash-ref ΔΣ₂ α #f)
-                 [(? values r₂) (max-ord cmp (cmp-r r₁ r₂))]
-                 [#f #f])))
-           (case cmp
-             [(≥ =) ΔΣ₁]
-             [(≤  ) ΔΣ₂]
-             [else #f])]
-          [else #f]))
+        (λ (N₁ N₂)
+          (define o₁ (ord N₁))
+          (define o₂ (ord N₂))
+          (cond [(= o₁ o₂) '=]
+                [(< o₁ o₂) '≤]
+                [else '≥]))))
+
+    (: ΔΞ⊕ : ΔΞ ΔΞ → (Option ΔΞ))
+    (define (ΔΞ⊕ ΔΞ₁ ΔΞ₂)
+      (cond [(= (hash-count ΔΞ₁) (hash-count ΔΞ₂))
+             (define cmp
+               (for/fold ([cmp : Ord '=])
+                         ([(α r₁) (in-hash ΔΞ₁)] #:break (not cmp))
+                 (match (hash-ref ΔΞ₂ α #f)
+                   [(? values r₂) (max-ord cmp (cmp-r r₁ r₂))]
+                   [#f #f])))
+             (case cmp
+               [(≥ =) ΔΞ₁]
+               [(≤  ) ΔΞ₂]
+               [else #f])]
+            [else #f]))
+
+    (: ΔΓ⊕ : ΔΓ ΔΓ → (Option ΔΓ))
+    (define (ΔΓ⊕ ΔΓ₁ ΔΓ₂)
+      (cond [(= (hash-count ΔΓ₁) (hash-count ΔΓ₂))
+             (define cmp
+               (for/fold ([cmp : Ord '=])
+                         ([(x Vs₁) (in-hash ΔΓ₁)] #:break (not cmp))
+                 (match (hash-ref ΔΓ₂ x #f)
+                   [(? values Vs₂)
+                    (if (and (set? Vs₁) (set? Vs₂))
+                        (max-ord cmp (cmp-Vs Vs₁ Vs₂))
+                        (begin0 '=
+                          (assert (equal? Vs₁ Vs₂))))]
+                   [#f #f])))
+             (case cmp
+               [(≥ =) ΔΓ₁]
+               [(≤  ) ΔΓ₂]
+               [else #f])]
+            [else #f]))
+    
+    (match-define (cons ΔΞ₁ ΔΓ₁) ΔΣ₁)
+    (match-define (cons ΔΞ₂ ΔΓ₂) ΔΣ₂)
+    (define ΔΓ* (ΔΓ⊕ ΔΓ₁ ΔΓ₂))
+    (and ΔΓ*
+         (let ([ΔΞ* (ΔΞ⊕ ΔΞ₁ ΔΞ₂)])
+           (and ΔΞ* (cons ΔΞ* ΔΓ*)))))
 
   (: ΔΣ⊔₁ : ΔΣ (℘ ΔΣ) → (℘ ΔΣ))
   (define (ΔΣ⊔₁ ΔΣ ΔΣs) (merge/compact₁ ΔΣ⊕ ΔΣ ΔΣs))
@@ -394,4 +445,29 @@
         ;; Care if "stack addresses" are singular so we can use them as symbolic name
         ;; With current implementation, these addresses should be singular by construction
         (γ:lex? α) (γ:top? α)))
+
+  (: S-andmap (∀ (X) (V^ → X) (α → X) S → (U X #t)))
+  (define (S-andmap on-Vs? on-α? S)
+    (cond [(vector? S) (vector-andmap on-Vs? S)]
+          [(hash? S) (for/fold ([acc : (U #t X) #t])
+                               ([D (in-hash-values S)] #:break (not acc))
+                       (if (set? D) (on-Vs? D) (on-α? D)))]
+          [(set? S) (on-Vs? S)]
+          [else (on-α? S)]))
+
+  (: S-ormap (∀ (X) (V^ → X) (α → X) S → (U X #f)))
+  (define (S-ormap on-Vs? on-α? S)
+    (cond [(vector? S) (vector-ormap on-Vs? S)]
+          [(hash? S) (for/or : (U X #f) ([D (in-hash-values S)])
+                       (if (set? D) (on-Vs? D) (on-α? D)))]
+          [(set? S) (on-Vs? S)]
+          [else (on-α? S)]))
+
+  (: S-map (∀ (X Y) (V^ → V^) S → S))
+  (define (S-map f S)
+    (cond [(vector? S) (vector-map f S)]
+          [(hash? S) (for/hash : Γ ([(x Vs) (in-hash S)])
+                       (values x (if (set? Vs) (f Vs) Vs)))]
+          [(set? S) (f S)]
+          [else S]))
   )

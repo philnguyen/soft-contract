@@ -35,11 +35,13 @@
 
   (: ΔΣ⧺R : ΔΣ R → R)
   (define (ΔΣ⧺R ΔΣ R)
-    (if (hash-empty? ΔΣ) R (map-R:ΔΣ (λ (ΔΣ₀) (⧺ ΔΣ ΔΣ₀)) R)))
+    (cond [(and (hash-empty? (car ΔΣ)) (hash-empty? (cdr ΔΣ))) R]
+          [else (map-R:ΔΣ (λ (ΔΣ₀) (⧺ ΔΣ ΔΣ₀)) R)]))
 
   (: R⧺ΔΣ : R ΔΣ → R)
   (define (R⧺ΔΣ R ΔΣ)
-    (if (hash-empty? ΔΣ) R (map-R:ΔΣ (λ (ΔΣ₀) (⧺ ΔΣ₀ ΔΣ)) R))) 
+    (cond [(and (hash-empty? (car ΔΣ)) (hash-empty? (cdr ΔΣ))) R]
+          [else (map-R:ΔΣ (λ (ΔΣ₀) (⧺ ΔΣ₀ ΔΣ)) R)])) 
 
   (: collapse-R/ΔΣ : R → (Option ΔΣ))
   (define (collapse-R/ΔΣ R)

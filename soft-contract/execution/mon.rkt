@@ -28,7 +28,7 @@
   (export mon^)
 
   (define -FF {set -ff})
-  (define γ-mon (γ:lex (gensym 'mon_)))
+  (define x-mon (gensym 'mon_))
 
   (: mon : Σ Ctx V^ V^ → R)
   (define (mon Σ ctx C^ V^)
@@ -82,7 +82,8 @@
         (define arity-check (P:arity-includes (guard-arity C)))
         (with-split-Σ Σ arity-check W
           (match-lambda**
-           [((list V*) ΔΣ₂)
+           [((list V*₀) _)
+            (define V* (unpack V*₀ Σ))
             (define C:sig
               (let ([sig : (==>i → Fn/C-Sig)
                      (match-lambda
@@ -90,7 +91,7 @@
                         (cons (var-map Dom-name doms) (and rngs (map Dom-name rngs)))])])
                 (match C
                   [(? ==>i?) (sig C)]
-                  [(∀/C xs _ _ _) (cons (-var xs #f) #f)]
+                  [(∀/C xs _ _) (cons (-var xs #f) #f)]
                   [(Case-=> Cs) (map sig Cs)])))
             (define-values (αᵥ ΔΣ)
               (match V*
@@ -120,7 +121,8 @@
            (with-collapsing/R [(ΔΣ₀ Ws) (app (⧺ Σ ΔΣ) ℓ {set (-st-ac 𝒾 i)} (list V))]
              (define ctx* (Ctx-with-origin ctx (ℓ-with-id ℓₕ i)))
              (define Cᵢ (vector-ref S i))
-             (with-collapsing/R [(ΔΣ₁ Ws*) (mon (⧺ Σ ΔΣ ΔΣ₀) ctx* Cᵢ (car (collapse-W^ Ws)))]
+             (define Σ* (⧺ Σ ΔΣ ΔΣ₀))
+             (with-collapsing/R [(ΔΣ₁ Ws*) (mon Σ* ctx* Cᵢ (unpack (car (collapse-W^ Ws)) Σ*))]
                (go (assert (+ 1 i) index?)
                    (cons (car (collapse-W^ Ws*)) Vs-rev)
                    (⧺ ΔΣ ΔΣ₀ ΔΣ₁))))])))
@@ -129,7 +131,7 @@
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
           (define-values (Vₐ ΔΣₐ)
-            (match (collapse-W^ Ws)
+            (match (unpack-W (collapse-W^ Ws) (⧺ Σ₀ ΔΣ*))
               ;; Reduce allocation in common case
               [(app ?singleton-opaques (? values l))
                (define Ps
@@ -162,7 +164,7 @@
 
   (: mon-X/C : α → ⟦C⟧)
   ;; Need explicit contract reference to explicitly hint execution of loop
-  (define ((mon-X/C α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
+  (define ((mon-X/C α) Σ ctx V^) (mon Σ ctx (Σ@ α Σ) (unpack V^ Σ)))
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
@@ -367,22 +369,22 @@
   (define (fc₁ Σ₀ ℓ C Vs)
     (match C
       [(And/C α₁ α₂ _)
-       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α₁ Σ₀) Vs)]
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (Σ@ α₁ Σ₀) Vs)]
          (for/fold ([r : R ⊥R]) ([W₁ (in-set Ws₁)])
            (match W₁
              [(list Vs*)
-              (R⊔ r (ΔΣ⧺R ΔΣ₁ (fc (⧺ Σ₀ ΔΣ₁) ℓ (unpack α₂ Σ₀) Vs*)))]
+              (R⊔ r (ΔΣ⧺R ΔΣ₁ (fc (⧺ Σ₀ ΔΣ₁) ℓ (Σ@ α₂ Σ₀) Vs*)))]
              [(list _ _) (R⊔ r (R-of W₁ ΔΣ₁))])))]
       [(Or/C α₁ α₂ _)
-       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α₁ Σ₀) Vs)]
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (Σ@ α₁ Σ₀) Vs)]
          (for/fold ([r : R ⊥R]) ([W₁ (in-set Ws₁)])
            (match W₁
              [(list _) (R⊔ r (R-of W₁ ΔΣ₁))]
              [(list Vs* _)
-              (define r₂ (fc (⧺ Σ₀ ΔΣ₁) ℓ (unpack α₂ Σ₀) Vs*))
+              (define r₂ (fc (⧺ Σ₀ ΔΣ₁) ℓ (Σ@ α₂ Σ₀) Vs*))
               (R⊔ r (ΔΣ⧺R ΔΣ₁ r₂))])))]
       [(Not/C α _)
-       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (unpack α Σ₀) Vs)]
+       (with-collapsing/R [(ΔΣ₁ Ws₁) (fc Σ₀ ℓ (Σ@ α Σ₀) Vs)]
          (for/fold ([r : R ⊥R]) ([W₁ (in-set Ws₁)])
            (R⊔ r (R-of (match W₁
                          [(list Vs*) (list Vs* -FF)]
@@ -420,7 +422,7 @@
                        (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
                        (R-of (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
          (λ (W ΔΣ) (R-of (list (car W) -FF) ΔΣ)))]
-      [(X/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
+      [(X/C α) (fc Σ₀ ℓ (Σ@ α Σ₀) (unpack Vs Σ₀))]
       [(? -b? b)
        (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
          (λ (_ ΔΣ) (R-of b ΔΣ))
@@ -428,10 +430,11 @@
            (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ b)) Σ₀))
            (R-of (list V* -FF) (⧺ ΔΣ ΔΣ*))))]
       [_
-       (define ΔΣₓ (alloc γ-mon Vs))
+       (define ΔΣₓ (alloc-lex Σ₀ x-mon Vs))
+       (define γ-mon (γ:lex x-mon))
        (with-each-ans ([(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))])
          (define Σ₁ (⧺ Σ₀ ΔΣₓ ΔΣ))
-         (define Vs* (unpack γ-mon Σ₁))
+         (define Vs* (Σ@ γ-mon Σ₁))
          (with-split-Σ Σ₁ 'values W
            (λ _ (R-of Vs* ΔΣ))
            (λ _ (R-of (list Vs* -FF) ΔΣ))))]))

@@ -27,64 +27,96 @@
   ;; The context `Σ-ctx` is the full store, which may or may not coincide with `Σ₀`
   (define (gc root Σ₀ [ctx Σ₀])
     (define-set touched : α)
+    (match-define (cons Ξ₀ Γ₀) Σ₀)
 
-    (: touch : α Σ → Σ)
-    (define (touch α Σ)
+    (: touch : α Ξ Γ → (Values Ξ Γ))
+    (define (touch α Ξ Γ)
       (touched-add! α)
       ;; Look up full context to span addresses,
       ;; but only copy entries from the store-delta in focus
-      (define Σ*
-        (match (hash-ref Σ₀ α #f)
-          [(? values r) (hash-set Σ α r)]
-          [#f Σ]))
+      (define Ξ* (match (hash-ref Ξ₀ α #f)
+                   [(? values r) (hash-set Ξ α r)]
+                   [#f Ξ]))
+      (define Γ* (cond [(γ? α) (match (hash-ref Γ₀ α #f)
+                                 [(? values D) (hash-set Γ α D)]
+                                 [#f Γ])]
+                       [else Γ]))
       (define S (Σ@/raw α ctx)) ; `Σ@` instead of just `hash-ref` takes care of `γ:imm`
-      (if (vector? S)
-          (for*/fold ([Σ* : ΔΣ Σ*])
-                     ([Vs (in-vector S)]
-                      [V (in-set Vs)]
-                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
-            (touch α* Σ*))
-          (for*/fold ([Σ* : ΔΣ Σ*])
-                     ([V (in-set S)]
-                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
-            (touch α* Σ*))))
+      (cond
+        [(vector? S)
+         (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                    ([Vs (in-vector S)]
+                     [V (in-set Vs)]
+                     [α* (in-set (V-root V))] #:unless (touched-has? α*))
+           (touch α* Ξ* Γ*))]
+        [(hash? S)
+         (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                    ([D (in-hash-values S)])
+           (cond [(set? D)
+                  (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                             ([V (in-set D)]
+                              [α* (in-set (V-root V))]
+                              #:unless (γ:lex? α*)
+                              #:unless (touched-has? α*))
+                    (touch α* Ξ* Γ*))]
+                 [(not (touched-has? D)) (touch D Ξ* Γ*)]
+                 [else (values Ξ* Γ*)]))]
+        [(set? S)
+         (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                    ([V (in-set S)]
+                     [α* (in-set (V-root V))] #:unless (touched-has? α*))
+           (touch α* Ξ* Γ*))]
+        [else (touch S Ξ* Γ*)]))
 
-    (let ([Σ* (set-fold touch ⊥Σ root)])
-      (if (= (hash-count Σ*) (hash-count Σ₀))
+    (: touch* : (℘ α) Ξ Γ → (Values Ξ Γ))
+    (define (touch* αs Ξ Γ)
+      (for/fold ([Ξ : ΔΞ Ξ] [Γ : ΔΓ Γ]) ([α (in-set αs)])
+        (touch α Ξ Γ)))
+
+    (let-values ([(Ξ₁ Γ₁) (touch* root ⊥Ξ ⊤Γ)])
+      (define Ξ* (if (= (hash-count Ξ₀) (hash-count Ξ₁)) Ξ₀ Ξ₁))
+      (define Γ* (if (= (hash-count Γ₀) (hash-count Γ₁)) Γ₀ Γ₁))
+      (if (and (eq? Ξ* Ξ₀) (eq? Γ* Γ₀))
           ;; Try to re-use old instance
           Σ₀
-          (remove-stale-refinements touched Σ*))))
+          (remove-stale-refinements touched (cons Ξ* Γ*)))))
 
   (: remove-stale-refinements : (℘ α) Σ → Σ)
   (define (remove-stale-refinements root Σ₁)
-    (for/fold ([Σ₁ : Σ Σ₁]) ([(α r) (in-hash Σ₁)])
-      (match-define (cons S N) r)
+    (match-define (cons Ξ₁ Γ₁) Σ₁)
+    (: upd-Vs : V^ → V^)
+    (define (upd-Vs Vs)
+      (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
+        (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
+        (define (replace-if-refinements-stale Ps mk-V)
+          (define Ps*
+            (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)] #:unless (⊆ (P-root P) root))
+              (set-remove Ps* P)))
+          ;; Try to reuse old instance
+          (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
+        (match Vᵢ
+          [(-● Ps) (replace-if-refinements-stale Ps -●)]
+          [(St α Ps)
+           (replace-if-refinements-stale Ps (λ (Ps*) (St α Ps*)))]
+          [_ Vs*])))
+    
+    (define Ξ*
+      (for/fold ([Ξ₁ : Ξ Ξ₁]) ([(α r) (in-hash Ξ₁)])
+        (match-define (cons S N) r)
 
-      (: upd-Vs : V^ → V^)
-      (define (upd-Vs Vs)
-        (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
-          (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
-          (define (replace-if-refinements-stale Ps mk-V)
-            (define Ps*
-              (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)] #:unless (⊆ (P-root P) root))
-                (set-remove Ps* P)))
-            ;; Try to reuse old instance
-            (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
-          (match Vᵢ
-            [(-● Ps) (replace-if-refinements-stale Ps -●)]
-            [(St α Ps)
-             (replace-if-refinements-stale Ps (λ (Ps*) (St α Ps*)))]
-            [_ Vs*])))
-
-      (if (vector? S)
-          (let ([S* (vector-map upd-Vs S)])
-            (cond [(equal? S S*) Σ₁] ; try to reuse old instance
-                  [((inst vector-ormap V^ Boolean) set-empty? S*) (hash-remove Σ₁ α)]
-                  [else (hash-set Σ₁ α (cons S* N))]))
-          (let ([Vs* (upd-Vs S)])
-            (cond [(eq? Vs* S) Σ₁] ; try to reuse old instance
-                  [(set-empty? Vs*) (hash-remove Σ₁ α)]
-                  [else (hash-set Σ₁ α (cons Vs* N))])))))
+        (define S* (S-map upd-Vs S))
+        (cond [(equal? S S*) Ξ₁]
+              [((inst S-ormap Boolean) set-empty? (λ _ #f) S*) (hash-remove Ξ₁ α)]
+              [else (hash-set Ξ₁ α (cons S* N))])))
+    (define Γ*
+      (for/fold ([Γ₁ : Γ Γ₁]) ([(α D) (in-hash Γ₁)])
+        (define D* (S-map upd-Vs D))
+        (cond [(equal? D D*) Γ₁]
+              [((inst S-ormap Boolean) set-empty? (λ _ #f) D*) (hash-remove Γ₁ α)]
+              [(or (set? D*) (α? D*)) (hash-set Γ₁ α D*)])))
+    (if (and (eq? Ξ* Ξ₁) (eq? Γ* Γ₁))
+        Σ₁
+        (cons Ξ* Γ*)))
 
   (: gc-R : (℘ α) Σ R → R)
   (define (gc-R root Σ r)
@@ -124,7 +156,7 @@
       [(Hash/C αₖ αᵥ _) {set αₖ αᵥ}]
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]
-      [(∀/C xs c H ℓ) (E-H-root xs c H ℓ)]
+      [(∀/C xs c α) (E-H-root xs c α)]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
@@ -133,16 +165,16 @@
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
 
   (define Clo-root : (Clo → (℘ α))
-    (match-lambda [(Clo fml E H ℓ) (E-H-root fml E H ℓ)]))
+    (match-lambda [(Clo fml E α) (E-H-root fml E α)]))
 
-  (define E-H-root : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))
-    (let ([$ : (Mutable-HashTable E (Mutable-HashTable (Pairof H ℓ) (℘ α))) (make-hasheq)])
-      (λ (fml E H* ℓ*)
-        (define $* (hash-ref! $ E (λ () ((inst make-hash (Pairof H ℓ) (℘ α))))))
-        (hash-ref! $* (cons H* ℓ*)
-                   (λ ()
-                     (∪ (Clo-escapes fml E H* ℓ*)
-                        (set-filter (match-lambda [(γ:lex (? symbol?)) #f] [_ #t]) (E-root E))))))))
+  (define E-H-root : ((U -formals (Listof Symbol)) E α → (℘ α))
+    (let ([$ : (Mutable-HashTable E (℘ α)) (make-hasheq)])
+      (λ (fml E α)
+        (define tops (hash-ref!
+                      $ E
+                      (λ ()
+                        (set-filter (λ (α) (not (γ:lex? α))) (E-root E)))))
+        (set-add tops α))))
 
   (define P-root : (P → (℘ α))
     (match-lambda
@@ -204,7 +236,7 @@
             (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
            [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
            [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
-           [(-μ/c _ e) (E-root e)]
+           [(-μ/c x e) (set-remove (E-root e) (γ:lex x))]
            [(-->i (-var cs c) d)
             (define dom-E-root : (-dom → (℘ γ))
               (match-lambda
@@ -228,6 +260,17 @@
               (γ:escaped-field 𝒾 (assert i index?)))]
            [(? symbol? o) {set (γ:hv o)}]
            [_ ∅]))))
+
+    (: T-root : T:@ → (℘ α))
+    (define (T-root T₀)
+      (define o-root : (-o → (℘ α))
+        (match-lambda
+          [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+          [_ ∅]))
+      (let go ([T : (U T -b) T₀])
+        (cond [(T:@? T) (apply ∪ (o-root (T:@-_0 T)) (map go (T:@-_1 T)))]
+              [(-b? T) ∅]
+              [else {set T}])))
 
     ;; Cache for computing live variables depend on specific program's information
     ;; such as struct tags (for computing addresses to leaked fields kept live by

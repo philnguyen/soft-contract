@@ -74,12 +74,12 @@
       [(? list? as) (map show-Arity as)]))
 
   (define show-Clo : (Clo → Sexp)
-    (match-lambda [(Clo xs _ _ _) `(λ ,(show-formals xs) …)]))
+    (match-lambda [(Clo xs _ _) `(λ ,(show-formals xs) …)]))
 
   (define show-Prox/C : (Prox/C → Sexp)
     (match-lambda
       [(? ==>i? V) (show-==>i V)]
-      [(∀/C xs C _ _) `(∀/C ,xs …)]
+      [(∀/C xs C _) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
       [(? St/C? C) (define-values (_ ℓ 𝒾) (St/C-fields C))
                    (format-symbol "~a/c@~a" (-𝒾-name 𝒾) (show-ℓ ℓ))]
@@ -108,8 +108,8 @@
 
   (define show-Dom : (Dom → (Listof Sexp))
     (match-lambda
-      [(Dom x (Clo (-var xs #f) _ _ _) _) `(,x ,xs …)]
-      [(Dom x (? α? α)                _)  `(,x ,(show-α α))]))
+      [(Dom x (Clo (-var xs #f) _ _) _) `(,x ,xs …)]
+      [(Dom x (? α? α)               _)  `(,x ,(show-α α))]))
 
   (define show-T : ((U T -b) → Sexp)
     (match-lambda
@@ -131,7 +131,7 @@
 
   (define show-β : (β → Symbol)
     (match-lambda
-      [(β:esc x ℓ) (format-symbol "~a:~a" x (show-ℓ ℓ))]
+      [(β:clo ℓ) (show-ℓ ℓ)]
       [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
       [(β:st-elems ctx 𝒾) (format-symbol "~a-~a" (-𝒾-name 𝒾) (show-ctx/ℓ ctx))]
       [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
@@ -178,28 +178,45 @@
       [(? string? s) (string->symbol s)]
       [(? symbol? s) s]))
 
-  (: show-Σ : Σ → (Listof Sexp))
-  (define (show-Σ Σ)
-    (for/list : (Listof Sexp) ([(T r) (in-hash Σ)])
+  (: show-Ξ : Ξ → (Listof Sexp))
+  (define (show-Ξ Ξ)
+    (for/list : (Listof Sexp) ([(α r) (in-hash Ξ)])
       (match-define (cons S n) r)
       (define ↦ (case n
                   [(0) '↦⁰]
                   [(1) '↦¹]
                   [(?) '↦?]
                   [(N) '↦ⁿ]))
-      `(,(show-T T) ,↦ ,(show-S S))))
+      `(,(show-α α) ,↦ ,(show-S S))))
+
+  (: show-Γ : Γ → Symbol)
+  (define (show-Γ Γ)
+    (string->symbol
+     (string-join
+      (for/list : (Listof String) ([(x Vs) (in-hash Γ)])
+        (format "~a↦~a" (show-α x) (show-S Vs)))
+      "∧"
+      #:before-first "{"
+      #:after-last "}")))
+
+  (: show-Σ : Σ → (Listof Sexp))
+  (define (show-Σ Σ)
+    (match-define (cons Ξ Γ) Σ)
+    `(,@(show-Ξ Ξ) ,(show-Γ Γ)))
 
   (: show-S : S → Sexp)
   (define (show-S S)
-    (if (vector? S)
-        (string->symbol
-         (string-join
-          (for/list : (Listof String) ([Vs (in-vector S)])
-            (format "~a" (show-V^ Vs)))
-          " "
-          #:before-first "["
-          #:after-last "]"))
-        (show-V^ S)))
+    (cond [(vector? S)
+           (string->symbol
+            (string-join
+             (for/list : (Listof String) ([Vs (in-vector S)])
+               (format "~a" (show-V^ Vs)))
+             " "
+             #:before-first "["
+             #:after-last "]"))]
+          [(hash? S) (show-Γ S)]
+          [(set? S) (show-V^ S)]
+          [else (show-α S)]))
 
   (: show-R : R → (Listof Sexp))
   (define (show-R r)

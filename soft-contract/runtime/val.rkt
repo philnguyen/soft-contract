@@ -29,65 +29,7 @@
       (define n (length Wᵢ))
       (hash-update acc n
                    (λ ([W₀ : W]) (W⊔ W₀ Wᵢ))
-                   (λ () (make-list n ∅))))) 
-
-  #;(: V/ : S → V → V)
-  #;(define (V/ S)
-    (define (α/ [α : α]) (hash-ref S α (λ () α)))
-    (define Clo/ : (Clo → Clo)
-      (match-lambda [(Clo xs E αs ℓ) (Clo xs E (map/set α/ αs) ℓ)]))
-    (define ==>i/ : (==>i → ==>i)
-      (match-lambda [(==>i dom rng) (==>i (var-map Dom/ dom) (and rng (map Dom/ rng)))]))
-    (define Dom/ : (Dom → Dom)
-      (match-lambda [(Dom x c ℓ) (Dom x (if (Clo? c) (Clo/ c) (α/ c)) ℓ)]))
-    (define Prox/C/ : (Prox/C → Prox/C)
-      (match-lambda
-        [(St/C 𝒾 αs ℓ) (St/C 𝒾 (map α/ αs) ℓ)]
-        [(Vectof/C α ℓ) (Vectof/C (α/ α) ℓ)]
-        [(Vect/C αs ℓ) (Vect/C (map α/ αs) ℓ)]
-        [(Hash/C α₁ α₂ ℓ) (Hash/C (α/ α₁) (α/ α₂) ℓ)]
-        [(Set/C α ℓ) (Set/C (α/ α) ℓ)]
-        [(? ==>i? V) (==>i/ V)]
-        [(∀/C xs E αs ℓ) (∀/C xs E (map/set α/ αs) ℓ)]
-        [(Case-=> Cs) (Case-=> (map ==>i/ Cs))]))
-    (define P/ : (P → P)
-      (match-lambda
-        [(P:¬ Q) (P:¬ (Q/ Q))]
-        [(P:St acs P) (P:St acs (P/ P))]))
-    (define Q/ : (Q → Q)
-      (match-lambda
-        [(P:> T) (P:> (T/ T))]
-        [(P:≥ T) (P:≥ (T/ T))]
-        [(P:< T) (P:< (T/ T))]
-        [(P:≤ T) (P:≤ (T/ T))]
-        [(P:= T) (P:= (T/ T))]
-        [P P]))
-    (define T/ : ((U T -b) → (U T -b))
-      (match-lambda
-        [(T:@ o Ts) (T:@ o (map T/ Ts))]
-        [(? α? α) (α/ α)]
-        [(? -b? b) b]))
-    (λ (V₀)
-      (let go ([V : V V₀])
-        (match V
-          [(? P? P) (P/ P)]
-          [(? T? T) (T/ T)]
-          [(St 𝒾 αs Ps) (St 𝒾 (map α/ αs) (map/set P/ Ps))]
-          [(Vect n ℓ H) (Vect (map α/ αs))]
-          [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
-          [(Hash-Of α₁ α₂) (Hash-Of (α/ α₁) (α/ α₂))]
-          [(Set-Of α) (Set-Of (α/ α))]
-          [(Guarded ctx G α) (Guarded ctx (Prox/C/ G) (α/ α))]
-          [(Sealed α) (Sealed (α/ α))]
-          [(? Clo? clo) (Clo/ clo)]
-          [(Case-Clo clos ℓ) (Case-Clo (map Clo/ clos) ℓ)]
-          [(And/C α₁ α₂ ℓ) (And/C (α/ α₁) (α/ α₂) ℓ)]
-          [(Or/C α₁ α₂ ℓ) (Or/C (α/ α₁) (α/ α₂) ℓ)]
-          [(Not/C α ℓ) (Not/C (α/ α) ℓ)]
-          [(? Prox/C? C) (Prox/C/ C)]
-          [(Seal/C α l) (Seal/C (α/ α) l)]
-          [(-● Ps) (-● (map/set P/ Ps))]
-          [V V]))))
+                   (λ () (make-list n ∅)))))
 
   (: W⊔ : W W → W)
   (define (W⊔ W₁ W₂) (map V⊔ W₁ W₂))
@@ -109,8 +51,7 @@
     (define (go-α α)
       (cond [(seen-has? α) #t]
             [else (seen-add! α)
-                  (define S (Σ@/raw α Σ))
-                  (if (vector? S) (vector-andmap go-V^ S) (go-V^ S))]))
+                  (S-andmap go-V^ go-α (Σ@/raw α Σ))]))
 
     (: go-V^ : V^ → Boolean)
     (define (go-V^ [Vs : V^]) (set-andmap go-V Vs))
@@ -146,7 +87,7 @@
     (match-lambda
       [(Guarded _ (? Fn/C? G) _) (guard-arity G)]
       [(-λ xs _ _) (shape xs)]
-      [(Clo xs _ _ _) (shape xs)]
+      [(Clo xs _ _) (shape xs)]
       [(Case-Clo clos _) (map arity clos)]
       [(? And/C?) 1]
       [(? Or/C?) 1]
@@ -167,7 +108,7 @@
     (match-lambda
       [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity cases)]
-      [(∀/C _ E _ _)
+      [(∀/C _ E _)
        ;; TODO: real Racket just returns `(arity-at-least 0)`
        (cond [(E-arity E) => values] [else (error 'guard-arity "~a" E)])]))
 
@@ -191,58 +132,13 @@
      [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
      [(_ V) V]))
 
-  (: make-renamings : (U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)
-  (define (make-renamings fml W prevent?)
-    (define xs (if (-var? fml) (-var-init fml) fml))
-    (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
-                               (split-at W (length xs))
-                               (values W #f))) 
-    (define m
-      (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
-        (values (γ:lex x)
-                (and (not (prevent? x))
-                     (= 1 (set-count Vs))
-                     (let ([V (set-first Vs)])
-                       (and (T? V) V))))))
-    (match fml
-      [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
-      [_ m]))
-
-  (: rename : Renamings → (case->
-                           [T → (Option T)]
-                           [(U T -b) → (Option (U T -b))]))
-  ;; Compute renaming in general.
-  ;; `#f` means there's no correspinding name
-  (define (rename rn)
-    (: go (case-> [T → (Option T)]
-                  [(U T -b) → (Option (U T -b))]))
-    (define go
-      (match-lambda
-        [(T:@ o Ts)
-         (define Ts* (go* Ts))
-         (and Ts* (T:@ o Ts*))]
-        [(? -b? b) b]
-        [(? α? α) (hash-ref rn α (λ () α))]))
-    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
-      (match-lambda
-        ['() '()]
-        [(cons T Ts) (match (go T)
-                       [#f #f]
-                       [(? values T*) (match (go* Ts)
-                                        [#f #f]
-                                        [(? values Ts*) (cons T* Ts*)])])]))
-    go)
-
-  (: T-root : T:@ → (℘ α))
-  (define (T-root T₀)
-    (define o-root : (-o → (℘ α))
-      (match-lambda
-        [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
-        [_ ∅]))
-    (let go ([T : (U T -b) T₀])
-      (cond [(T:@? T) (apply ∪ (o-root (T:@-_0 T)) (map go (T:@-_1 T)))]
-            [(-b? T) ∅]
-            [else {set T}])))
+  (: T-refers-to? : T (℘ Symbol) → Boolean)
+  (define (T-refers-to? T₀ xs)
+    (let go : Boolean ([T : (U -b T) T₀])
+      (match T
+        [(γ:lex x) (∋ xs x)]
+        [(T:@ _ Ts) (ormap go Ts)]
+        [_ #f])))
 
   (: ac-Ps : -st-ac (℘ P) → (℘ P))
   (define (ac-Ps ac Ps)
@@ -355,16 +251,4 @@
        (match α
          [(α:dyn (β:st/c-elems _ 𝒾) _) 𝒾]
          [(γ:imm:blob:st _ _ 𝒾) 𝒾])]))
-
-  (define Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))
-    (let ([$ : (Mutable-HashTable E (Mutable-HashTable H (℘ α))) (make-hasheq)])
-      (λ (fml E H* ℓ)
-        (define $* (hash-ref! $ E (λ () ((inst make-hash H (℘ α))))))
-        (hash-ref!
-         $* H*
-         (λ ()
-           (define bvs (if (list? fml) (list->seteq fml) (formals->names fml)))
-           (define fvs (set-subtract (fv E) bvs))
-           (for/set: : (℘ α) ([x (in-set fvs)])
-             (α:dyn (β:esc x ℓ) H*)))))))
   )

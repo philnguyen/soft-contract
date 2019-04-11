@@ -41,7 +41,7 @@
        (set-subtract (apply ∪ (fv e) (map (compose1 fv (inst cdr Any -e)) bnds)) bound)]
       [(-set! x e _) (if (symbol? x) (set-add (fv e) x) (fv e))]
       [(-if e e₁ e₂ _) (∪ (fv e) (fv e₁) (fv e₂))]
-      [(-μ/c _ e) (fv e)]
+      [(-μ/c x e) (set-remove (fv e) x)]
       [(-->i (-var cs c) d)
        (define dom-fv : (-dom → (℘ Symbol))
          (match-lambda

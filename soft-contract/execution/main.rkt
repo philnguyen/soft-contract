@@ -110,41 +110,6 @@
   (define (blm l+ ℓ ℓₒ ctc val)
     (if (transparent-module? l+) {set (Blm l+ ℓ ℓₒ ctc val)} ∅))
 
-  (: fix-return : Renamings Σ R → R)
-  (define (fix-return rn Σ₀ r)
-    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
-    (define adjust-T (rename rn))
-    (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
-      (for*/hash : ΔΣ ([(α r) (in-hash ΔΣ₀)]
-                       [α* (in-value (adjust-T α))]
-                       ;; TODO generalize this
-                       #:when (α? α*))
-        (values α* (cons (go-S (car r))
-                         ;; if `α` is new allocation within callee and
-                         ;; `α*` is existing address, store-delta entry for `α*`
-                         ;; should always be refinement,
-                         ;; so should not increase cardinality
-                         (if (hash-has-key? rn α) 0 (cdr r))))))
-    (define (go-W [W : W]) (map go-V^ W))
-    (define (go-S [S : S])
-      (if (vector? S) (vector-map go-V^ S) (go-V^ S)))
-    (define (go-V^ [V^ : V^])
-      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
-      (foldl V⊔ Vs₀ Vs*))
-    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
-    (define (go-T [T : T]) (cond [(adjust-T T) => set]
-                                 [else (unpack T (Σₑᵣ))]))
-
-    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
-      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
-        (define W* (go-W Wᵢ))
-        (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (hash-set acc W*
-                  (match (hash-ref acc W* #f)
-                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
-                    [#f {set ΔΣ*}])))))
-
   (: fold-ans (∀ (X) (X → R) (℘ X) → R))
   (define (fold-ans on-X Xs)
     (for/fold ([r : R ⊥R]) ([X (in-set Xs)])

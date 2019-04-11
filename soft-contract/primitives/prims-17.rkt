@@ -66,7 +66,7 @@
        [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
         (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
         (define S (Σ@/blob αₕ Σ))
-        (define Vᵥ* (unpack αᵥ Σ))
+        (define Vᵥ* (Σ@ αᵥ Σ))
         (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
           (define Σ₀ (⧺ Σ ΔΣ₀))
           (define Vₐ (car (collapse-W^ Ws)))

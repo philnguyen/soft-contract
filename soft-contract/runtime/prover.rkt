@@ -101,7 +101,7 @@
   (define (refine₁ V P Σ)
     (match V
       [(or (? -●?) (? St?)) (values (refine-V V P Σ) ⊥ΔΣ)]
-      [(? T? T) (values {set T} (if (ambiguous? T Σ) ⊥ΔΣ (refine-T T P Σ)))]
+      [(? T? T) (values {set T} (refine-T T P Σ))]
       [_ (values {set V} ⊥ΔΣ)]))
 
   (: refine-T : T V Σ → ΔΣ)
@@ -110,7 +110,10 @@
         (let go ([T : (U T -b) T₀] [acs : (Listof -st-ac) '()])
           (match T
             [(T:@ (? -st-ac? ac) (list T*)) (go T* (cons ac acs))]
-            [(? α? α) (mut α (refine-V^ (unpack α Σ) (if (pair? acs) (P:St acs P) P) Σ) Σ)]
+            [(? γ? γ)
+             (define Vs* (refine-V^ (unpack γ Σ) (if (pair? acs) (P:St acs P) P) Σ))
+             (cons ⊥Ξ (hash γ Vs*))]
+            ;; TODO: Other cases of addresses
             [_ ⊥ΔΣ]))
         ⊥ΔΣ))
 
@@ -268,7 +271,7 @@
                 [(? Not/C?) #t]
                 [(? One-Of/C?) #t]
                 [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
-                [(Clo xs _ _ _) (arity-includes? (shape xs) 1)]
+                [(Clo xs _ _) (arity-includes? (shape xs) 1)]
                 [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
                 [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
                 [_ #f]))
@@ -345,7 +348,7 @@
                    [(-● Ps) (Ps⊢P Σ Ps 'immutable?)]
                    [_ #f]))
                (: go-α : α → ?Dec)
-               (define (go-α α) (sat^₁ go (unpack α Σ)))
+               (define (go-α α) (sat^₁ go (unpack (Σ@ α Σ) Σ)))
                (go V₀)]
               [(list?) (check-proper-list Σ V₀)]
               [(port? input-port? output-port?) '✗] ; ports can't reach here
@@ -439,7 +442,7 @@
 
     (: go : T T → ?Dec)
     (define (go T₁ T₂)
-      (if (and (equal? T₁ T₂) (not (ambiguous? T₁ Σ)))
+      (if (equal? T₁ T₂)
           '✓
           ; TODO watch out for loops
           (go-V^ (unpack T₁ Σ) (unpack T₂ Σ)))) 
@@ -462,17 +465,15 @@
        [((not (or (? -●?) (? T?) (? -prim?))) (? -prim?)) '✗]
        [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
          (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))
-        (cond [(not (equal? 𝒾₁ 𝒾₂)) #f]
-              [(and (equal? α₁ α₂) (not (ambiguous? α₁ Σ))) '✓]
-              [else
-               (for/fold ([acc : ?Dec '✓])
-                         ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
-                          [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
-                          #:break (eq? acc '✗))
-                 (case (go-V^ Vs₁ Vs₂)
-                   [(✓) acc]
-                   [(✗) '✗]
-                   [(#f) #f]))])]
+        (and (equal? 𝒾₁ 𝒾₂)
+             (for/fold ([acc : ?Dec '✓])
+                       ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
+                        [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
+                        #:break (eq? acc '✗))
+               (case (go-V^ Vs₁ Vs₂)
+                 [(✓) acc]
+                 [(✗) '✗]
+                 [(#f) #f])))]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]

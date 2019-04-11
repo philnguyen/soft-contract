@@ -21,6 +21,7 @@
 
 (⟦F⟧ . ≜ . (Σ ℓ W → R))
 (⟦G⟧ . ≜ . (Σ ℓ W V^ → R))
+(Renamings . ≜ . (Immutable-HashTable γ (Option T)))
 
 (define-unit app@
   (import meta-functions^ static-info^
@@ -34,7 +35,7 @@
   (define current-chain ((inst make-parameter Stk) '()))
   ;; Global table remembering the widest store for each chain
   ;; FIXME: memory leak. Reset for each program.
-  (define global-stores : (HashTable (Pairof Stk Σ) Σ) (make-hash))
+  (define global-stores : (HashTable (Pairof Stk Γ) Σ) (make-hash))
 
   (: app : Σ ℓ V^ W → R)
   (define (app Σ ℓ Vₕ^ W*)
@@ -96,35 +97,35 @@
            (define Wₓ (unpack-W Wₓ* Σ))
            (define ΔΣₓ
              (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (alloc-lex* xs W₀)
-                  (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
+               (⧺ (alloc-lex* Σ xs W₀)
+                  (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ))))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            ;; TODO: code dup
            (let ([root (∪ (E-root Vₕ) (W-root Wₓ))])
              (define Σ₁ (gc root Σ))
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E))
-             (define rn (trim-renamings (make-renamings fml Wₓ* assignable?)))
+             (define rn (trim-renamings (make-renamings fml Wₓ*)))
              (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
           [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ)) ⊥R]))
 
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
-    (match-define (Clo fml E H ℓₕ) Vₕ)
+    (match-define (Clo fml E (and αₕ (α:dyn (β:clo ℓₕ) _))) Vₕ)
     (cond [(arity-includes? (shape fml) (length Wₓ*))
            (match-define (-var xs xᵣ) fml)
            (define Wₓ (unpack-W Wₓ* Σ))
            (define ΔΣₓ
              (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (stack-copy (Clo-escapes fml E H ℓₕ) Σ)
-                  (alloc-lex* xs W₀)
-                  (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
+               (⧺ (alloc-lex* Σ xs W₀)
+                  (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ))))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
-           (let ([root (∪ (V-root Vₕ) (W-root Wₓ))])
-             (define Σ₁ (gc root Σ))
+           (let* ([root (∪ (V-root Vₕ) (W-root Wₓ))]
+                  [Γ* (Σ@/env αₕ Σ)]
+                  [Σ₁ (cons (car (gc root Σ)) Γ*)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
-             (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ* assignable?))))
+             (define rn (trim-renamings (insert-fv-erasures Γ* (make-renamings fml Wₓ*))))
              (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
           [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ))
                 ⊥R]))
@@ -134,18 +135,13 @@
     (define stk (current-chain))
     (define stk* (cond [(memq E stk) => values]
                        [else (cons E stk)]))
-    (define k (cons stk* (Σ-stk Σ₁)))
+    (define k (cons stk* (cdr Σ₁)))
     (define Σ* (match (hash-ref global-stores k #f)
                  [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₁)]
                  [_ Σ₁]))
     (hash-set! global-stores k Σ*)
     (parameterize ([current-chain stk*])
       (evl Σ* E)))
-
-  (: Σ-stk : Σ → Σ)
-  (define (Σ-stk Σ₀)
-    (for/fold ([Σ* : Σ Σ₀]) ([α (in-hash-keys Σ₀)] #:unless (γ:lex? α))
-      (hash-remove Σ* α)))
 
   (: app-Case-Clo : Case-Clo → ⟦F⟧)
   (define ((app-Case-Clo Vₕ) Σ ℓ Wₓ)
@@ -195,7 +191,7 @@
         [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
          (define-values (αₕ ℓₕ _) (St/C-fields C))
          (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
-         (with-collapsing/R [(ΔΣ Ws) ((unchecked-app-st-ac 𝒾 i) Σ ℓ (unpack αᵥ Σ))]
+         (with-collapsing/R [(ΔΣ Ws) ((unchecked-app-st-ac 𝒾 i) Σ ℓ (Σ@ αᵥ Σ))]
            (ΔΣ⧺R ΔΣ (mon (⧺ Σ ΔΣ) (Ctx l+ l- ℓₕ ℓ) Cᵢ (car (collapse-W^ Ws)))))]
         [(and V₀ (-● Ps))
          (case (sat Σ (-st-p 𝒾) {set V₀})
@@ -226,7 +222,8 @@
             ⊥R))]))
 
   (: unchecked-app-st-mut : -𝒾 Index → Σ ℓ V^ V^ → R)
-  (define ((unchecked-app-st-mut 𝒾 i) Σ ℓ Vₓ V*)
+  (define ((unchecked-app-st-mut 𝒾 i) Σ ℓ Vₓ V*₀)
+    (define V* (unpack V*₀ Σ))
     ((inst fold-ans V)
      (match-lambda
        [(St α _)
@@ -238,7 +235,7 @@
         (define-values (αₕ ℓₕ _) (St/C-fields C))
         (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
         (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) Cᵢ V*)]
-          (ΔΣ⧺R ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (unpack αᵥ Σ) V*)))]
+          (ΔΣ⧺R ΔΣ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ) ℓ (Σ@ αᵥ Σ) V*)))]
        [(? -●?) (R-of -void (alloc (γ:hv #f) V*))]
        [_ ⊥R])
      (unpack Vₓ Σ)))
@@ -265,7 +262,12 @@
                            [(ΔΣ* W*) (go (⧺ Σ ΔΣₓ) Doms Wₓ)])
              (R-of (cons (car Wₓ*) W*) (⧺ ΔΣₓ ΔΣ*)))]
           [(_ _)
-           (err! (blm l+ ℓ #|FIXME|# (ℓ-with-src +ℓ₀ 'Λ) (map (compose1 (inst set V) Dom-ctc) Doms₀) Wₓ₀))
+           (define Cs
+             (for/list : W ([D (in-list Doms₀)])
+               (match (Dom-ctc D)
+                 [(? Clo? C) {set C}]
+                 [(? α? α) (unpack (Σ@ α Σ₀) Σ₀)])))
+           (err! (blm l+ ℓ #|FIXME|# (ℓ-with-src +ℓ₀ 'Λ) Cs Wₓ₀))
            ⊥R])))
 
     (: mon-dom : Σ -l -l Dom V^ → R)
@@ -274,18 +276,23 @@
       (define ctx (Ctx l+ l- ℓₓ ℓ))
       (match c
         ;; Dependent domain
-        [(Clo (-var xs #f) E H ℓ)
-         (define ΔΣ₀ (stack-copy (Clo-escapes xs E H ℓ) Σ))
-         (define Σ₀ (⧺ Σ ΔΣ₀))
+        [(Clo (-var xs #f) E (and αₕ (α:dyn (β:clo ℓ) _)))
+         (define Σ₀
+           (match-let ([(cons Ξ Γ:ctx) Σ])
+             (define Γ*
+               (for/fold ([Γ* : Γ (Σ@/env αₕ Σ)])
+                         ([x (in-list xs)])
+                 (hash-set Γ* (γ:lex x) (hash-ref Γ:ctx (γ:lex x)))))
+             (cons Ξ Γ*)))
          (with-each-ans ([(ΔΣ₁ W) (evl Σ₀ E)]
                          [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
            (match-define (list V*) W) ; FIXME catch
-           (R-of W (⧺ ΔΣ₀ ΔΣ₁ ΔΣ₂ (alloc (γ:lex x) V*))))]
+           (R-of W (⧺ ΔΣ₁ ΔΣ₂ (alloc-lex Σ x V*))))]
         ;; Non-dependent domain
         [(? α? α)
          (with-each-ans ([(ΔΣ W) (mon Σ ctx (Σ@ α Σ₀) V)])
            (match-define (list V*) W)
-           (R-of W (⧺ ΔΣ (alloc (γ:lex x) V*))))]))
+           (R-of W (⧺ ΔΣ (alloc-lex Σ x V*))))]))
 
     (define Dom-ref (match-lambda [(Dom x _ _) {set (γ:lex x)}]))
 
@@ -295,17 +302,17 @@
             (with-each-ans ([(ΔΣₐ Wₐ) (comp)])
               (ΔΣ⧺R (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) l+ l- Rngs Wₐ)))
             (ΔΣ⧺R ΔΣ-acc (comp))))
-      (define rn (for/hash : (Immutable-HashTable α (Option α))
+      (define rn (for/hash : (Immutable-HashTable γ (Option γ))
                      ([d (in-list Doms)]
                       [Vₓ (in-list Wₓ*)])
                    (values (γ:lex (Dom-name d))
                            (match Vₓ
-                             [{singleton-set (? α? α)}
+                             [{singleton-set (? γ:lex? γ)}
                               ;; renaming is only valid for values monitored by
                               ;; flat contract
                               #:when (and (α? (Dom-ctc d))
-                                          (C^-flat? (unpack (Dom-ctc d) Σ₀) Σ₀))
-                              α]
+                                          (C^-flat? (unpack (Σ@ (Dom-ctc d) Σ₀) Σ₀) Σ₀))
+                              γ]
                              [_ #f]))))
       (fix-return rn Σ₀ r))
 
@@ -349,34 +356,34 @@
   (define ((app-And/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (unpack α₁ Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (Σ@ α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
-           (λ (_ ΔΣ*) (ΔΣ⧺R (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))
+           (λ (_ ΔΣ*) (ΔΣ⧺R (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (Σ@ α₂ Σ) Wₓ)))
            (λ (_ ΔΣ*) (R-of -ff (⧺ ΔΣ₁ ΔΣ*)))))]))
 
   (: app-Or/C : α α ℓ → ⟦F⟧)
   (define ((app-Or/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (unpack α₁ Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ₁ W₁) (app/C Σ ℓ (Σ@ α₁ Σ) Wₓ)])
          (define Σ₁ (⧺ Σ ΔΣ₁))
          (with-split-Σ Σ₁ 'values W₁
            (λ (_ ΔΣ*) (R-of W₁ (⧺ ΔΣ₁ ΔΣ*)))
-           (λ (_ ΔΣ*) (ΔΣ⧺R (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (unpack α₂ Σ) Wₓ)))))]))
+           (λ (_ ΔΣ*) (ΔΣ⧺R (⧺ ΔΣ₁ ΔΣ*) (app/C (⧺ Σ₁ ΔΣ*) ℓ (Σ@ α₂ Σ) Wₓ)))))]))
 
   (: app-Not/C : α ℓ → ⟦F⟧)
   (define ((app-Not/C α ℓₕ) Σ ℓ Wₓ)
     (with-guarded-arity Wₓ ℓₕ ℓ
       [(list _)
-       (with-each-ans ([(ΔΣ W) (app/C Σ ℓ (unpack α Σ) Wₓ)])
+       (with-each-ans ([(ΔΣ W) (app/C Σ ℓ (Σ@ α Σ) Wₓ)])
          (define Σ* (⧺ Σ ΔΣ))
          (with-split-Σ Σ* 'values W
            (λ (_ ΔΣ*) (R-of -ff (⧺ ΔΣ ΔΣ*)))
            (λ (_ ΔΣ*) (R-of -tt (⧺ ΔΣ ΔΣ*)))))]))
 
   (: app-X/C : α → ⟦F⟧)
-  (define ((app-X/C α) Σ ℓ Wₓ) (app/C Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
+  (define ((app-X/C α) Σ ℓ Wₓ) (app/C Σ ℓ (Σ@ α Σ) (unpack-W Wₓ Σ)))
 
   (: app-One-Of/C : (℘ Base) → ⟦F⟧)
   (define ((app-One-Of/C bs) Σ ℓ Wₓ)
@@ -448,12 +455,12 @@
                #:when (T:@? ?T))
       (hash-set rn x #f)))
 
-  (: insert-fv-erasures : ΔΣ Renamings → Renamings)
+  (: insert-fv-erasures : Γ Renamings → Renamings)
   ;; Add erasure of free variables that were stack-copied
-  (define (insert-fv-erasures ΔΣ rn)
-    (for/fold ([rn : Renamings rn]) ([α (in-hash-keys ΔΣ)]
-                                     #:unless (hash-has-key? rn α))
-      (hash-set rn α #f)))
+  (define (insert-fv-erasures Γ rn)
+    (for/fold ([rn : Renamings rn]) ([γ (in-hash-keys Γ)]
+                                     #:unless (hash-has-key? rn γ))
+      (hash-set rn γ #f)))
 
   (: unalloc : V^ Σ → (Values (℘ W) Boolean))
   ;; Convert list in object language into one in meta-language
@@ -485,21 +492,91 @@
   (: inst-∀/C : Σ (Pairof -l -l) ∀/C α ℓ → R)
   ;; Monitor function against freshly instantiated parametric contract
   (define (inst-∀/C Σ₀ ctx G α ℓ)
-    (match-define (∀/C xs c H ℓₒ) G)
+    (match-define (∀/C xs c (and αₒ (α:dyn (β:clo ℓₒ) _))) G)
     (match-define (cons l+ (and l- l-seal)) ctx)
-    (define ΔΣ₀
-      (let ([ΔΣ:seals
-             (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([x (in-list xs)])
-               (define αₓ (α:dyn (β:sealed x ℓ) H₀))
-               (⧺ acc
-                  (alloc αₓ ∅)
-                  (alloc (γ:lex x) {set (Seal/C αₓ l-seal)})))]
-            [ΔΣ:stk (stack-copy (Clo-escapes xs c H ℓₒ) Σ₀)])
-        (⧺ ΔΣ:seals ΔΣ:stk)))
-    (define Σ₁ (⧺ Σ₀ ΔΣ₀))
+    (define Γ* (Σ@/env αₒ Σ₀))
+    (define ΔΣ:seals
+      (for/fold ([acc : ΔΣ ⊥ΔΣ]) ([x (in-list xs)])
+        (define αₓ (α:dyn (β:sealed x ℓ) H₀))
+        (⧺ acc
+           (alloc αₓ ∅)
+           (alloc-lex Σ₀ x {set (Seal/C αₓ l-seal)}))))
+    (define Σ₁ (⧺ (cons (car Σ₀) Γ*) ΔΣ:seals))
     (with-each-ans ([(ΔΣ₁ W:c) (evl Σ₁ c)])
-      (ΔΣ⧺R (⧺ ΔΣ₀ ΔΣ₁)
-        (mon (⧺ Σ₁ ΔΣ₁) (Ctx l+ l- ℓₒ ℓ) (car W:c) (Σ@ α Σ₀)))))
+      (ΔΣ⧺R (⧺ ΔΣ:seals ΔΣ₁)
+            (mon (⧺ Σ₁ ΔΣ₁) (Ctx l+ l- ℓₒ ℓ) (car W:c) (Σ@ α Σ₀)))))
+
+  (: fix-return : Renamings Σ R → R)
+  (define (fix-return rn Σ₀ r)
+    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
+    (define adjust-T (rename rn))
+    (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
+      (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
+      (cons ΔΞ₀ (go-ΔΓ ΔΓ₀)))
+    (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
+      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(γ D) (in-hash ΔΓ₀)])
+        (match (adjust-T γ)
+          [(? γ:lex? γ*) (hash-set acc γ* (go-V^ (assert D set?)))]
+          [_ acc])))
+    (define (go-W [W : W]) (map go-V^ W))
+    (define (go-V^ [V^ : V^])
+      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
+      (foldl V⊔ Vs₀ Vs*))
+    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
+    (define (go-T [T : T]) (cond [(adjust-T T) => set]
+                                 [else (unpack T (Σₑᵣ))]))
+
+    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
+      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
+      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
+        (define W* (go-W Wᵢ))
+        (define ΔΣ* (go-ΔΣ ΔΣᵢ))
+        (hash-set acc W*
+                  (match (hash-ref acc W* #f)
+                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
+                    [#f {set ΔΣ*}])))))
+
+  (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
+  (define (make-renamings fml W)
+    (define xs (if (-var? fml) (-var-init fml) fml))
+    (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
+                               (split-at W (length xs))
+                               (values W #f)))
+    (define m
+      (for/hash : Renamings ([x (in-list xs)] [Vs (in-list W₀)])
+        (values (γ:lex x)
+                (and (not (assignable? x))
+                     (= 1 (set-count Vs))
+                     (let ([V (set-first Vs)])
+                       (and (T? V) V))))))
+    (match fml
+      [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
+      [_ m]))
+
+  (: rename : Renamings → (case->
+                           [T → (Option T)]
+                           [(U T -b) → (Option (U T -b))]))
+  ;; Compute renaming in general.
+  ;; `#f` means there's no correspinding name
+  (define (rename rn)
+    (: go (case-> [T → (Option T)]
+                  [(U T -b) → (Option (U T -b))]))
+    (define go
+      (match-lambda
+        [(T:@ o Ts)
+         (define Ts* (go* Ts))
+         (and Ts* (T:@ o Ts*))]
+        [(? -b? b) b]
+        [(? γ? α) (hash-ref rn α (λ () α))]))
+    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
+      (match-lambda
+        ['() '()]
+        [(cons T Ts) (match (go T)
+                       [#f #f]
+                       [(? values T*) (match (go* Ts)
+                                        [#f #f]
+                                        [(? values Ts*) (cons T* Ts*)])])]))
+    go)
 
   (define-simple-macro (with-guarded-arity W f ℓ [p body ...] ...)
     (match W

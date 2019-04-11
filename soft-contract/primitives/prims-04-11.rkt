@@ -49,32 +49,28 @@
   (export)
   
   (def-pred vector?)
-  (splicing-let
-      ([.internal-make-vector
-        (let ()
-          (def (internal-make-vector Σ ℓ W)
-            #:init ([Vₙ exact-nonnegative-integer?]
-                    [Vᵥ any/c])
-            (match Vₙ
-              [(singleton-set (-b (? index? n)))
-               (define α (α:dyn (β:vect-elems ℓ n) H₀))
-               (R-of (Vect α) (alloc α (make-vector n Vᵥ)))]
-              [_
-               (define α (α:dyn (β:vct ℓ) H₀))
-               (R-of (Vect-Of α Vₙ) (alloc α Vᵥ))]))
-          .internal-make-vector)])
-    (def (make-vector Σ ℓ W)
-      #:init ()
-      #:rest [W (listof any/c)]
-      (define W* (match W
-                   [(list Vₙ) (list Vₙ {set (-b 0)})]
-                   [_ W]))
-      (.internal-make-vector Σ ℓ (unpack-W W* Σ))))
+  (def (make-vector Σ ℓ W)
+    #:init ([Vₙ exact-nonnegative-integer?])
+    #:rest [W (listof any/c)]
+    (: make : V^ V^ → R)
+    (define (make Vₙ Vᵥ)
+      (match Vₙ
+        [{singleton-set (-b (? index? n))}
+         (define α (α:dyn (β:vect-elems ℓ n) H₀))
+         (R-of (Vect α) (alloc α (make-vector n Vᵥ)))]
+        [_
+         (define α (α:dyn (β:vct ℓ) H₀))
+         (R-of (Vect-Of α Vₙ) (alloc α Vᵥ))]))
+    (match W
+      ['()       (make (unpack Vₙ Σ) {set -zero})]
+      [(list Vᵥ) (make (unpack Vₙ Σ) (unpack Vᵥ Σ))]
+      [_ (r:err! (Err:Arity 'make-vector W ℓ))
+         ⊥R]))
   
   (def (vector Σ ℓ W)
     #:init ()
     #:rest [W (listof any/c)]
-    (define S (list->vector W))
+    (define S (list->vector (unpack-W W Σ)))
     (define α (α:dyn (β:vect-elems ℓ (vector-length S)) H₀))
     (R-of (Vect α) (alloc α S)))
   (def vector-immutable
@@ -102,9 +98,9 @@
             (V⊔ acc Vs)))
         (R-of Vₐ)]
        [(Vect-Of α n)
-        (R-of (unpack α Σ))]
+        (R-of (Σ@ α Σ))]
        [(Guarded (cons l+ l-) G αᵥ)
-        (define Vᵥ* (unpack αᵥ Σ)) 
+        (define Vᵥ* (Σ@ αᵥ Σ))
         (match G
           [(? Vect/C?)
            (define-values (αₕ ℓₒ n) (Vect/C-fields G))
@@ -119,7 +115,7 @@
            (define ctx (Ctx l+ l- ℓₒ ℓ))
            (with-collapsing/R [(ΔΣ W) (app Σ (Ctx-origin ctx) {set 'vector-ref} (list Vᵥ* Vᵢ))]
              (ΔΣ⧺R ΔΣ
-               (mon (⧺ Σ ΔΣ) ctx (unpack α* Σ) (car (collapse-W^ W)))))})]
+               (mon (⧺ Σ ΔΣ) ctx (Σ@ α* Σ) (car (collapse-W^ W)))))})]
        [_ (R-of (-● ∅))])
      (unpack Vᵥ Σ)))
   
@@ -136,7 +132,7 @@
            (mut α S* Σ)]
           [(Vect-Of α _) (ΔΣ⊔ acc (mut α Vᵤ Σ))]
           [(Guarded (cons l+ l-) G αᵥ)
-           (define V*^ (unpack αᵥ Σ))
+           (define V*^ (Σ@ αᵥ Σ))
            (match G
              [(? Vect/C?)
               (define-values (αₕ ℓₒ n) (Vect/C-fields G))

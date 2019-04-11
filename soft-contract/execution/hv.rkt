@@ -103,7 +103,7 @@
           (match-let ([(α:dyn (β:vect-elems _ n) _) α])
             (mut α (make-vector n ●) Σ)))]
       [(Vect-Of αᵥ _)
-       (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (unpack αᵥ Σ)))]
+       (⧺ (mut αᵥ ● Σ) (track-leaks Σ αₕᵥ (Σ@ αᵥ Σ)))]
       ;; Hash
       [(or (? Hash-Of?) (Guarded _ (? Hash/C?) _))
        (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'hash-ref} (list {set V} ●)))]
@@ -120,7 +120,7 @@
       [(U Clo Case-Clo Guarded) → (U Natural arity-at-least (Listof (U Natural arity-at-least)))]))
   (define arity-of
     (match-lambda
-      [(Clo xs _ _ _) (shape xs)]
+      [(Clo xs _ _) (shape xs)]
       [(Case-Clo clos _) (map arity-of clos)]
       [(Guarded _ (? Fn/C? C) α) (guard-arity-of C)]))
 
@@ -131,7 +131,7 @@
     (match-lambda
       [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity-of cases)]
-      [(∀/C _ E _ _) (E-arity-of E)]))
+      [(∀/C _ E _) (E-arity-of E)]))
 
   (: E-arity-of : (case->
                    [-->i → (U Natural arity-at-least)]
@@ -161,8 +161,7 @@
     (define (check-α α)
       (cond [(seen-has? α) #f]
             [else (seen-add! α)
-                  (define S (Σ@/raw α Σ))
-                  (if (vector? S) (vector-ormap check-V^ S) (check-V^ S))]))
+                  (S-ormap check-V^ check-α (Σ@/raw α Σ))]))
 
     (: check-V^ : V^ → Boolean)
     (define (check-V^ V^) (set-ormap check V^))
