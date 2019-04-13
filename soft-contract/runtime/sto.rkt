@@ -226,11 +226,11 @@
         [(N) #t]))
     (cons (hash α (cons S (if ambig? '? 0))) ⊤Γ))
 
-  (: Γ:⧺ʳ : ΔΓ γ S* → ΔΓ)
-  (define (Γ:⧺ʳ ΔΓ x Vs) (hash-set ΔΓ x Vs))
+  (: Γ:⧺ʳ : ΔΓ T S* → ΔΓ)
+  (define (Γ:⧺ʳ ΔΓ T Vs) (hash-set ΔΓ T Vs))
 
-  (: Γ:⧺ˡ : γ S* ΔΓ → ΔΓ)
-  (define (Γ:⧺ˡ x Vs ΔΓ) (if (hash-has-key? ΔΓ x) ΔΓ (hash-set ΔΓ x Vs)))
+  (: Γ:⧺ˡ : T S* ΔΓ → ΔΓ)
+  (define (Γ:⧺ˡ T Vs ΔΓ) (if (hash-has-key? ΔΓ T) ΔΓ (hash-set ΔΓ T Vs)))
 
   (: Ξ:⧺ʳ : ΔΞ α (Pairof S N) → ΔΞ)
   ;; Apply effect to store delta as if it happened *after* the delta

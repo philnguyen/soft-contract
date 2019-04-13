@@ -255,9 +255,6 @@
           "gradual-typing-benchmarks/kcfa/time.rkt"
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
-
-  (test   "safe/interp/main.rkt" check-safe)
-  (test "unsafe/interp/main.rkt" check-fail)
   
   (test   "safe/games" check-safe)
   (test "unsafe/games" check-fail)
@@ -266,4 +263,7 @@
   (test "safe/real/nucleic2-modular-fixed.rkt" (check 'Ok-pos 0 8))
   (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 10))
   (test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
+
+  (test   "safe/interp/main.rkt" check-safe)
+  (test "unsafe/interp/main.rkt" check-fail)
   )

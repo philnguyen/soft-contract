@@ -21,7 +21,7 @@
 
 (⟦F⟧ . ≜ . (Σ ℓ W → R))
 (⟦G⟧ . ≜ . (Σ ℓ W V^ → R))
-(Renamings . ≜ . (Immutable-HashTable γ (Option T)))
+(Renamings . ≜ . (Immutable-HashTable γ:ref (Option T)))
 
 (define-unit app@
   (import meta-functions^ static-info^
@@ -185,9 +185,6 @@
          (define-values (V* ΔΣ)
            (refine (unpack Vᵢ Σ) (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
          (R-of V* ΔΣ)]
-        [(and T (or (? T:@?) (? γ?))) #:when (not (struct-mutable? 𝒾 i))
-         (define T* (T:@ (-st-ac 𝒾 i) (list T)))
-         (if (set-empty? (unpack T* Σ)) ⊥R (R-of T*))]
         [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
          (define-values (αₕ ℓₕ _) (St/C-fields C))
          (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
@@ -197,10 +194,9 @@
          (case (sat Σ (-st-p 𝒾) {set V₀})
            [(✗) ⊥R]
            [else (R-of (st-ac-● 𝒾 i Ps Σ))])]
-        [(? α? α) (fold-ans ac₁ (unpack α Σ))]
         [_ ⊥R]))
     
-    (fold-ans/collapsing ac₁ Vₓ))
+    (fold-ans/collapsing ac₁ (unpack Vₓ Σ)))
 
   (: st-ac-● : -𝒾 Index (℘ P) Σ → V^)
   (define (st-ac-● 𝒾 i Ps Σ)
@@ -302,7 +298,7 @@
             (with-each-ans ([(ΔΣₐ Wₐ) (comp)])
               (ΔΣ⧺R (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) l+ l- Rngs Wₐ)))
             (ΔΣ⧺R ΔΣ-acc (comp))))
-      (define rn (for/hash : (Immutable-HashTable γ (Option γ))
+      (define rn (for/hash : (Immutable-HashTable γ:lex (Option γ:lex))
                      ([d (in-list Doms)]
                       [Vₓ (in-list Wₓ*)])
                    (values (γ:lex (Dom-name d))
@@ -459,6 +455,7 @@
   ;; Add erasure of free variables that were stack-copied
   (define (insert-fv-erasures Γ rn)
     (for/fold ([rn : Renamings rn]) ([γ (in-hash-keys Γ)]
+                                     #:when (γ:lex? γ)
                                      #:unless (hash-has-key? rn γ))
       (hash-set rn γ #f)))
 

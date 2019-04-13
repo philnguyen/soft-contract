@@ -106,7 +106,25 @@
        (with-each-ans ([(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)])
          (define V^ₕ (car Wₕ))
          (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
-           (ΔΣ⧺R (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
+           (define r (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))
+           (define r* : R
+             (match* (Wₕ Wₓ)
+               [((list {singleton-set (? -st-ac? o)})
+                 (list {singleton-set (? T? Tₓ)} ...))
+                (define Tₐ (T:@ o (cast Tₓ (Listof T))))
+                (define Wₐ* (list {set Tₐ}))
+                (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)])
+                  (match Wₐ
+                    [(list Vsₐ)
+                     (define upd : (ΔΣ → ΔΣ)
+                       (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))]))
+                     (hash-update (hash-remove r* Wₐ)
+                                  Wₐ*
+                                  (λ ([ΔΣs* : (℘ ΔΣ)]) (∪ ΔΣs* (map/set upd ΔΣs)))
+                                  mk-∅)]
+                    [_ r*]))]
+               [(_ _) r]))
+           (ΔΣ⧺R (⧺ ΔΣₕ ΔΣₓ) r*)))]
       [(-if E E₁ E₂ ℓ)
        (with-each-path [(ΔΣs W) (evl/arity Σ E 1 ℓ)]
          (for/ans ([ΔΣ : ΔΣ (in-set ΔΣs)])

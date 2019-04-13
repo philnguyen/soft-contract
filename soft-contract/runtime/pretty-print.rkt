@@ -194,7 +194,7 @@
     (string->symbol
      (string-join
       (for/list : (Listof String) ([(x Vs) (in-hash Γ)])
-        (format "~a↦~a" (show-α x) (show-S Vs)))
+        (format "~a↦~a" (show-T x) (show-S Vs)))
       "∧"
       #:before-first "{"
       #:after-last "}")))

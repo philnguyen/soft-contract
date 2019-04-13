@@ -30,7 +30,7 @@
                                T
                                (-● (℘ P)))
 (#|Identities     |# T . ::= . γ (T:@ -o (Listof (U T -b))))
-(#|Environments   |# Γ .  ≜  . (Immutable-HashTable γ S*))
+(#|Environments   |# Γ .  ≜  . (Immutable-HashTable T S*))
 (#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Memories       |# Σ .  ≜  . (Pairof Ξ Γ))
 (#|Env. Deltas    |# ΔΓ . ≜  . Γ)
@@ -81,8 +81,7 @@
 (#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
 (#|Call Edge      |# K .  ≜  . (Pairof ℓ ℓ))
 (#|Addresses      |# α . ::= . γ (α:dyn β H))
-(#|Static Addrs   |# γ . ::= . (γ:lex Symbol)
-                               (γ:top -𝒾)
+(#|Static Addrs   |# γ . ::= . γ:ref
                                (γ:wrp -𝒾)
                                (γ:hv HV-Tag)
                                ;; Only use this in the prim DSL where all values are finite
@@ -90,6 +89,7 @@
                                γ:imm*
                                ;; Escaped struct field
                                (γ:escaped-field -𝒾 Index)) 
+(#|Reference Addrs|# γ:ref . ::= . (γ:lex Symbol) (γ:top -𝒾))
 (#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
                                (γ:imm:blob (Vectorof V^) ℓ)
                                (γ:imm:blob:st (Vectorof V^) ℓ -𝒾)
