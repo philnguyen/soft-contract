@@ -118,7 +118,7 @@
       [(? α? α) (show-α α)]))
 
   (define (show-K [K : K]) : Sexp
-    (if (γ? K) (show-α K) (show-o K)))
+    (if (T? K) (show-T K) (show-o K)))
 
   (define show-α : (α → Sexp)
     (match-lambda

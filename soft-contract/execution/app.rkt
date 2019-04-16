@@ -556,13 +556,20 @@
   ;; Compute renaming in general.
   ;; `#f` means there's no correspinding name
   (define (rename rn)
+    (: go-K : (K → (Option K)))
+    (define (go-K K)
+      (if (γ:ref? K)
+          (hash-ref rn K (λ () K))
+          K))
     (: go (case-> [T → (Option T)]
                   [(U T -b) → (Option (U T -b))]))
     (define go
       (match-lambda
         [(T:@ o Ts)
-         (define Ts* (go* Ts))
-         (and Ts* (T:@ o Ts*))]
+         (match (go-K o)
+           [(? values o*) (define Ts* (go* Ts))
+                          (and Ts* (T:@ o* Ts*))]
+           [#f #f])]
         [(? -b? b) b]
         [(? γ? α) (hash-ref rn α (λ () α))]))
     (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
