@@ -109,7 +109,7 @@
            (define r (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))
            (define r* : R
              (match* (Wₕ Wₓ)
-               [((list {singleton-set (? -st-ac? o)})
+               [((list {singleton-set (? K? o)})
                  (list {singleton-set (? T? Tₓ)} ...))
                 (define Tₐ (T:@ o (cast Tₓ (Listof T))))
                 (define Wₐ* (list {set Tₐ}))

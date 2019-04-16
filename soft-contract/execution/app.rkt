@@ -511,9 +511,9 @@
       (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
       (cons ΔΞ₀ (go-ΔΓ ΔΓ₀)))
     (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
-      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(γ D) (in-hash ΔΓ₀)])
-        (match (adjust-T γ)
-          [(? γ:lex? γ*) (hash-set acc γ* (go-V^ (assert D set?)))]
+      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T D) (in-hash ΔΓ₀)])
+        (match (adjust-T T)
+          [(? values T*) (hash-set acc T* (go-V^ (assert D set?)))]
           [_ acc])))
     (define (go-W [W : W]) (map go-V^ W))
     (define (go-V^ [V^ : V^])

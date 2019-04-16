@@ -106,15 +106,14 @@
 
   (: refine-T : T V Σ → ΔΣ)
   (define (refine-T T₀ P Σ)
+    (match-define (cons Ξ Γ) Σ)
     (if (P? P)
-        (let go ([T : (U T -b) T₀] [acs : (Listof -st-ac) '()])
+        (let go ([T : T T₀] [acs : (Listof -st-ac) '()])
           (match T
-            [(T:@ (? -st-ac? ac) (list T*)) (go T* (cons ac acs))]
-            [(? γ? γ)
-             (define Vs* (refine-V^ (unpack γ Σ) (if (pair? acs) (P:St acs P) P) Σ))
-             (cons ⊥Ξ (hash γ Vs*))]
-            ;; TODO: Other cases of addresses
-            [_ ⊥ΔΣ]))
+            [(T:@ (? -st-ac? ac) (list T*)) (go (assert T* T?) (cons ac acs))]
+            [_
+             (define Vs* (refine-V^ (unpack T Σ) (if (pair? acs) (P:St acs P) P) Σ))
+             (cons ⊥Ξ (hash T Vs*))]))
         ⊥ΔΣ))
 
   (: refine-not₁ : V V Σ → (Values V^ ΔΣ))

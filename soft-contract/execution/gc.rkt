@@ -79,9 +79,17 @@
       (if (and (eq? Ξ* Ξ₀) (eq? Γ* Γ₀))
           ;; Try to re-use old instance
           Σ₀
-          (remove-stale-refinements touched (cons Ξ* Γ*)))))
+          (let ([Γ** (copy-dependent-refinements touched Γ₀ Γ*)])
+            (remove-stale-refinements touched (cons Ξ* Γ**))))))
+
+  (: copy-dependent-refinements : (℘ α) Γ Γ → Γ)
+  ;; Retain all entries for symbolic expressions that are relevant
+  (define (copy-dependent-refinements touched Γ₀ Γ*)
+    (for/fold ([Γ* : Γ Γ*]) ([(T D) (in-hash Γ₀)] #:when (T:@? T))
+      (hash-set Γ* T D)))
 
   (: remove-stale-refinements : (℘ α) Σ → Σ)
+  ;; TODO confirm no need to scan Ξ
   (define (remove-stale-refinements root Σ₁)
     (match-define (cons Ξ₁ Γ₁) Σ₁)
     (: upd-Vs : V^ → V^)
@@ -263,12 +271,13 @@
 
     (: T-root : T:@ → (℘ α))
     (define (T-root T₀)
-      (define o-root : (-o → (℘ α))
+      (define K-root : (K → (℘ α))
         (match-lambda
           [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+          [(? γ? γ) {set γ}]
           [_ ∅]))
       (let go ([T : (U T -b) T₀])
-        (cond [(T:@? T) (apply ∪ (o-root (T:@-_0 T)) (map go (T:@-_1 T)))]
+        (cond [(T:@? T) (apply ∪ (K-root (T:@-_0 T)) (map go (T:@-_1 T)))]
               [(-b? T) ∅]
               [else {set T}])))
 

@@ -29,7 +29,8 @@
                                C
                                T
                                (-● (℘ P)))
-(#|Identities     |# T . ::= . γ (T:@ -o (Listof (U T -b))))
+(#|Identities     |# T . ::= . γ (T:@ K (Listof (U T -b))))
+(#|               |# K . ::= . γ '+ '- '* '/ 'equal? -st-ac)
 (#|Environments   |# Γ .  ≜  . (Immutable-HashTable T S*))
 (#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Memories       |# Σ .  ≜  . (Pairof Ξ Γ))
@@ -79,7 +80,6 @@
 (#|Result         |# R .  ≜  . (Immutable-HashTable W (℘ ΔΣ)))
 (#|Decisions      |# Dec . ::= . '✓ '✗)
 (#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
-(#|Call Edge      |# K .  ≜  . (Pairof ℓ ℓ))
 (#|Addresses      |# α . ::= . γ (α:dyn β H))
 (#|Static Addrs   |# γ . ::= . γ:ref
                                (γ:wrp -𝒾)

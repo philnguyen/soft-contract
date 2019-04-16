@@ -114,7 +114,7 @@
 
   (: unpack : (U V V^) Σ → V^)
   (define (unpack Vs Σ)
-    (define-set seen : α)
+    (define-set seen : (U T -b))
 
     (: unpack-V : V V^ → V^)
     (define (unpack-V V acc) (if (T? V) (unpack-T V acc) (V⊔₁ V acc)))
@@ -124,23 +124,25 @@
 
     (: unpack-T : (U T -b) V^ → V^)
     (define (unpack-T T acc)
-      (cond [(T:@? T) (unpack-T:@ T acc)]
-            [(-b? T) (V⊔₁ T acc)]
-            [else (unpack-α T acc)]))
+      (cond [(seen-has? T) acc]
+            [else
+             (seen-add! T)
+             (cond [(T:@? T) (unpack-T:@ T acc)]
+                   [(-b? T) (V⊔₁ T acc)]
+                   [else (unpack-α T acc)])]))
 
     (: unpack-α : α V^ → V^)
     (define (unpack-α α acc)
-      (cond [(seen-has? α) acc]
-            [else (seen-add! α)
-                  (match (Σ@/raw α Σ)
-                    [(? set? Vs) (set-fold unpack-V acc Vs)]
-                    [(? α? α*) (unpack-α α* acc)])]))
+      (match (Σ@/raw α Σ)
+        [(? set? Vs) (set-fold unpack-V acc Vs)]
+        [(? α? α*) (unpack-α α* acc)]))
 
     (: unpack-T:@ : T:@ V^ → V^)
     (define (unpack-T:@ T acc)
       (match T
         [(T:@ (? -st-ac? ac) (list T*))
          (V⊔ acc (set-union-map (λ ([V : V]) (V@ ac V)) (unpack-T T* ∅)))]
+        [(app (λ (T) (hash-ref (cdr Σ) T #f)) (? set? Vs)) (unpack-V^ Vs acc)]
         [_ acc]))
 
     (: V@ : -st-ac V → V^)

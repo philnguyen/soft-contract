@@ -114,8 +114,11 @@
   (define show-T : ((U T -b) → Sexp)
     (match-lambda
       [(-b b) (show-b b)]
-      [(T:@ o Ts) `(,(show-o o) ,@(map show-T Ts))]
+      [(T:@ o Ts) `(,(show-K o) ,@(map show-T Ts))]
       [(? α? α) (show-α α)]))
+
+  (define (show-K [K : K]) : Sexp
+    (if (γ? K) (show-α K) (show-o K)))
 
   (define show-α : (α → Sexp)
     (match-lambda
