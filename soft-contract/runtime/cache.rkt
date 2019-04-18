@@ -61,7 +61,12 @@
 
   (: R⊔ : R R → R)
   (define (R⊔ R₁ R₂)
-    ((inst hash-union W (℘ ΔΣ)) R₁ R₂ #:combine set-union))
+    (: compact : (℘ ΔΣ) (℘ ΔΣ) → (℘ ΔΣ))
+    (define (compact ΔΣs₁ ΔΣs₂)
+      (if (> (set-count ΔΣs₁) (set-count ΔΣs₂))
+          (set-fold ΔΣ⊔₁ ΔΣs₁ ΔΣs₂)
+          (set-fold ΔΣ⊔₁ ΔΣs₂ ΔΣs₁)))
+    ((inst hash-union W (℘ ΔΣ)) R₁ R₂ #:combine compact))
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)
