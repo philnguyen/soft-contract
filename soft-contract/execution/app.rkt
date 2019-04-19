@@ -105,7 +105,7 @@
            (let ([root (∪ (E-root Vₕ) (W-root Wₓ))])
              (define Σ₁ (gc root Σ))
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E))
-             (define rn (trim-renamings (make-renamings fml Wₓ*)))
+             (define rn (make-renamings fml Wₓ*))
              (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
           [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ)) ⊥R]))
 
@@ -125,7 +125,7 @@
                   [Γ* (Σ@/env αₕ Σ)]
                   [Σ₁ (cons (car (gc root Σ)) Γ*)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
-             (define rn (trim-renamings (insert-fv-erasures Γ* (make-renamings fml Wₓ*))))
+             (define rn (insert-fv-erasures Γ* (make-renamings fml Wₓ*)))
              (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
           [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ))
                 ⊥R]))
@@ -442,15 +442,6 @@
       (err! (Err:Varargs Wₓ Vᵣ ℓ)))
     (fold-ans (λ ([Wᵣ : W]) (app Σ ℓ Vₕ^ (append Wₓ Wᵣ))) Wᵣs))
 
-  (: trim-renamings : Renamings → Renamings)
-  ;; Prevent some renaming from propagating based on what the caller has
-  (define (trim-renamings rn)
-    (for/fold ([rn : Renamings rn])
-              ([(x ?T) (in-hash rn)]
-               ;; FIXME this erasure is too aggressive
-               #:when (T:@? ?T))
-      (hash-set rn x #f)))
-
   (: insert-fv-erasures : Γ Renamings → Renamings)
   ;; Add erasure of free variables that were stack-copied
   (define (insert-fv-erasures Γ rn)
@@ -581,6 +572,11 @@
                                         [#f #f]
                                         [(? values Ts*) (cons T* Ts*)])])]))
     go)
+
+  (: show-rn : Renamings → (Listof Sexp))
+  (define (show-rn rn)
+    (for/list : (Listof Sexp) ([(γ T) (in-hash rn)])
+      `(,(show-α γ) ↦ ,(if T (show-V T) '⊘))))
 
   (define-simple-macro (with-guarded-arity W f ℓ [p body ...] ...)
     (match W
