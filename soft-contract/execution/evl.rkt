@@ -110,8 +110,8 @@
            (define r* : R
              (match* (Wₕ Wₓ)
                [((list {singleton-set (? K? o)})
-                 (list {singleton-set (? T? Tₓ)} ...))
-                (define Tₐ (T:@ o (cast Tₓ (Listof T))))
+                 (list {singleton-set (and Tₓ (or (? -b?) (? T?)))} ...))
+                (define Tₐ (T:@ o (cast Tₓ (Listof (U T -b)))))
                 (define Wₐ* (list {set Tₐ}))
                 (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)])
                   (match Wₐ

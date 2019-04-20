@@ -134,7 +134,11 @@
       ['>= (refine-both V₁ P:≥ V₂ P:≤ Σ)]
       ['=  (refine-both V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both V₁ P:≡ V₂ P:≡ Σ)]
+       ;; TODO refactor
+       (if (and (T? V₁) (T? V₂))
+           (let ([T-eq (T:@ 'equal? (list V₁ V₂))])
+             (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -tt}))))
+           (refine-both V₁ P:≡ V₂ P:≡ Σ))]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
@@ -147,8 +151,12 @@
       ['> (refine '<=)]
       ['>= (refine '<)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (define P* (compose1 P:¬ P:≡))
-       (refine-both V₁ P* V₂ P* Σ)]
+       ;; TODO refactor
+       (if (and (T? V₁) (T? V₂))
+           (let ([T-eq (T:@ 'equal? (list V₁ V₂))])
+             (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -ff}))))
+           (let ([P* (compose1 P:¬ P:≡)])
+             (refine-both V₁ P* V₂ P* Σ)))]
       [_ (default)]))
 
   (: refine-V^ : V^ (U V V^) Σ → V^)
