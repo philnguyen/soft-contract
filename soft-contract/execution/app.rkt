@@ -275,10 +275,11 @@
         [(Clo (-var xs #f) E (and αₕ (α:dyn (β:clo ℓ) _)))
          (define Σ₀
            (match-let ([(cons Ξ Γ:ctx) Σ])
-             (define Γ*
-               (for/fold ([Γ* : Γ (Σ@/env αₕ Σ)])
-                         ([x (in-list xs)])
-                 (hash-set Γ* (γ:lex x) (hash-ref Γ:ctx (γ:lex x)))))
+             (define Γ* ; TODO make sure ok due to "closure" in `->i` not being general
+               (for/fold ([Γ* : Γ Γ:ctx])
+                         ([(T D) (in-hash (Σ@/env αₕ Σ))]
+                          #:unless (hash-has-key? Γ* T))
+                 (hash-set Γ* T D)))
              (cons Ξ Γ*)))
          (with-each-ans ([(ΔΣ₁ W) (evl Σ₀ E)]
                          [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
@@ -292,7 +293,7 @@
 
     (define Dom-ref (match-lambda [(Dom x _ _) {set (γ:lex x)}]))
 
-    (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ R)]) 
+    (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ R)])
       (define r
         (if Rngs
             (with-each-ans ([(ΔΣₐ Wₐ) (comp)])

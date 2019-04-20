@@ -144,7 +144,7 @@
          (V⊔ acc (set-union-map (λ ([V : V]) (V@ ac V)) (unpack-T T* ∅)))]
         [_ (match (hash-ref (cdr Σ) T #f)
              [(? set? Vs) (unpack-V^ Vs acc)]
-             [D (error 'unpack-T:@ "~a -> ~a" (show-V T) (and D (show-S D)))])]))
+             [D (error 'unpack-T:@ "~a ⊢ ~a -> ~a" (show-Σ Σ) (show-V T) (and D (show-S D)))])]))
 
     (: V@ : -st-ac V → V^)
     (define (V@ ac V)
