@@ -142,8 +142,9 @@
       (match T
         [(T:@ (? -st-ac? ac) (list T*))
          (V⊔ acc (set-union-map (λ ([V : V]) (V@ ac V)) (unpack-T T* ∅)))]
-        [(app (λ (T) (hash-ref (cdr Σ) T #f)) (? set? Vs)) (unpack-V^ Vs acc)]
-        [_ acc]))
+        [_ (match (hash-ref (cdr Σ) T #f)
+             [(? set? Vs) (unpack-V^ Vs acc)]
+             [D (error 'unpack-T:@ "~a -> ~a" (show-V T) (and D (show-S D)))])]))
 
     (: V@ : -st-ac V → V^)
     (define (V@ ac V)
@@ -265,18 +266,26 @@
 
   (: ΔΓ⊔ : ΔΓ ΔΓ → ΔΓ)
   (define (ΔΓ⊔ ΔΓ₁ ΔΓ₂)
-    (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([x (in-set (∪ (dom ΔΓ₁) (dom ΔΓ₂)))])
-      (match (hash-ref ΔΓ₁ x #f)
-        [(? values Vs₁)
-         (match (hash-ref ΔΓ₂ x #f)
-           [(? values Vs₂)
-            (define Vs* (if (and (set? Vs₁) (set? Vs₂))
-                            (V⊔ Vs₁ Vs₂)
-                            (begin0 Vs₁
-                              (assert (equal? Vs₁ Vs₂)))))
-            (hash-set acc x Vs*)]
-           [#f acc])]
-        [#f acc])))
+    (define shared-dom (∩ (dom ΔΓ₁) (dom ΔΓ₂)))
+    (define (fixup [ΔΓ₀ : ΔΓ])
+      (define (span-V [V : V] [acc : V^]) : V^
+        (cond [(not (T? V)) (V⊔₁ V acc)]
+              [(and (hash-has-key? ΔΓ₀ V) (not (∋ shared-dom V)))
+               (set-fold span-V acc (assert (hash-ref ΔΓ₀ V) set?))]
+              [else (set-add acc V)]))
+      (define (span [D : S*]) (if (set? D) (set-fold span-V ∅ D) D))
+      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([T (in-set shared-dom)])
+        (hash-set acc T (span (hash-ref ΔΓ₀ T)))))
+    (define ΔΓ₁* (fixup ΔΓ₁))
+    (define ΔΓ₂* (fixup ΔΓ₂))
+    (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([x (in-set shared-dom)])
+      (define D₁ (hash-ref ΔΓ₁* x))
+      (define D₂ (hash-ref ΔΓ₂* x))
+      (define D* (if (and (set? D₁) (set? D₂))
+                     (V⊔ D₁ D₂)
+                     (begin0 D₁
+                       (assert (equal? D₁ D₂)))))
+      (hash-set acc x D*)))
 
   (: ΔΞ⊔ : ΔΞ ΔΞ → ΔΞ)
   ;; Blur store deltas. Commutative.
