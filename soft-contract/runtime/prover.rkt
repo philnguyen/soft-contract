@@ -42,8 +42,8 @@
   (: check-plaus : Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
   (define (check-plaus Σ P W)
     (match W
-      [(list V    ) (collect sat₁ refine₁ refine-not₁ Σ P V)]
-      [(list V₁ V₂) (collect sat₂ refine₂ refine-not₂ Σ P V₁ V₂)]
+      [(list V    ) (collect₁ Σ P V)]
+      [(list V₁ V₂) (collect₂ Σ P V₁ V₂)]
       [_ (let ([r (cons W ⊥ΔΣ)])
            (values r r))]))
 
@@ -128,17 +128,13 @@
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
     (match P
-      ['<  (refine-both V₁ P:< V₂ P:> Σ)]
-      ['<= (refine-both V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both V₁ P:> V₂ P:< Σ)]
-      ['>= (refine-both V₁ P:≥ V₂ P:≤ Σ)]
-      ['=  (refine-both V₁ P:= V₂ P:= Σ)]
+      ['<  (refine-both P V₁ P:< V₂ P:> Σ)]
+      ['<= (refine-both P V₁ P:≤ V₂ P:≥ Σ)]
+      ['>  (refine-both P V₁ P:> V₂ P:< Σ)]
+      ['>= (refine-both P V₁ P:≥ V₂ P:≤ Σ)]
+      ['=  (refine-both P V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       ;; TODO refactor
-       (if (and (T? V₁) (T? V₂))
-           (let ([T-eq (T:@ 'equal? (list V₁ V₂))])
-             (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -tt}))))
-           (refine-both V₁ P:≡ V₂ P:≡ Σ))]
+       (refine-both 'equal? V₁ P:≡ V₂ P:≡ Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
@@ -152,11 +148,17 @@
       ['>= (refine '<)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
        ;; TODO refactor
-       (if (and (T? V₁) (T? V₂))
-           (let ([T-eq (T:@ 'equal? (list V₁ V₂))])
-             (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -ff}))))
-           (let ([P* (compose1 P:¬ P:≡)])
-             (refine-both V₁ P* V₂ P* Σ)))]
+       (cond
+         [(and (T? V₁) (T? V₂))
+          (define T-eq (T:@ 'equal? (list V₁ V₂)))
+          (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -ff})))]
+         [(and (T? V₁) (or (-b? V₂) (T? V₂)))
+          (define-values (V₁* ΔΣ) (refine-not₁ V₁ (P:≡ V₂) Σ))
+          (values V₁* {set V₂} ΔΣ)]
+         [(and (T? V₂) (or (-b? V₁) (T? V₁)))
+          (define-values (V₂* ΔΣ) (refine-not₁ V₂ (P:≡ V₁) Σ))
+          (values {set V₁} V₂* ΔΣ)]
+         [else (default)])]
       [_ (default)]))
 
   (: refine-V^ : V^ (U V V^) Σ → V^)
@@ -720,40 +722,70 @@
        (for*/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-set V₁)] [Vⱼ (in-set V₂)] #:when d)
          (join-Dec d (check Vᵢ Vⱼ))))))
 
-  (define-syntax-parser collect
-    [(_ sat:id refine:id refine-not:id Σ:id P:id Vs:id ...)
-     (with-syntax ([(V ...) (generate-temporaries #'(Vs ...))]
-                   [(V:t ...) (generate-temporaries #'(Vs ...))]
-                   [(V:f ...) (generate-temporaries #'(Vs ...))]
-                   [(Vs:t ...) (generate-temporaries #'(Vs ...))]
-                   [(Vs:f ...) (generate-temporaries #'(Vs ...))])
-       #'(let-values ([(Vs:t ... ΔΣ:t Vs:f ... ΔΣ:f)
-                       (for*/fold ([Vs:t : V^ ∅] ... [ΔΣ:t : (Option ΔΣ) #f]
-                                   [Vs:f : V^ ∅] ... [ΔΣ:f : (Option ΔΣ) #f])
-                                  ([V (in-set Vs)] ...)
-                         (case (sat Σ P V ...)
-                           [(✓) (values (set-add Vs:t V) ... (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ)
-                                        Vs:f ... (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
-                           [(✗) (values Vs:t ... (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ)
-                                        (set-add Vs:f V) ... (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
-                           [else (let-values ([(V:t ... ΔΣ:t*) (refine V ... P Σ)]
-                                              [(V:f ... ΔΣ:f*) (refine-not V ... P Σ)])
-                                   (values (∪ Vs:t V:t) ... (?ΔΣ⊔ ΔΣ:t ΔΣ:t*)
-                                           (∪ Vs:f V:f) ... (?ΔΣ⊔ ΔΣ:f ΔΣ:f*)))]))])
-           (values (and (not (or (set-empty? Vs:t) ...))
-                        (cons (list Vs:t ...) (assert ΔΣ:t)))
-                   (and (not (or (set-empty? Vs:f) ...))
-                        (cons (list Vs:f ...) (assert ΔΣ:f))))))])
+  (: collect₁ : Σ V V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+  (define (collect₁ Σ P Vs)
+    (define-values (Vs:t Vs:f ΔΣ:t ΔΣ:f)
+      (for/fold ([Vs:t : V^ ∅]
+                 [Vs:f : V^ ∅]
+                 [ΔΣ:t : (Option ΔΣ) #f]
+                 [ΔΣ:f : (Option ΔΣ) #f])
+                ([V (in-set Vs)])
+        (case (sat₁ Σ P V)
+          [(✓)
+           (define-values (V* ΔΣ:t*) (refine₁ V P Σ))
+           (values (∪ Vs:t V*) Vs:f (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
+          [(✗)
+           (define-values (V* ΔΣ:f*) (refine-not₁ V P Σ))
+           (values Vs:t (∪ Vs:f V*) (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))]
+          [else (define-values (V:t ΔΣ:t*) (refine₁ V P Σ))
+                (define-values (V:f ΔΣ:f*) (refine-not₁ V P Σ))
+                (values (∪ Vs:t V:t) (∪ Vs:f V:f) (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))])))
+    (values (and (not (set-empty? Vs:t)) (cons (list Vs:t) (assert ΔΣ:t)))
+            (and (not (set-empty? Vs:f)) (cons (list Vs:f) (assert ΔΣ:f)))))
 
-  (: refine-both : V ((U T -b) → P) V ((U T -b) → P) Σ → (Values V^ V^ ΔΣ))
-  (define (refine-both V₁ P₁ V₂ P₂ Σ)
-    (define-values (V₁* ΔΣ₁) (if (and (T? V₁) (or (-b? V₂) (T? V₂)))
-                                 (refine₁ V₁ (P₁ V₂) Σ)
-                                 (values {set V₁} ⊥ΔΣ)))
-    (define-values (V₂* ΔΣ₂) (if (and (T? V₂) (or (-b? V₁) (T? V₁)))
-                                 (refine₁ V₂ (P₂ V₁) Σ)
-                                 (values {set V₂} ⊥ΔΣ)))
-    (values V₁* V₂* (⧺ ΔΣ₁ ΔΣ₂)))
+  (: collect₂ : Σ V V^ V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+  (define (collect₂ Σ P Vs₁ Vs₂)
+    (define-values (Vs₁:t Vs₂:t Vs₁:f Vs₂:f ΔΣ:t ΔΣ:f)
+      (for*/fold ([Vs₁:t : V^ ∅] [Vs₂:t : V^ ∅]
+                  [Vs₁:f : V^ ∅] [Vs₂:f : V^ ∅]
+                  [ΔΣ:t : (Option ΔΣ) #f]
+                  [ΔΣ:f : (Option ΔΣ) #f])
+                 ([V₁ (in-set Vs₁)]
+                  [V₂ (in-set Vs₂)])
+        (case (sat₂ Σ P V₁ V₂)
+          [(✓)
+           (define-values (V₁:t V₂:t ΔΣ:t*) (refine₂ V₁ V₂ P Σ))
+           (values (∪ Vs₁:t V₁:t) (∪ Vs₂:t V₂:t)
+                   Vs₁:f Vs₂:f
+                   (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
+          [(✗)
+           (define-values (V₁:f V₂:f ΔΣ:f*) (refine-not₂ V₁ V₂ P Σ))
+           (values Vs₁:t Vs₂:t
+                   (∪ Vs₁:f V₁:f) (∪ Vs₂:f V₂:f)
+                   (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))]
+          [else (define-values (V₁:t V₂:t ΔΣ:t*) (refine₂ V₁ V₂ P Σ))
+                (define-values (V₁:f V₂:f ΔΣ:f*) (refine-not₂ V₁ V₂ P Σ))
+                (values (∪ Vs₁:t V₁:t) (∪ Vs₂:t V₂:t)
+                        (∪ Vs₁:f V₁:f) (∪ Vs₂:f V₂:f)
+                        (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))])))
+    (values (and (not (or (set-empty? Vs₁:t) (set-empty? Vs₂:t)))
+                 (cons (list Vs₁:t Vs₂:t) (assert ΔΣ:t)))
+            (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f)))
+                 (cons (list Vs₁:f Vs₂:f) (assert ΔΣ:f)))))
+
+  (: refine-both : K V ((U T -b) → P) V ((U T -b) → P) Σ → (Values V^ V^ ΔΣ))
+  (define (refine-both P V₁ P₁ V₂ P₂ Σ)
+    (cond
+      [(and (T? V₁) (T? V₂))
+       (define T-prop (T:@ P (list V₁ V₂)))
+       (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-prop {set -tt})))]
+      [(and (T? V₁) (or (-b? V₂) (T? V₂)))
+       (define-values (V₁* ΔΣ) (refine₁ V₁ (P₁ V₂) Σ))
+       (values V₁* {set V₂} ΔΣ)]
+      [(and (T? V₂) (or (-b? V₁) (T? V₁)))
+       (define-values (V₂* ΔΣ) (refine₁ V₂ (P₂ V₁) Σ))
+       (values {set V₁} V₂* ΔΣ)]
+      [else (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: ?ΔΣ⊔ : (Option ΔΣ) ΔΣ → ΔΣ)
   (define (?ΔΣ⊔ ?ΔΣ ΔΣ)
