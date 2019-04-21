@@ -452,7 +452,22 @@
       (if (equal? T₁ T₂)
           '✓
           ; TODO watch out for loops
-          (go-V^ (unpack T₁ Σ) (unpack T₂ Σ)))) 
+          (or (match* (T₁ T₂)
+                [((T:@ K Ts₁) (T:@ K Ts₂))
+                 (for/fold ([acc : ?Dec '✓])
+                           ([T₁ (in-list Ts₁)]
+                            [T₂ (in-list Ts₂)]
+                            #:break (eq? acc '✗))
+                   (case (go-V T₁ T₂)
+                     [(✓) acc]
+                     [(✗) '✗]
+                     [else #f]))]
+                [(_ _) #f])
+              (match* ((hash-ref (cdr Σ) T₁ #f) (hash-ref (cdr Σ) T₂ #f))
+                [({singleton-set V₁} {singleton-set V₂})
+                 (go-V V₁ V₂)]
+                [(_ _) #f])
+              (go-V^ (unpack T₁ Σ) (unpack T₂ Σ)))))
     
     (: go-V^ : V^ V^ → ?Dec)
     (define (go-V^ Vs₁ Vs₂) (sat^₂ go-V Vs₁ Vs₂))
