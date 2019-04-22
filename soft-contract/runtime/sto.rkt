@@ -230,10 +230,17 @@
     (cons (hash α (cons S (if ambig? '? 0))) ⊤Γ))
 
   (: Γ:⧺ʳ : ΔΓ T S* → ΔΓ)
-  (define (Γ:⧺ʳ ΔΓ T Vs) (hash-set ΔΓ T Vs))
+  (define (Γ:⧺ʳ ΔΓ T Vs)
+    (match (hash-ref ΔΓ T #f)
+      [{singleton-set (or (? -b?) (? T?))} ΔΓ] ; No overwriting of refinement
+      [_ (hash-set ΔΓ T Vs)]))
 
   (: Γ:⧺ˡ : T S* ΔΓ → ΔΓ)
-  (define (Γ:⧺ˡ T Vs ΔΓ) (if (hash-has-key? ΔΓ T) ΔΓ (hash-set ΔΓ T Vs)))
+  (define (Γ:⧺ˡ T Vs ΔΓ)
+    (define (upd) (hash-set ΔΓ T Vs))
+    (match Vs
+      [{singleton-set (or (? -b?) (? T?))} (upd)] ; prioritize refinement
+      [_ (if (hash-has-key? ΔΓ T) ΔΓ (upd))]))
 
   (: Ξ:⧺ʳ : ΔΞ α (Pairof S N) → ΔΞ)
   ;; Apply effect to store delta as if it happened *after* the delta
