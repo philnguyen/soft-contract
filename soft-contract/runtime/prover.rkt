@@ -21,14 +21,14 @@
          "../ast/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
-         "../execution/signatures.rkt" ; TODO just for debugging
-         ) 
+         )
+
+(define-type S (U T -b))
 
 (define-unit prover@
   (import static-info^ meta-functions^
           sto^ val^ pretty-print^
-          prims^
-          exec^)
+          prims^)
   (export prover^)
 
   (: sat : Σ V V^ → ?Dec)
@@ -449,28 +449,6 @@
       (for/or : (Option P) ([P (in-set Ps)] #:when (?concretize P))
         P))
 
-    (: go : T T → ?Dec)
-    (define (go T₁ T₂)
-      (if (equal? T₁ T₂)
-          '✓
-          ; TODO watch out for loops
-          (or (match* (T₁ T₂)
-                [((T:@ K Ts₁) (T:@ K Ts₂))
-                 (for/fold ([acc : ?Dec '✓])
-                           ([T₁ (in-list Ts₁)]
-                            [T₂ (in-list Ts₂)]
-                            #:break (eq? acc '✗))
-                   (case (go-V T₁ T₂)
-                     [(✓) acc]
-                     [(✗) '✗]
-                     [else #f]))]
-                [(_ _) #f])
-              (match* ((hash-ref (cdr Σ) T₁ #f) (hash-ref (cdr Σ) T₂ #f))
-                [({singleton-set V₁} {singleton-set V₂})
-                 (go-V V₁ V₂)]
-                [(_ _) #f])
-              (go-V^ (unpack T₁ Σ) (unpack T₂ Σ)))))
-    
     (: go-V^ : V^ V^ → ?Dec)
     (define (go-V^ Vs₁ Vs₂) (sat^₂ go-V Vs₁ Vs₂))
 
@@ -498,12 +476,32 @@
                  [(✓) acc]
                  [(✗) '✗]
                  [(#f) #f])))]
-       [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
+       [((? T? T₁) (? T? T₂)) (check-equal?/congruence (cdr Σ) T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
        [(_ _) #f]))
 
     (go-V V₁ V₂))
+
+  (: check-equal?/congruence : Γ (U T -b) (U T -b) → ?Dec)
+  (define (check-equal?/congruence Γ T₁ T₂)
+    ;; Base assumptions
+    (define-values (eqs diseqs)
+      (for/fold ([eqs : (Listof (Pairof S S)) '()]
+                 [diseqs : (Listof (Pairof S S)) '()])
+                ([(T D) (in-hash Γ)])
+        (match* (T D)
+          [((T:@ 'equal? (list T₁ T₂)) {singleton-set (-b b)})
+           (if b
+               (values (cons (cons T₁ T₂) eqs) diseqs)
+               (values eqs (cons (cons T₁ T₂) diseqs)))]
+          [(_ {singleton-set (and T* (or (? -b?) (? T?)))})
+           (values (cons (cons T T*) eqs) diseqs)]
+          [(_ _) (values eqs diseqs)])))
+    (cond
+      [(not (sat/extra? eqs (cons (cons T₁ T₂) diseqs))) '✓]
+      [(not (sat/extra? (cons (cons T₁ T₂) eqs) diseqs)) '✗]
+      [else #f]))
 
   (:* Ps⊢P simple-Ps⊢P : Σ (℘ P) V → ?Dec)
   (define (Ps⊢P Σ Ps Q)
@@ -790,4 +788,120 @@
   (: ?ΔΣ⊔ : (Option ΔΣ) ΔΣ → ΔΣ)
   (define (?ΔΣ⊔ ?ΔΣ ΔΣ)
     (if ?ΔΣ (ΔΣ⊔ ?ΔΣ ΔΣ) ΔΣ))
+
+  ;;;;; Congruence closure stuff
+  ;;FIXME: refactor
+  (splicing-local
+      (;; Return list of term successors
+       (define succ : (S → (Listof S))
+         (match-lambda
+           [(T:@ _ Ts) Ts]
+           [_ '()]))
+
+       ;; Return node label for term
+       (define lab : (S → Any)
+         (match-lambda
+           [(T:@ K _) K]
+           [S S]))
+
+       ;; Generate additional axioms for appropriate terms
+       (define gen-eqs : (S → (℘ (Pairof S S)))
+         (match-lambda
+           ;; e.g. (car (cons x y)) ≡ x
+           ;; FIXME do properly for substructs
+           [(and T (T:@ (-st-mk 𝒾) Ts))
+            (for/set: : (℘ (Pairof S S)) ([Tᵢ (in-list Ts)]
+                                          [i (in-range (count-struct-fields 𝒾))])
+              (cons (T:@ (-st-ac 𝒾 (assert i index?)) (list T)) Tᵢ))]
+           ;; e.g. 0 + x = x
+           [(T:@ '+ (list T₁ T₂))
+            {set (cons (T:@ '+ (list T₁ -zero)) T₁)
+                 (cons (T:@ '+ (list -zero T₁)) T₁)
+                 (cons (T:@ '+ (list T₂ -zero)) T₂)
+                 (cons (T:@ '+ (list -zero T₂)) T₂)}]
+           [_ ∅]))
+
+       (: make-congruence-closer : (S → (℘ S)) → (Values (S S → Void) (S S → Boolean)))
+       ;; https://dl.acm.org/citation.cfm?id=322198 , section 2
+       (define (make-congruence-closer preds)
+         (define-values (union! find) ((inst make-union-find S)))
+         (define equivs : (Mutable-HashTable S (℘ S)) (make-hash))
+         (define (equivs-of [x : S]) #;(assert (equal? x (find x))) (hash-ref equivs x (λ () {set x})))
+         (define (preds-of [xs : (℘ S)])
+           (for/union : (℘ S) ([x (in-set xs)])
+             (preds x)))
+
+         (: merge! : S S → Void)
+         ;; Mark `u` and `v` as being in the same partition and extend congruence closure
+         (define (merge! u v)
+           (define u* (find u))
+           (define v* (find v))
+           (unless (equal? u* v*)
+             (define u*:equivs (equivs-of u*))
+             (define v*:equivs (equivs-of v*))
+             (define Pᵤ (preds-of u*:equivs))
+             (define Pᵥ (preds-of v*:equivs))
+             (union! u v)
+             (begin ; clean up `equivs` just for easy debugging later
+               (hash-remove! equivs u*)
+               (hash-remove! equivs v*)
+               (hash-set! equivs (find u) (∪ u*:equivs v*:equivs)))
+             (for* ([x (in-set Pᵤ)]
+                    [y (in-set Pᵥ)]
+                    #:when (congruent? x y))
+               (merge! x y))))
+
+         (: congruent? : S S → Boolean)
+         (define (congruent? x y)
+           (and (equal? (lab x) (lab y))
+                (let ([us (succ x)]
+                      [vs (succ y)])
+                  (and (equal? (length us) (length vs))
+                       (for/and : Boolean ([u (in-list us)] [v (in-list vs)])
+                         (equal? (find u) (find v)))))))
+
+         (values merge! (λ (x y) (equal? (find x) (find y)))))
+
+       (: fold-terms (∀ (A)
+                        (S A → A)
+                        A
+                        (Listof (Pairof S S))
+                        (Listof (Pairof S S)) → A))
+       (define (fold-terms step acc eqs diseqs)
+         (: on-x : S A → A)
+         (define (on-x x a) (foldl on-x (step x a) (succ x)))
+         (: on-xx : (Pairof S S) A → A)
+         (define (on-xx xx xs) (on-x (cdr xx) (on-x (car xx) xs)))
+         (foldl on-xx (foldl on-xx acc eqs) diseqs))
+
+       (: sat? : (Listof (Pairof S S)) (Listof (Pairof S S)) → Boolean)
+       ;; Check if given equalities and dis-equalities are satisfiable
+       ;; https://dl.acm.org/citation.cfm?id=322198, section 3
+       (define (sat? eqs diseqs)
+         (define-values (merge! ≡)
+           (let ([m
+                  ((inst fold-terms (HashTable S (℘ S)))
+                   (λ (x m)
+                     (foldl (λ ([x* : S] [m : (HashTable S (℘ S))])
+                              (hash-update m x* (λ ([xs : (℘ S)]) (set-add xs x)) mk-∅))
+                            m
+                            (succ x)))
+                   (hash) eqs diseqs)])
+             (make-congruence-closer (λ (x) (hash-ref m x mk-∅)))))
+         (for ([eq (in-list eqs)])
+           (merge! (car eq) (cdr eq)))
+         (not (for/or : Boolean ([diseq (in-list diseqs)])
+                (≡ (car diseq) (cdr diseq))))))
+    (: sat/extra? : (Listof (Pairof S S)) (Listof (Pairof S S)) → Boolean)
+    ;; Given extra assumptions generated by `gen-eqs`, check if given equalities
+    ;; and dis-equalities are satisfiable
+    ;; https://dl.acm.org/citation.cfm?id=322198, section 4
+    (define (sat/extra? eqs diseqs)
+      (define all-eqs
+        (let ([more-eqs
+               ((inst fold-terms (℘ (Pairof S S)))
+                (λ (x acc) (set-union acc (gen-eqs x)))
+                ∅ eqs diseqs)])
+          (append (set->list more-eqs) eqs)))
+      (sat? all-eqs diseqs)))
   )

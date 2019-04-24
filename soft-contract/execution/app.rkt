@@ -299,19 +299,7 @@
             (with-each-ans ([(ΔΣₐ Wₐ) (comp)])
               (ΔΣ⧺R (⧺ ΔΣ-acc ΔΣₐ) (mon-doms (⧺ Σ₀ ΔΣ-acc ΔΣₐ) l+ l- Rngs Wₐ)))
             (ΔΣ⧺R ΔΣ-acc (comp))))
-      (define rn (for/hash : (Immutable-HashTable γ:lex (Option γ:lex))
-                     ([d (in-list Doms)]
-                      [Vₓ (in-list Wₓ*)])
-                   (values (γ:lex (Dom-name d))
-                           (match Vₓ
-                             [{singleton-set (? γ:lex? γ)}
-                              ;; renaming is only valid for values monitored by
-                              ;; flat contract
-                              #:when (and (α? (Dom-ctc d))
-                                          (C^-flat? (unpack (Σ@ (Dom-ctc d) Σ₀) Σ₀) Σ₀))
-                              γ]
-                             [_ #f]))))
-      (fix-return rn Σ₀ r))
+      (fix-return (make-renamings (map Dom-name Doms) Wₓ*) Σ₀ r))
 
     (with-guarded-arity Wₓ G ℓ
       [Wₓ
@@ -505,7 +493,15 @@
     (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
       (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T D) (in-hash ΔΓ₀)])
         (match (adjust-T T)
-          [(? values T*) (hash-set acc T* (go-V^ (assert D set?)))]
+          [(? values T*)
+           ;; If calle is wrapped in higher-order contract,
+           ;; then `T` and `T*` are not the same values.
+           ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
+           ;; then `V₁ ≃ V₂`, where `≃` is equality for all flat values
+           (define D* (go-V^ (assert D set?)))
+           (if (set-ormap Guarded? D*)
+               acc
+               (hash-set acc T* D*))]
           [_ acc])))
     (define (go-W [W : W]) (map go-V^ W))
     (define (go-V^ [V^ : V^])
@@ -535,9 +531,9 @@
       (for/hash : Renamings ([x (in-list xs)] [Vs (in-list W₀)])
         (values (γ:lex x)
                 (and (not (assignable? x))
-                     (= 1 (set-count Vs))
-                     (let ([V (set-first Vs)])
-                       (and (T? V) V))))))
+                     (match Vs
+                       [{singleton-set (? T? T)} T]
+                       [_ #f])))))
     (match fml
       [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
       [_ m]))
