@@ -11,7 +11,6 @@
          set-extras
          bnf
          unreachable
-         "../utils/patterns.rkt"
          "../utils/map.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
@@ -21,7 +20,6 @@
 
 (⟦F⟧ . ≜ . (Σ ℓ W → R))
 (⟦G⟧ . ≜ . (Σ ℓ W V^ → R))
-(Renamings . ≜ . (Immutable-HashTable γ:ref (Option T)))
 
 (define-unit app@
   (import meta-functions^ static-info^
@@ -482,99 +480,6 @@
     (with-each-ans ([(ΔΣ₁ W:c) (evl Σ₁ c)])
       (ΔΣ⧺R (⧺ ΔΣ:seals ΔΣ₁)
             (mon (⧺ Σ₁ ΔΣ₁) (Ctx l+ l- ℓₒ ℓ) (car W:c) (Σ@ α Σ₀)))))
-
-  (: fix-return : Renamings Σ R → R)
-  (define (fix-return rn Σ₀ r)
-    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
-    (define adjust-T (rename rn))
-    (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
-      (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
-      (cons ΔΞ₀ (go-ΔΓ ΔΓ₀)))
-    (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
-      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T D) (in-hash ΔΓ₀)])
-        (match (adjust-T T)
-          [(? values T*)
-           ;; If calle is wrapped in higher-order contract,
-           ;; then `T` and `T*` are not the same values.
-           ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
-           ;; then `V₁ ≃ V₂`, where `≃` is equality for all flat values
-           (define D* (go-V^ (assert D set?)))
-           (if (set-ormap Guarded? D*)
-               acc
-               (hash-set acc T* D*))]
-          [_ acc])))
-    (define (go-W [W : W]) (map go-V^ W))
-    (define (go-V^ [V^ : V^])
-      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
-      (foldl V⊔ Vs₀ Vs*))
-    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
-    (define (go-T [T : T]) (cond [(adjust-T T) => set]
-                                 [else (unpack T (Σₑᵣ))]))
-
-    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
-      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
-        (define W* (go-W Wᵢ))
-        (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (hash-set acc W*
-                  (match (hash-ref acc W* #f)
-                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
-                    [#f {set ΔΣ*}])))))
-
-  (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
-  (define (make-renamings fml W)
-    (define xs (if (-var? fml) (-var-init fml) fml))
-    (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
-                               (split-at W (length xs))
-                               (values W #f)))
-    (define m
-      (for/hash : Renamings ([x (in-list xs)] [Vs (in-list W₀)])
-        (values (γ:lex x)
-                (and (not (assignable? x))
-                     (match Vs
-                       [{singleton-set (? T? T)} T]
-                       [_ #f])))))
-    (match fml
-      [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
-      [_ m]))
-
-  (: rename : Renamings → (case->
-                           [T → (Option T)]
-                           [(U T -b) → (Option (U T -b))]))
-  ;; Compute renaming in general.
-  ;; `#f` means there's no correspinding name
-  (define (rename rn)
-    (: go-K : (K → (Option K)))
-    (define (go-K K)
-      (if (γ:ref? K)
-          (hash-ref rn K (λ () K))
-          K))
-    (: go (case-> [T → (Option T)]
-                  [(U T -b) → (Option (U T -b))]))
-    (define go
-      (match-lambda
-        [(T:@ o Ts)
-         (match (go-K o)
-           [(? values o*) (define Ts* (go* Ts))
-                          (and Ts* (T:@ o* Ts*))]
-           [#f #f])]
-        [(? -b? b) b]
-        [(? γ? α) (hash-ref rn α (λ () α))]))
-    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
-      (match-lambda
-        ['() '()]
-        [(cons T Ts) (match (go T)
-                       [#f #f]
-                       [(? values T*) (match (go* Ts)
-                                        [#f #f]
-                                        [(? values Ts*) (cons T* Ts*)])])]))
-    go)
-
-  (: show-rn : Renamings → (Listof Sexp))
-  (define (show-rn rn)
-    (for/list : (Listof Sexp) ([(γ T) (in-hash rn)])
-      `(,(show-α γ) ↦ ,(if T (show-V T) '⊘))))
-
   (define-simple-macro (with-guarded-arity W f ℓ [p body ...] ...)
     (match W
       [p body ...] ...

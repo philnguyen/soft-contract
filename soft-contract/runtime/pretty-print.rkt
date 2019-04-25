@@ -265,4 +265,9 @@
        (format-symbol "~a-~a-~a" (if (transparent-module? l+) '⊕ '⊖) (show-ℓ ℓₒ) (show-ℓ ℓ))]
       [(cons x i)
        (format-symbol "~a@~a" (if (symbol? x) x (show-ℓ x)) (if i i 'N))]))
+
+  (: show-rn : Renamings → (Listof Sexp))
+  (define (show-rn rn)
+    (for/list : (Listof Sexp) ([(T T*) (in-hash rn)])
+      `(,(show-V T) ↦ ,(if T* (show-V T*) '⊘))))
   )

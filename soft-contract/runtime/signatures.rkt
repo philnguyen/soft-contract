@@ -154,6 +154,7 @@
 (#|Dynamic Context|# H  . ≜ . (℘ ℓ))
 (#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
                                                   [#:reuse (Listof Fn/C-Sig)])
+(Renamings . ≜ . (Immutable-HashTable T (Option T)))
 
 ;; Size-change Stuff
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
@@ -256,4 +257,5 @@
    [show-Dom : (Dom → Sexp)]
    [show-R : (R → (Listof Sexp))]
    [show-Err : (Err → Sexp)]
-   [show-$:Key : ($:Key → Sexp)]))
+   [show-$:Key : ($:Key → Sexp)]
+   [show-rn : (Renamings → (Listof Sexp))]))

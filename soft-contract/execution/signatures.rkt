@@ -39,6 +39,8 @@
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
    [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
    [with-split-Σ : (Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)]
+   [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
+   [fix-return : (Renamings Σ R → R)]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Index))]
    [db:depth : (Parameterof Natural)]))

@@ -304,36 +304,11 @@
   (: erase-names : (Listof Binding) Σ R → R)
   ;; Erase symbolic names in results' values and conditions
   (define (erase-names bnds Σ₀ r)
-    (define names
-      (for*/fold ([acc : (℘ Symbol) ∅eq])
-                 ([bnd (in-list bnds)] [x (in-list (car bnd))])
-        (set-add acc x)))
-    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
-
-    (define (go-W [W : W]) (map go-V^ W))
-    (define (go-V^ [V^ : V^])
-      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
-      (foldl V⊔ Vs₀ Vs*))
-    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
-    (define (go-T [T : T]) (if (T-refers-to? T names) (unpack T (Σₑᵣ)) {set T}))
-    (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
-      (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
-      (cons ΔΞ₀ (go-ΔΓ ΔΓ₀)))
-    (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
-      (for/fold ([acc : ΔΓ ΔΓ₀]) ([(x S) (in-hash ΔΓ₀)])
-        (cond [(∋ names x) (hash-remove acc x)]
-              [(set? S) (hash-set acc x (go-V^ S))]
-              [else acc])))
-
-    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
-      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
-        (define W* (go-W Wᵢ))
-        (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (hash-set acc W*
-                  (match (hash-ref acc W* #f)
-                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
-                    [#f {set ΔΣ*}])))))
+    (define rn
+      (for*/hash : Renamings ([bnd (in-list bnds)]
+                              [x (in-list (car bnd))])
+        (values (γ:lex x) #f)))
+    (fix-return rn Σ₀ r))
 
   (: evl-bnd* : Σ ℓ (Listof Binding) → (℘ ΔΣ))
   (define (evl-bnd* Σ₀ ℓ bnds)
