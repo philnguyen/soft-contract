@@ -12,6 +12,7 @@
          bnf
          unreachable
          "../utils/map.rkt"
+         "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
@@ -37,15 +38,35 @@
 
   (: app : Σ ℓ V^ W → R)
   (define (app Σ ℓ Vₕ^ W*)
-    (define-values (W ΔΣ) (escape-clos Σ W*))
+    (define-values (W ΔΣ₁) (escape-clos Σ W*))
     (define W:root (W-root W))
-    ((inst fold-ans V)
-     (λ (Vₕ)
-       (define root (∪ W:root (V-root Vₕ)))
-       (define Σ* (gc root (⧺ Σ ΔΣ)))
-       (ref-$! ($:Key:App Σ* ℓ Vₕ W)
-               (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ (app₁ Σ* ℓ Vₕ W))))))
-     (unpack Vₕ^ Σ)))
+    (define Tₐ : (Option T:@)
+      (match* (Vₕ^ W*)
+        [({singleton-set (? K? o)}
+          (list {singleton-set (and Tₓ (or (? -b?) (? T?)))} ...))
+         (T:@ o (cast Tₓ (Listof (U T -b))))]
+        [(_ _) #f]))
+    (define r
+      ((inst fold-ans V)
+       (λ (Vₕ)
+         (define root (∪ W:root (V-root Vₕ)))
+         (define Σ* (gc root (⧺ Σ ΔΣ₁)))
+         (ref-$! ($:Key:App Σ* ℓ Vₕ W)
+                 (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W Tₐ))))))
+       (unpack Vₕ^ Σ)))
+    (if Tₐ
+        (let ([Wₐ* (list {set Tₐ})])
+          (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)])
+            (match Wₐ
+              [(list Vsₐ)
+               (define upd : (ΔΣ → ΔΣ)
+                 (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))]))
+               (hash-update (hash-remove r* Wₐ)
+                            Wₐ*
+                            (λ ([ΔΣs* : (℘ ΔΣ)]) (∪ ΔΣs* (map/set upd ΔΣs)))
+                            mk-∅)]
+              [_ r*])))
+        r))
 
   (: app/C : Σ ℓ V^ W → R)
   (define (app/C Σ ℓ Cs W)
@@ -53,10 +74,10 @@
     (R⊔ (cond [(set-empty? Cs*) ⊥R]
               [else (app Σ ℓ Cs* W)])
         (cond [(set-empty? bs) ⊥R]
-              [else (app₁ Σ ℓ 'equal? (cons bs W))])))
+              [else (app₁ Σ ℓ 'equal? (cons bs W) #f)])))
 
-  (: app₁ : Σ ℓ V W → R)
-  (define (app₁ Σ ℓ V W)
+  (: app₁ : Σ ℓ V W (Option T) → R)
+  (define (app₁ Σ ℓ V W Tₐ)
     (define f (match V
                 [(? -λ? V) (app-λ V)]
                 [(? Clo? V) (app-Clo V)]
@@ -67,7 +88,7 @@
                 [(-st-mut 𝒾 i) (app-st-mut 𝒾 i)]
                 [(? symbol? o) (app-prim o)]
                 [(Guarded ctx (? Fn/C? G) α)
-                 (cond [(==>i? G)    (app-==>i ctx G α)]
+                 (cond [(==>i? G)    (app-==>i ctx G α Tₐ)]
                        [(∀/C? G)     (app-∀/C  ctx G α)]
                        [(Case-=>? G) (app-Case-=> ctx G α)]
                        [else (app-Terminating/C ctx α)])]
@@ -239,8 +260,8 @@
     ; TODO massage raw result
     ((get-prim o) Σ ℓ Wₓ))
 
-  (: app-==>i : (Pairof -l -l) ==>i α → ⟦F⟧)
-  (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
+  (: app-==>i : (Pairof -l -l) ==>i α (Option T) → ⟦F⟧)
+  (define ((app-==>i ctx:saved G αₕ Tₐ) Σ₀-full ℓ Wₓ*)
     (match-define (cons l+ l-) ctx:saved)
     (define Wₓ (unpack-W Wₓ* Σ₀-full))
     (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full))
@@ -328,7 +349,7 @@
     (match ((inst findf ==>i)
             (match-lambda [(==>i doms _) (arity-includes? (shape doms) n)])
             Cs)
-      [(? values C) ((app-==>i ctx C α) Σ ℓ Wₓ)]
+      [(? values C) ((app-==>i ctx C α #|FIXME|# #f) Σ ℓ Wₓ)]
       [#f (err! (Err:Arity G n ℓ)) ⊥R]))
 
   (: app-Terminating/C : Ctx α → ⟦F⟧)
