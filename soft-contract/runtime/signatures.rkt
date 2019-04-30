@@ -250,4 +250,5 @@
    [show-Dom : (Dom → Sexp)]
    [show-R : (R → (Listof Sexp))]
    [show-Err : (Err → Sexp)]
-   [show-$:Key : ($:Key → Sexp)]))
+   [show-$:Key : ($:Key → Sexp)]
+   [print-blames : ((℘ Err) → Void)]))

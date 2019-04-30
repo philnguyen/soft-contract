@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require racket/match
+         racket/splicing
          typed/racket/unit
          "../ast/signatures.rkt"
          "../signatures.rkt"
@@ -13,13 +14,21 @@
   (import static-info^ prims^ (prefix pre: parser-helper^))
   (export parser^)
 
-  (: parse-files : (Listof Path-String) → (Listof -module))
-  ;; Alpha renaming on top of the old parser (hack)
-  (define (parse-files ps)
-    (define ms (pre:parse-files (map pre:canonicalize-path ps)))
-    (for-each collect-public-accs! ms)
-    (for-each collect-transparent-modules! ms)
-    ms)
+  (splicing-local
+      ((: with-post-processing : (Listof -module) → (Listof -module))
+       ;; Alpha renaming on top of the old parser (hack)
+       (define (with-post-processing ms)
+         (for-each collect-public-accs! ms)
+         (for-each collect-transparent-modules! ms)
+         ms))
+    (: parse-files : (Listof Path-String) → (Listof -module))
+
+    (define (parse-files ps)
+      (with-post-processing (pre:parse-files (map pre:canonicalize-path ps))))
+
+    (: parse-stxs : (Listof Syntax) → (Listof -module))
+    (define (parse-stxs stxs)
+      (with-post-processing (pre:parse-stxs stxs))))
 
   (: parse-module : Syntax → -module)
   (define (parse-module stx)

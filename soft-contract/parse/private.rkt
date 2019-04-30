@@ -95,32 +95,60 @@
   (define/contract (src->path s) ((or/c symbol? string? (cons/c string? (listof symbol?))) . -> . (or/c string? symbol?))
     (if (pair? s) (mk-path (car s) (cdr s)) s))
 
-  (define (parse-files fns)
-    ;((listof path-string?) . -> . (listof -module?))
+  (splicing-local
+      ((define (figure-out-alternate-aliases-in-modules! stxs fns)
+         (for ([stx (in-list stxs)] [fn (in-list fns)])
+           (parameterize ([cur-mod fn])
+             (figure-out-alternate-aliases! stx))))
 
-    (parameterize ([port-count-lines-enabled #t]
-                   [struct-map (make-hash)]
-                   [modules-to-parse (list->set fns)]
-                   [id-occurence-count (make-hasheq)])
-      (define stxs (map do-expand-file fns))
+       (define (stx-for-each proc stxs fns)
+         (for ([stx (in-list stxs)] [fn (in-list fns)])
+           (parameterize ([cur-mod fn])
+             (proc stx))))
 
-      (for ([stx (in-list stxs)] [fn (in-list fns)])
-        (parameterize ([cur-mod fn])
-          (figure-out-aliases! stx)))
+       (define (stx-map proc stxs fns)
+         (for/list ([stx (in-list stxs)] [fn (in-list fns)])
+           (parameterize ([cur-mod fn])
+             (proc stx))))
 
-      (for ([fn (in-list fns)])
-        (parameterize ([cur-mod fn]
-                       [expander expand])
-          (figure-out-alternate-aliases! (do-expand-file fn))))
+       (define (stxs->modules stxs fns)
+         ;; Re-order the modules for an appropriate initilization order,
+         ;; learned from side-effects of `parse-module`
+         (sort (stx-map parse-module stxs fns) module-before? #:key -module-path)))
 
-      (define ms
-        (for/list ([stx (in-list stxs)] [fn (in-list fns)])
-          (parameterize ([cur-mod fn])
-            (parse-module stx))))
+    (define (parse-stxs input-stxs)
+      ;((listof syntax?) . -> . (listof -module?))
 
-      ;; Re-order the modules for an appropriate initilization order,
-      ;; learned from side-effects of `parse-module`
-      (sort ms module-before? #:key -module-path)))
+      (define stx->name
+        (syntax-parser
+          [((~literal module) name:id _ _ ...)
+           (id-defining-module #'name)]))
+
+      (parameterize ([struct-map (make-hash)]
+                     [id-occurence-count (make-hasheq)])
+        (define fns (map stx->name input-stxs))
+        (define stxs (map do-expand input-stxs))
+        (stx-for-each figure-out-aliases! stxs fns)
+        (stx-for-each figure-out-alternate-aliases!
+                      (parameterize ([expander expand])
+                        (map do-expand input-stxs))
+                      fns)
+        (stxs->modules stxs fns)))
+
+    (define (parse-files fns)
+      ;((listof path-string?) . -> . (listof -module?))
+
+      (parameterize ([port-count-lines-enabled #t]
+                     [struct-map (make-hash)]
+                     [modules-to-parse (list->set fns)]
+                     [id-occurence-count (make-hasheq)])
+        (define stxs (map do-expand-file fns))
+        (stx-for-each figure-out-aliases! stxs fns)
+        (stx-for-each figure-out-alternate-aliases!
+                      (parameterize ([expander expand])
+                        (map do-expand-file fns))
+                      fns)
+        (stxs->modules stxs fns))))
 
   (define scv-syntax? (and/c syntax? (not/c scv-ignore?)))
 
