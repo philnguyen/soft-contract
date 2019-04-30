@@ -258,4 +258,5 @@
    [show-R : (R → (Listof Sexp))]
    [show-Err : (Err → Sexp)]
    [show-$:Key : ($:Key → Sexp)]
-   [show-rn : (Renamings → (Listof Sexp))]))
+   [show-rn : (Renamings → (Listof Sexp))]
+   [print-blames : ((℘ Err) → Void)]))

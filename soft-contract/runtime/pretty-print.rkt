@@ -270,4 +270,65 @@
   (define (show-rn rn)
     (for/list : (Listof Sexp) ([(T T*) (in-hash rn)])
       `(,(show-V T) ↦ ,(if T* (show-V T*) '⊘))))
+
+  (: print-blame : Err String → Void)
+  (define (print-blame blm idx)
+    (match blm
+      [(Blm l+ ℓ:site ℓ:origin Cs Vs)
+       (printf "~a At: ~a~n" idx (show-full-ℓ ℓ:site))
+       (printf "    - Blaming: ~a~n" l+)
+       (printf "    - Contract from: ~a ~n" (show-full-ℓ ℓ:origin))
+       (printf "    - Expected: ~a~n"
+               (match Cs
+                 [(list C) (show-V^ C)]
+                 ['() "no value"]
+                 [_ (format "~a values: ~a" (length Cs) (show-W Cs))]))
+       (printf "    - Given: ~a~n"
+               (match Vs
+                 [(list V) (show-V^ V)]
+                 ['() "(values)"]
+                 [_ (format "~a values: ~a" (length Vs) (show-W Vs))]))]
+      [(Err:Raised s ℓ)
+       (printf "~a Error: ~a~n" idx s)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Undefined x ℓ)
+       (printf "~a Undefined `~a`~n" idx x)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Values n E W ℓ)
+       (printf "~a Expected ~a values, given ~a:~n" idx n (length W))
+       (for ([Vs (in-list W)])
+         (printf "    - ~a~n" (show-V^ Vs)))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Arity f xs ℓ)
+       (printf "~a Function applied with wrong arity~n" idx)
+       (if (V? f)
+           (printf "    - Function: ~a~n" (show-V f))
+           (printf "    - Function defined at ~a~n" (show-full-ℓ f)))
+       (if (integer? xs)
+           (printf "    - Given ~a arguments~n" xs)
+           (begin
+             (printf "    - Given ~a arguments:~n" (length xs))
+             (for ([Vs (in-list xs)])
+               (printf "        + ~a~n" (show-V^ Vs)))))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Varargs W₀ Vᵣ ℓ)
+       (printf "~a Invalid number of rest args~n" idx)
+       (printf "    - ~a inits:~n" (length W₀))
+       (for ([V (in-list W₀)])
+         (printf "        * ~a~n" (show-V^ V)))
+       (printf "    - rest: ~a~n" (show-V^ Vᵣ))
+       (printf "    - Application at ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Sealed x ℓ)
+       (printf "~a Attempt to inspect value sealed in ~a~n" idx x)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]))
+
+  (: print-blames : (℘ Err) → Void)
+  (define (print-blames blames)
+    (define maybe-plural (match-lambda [1 ""] [_ "s"]))
+    (match (set-count blames)
+      [0 (printf "Safe~n")]
+      [n
+       (printf "Found ~a possible error~a~n" n (maybe-plural n))
+       (for ([b (in-set blames)] [i (in-naturals)])
+         (print-blame b (format "(~a)" (+ 1 i))))]))
   )

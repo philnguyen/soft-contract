@@ -5,6 +5,7 @@
 (require racket/match
          racket/list
          racket/set
+         racket/port
          typed/racket/unit
          set-extras
          intern
@@ -24,7 +25,7 @@
 (define-unit verifier@
   (import parser^
           meta-functions^ static-info^
-          sto^
+          sto^ pretty-print^
           exec^ hv^)
   (export verifier^)
 
@@ -36,6 +37,15 @@
   (define (run x)
     (with-initialized-static-info
       (exec (if (list? x) (-prog (parse-files x)) x))))
+
+  (: verify-modules : (Listof Syntax) → (℘ Err))
+  (define (verify-modules stxs)
+    (with-initialized-static-info
+      (define ms (parse-stxs stxs))
+      (define-values (es _) (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms)))))))
+      ;; HACK to use `log-debug` instead of `printf`
+      (log-debug (with-output-to-string (λ () (print-blames es))))
+      es))
 
   (: havoc : (Listof Path-String) → (Values (℘ Err) $))
   (define (havoc ps)
