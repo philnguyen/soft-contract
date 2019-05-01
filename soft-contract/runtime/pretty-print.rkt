@@ -118,7 +118,14 @@
       [(? α? α) (show-α α)]))
 
   (define (show-K [K : K]) : Sexp
-    (if (T? K) (show-T K) (show-o K)))
+    (cond [(T? K) (show-T K)]
+          [(K:≡? K) '≡]
+          [(K:<? K) '<]
+          [(K:≤? K) '≤]
+          [(K:>? K) '>]
+          [(K:≥? K) '≥]
+          [(K:=? K) '=]
+          [else (show-o K)]))
 
   (define show-α : (α → Sexp)
     (match-lambda

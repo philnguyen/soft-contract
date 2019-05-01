@@ -128,13 +128,13 @@
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
     (match P
-      ['<  (refine-both P V₁ P:< V₂ P:> Σ)]
-      ['<= (refine-both P V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both P V₁ P:> V₂ P:< Σ)]
-      ['>= (refine-both P V₁ P:≥ V₂ P:≤ Σ)]
-      ['=  (refine-both P V₁ P:= V₂ P:= Σ)]
+      ['<  (refine-both (K:<) V₁ P:< V₂ P:> Σ)]
+      ['<= (refine-both (K:≤) V₁ P:≤ V₂ P:≥ Σ)]
+      ['>  (refine-both (K:>) V₁ P:> V₂ P:< Σ)]
+      ['>= (refine-both (K:≥) V₁ P:≥ V₂ P:≤ Σ)]
+      ['=  (refine-both (K:=) V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both 'equal? V₁ P:≡ V₂ P:≡ Σ)]
+       (refine-both (K:≡) V₁ P:≡ V₂ P:≡ Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
@@ -150,7 +150,7 @@
        ;; TODO refactor
        (cond
          [(and (T? V₁) (T? V₂))
-          (define T-eq (T:@ 'equal? (list V₁ V₂)))
+          (define T-eq (T:@ (K:≡) (list V₁ V₂)))
           (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -ff})))]
          [(and (T? V₁) (or (-b? V₂) (T? V₂)))
           (define-values (V₁* ΔΣ) (refine-not₁ V₁ (P:≡ V₂) Σ))
@@ -491,7 +491,7 @@
                  [diseqs : (Listof (Pairof S S)) '()])
                 ([(T D) (in-hash Γ)])
         (match* (T D)
-          [((T:@ 'equal? (list T₁ T₂)) {singleton-set (-b b)})
+          [((T:@ (K:≡) (list T₁ T₂)) {singleton-set (-b b)})
            (if b
                (values (cons (cons T₁ T₂) eqs) diseqs)
                (values eqs (cons (cons T₁ T₂) diseqs)))]
