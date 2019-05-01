@@ -44,6 +44,9 @@
       (match* (Vₕ^ W*)
         [({singleton-set (? K? o)}
           (list {singleton-set (and Tₓ (or (? -b?) (? T?)))} ...))
+         #:when (for/or : Boolean ([T (in-list Tₓ)])
+                  (or (γ? T)
+                      (and (T:@? T) (not (set-empty? (T-root T))))))
          (T:@ o (cast Tₓ (Listof (U T -b))))]
         [(_ _) #f]))
     (define r

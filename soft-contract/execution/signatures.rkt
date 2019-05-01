@@ -75,7 +75,8 @@
    [V-root : (V → (℘ α))]
    [V^-root : (V^ → (℘ α))]
    [W-root : (W → (℘ α))]
-   [E-root : (E → (℘ γ))]))
+   [E-root : (E → (℘ γ))]
+   [T-root : (T:@ → (℘ γ))]))
 
 (define-syntax with-collapsed
   (syntax-parser
