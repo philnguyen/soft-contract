@@ -162,7 +162,7 @@
            ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
            ;; then `V₁ ≃ V₂`, where `≃` is equality for all flat values
            (define D* (go-V^ (assert D set?)))
-           (if (set-ormap Guarded? D*)
+           (if (and (γ:lex? T*) (set-ormap Guarded? D*))
                acc
                (hash-set acc T* D*))]
           [_ acc])))
