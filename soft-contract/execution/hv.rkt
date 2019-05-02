@@ -232,8 +232,10 @@
                       (define P* (if (null? acs) Q (P:St acs Q)))
                       (hash-update m i (λ ([Ps : (℘ P)]) (set-add Ps P*)) mk-∅)]
                      [_ m])))
-               (for/fold ([acc : ΔΣ acc]) ([(i Ps) (in-hash m)])
-                 (⧺ acc (alloc (γ:escaped-field 𝒾 i) {set (-● Ps)}))))
+               (if (prim-struct? 𝒾)
+                   acc
+                   (for/fold ([acc : ΔΣ acc]) ([(i Ps) (in-hash m)])
+                     (⧺ acc (alloc (γ:escaped-field 𝒾 i) {set (-● Ps)})))))
              acc)]
         [_ acc]))
     
