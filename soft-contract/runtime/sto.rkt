@@ -271,21 +271,33 @@
          [(_         _        ) (hash-set ΔΞ α (cons (S⊔ S₀ S₁) 'N))])]
       [#f (hash-set ΔΞ α r₀)]))
 
+  (: count-by (∀ (X) (X → Any) (℘ X) → Natural))
+  (define (count-by p? xs)
+    (for/sum : Natural ([x (in-set xs)] #:when (p? x)) 1))
+
   (: ΔΓ⊔ : ΔΓ ΔΓ → ΔΓ)
   (define (ΔΓ⊔ ΔΓ₁ ΔΓ₂)
-    (define shared-dom (∩ (dom ΔΓ₁) (dom ΔΓ₂)))
+    (define shared-dom
+      (for*/hash : (HashTable T Boolean) ([(T D₁) (in-hash ΔΓ₁)]
+                                          [D₂ (in-value (hash-ref ΔΓ₂ T #f))]
+                                          #:when D₂)
+        (values T (and (set? D₁) (set? D₂) (> (count-by T? (∪ D₁ D₂)) 1)))))
     (define (fixup [ΔΓ₀ : ΔΓ])
+      (define should-erase? ((inst make-parameter Boolean) #f))
       (define (span-V [V : V] [acc : V^]) : V^
         (cond [(not (T? V)) (V⊔₁ V acc)]
-              [(and (hash-has-key? ΔΓ₀ V) (not (∋ shared-dom V)))
+              [(and (hash-has-key? ΔΓ₀ V)
+                    (or (not (hash-has-key? shared-dom V))
+                        (should-erase?)))
                (set-fold span-V acc (assert (hash-ref ΔΓ₀ V) set?))]
               [else (set-add acc V)]))
       (define (span [D : S*]) (if (set? D) (set-fold span-V ∅ D) D))
-      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([T (in-set shared-dom)])
-        (hash-set acc T (span (hash-ref ΔΓ₀ T)))))
+      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T erase?) (in-hash shared-dom)])
+        (parameterize ([should-erase? erase?])
+          (hash-set acc T (span (hash-ref ΔΓ₀ T))))))
     (define ΔΓ₁* (fixup ΔΓ₁))
     (define ΔΓ₂* (fixup ΔΓ₂))
-    (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([x (in-set shared-dom)])
+    (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([x (in-hash-keys shared-dom)])
       (define D₁ (hash-ref ΔΓ₁* x))
       (define D₂ (hash-ref ΔΓ₂* x))
       (define D* (if (and (set? D₁) (set? D₂))
