@@ -208,10 +208,7 @@
   ;; `#f` means there's no correspinding name
   (define (rename rn)
     (: go-K : (K → (Option K)))
-    (define (go-K K)
-      (if (γ:ref? K)
-          (hash-ref rn K (λ () K))
-          K))
+    (define (go-K K) (if (T? K) (go K) K))
     (: go (case-> [T → (Option T)]
                   [(U T -b) → (Option (U T -b))]))
     (define (go T₀)

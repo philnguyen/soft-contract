@@ -280,7 +280,7 @@
        prim-root-cache p
        (λ ()
          (match p
-           [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+           [(-st-ac 𝒾 i) (if (prim-struct? 𝒾) ∅ {set (γ:escaped-field 𝒾 i)})]
            ['unsafe-struct-ref
             (for*/set: : (℘ γ) ([𝒾 (in-struct-tags)]
                                 #:unless (prim-struct? 𝒾)
@@ -293,7 +293,7 @@
     (define (T-root T₀)
       (define go-K : (K → (℘ γ))
         (match-lambda
-          [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+          [(? -prim? p) (prim-root p)]
           [(? T? T) (go T)]
           [_ ∅]))
       (define go : ((U T -b) → (℘ γ))
