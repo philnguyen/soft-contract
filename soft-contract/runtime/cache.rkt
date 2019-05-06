@@ -21,7 +21,7 @@
                         (Immutable-HashTable α β)))])
 
 (define-unit cache@
-  (import sto^)
+  (import sto^ val^)
   (export cache^)
 
   (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
@@ -50,14 +50,59 @@
       [(cons ΔΣs₀ ΔΣs*) (foldl ΔΣ⊔ (collapse-ΔΣs ΔΣs₀) (map collapse-ΔΣs ΔΣs*))]))
 
   (: collapse-R : R → (Option (Pairof W^ ΔΣ)))
+  ;; FIXME fix return type to `W`
   (define (collapse-R R)
+    ;; FIXME rewrite the mess below with vectors
+    (define erase?
+      (let ([m (for*/fold ([m : (HashTable Integer (HashTable Integer V^)) (hasheq)])
+                          ([W (in-hash-keys R)]
+                           [n (in-value (length W))]
+                           [(Vᵢ i) (in-indexed W)])
+                 ((inst hash-update Integer (HashTable Integer V^))
+                  m n
+                  (λ ([m* : (HashTable Integer V^)])
+                    (hash-update m* i (λ ([Vs₀ : V^]) (∪ Vs₀ Vᵢ)) mk-∅))
+                  (λ () (hasheq))))])
+        (for/hasheq : (HashTable Integer (HashTable Integer Boolean)) ([(n m*) (in-hash m)])
+          (values n (for/hasheq : (HashTable Integer Boolean) ([(i Vᵢ) (in-hash m*)])
+                      (values i (> (set-count-by T? Vᵢ) 1)))))))
+
+    (define (Ws^) : W^
+      (define m
+        (for*/fold ([m : (HashTable Integer (HashTable Integer V^)) (hasheq)])
+                   ([(W ΔΣs) (in-hash R)]
+                    [n (in-value (length W))]
+                    [ΔΣ* (in-value (collapse-ΔΣs ΔΣs))]
+                    [ΔΓ* (in-value (cdr ΔΣ*))]
+                    [(Vᵢ i) (in-indexed W)])
+          (: span₁ : V V^ → V^)
+          (define (span₁ V acc)
+            (cond [(not (T? V)) (V⊔₁ V acc)]
+                  [(hash-has-key? ΔΓ* V)
+                   (set-fold span₁ acc (assert (hash-ref ΔΓ* V) set?))]
+                  [else (set-add acc V)]))
+          (define (span [Vs : V^]) (set-fold span₁ ∅ Vs))
+          ((inst hash-update Integer (HashTable Integer V^))
+           m n
+           (λ ([m* : (HashTable Integer V^)])
+             (hash-update
+              m* i
+              (λ ([V₀ : V^])
+                (define Vᵢ* (if (hash-ref (hash-ref erase? n) i) (span Vᵢ) Vᵢ))
+                (if (set-empty? V₀) Vᵢ* (V⊔ V₀ Vᵢ*)))
+              mk-∅))
+           (λ () (hasheq)))))
+      (define Ws
+        (for/set: : W^ ([(n m*) (in-hash m)])
+          (for/list : W ([i (in-range (hash-count m*))])
+            (hash-ref m* i))))
+      ;; HACK
+      (if (hash-has-key? R '()) (set-add Ws '()) Ws))
+
     (and (not (hash-empty? R))
-         (let*-values ([(W₀ ΔΣs₀ R*) (hash-first/rest R)]
-                       [(Ws ΔΣ)
-                        (for/fold ([Ws : W^ {set W₀}] [ΔΣ* : ΔΣ (collapse-ΔΣs ΔΣs₀)])
-                                  ([(W ΔΣs) (in-hash R*)])
-                          (values (set-add Ws W) (ΔΣ⊔ ΔΣ* (collapse-ΔΣs ΔΣs))))])
-           (cons Ws ΔΣ))))
+         (let ([ΔΣ* (match-let ([(cons ΔΣ₀^ ΔΣ^*) (map collapse-ΔΣs (hash-values R))])
+                      (foldl ΔΣ⊔ ΔΣ₀^ ΔΣ^*))])
+           (cons (Ws^) ΔΣ*))))
 
   (: R⊔ : R R → R)
   (define (R⊔ R₁ R₂)

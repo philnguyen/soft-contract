@@ -271,17 +271,13 @@
          [(_         _        ) (hash-set ΔΞ α (cons (S⊔ S₀ S₁) 'N))])]
       [#f (hash-set ΔΞ α r₀)]))
 
-  (: count-by (∀ (X) (X → Any) (℘ X) → Natural))
-  (define (count-by p? xs)
-    (for/sum : Natural ([x (in-set xs)] #:when (p? x)) 1))
-
   (: ΔΓ⊔ : ΔΓ ΔΓ → ΔΓ)
   (define (ΔΓ⊔ ΔΓ₁ ΔΓ₂)
     (define shared-dom
       (for*/hash : (HashTable T Boolean) ([(T D₁) (in-hash ΔΓ₁)]
                                           [D₂ (in-value (hash-ref ΔΓ₂ T #f))]
                                           #:when D₂)
-        (values T (and (set? D₁) (set? D₂) (> (count-by T? (∪ D₁ D₂)) 1)))))
+        (values T (and (set? D₁) (set? D₂) (> (set-count-by T? (∪ D₁ D₂)) 1)))))
     (define (fixup [ΔΓ₀ : ΔΓ])
       (define should-erase? ((inst make-parameter Boolean) #f))
       (define (span-V [V : V] [acc : V^]) : V^
