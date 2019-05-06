@@ -164,38 +164,39 @@
        (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse +ℓ₀) (⧺ Σ ΔΣ₀) E)]
          (R-of C:rec (⧺ ΔΣ₀ ΔΣ₁ (alloc α C))))]
       [(-->i (-var doms ?doms:rst) rngs)
-       (: mk-Dom : -dom (U Clo V^) → (Values Dom ΔΣ))
-       (define (mk-Dom dom C)
+       (: mk-Dom : ΔΣ -dom (U Clo V^) → (Values Dom ΔΣ))
+       (define (mk-Dom Σ dom C)
          (match-define (-dom x _ _ ℓ) dom)
          (cond [(Clo? C) (values (Dom x C ℓ) ⊥ΔΣ)]
                [else (define α (α:dyn (β:dom ℓ) H₀))
                      (values (Dom x α ℓ) (alloc α (unpack C Σ)))]))
-       (: mk-Doms : (Listof -dom) (Listof (U V^ Clo)) → (Values (Listof Dom) ΔΣ))
-       (define (mk-Doms doms Cs)
+       (: mk-Doms : ΔΣ (Listof -dom) (Listof (U V^ Clo)) → (Values (Listof Dom) ΔΣ))
+       (define (mk-Doms Σ doms Cs)
          (define-values (Doms:rev ΔΣ*)
            (for/fold ([Doms:rev : (Listof Dom) '()] [ΔΣ : ΔΣ ⊥ΔΣ])
                      ([domᵢ (in-list doms)] [Cᵢ (in-list Cs)])
-             (define-values (Dom ΔΣ-dom) (mk-Dom domᵢ Cᵢ))
+             (define-values (Dom ΔΣ-dom) (mk-Dom Σ domᵢ Cᵢ))
              (values (cons Dom Doms:rev) (⧺ ΔΣ ΔΣ-dom))))
          (values (reverse Doms:rev) ΔΣ*))
 
        (define (with-inits [Inits : (Listof Dom)] [ΔΣ-acc : ΔΣ])
          (if ?doms:rst
-             (with-collapsed/R [(cons C ΔΣ₀) (evl-dom (⧺ Σ ΔΣ-acc) ?doms:rst)]
-               (define-values (Rst ΔΣ₁) (mk-Dom ?doms:rst C))
-               (with-doms (-var Inits Rst) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁)))
+             (let ([Σ* (⧺ Σ ΔΣ-acc)])
+               (with-collapsed/R [(cons C ΔΣ₀) (evl-dom Σ* ?doms:rst)]
+                 (define-values (Rst ΔΣ₁) (mk-Dom (⧺ Σ* ΔΣ₀) ?doms:rst C))
+                 (with-doms (-var Inits Rst) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁))))
              (with-doms (-var Inits #f) ΔΣ-acc)))
 
        (define (with-doms [doms : (-var Dom)] [ΔΣ-acc : ΔΣ])
          (if rngs
-             (with-collapsed/R [(cons W-rngs ΔΣ₀)
-                                (evl*/collapse evl-dom (⧺ Σ ΔΣ-acc) rngs)]
-               (define-values (Rngs ΔΣ₁) (mk-Doms rngs W-rngs))
-               (R-of (==>i doms Rngs) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁)))
+             (let ([Σ* (⧺ Σ ΔΣ-acc)])
+               (with-collapsed/R [(cons W-rngs ΔΣ₀) (evl*/collapse evl-dom Σ* rngs)]
+                 (define-values (Rngs ΔΣ₁) (mk-Doms (⧺ Σ* ΔΣ₀) rngs W-rngs))
+                 (R-of (==>i doms Rngs) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁))))
              (R-of (==>i doms #f) ΔΣ-acc)))
        
        (with-collapsed/R [(cons W-init ΔΣ₀) (evl*/collapse evl-dom Σ doms)]
-         (define-values (Inits ΔΣ₁) (mk-Doms doms W-init))
+         (define-values (Inits ΔΣ₁) (mk-Doms (⧺ Σ ΔΣ₀) doms W-init))
          (with-inits Inits (⧺ ΔΣ₀ ΔΣ₁)))]
       [(case--> cases)
        (define-values (Cases ΔΣ) (evl/special Σ cases ==>i?))
