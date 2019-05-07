@@ -431,11 +431,13 @@
            (R-of (list V* -FF) (⧺ ΔΣ ΔΣ*))))]
       [_
        (define ΔΣₓ (alloc-lex Σ₀ x-mon Vs))
-       (define γ-mon (γ:lex x-mon))
-       (with-each-ans ([(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))])
-         (define Σ₁ (⧺ Σ₀ ΔΣₓ ΔΣ))
-         (define Vs* (Σ@ γ-mon Σ₁))
-         (with-split-Σ Σ₁ 'values W
+       (define Σ₁ (⧺ Σ₀ ΔΣₓ))
+       ;; FIXME instead of manually `resolve` like this, make the whole thing
+       ;; more analogous to applying lamdbas
+       (with-each-ans ([(ΔΣ W) (app Σ₁ ℓ {set C} (list (resolve x-mon Σ₁)))])
+         (define Σ₂ (⧺ Σ₁ ΔΣ))
+         (define Vs* (Σ@ (γ:lex x-mon) Σ₂))
+         (with-split-Σ Σ₂ 'values W
            (λ _ (R-of Vs* ΔΣ))
            (λ _ (R-of (list Vs* -FF) ΔΣ))))]))
   )
