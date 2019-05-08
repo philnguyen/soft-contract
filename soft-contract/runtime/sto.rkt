@@ -150,7 +150,8 @@
     (define (V@ ac V)
       (match-define (-st-ac 𝒾 i) ac)
       (match V
-        [(St (and α (α:dyn (β:st-elems _ (== 𝒾)) _)) Ps)
+        [(St (and α (α:dyn (β:st-elems _ 𝒿) _)) Ps)
+         #:when (𝒿 . substruct? . 𝒾)
          (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
          (define-values (V* _) (refine (unpack Vᵢ Σ) (ac-Ps ac Ps) Σ))
          ;; TODO: explicitly enforce that store delta doesn't matter in this case
