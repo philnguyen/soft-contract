@@ -253,6 +253,7 @@
    [show-S : (S → Sexp)]
    [show-V^ : (V^ → Sexp)]
    [show-W : (W → (Listof Sexp))]
+   [show-Γ : (Γ → Sexp)]
    [show-Σ : (Σ → (Listof Sexp))]
    [show-Dom : (Dom → Sexp)]
    [show-R : (R → (Listof Sexp))]

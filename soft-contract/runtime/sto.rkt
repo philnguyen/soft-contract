@@ -278,7 +278,7 @@
       (for*/hash : (HashTable T Boolean) ([(T D₁) (in-hash ΔΓ₁)]
                                           [D₂ (in-value (hash-ref ΔΓ₂ T #f))]
                                           #:when D₂)
-        (values T (and (set? D₁) (set? D₂) (> (set-count-by T? (∪ D₁ D₂)) 1)))))
+        (values T (and (set? D₁) (set? D₂) (> (set-count (∪ D₁ D₂)) 1)))))
     (define (fixup [ΔΓ₀ : ΔΓ])
       (define should-erase? ((inst make-parameter Boolean) #f))
       (define (span-V [V : V] [acc : V^]) : V^

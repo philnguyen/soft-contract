@@ -65,7 +65,7 @@
                   (λ () (hasheq))))])
         (for/hasheq : (HashTable Integer (HashTable Integer Boolean)) ([(n m*) (in-hash m)])
           (values n (for/hasheq : (HashTable Integer Boolean) ([(i Vᵢ) (in-hash m*)])
-                      (values i (> (set-count-by T? Vᵢ) 1)))))))
+                      (values i (> (set-count Vᵢ) 1)))))))
 
     (define (Ws^) : W^
       (define m

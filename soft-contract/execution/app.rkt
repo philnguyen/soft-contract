@@ -62,6 +62,7 @@
           (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)])
             (match Wₐ
               [(list Vsₐ)
+               #:when (not (∋ Vsₐ Tₐ))
                (define upd : (ΔΣ → ΔΣ)
                  (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))]))
                (hash-update (hash-remove r* Wₐ)
