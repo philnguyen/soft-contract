@@ -337,13 +337,7 @@
   (define S⊔ : (S S → S)
     (match-lambda**
      [((? vector? Vs₁) (? vector? Vs₂)) (vector-map V⊔ Vs₁ Vs₂)]
-     [((? hash? Γ₁) (? hash? Γ₂)) (for/hash : Γ ([(x Vs₁) (in-hash Γ₁)])
-                                    (define Vs₂ (hash-ref Γ₂ x))
-                                    (values x
-                                            (if (and (set? Vs₁) (set? Vs₂))
-                                                (V⊔ Vs₁ Vs₂)
-                                                (begin0 Vs₁
-                                                  (assert (equal? Vs₁ Vs₂))))))]
+     [((? hash? Γ₁) (? hash? Γ₂)) (ΔΓ⊔ Γ₁ Γ₂)]
      [((? set? Vs₁) (? set? Vs₂)) (V⊔ Vs₁ Vs₂)]
      [((? α? α₁) (? α? α₂)) (assert (equal? α₁ α₂)) α₁]))
 
