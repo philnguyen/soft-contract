@@ -9,7 +9,6 @@
          with-collapsed with-collapsed/R
          with-collapsing with-collapsing/R
          with-each-path
-         with-each-ans
          for/ans)
 
 (require (for-syntax racket/base
@@ -104,28 +103,17 @@
 
 (define-syntax with-each-path
   (syntax-parser
-    [(_ [(ΔΣs₀ W₀) e] body ...)
-     (with-syntax ([R⊔ (format-id #'e "R⊔")])
-       #'(let ([r₀ e])
-           (for/fold ([r* : R ⊥R]) ([(W₀ ΔΣs₀) (in-hash r₀)])
-             (define r₁ (let () body ...))
-             (R⊔ r* r₁))))]))
-
-(define-syntax with-each-ans
-  (syntax-parser
-    [(with-each-ans ([(ΔΣᵢ Wᵢ) eᵢ] ...) body ...)
-     (with-syntax ([R⊔ (format-id #'with-each-ans "R⊔")]
-                   [collapse-ΔΣs (format-id #'with-each-ans "collapse-ΔΣs")])
+    [(with-each-path ([(ΔΣᵢ Wᵢ) eᵢ] ...) body ...)
+     (with-syntax ([R⊔ (format-id #'with-each-path "R⊔")])
        (define mk-clause
          (syntax-parser
            [(ΔΣᵢ Wᵢ eᵢ)
             (list
              #'[(Wᵢ ΔΣsᵢ) (in-hash eᵢ)]
-             #'[ΔΣᵢ (in-value (collapse-ΔΣs ΔΣsᵢ))])]))
-       #`(for*/fold ([r* : R ⊥R])
+             #'[ΔΣᵢ : ΔΣ (in-set ΔΣsᵢ)])]))
+       #`(for*/fold ([r : R ⊥R])
                     (#,@(append-map mk-clause (syntax->list #'([ΔΣᵢ Wᵢ eᵢ] ...))))
-           (R⊔ r* (let () body ...))))]))
-
+           (R⊔ r (let () body ...))))]))
 
 (define-syntax for/ans
   (syntax-parser

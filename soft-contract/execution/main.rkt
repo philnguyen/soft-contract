@@ -174,15 +174,13 @@
     (define (go-T [T : T]) (cond [(adjust-T T) => set]
                                  [else (unpack T (Σₑᵣ))]))
 
-    (for/fold ([acc : R ⊥R]) ([(Wᵢ ΔΣsᵢ) (in-hash r)])
-      (define ΔΣᵢ (collapse-ΔΣs ΔΣsᵢ))
+    (for*/fold ([r* : R ⊥R])
+               ([(Wᵢ ΔΣsᵢ) (in-hash (group-by-ans Σ₀ r))]
+                [ΔΣᵢ : ΔΣ (in-set ΔΣsᵢ)])
       (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
         (define W* (go-W Wᵢ))
         (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (hash-set acc W*
-                  (match (hash-ref acc W* #f)
-                    [(? values ΔΣs₀) {set (collapse-ΔΣs (set-add ΔΣs₀ ΔΣ*))}]
-                    [#f {set ΔΣ*}])))))
+        (hash-update r* W* (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣ*)) mk-∅))))
 
   (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
   (define (make-renamings fml W)

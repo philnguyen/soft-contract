@@ -181,7 +181,7 @@
     (define (chk C-fo C-ho)
       (with-collapsing/R
         [(ΔΣ Ws)
-         (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)])
+         (with-each-path ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)])
            (match W₁
              [(list _) (R-of W₁ ΔΣ₁)]
              [(list V* _)
@@ -198,7 +198,7 @@
   (define ((mon-Not/C C) Σ ctx V)
     (match-define (Not/C α _) C)
     (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
-    (with-each-ans ([(ΔΣ W) (fc Σ ℓₒ (Σ@ α Σ) V)])
+    (with-each-path ([(ΔΣ W) (fc Σ ℓₒ (Σ@ α Σ) V)])
       (match W
         [(list Vs* _) (R-of Vs* ΔΣ)]
         [(list _) (err! (blm l+ ℓ ℓₒ (list {set C}) (list V)))
@@ -343,7 +343,7 @@
       [(✓) (R-of Vs)]
       [(✗) (err! (blame)) ⊥R]
       [else
-       (with-each-ans ([(ΔΣ W) (fc Σ ℓₒ {set C} Vs)])
+       (with-each-path ([(ΔΣ W) (fc Σ ℓₒ {set C} Vs)])
          (match W
            [(list _) (R-of W ΔΣ)]
            [(list Vs* _) (err! (blame)) ⊥R]))]))
@@ -409,7 +409,7 @@
                [else
                 (define Cᵢ (vector-ref S i))
                 (with-collapsing/R [(ΔΣ:a Ws:a) (app Σ ℓ {set (-st-ac 𝒾 i)} W*)]
-                  (with-each-ans ([(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ Cᵢ (car (collapse-W^ Ws:a)))])
+                  (with-each-path ([(ΔΣᵢ Wᵢ) (fc (⧺ Σ ΔΣ:a) ℓ Cᵢ (car (collapse-W^ Ws:a)))])
                     (match Wᵢ
                       [(list Vᵢ)
                        (go (⧺ Σ ΔΣ:a ΔΣᵢ)
@@ -434,7 +434,7 @@
        (define Σ₁ (⧺ Σ₀ ΔΣₓ))
        ;; FIXME instead of manually `resolve` like this, make the whole thing
        ;; more analogous to applying lamdbas
-       (with-each-ans ([(ΔΣ W) (app Σ₁ ℓ {set C} (list (resolve x-mon Σ₁)))])
+       (with-each-path ([(ΔΣ W) (app Σ₁ ℓ {set C} (list (resolve x-mon Σ₁)))])
          (define Σ₂ (⧺ Σ₁ ΔΣ))
          (define Vs* (Σ@ (γ:lex x-mon) Σ₂))
          (with-split-Σ Σ₂ 'values W

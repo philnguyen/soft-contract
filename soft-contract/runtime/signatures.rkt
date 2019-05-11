@@ -209,7 +209,8 @@
    [R⧺ΔΣ : (R ΔΣ → R)]
    [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
    [collapse-R/ΔΣ : (R → (Option ΔΣ))]
-   [R⊔ : (R R → R)]))
+   [R⊔ : (R R → R)]
+   [group-by-ans : (Σ R → R)]))
 
 (define-signature val^
   ([collapse-W^ : (W^ → W)]

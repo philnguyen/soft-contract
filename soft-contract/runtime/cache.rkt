@@ -113,6 +113,24 @@
           (set-fold ΔΣ⊔₁ ΔΣs₂ ΔΣs₁)))
     ((inst hash-union W (℘ ΔΣ)) R₁ R₂ #:combine compact))
 
+  (: group-by-ans : Σ R → R)
+  ;; Parition store-deltas by (absolute) return values then collapse
+  (define (group-by-ans Σ r)
+    (define m
+      (for*/fold ([acc : (HashTable W (HashTable W (℘ ΔΣ))) (hash)])
+                 ([(Wᵢ ΔΣsᵢ) (in-hash r)]
+                  [ΔΣᵢ : ΔΣ(in-set ΔΣsᵢ)])
+        (define Σ* (⧺ Σ ΔΣᵢ))
+        (define Wᵢ:unpacked (unpack-W Wᵢ Σ*))
+        ((inst hash-update W (HashTable W (℘ ΔΣ)))
+         acc Wᵢ
+         (λ ([h : (HashTable W (℘ ΔΣ))])
+           (hash-update h Wᵢ:unpacked (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣᵢ)) mk-∅))
+         (λ () (hash)))))
+    (for/hash : R ([(W h) (in-hash m)])
+      (values W (for/set: : (℘ ΔΣ) ([ΔΣs (in-hash-values h)])
+                  (collapse-ΔΣs ΔΣs)))))
+
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)
     (for/hash : R ([(W ΔΣs) (in-hash R₀)])

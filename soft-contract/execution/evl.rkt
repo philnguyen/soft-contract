@@ -102,17 +102,16 @@
                    (with-negative-party l- V))))))
        (ensure-defined x ℓ Vs Σ)]
       [(-@ f xs ℓ)
-       (with-each-ans ([(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)])
+       (with-each-path ([(ΔΣₕ Wₕ) (evl/arity Σ f 1 ℓ)])
          (define V^ₕ (car Wₕ))
          (with-collapsed/R [(cons Wₓ ΔΣₓ) (evl*/collapse (evl/single/collapse ℓ) (⧺ Σ ΔΣₕ) xs)]
            (ΔΣ⧺R (⧺ ΔΣₕ ΔΣₓ) (app (⧺ Σ ΔΣₕ ΔΣₓ) ℓ V^ₕ Wₓ))))]
       [(-if E E₁ E₂ ℓ)
-       (with-each-path [(ΔΣs W) (evl/arity Σ E 1 ℓ)]
-         (for/ans ([ΔΣ : ΔΣ (in-set ΔΣs)])
-           (define Σ* (⧺ Σ ΔΣ))
-           (with-split-Σ Σ* 'values W
-             (λ (_ ΔΣ₁) (ΔΣ⧺R (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
-             (λ (_ ΔΣ₂) (ΔΣ⧺R (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂))))))]
+       (with-each-path ([(ΔΣ W) (evl/arity Σ E 1 ℓ)])
+         (define Σ* (⧺ Σ ΔΣ))
+         (with-split-Σ Σ* 'values W
+           (λ (_ ΔΣ₁) (ΔΣ⧺R (⧺ ΔΣ ΔΣ₁) (evl (⧺ Σ* ΔΣ₁) E₁)))
+           (λ (_ ΔΣ₂) (ΔΣ⧺R (⧺ ΔΣ ΔΣ₂) (evl (⧺ Σ* ΔΣ₂) E₂)))))]
       [(-wcm k v e) (error 'TODO "with-current-continuation-mark")]
       [(-begin Es)
        (match Es
