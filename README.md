@@ -145,7 +145,7 @@ and build the system yourself.
    which always uses the latest snapshot at the time the script runs).
    It is known that Racket release `6.1.1` does *not* compile this project.
 
-2. Obtain and install [Z3](http://z3.codeplex.com/).
+2. Obtain and install [Z3](https://github.com/Z3Prover/z3/releases).
    This project has been tested to work with version `4.3.2`.
 
 3. Clone and build the repository
