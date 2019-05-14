@@ -152,6 +152,7 @@ and build the system yourself.
 
         git clone https://github.com/philnguyen/soft-contract.git
 	    cd path/to/soft-contract/soft-contract
+	    git checkout pldi-2015
 		raco pkg install
 
    Notice that you need to build from
