@@ -214,7 +214,7 @@
 
 (define-signature val^
   ([collapse-W^ : (W^ → W)]
-   [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))] 
+   [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))]
    #;[V/ : (S → V → V)]
    [W⊔ : (W W → W)]
    [V⊔ : (V^ V^ → V^)]
@@ -235,6 +235,7 @@
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
+   [P:St* : ((Listof -st-ac) P → P)]
    ))
 
 (define-signature prover^

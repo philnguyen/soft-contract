@@ -129,7 +129,26 @@
          (λ () (hash)))))
     (for/hash : R ([(W h) (in-hash m)])
       (values W (for/set: : (℘ ΔΣ) ([ΔΣs (in-hash-values h)])
-                  (collapse-ΔΣs ΔΣs)))))
+                  (precise-collapse-ΔΣs Σ ΔΣs)))))
+
+  (: precise-collapse-ΔΣs : Σ (℘ ΔΣ) → ΔΣ)
+  ;; Collapse store-deltas with full sotre as context, so can collapse many symbolic expressions
+  (define (precise-collapse-ΔΣs Σ ΔΣs)
+    ;; Compute largest common path-condition domain
+    (define shared-dom
+      (for/fold ([acc : (℘ T) (dom (cdr (set-first ΔΣs)))])
+                ([ΔΣ : ΔΣ (in-set (set-rest ΔΣs))])
+        (∩ acc (dom (cdr ΔΣ)))))
+    (: restrict : ΔΣ → ΔΣ)
+    (define (restrict ΔΣ₀)
+      (define Σ* (⧺ Σ ΔΣ₀))
+      (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
+      (cons ΔΞ₀
+            (for/fold ([acc : ΔΓ ΔΓ₀])
+                      ([T (in-hash-keys ΔΓ₀)] #:unless (∋ shared-dom T))
+              (hash-set acc T (unpack T Σ*)))))
+    ;; Collapse store-deltas as usual
+    (collapse-ΔΣs (map/set restrict ΔΣs)))
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)

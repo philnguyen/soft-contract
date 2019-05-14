@@ -150,6 +150,12 @@
         ['list? #:when (equal? ac -cdr) (set-add Ps* 'list?)]
         [_ Ps*])))
 
+  (: P:St* : (Listof -st-ac) P → P)
+  (define (P:St* acs P)
+    (match P
+      [(P:St acs₀ P*) (P:St (assert (append acs acs₀) pair?) P*)]
+      [_ (if (null? acs) P (P:St acs P))]))
+
   (: V⊔ : V^ V^ → V^)
   (define (V⊔ Vs₁ Vs₂)
     (if (> (set-count Vs₁) (set-count Vs₂))

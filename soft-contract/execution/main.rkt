@@ -148,7 +148,7 @@
 
   (: fix-return : Renamings Σ R → R)
   (define (fix-return rn Σ₀ r)
-    (define Σₑᵣ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
+    (define Σₑₑ ((inst make-parameter Σ) Σ₀)) ; HACK to reduce cluttering
     (define adjust-T (rename rn))
     (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
       (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
@@ -161,10 +161,21 @@
            ;; then `T` and `T*` are not the same values.
            ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
            ;; then `V₁ ≃ V₂`, where `≃` is equality for all flat values
-           (define D* (go-V^ (assert D set?)))
-           (if (and (γ:lex? T*) (set-ormap Guarded? D*))
-               acc
-               (hash-set acc T* D*))]
+           (match* (T* (go-V^ (assert D set?)))
+             [((? γ:lex?) (? (λ (D*) (set-ormap Guarded? D*)) D*)) acc]
+             ;; FIXME generalize the very specific hack below!!
+             [((T:@ (and ac (-st-ac 𝒾 _)) Ts) D*)
+              (match* (Ts D*)
+                [((list (== T)) {singleton-set (-● Ps)})
+                 #:when (γ? T)
+                 (define Ps*
+                   (let ([Ps₀ (set-add (map/set (λ ([P : P]) (P:St* (list ac) P)) Ps) (-st-p 𝒾))])
+                     (if (and (equal? 𝒾 -𝒾-cons) (∋ Ps 'list?))
+                         (set-add Ps₀ 'list?)
+                         Ps₀)))
+                 (hash-set acc T {set (-● Ps*)})]
+                [(_ _) acc])]
+             [(_ D*) (hash-set acc T* D*)])]
           [_ acc])))
     (define (go-W [W : W]) (map go-V^ W))
     (define (go-V^ [V^ : V^])
@@ -172,12 +183,12 @@
       (foldl V⊔ Vs₀ Vs*))
     (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
     (define (go-T [T : T]) (cond [(adjust-T T) => set]
-                                 [else (unpack T (Σₑᵣ))]))
+                                 [else (unpack T (Σₑₑ))]))
 
     (for*/fold ([r* : R ⊥R])
                ([(Wᵢ ΔΣsᵢ) (in-hash (group-by-ans Σ₀ r))]
                 [ΔΣᵢ : ΔΣ (in-set ΔΣsᵢ)])
-      (parameterize ([Σₑᵣ (⧺ Σ₀ ΔΣᵢ)])
+      (parameterize ([Σₑₑ (⧺ Σ₀ ΔΣᵢ)])
         (define W* (go-W Wᵢ))
         (define ΔΣ* (go-ΔΣ ΔΣᵢ))
         (hash-update r* W* (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣ*)) mk-∅))))

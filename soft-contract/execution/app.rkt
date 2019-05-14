@@ -64,7 +64,9 @@
               [(list Vsₐ)
                #:when (not (∋ Vsₐ Tₐ))
                (define upd : (ΔΣ → ΔΣ)
-                 (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))]))
+                 (match Tₐ ; ignore mapping for symbolic accesses
+                   [(T:@ (? -st-ac?) _) values]
+                   [_ (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))])]))
                (hash-update (hash-remove r* Wₐ)
                             Wₐ*
                             (λ ([ΔΣs* : (℘ ΔΣ)]) (∪ ΔΣs* (map/set upd ΔΣs)))
