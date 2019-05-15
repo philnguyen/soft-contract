@@ -1,11 +1,6 @@
-#lang racket/base
+#lang racket
 
-(require racket/match
-         racket/contract
-         soft-contract/induction)
-
-(define nat-induct (induct-on exact-nonnegative-integer?))
-(define (trivial-nat-induct n P) (nat-induct n P trivial trivial))
+(define auto (λ _ 'trivial))
 
 ;; Source:
 ;; https://github.com/ucsd-progsys/liquidhaskell/blob/develop/benchmarks/popl18/ple/pos/Ackermann.hs
@@ -21,40 +16,66 @@
     [(0)  x]
     [else (ack n (iack (- h 1) n x))]))
 
-(define-theorem (def-eq [n x exact-nonnegative-integer?])
-  #:conclusion (= (ack (+ n 1) x) (iack x n 2))
-  #:proof
-  (trivial-nat-induct x (λ (x) (↑ (= (ack (+ n 1) x) (iack x n 2))))))
+(define/contract def-eq
+  (->i ([n exact-nonnegative-integer?]
+        [x exact-nonnegative-integer?])
+       (_ {n x} (λ (_) (= (ack (+ n 1) x) (iack x n 2)))))
+  (λ (n x)
+    (if (= x 0) 'trivial (def-eq n (- x 1)))))
 
-(define-theorem lemma-2 ; TODO decrease in both `n` and `x`
-  (∀ ([n x exact-nonnegative-integer?]) (< (+ x 1) (ack n x))))
+(define/contract lemma-2
+  (->i ([n exact-nonnegative-integer?]
+        [x exact-nonnegative-integer?])
+       (_ {n x} (λ (_) (< (+ x 1) (ack n x)))))
+  (λ (n x)
+    (cond [(= x 0) 'trivial]
+          [(= n 0) 'trivial]
+          [else (lemma-2 (- n 1) (ack n (- x 1)))
+                (lemma-2 n (- x 1))])))
 
-(define-theorem lemma-3 ; TODO decrease in both `n` and `x`
-  (∀ ([n x exact-nonnegative-integer?]) (< (ack n x) (ack n (+ x 1)))))
+(define/contract lemma-3
+  (->i ([n exact-nonnegative-integer?]
+        [x exact-nonnegative-integer?])
+       (_ {n x} (λ (_) (< (ack n x) (ack n (+ x 1))))))
+  (λ (n x)
+    (cond [(= x 0) (< (ack n 0) (ack n 1))
+                   (lemma-2 n 1)]
+          [(= n 0) (< (ack n x) (ack n (+ 1 x)))]
+          [else (lemma-2 (- n 1) (ack n x))])))
 
-(define-theorem lemma-3-gen ; TODO
-  (∀ ([n x exact-nonnegative-integer?]
-      [y (and/c exact-nonnegative-integer? (>/c x))])
-     (< (ack n x) (ack n y))))
+(define/contract lemma-3-gen
+  (->i ([n exact-nonnegative-integer?]
+        [x exact-nonnegative-integer?]
+        [y {x} (and/c exact-nonnegative-integer? (>/c x))])
+       (_ {n x y} (λ (_) (< (ack n x) (ack n y)))))
+  auto)
 
-(define-theorem (lemma-3-eq [n x exact-nonnegative-integer?]
-                            [y (and/c exact-nonnegative-integer? (>=/c x))])
-  #:conclusion (<= (ack n x) (ack n y))
-  #:proof
-  (trivial-nat-induct (- y x) (λ (d) (↑ (<= (ack n x) (ack n y))))))
+(define/contract lemma-3-eq
+  (->i ([n exact-nonnegative-integer?]
+        [x exact-nonnegative-integer?]
+        [y {x} (and/c exact-nonnegative-integer? (>=/c x))])
+       (_ {n x y} (λ (_) (<= (ack n x) (ack n y)))))
+  (λ (n x y)
+    (if (= x y) 'trivial (lemma-3-gen n x y))))
 
-(define-theorem (lemma-4 [x exact-positive-integer?]
-                         [n exact-nonnegative-integer?])
-  #:conclusion (< (ack n x) (ack (+ n 1) x))
-  #:proof
-  (begin (lemma-2 (+ n 1) (- x 1))
-         (lemma-3-gen n x (ack (+ n 1) (- x 1)))))
+(define/contract lemma-4
+  (->i ([x exact-positive-integer?]
+        [n exact-nonnegative-integer?])
+       (_ {n x} (λ (_) (< (ack n x) (ack (+ n 1) x))))) 
+  (λ (x n)
+    (lemma-2 (+ n 1) (- x 1))
+    (lemma-3-gen n x (ack (+ n 1) (- x 1)))))
 
-(define-theorem lemma-4-gen
-  (∀ ([n exact-nonnegative-integer?]
-      [m (and/c exact-nonnegative-integer? (>/c n))]
-      [x exact-positive-integer?])
-     (< (ack n x) (ack m x))))
+;; Can't proceed. Need to figure out where helper functions are.
+#|
+(define/contract lemma-4-gen
+  (->i ([n exact-nonnegative-integer?]
+        [m {n} (and/c exact-nonnegative-integer? (>/c n))]
+        [x exact-positive-integer?])
+       (_ {n m x} (λ (_) (< (ack n x) (ack m x)))))
+  (λ (n m x)
+    ;; FIXME no `gen-increasing-2`
+    (gen-increasing-2 ack lemma-4 x n m)))
 
 (define-theorem (lemma-4-eq [n x exact-nonnegative-integer?])
   #:conclusion (<= (ack n x) (ack (+ n 1) x))
@@ -175,4 +196,33 @@
   (trivial-nat-induct
    x
    (λ (x) (↑ (= (iack (+ x y) n z) (iack x n (iack y n z)))))))
+|#
 
+(provide
+ (contract-out
+  [def-eq
+    (->i ([n exact-nonnegative-integer?]
+          [x exact-nonnegative-integer?])
+         (_ {n x} (λ (_) (= (ack (+ n 1) x) (iack x n 2)))))]
+  [lemma-2
+   (->i ([n exact-nonnegative-integer?]
+         [x exact-nonnegative-integer?])
+        (_ {n x} (λ (_) (< (+ x 1) (ack n x)))))]
+  [lemma-3
+   (->i ([n exact-nonnegative-integer?]
+         [x exact-nonnegative-integer?])
+        (_ {n x} (λ (_) (< (ack n x) (ack n (+ x 1))))))]
+  [lemma-3-gen
+   (->i ([n exact-nonnegative-integer?]
+         [x exact-nonnegative-integer?]
+         [y {x} (and/c exact-nonnegative-integer? (>/c x))])
+        (_ {n x y} (λ (_) (< (ack n x) (ack n y)))))]
+  [lemma-3-eq
+   (->i ([n exact-nonnegative-integer?]
+         [x exact-nonnegative-integer?]
+         [y {x} (and/c exact-nonnegative-integer? (>=/c x))])
+        (_ {n x y} (λ (_) (<= (ack n x) (ack n y)))))]
+  [lemma-4
+   (->i ([x exact-positive-integer?]
+         [n exact-nonnegative-integer?])
+        (_ {n x} (λ (_) (< (ack n x) (ack (+ n 1) x)))))]))
