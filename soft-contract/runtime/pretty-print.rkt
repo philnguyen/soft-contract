@@ -57,15 +57,12 @@
       [(P:≡ T) `(≡/c ,(show-T T))]
       [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
       [(P:¬ Q) `(¬/c ,(show-P Q))]
-      [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]
+      [(P:St ac P*) `(,(show-V ac) ↝ ,(show-P P*))]
       [(P:vec-len n) `(vector-length/c ,n)]))
 
   (define (show-Ps [Ps : (℘ P)] [prefix : String]) : Symbol
     (string->symbol (string-join (set-map Ps (compose1 sexp->string show-P))
                                  "_" #:before-first prefix)))
-
-  (define (show-acs [acs : (Listof -st-ac)])
-    (string->symbol (string-join (map (compose1 symbol->string show-o) acs) ".")))
 
   (define show-Arity : (Arity → Sexp)
     (match-lambda

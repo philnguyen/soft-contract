@@ -137,7 +137,7 @@
                (define Ps
                  (set-add
                   (for/union : (℘ P) ([(Psᵢ i) (in-indexed l)])
-                    (map/set (λ ([P : P]) (P:St (list (-st-ac 𝒾 (assert i index?))) P))
+                    (map/set (λ ([P : P]) (P:St (-st-ac 𝒾 (assert i index?)) P))
                              Psᵢ))
                   (-st-p 𝒾)))
                (values (-● Ps) (⧺ ΔΣ ΔΣ*))]

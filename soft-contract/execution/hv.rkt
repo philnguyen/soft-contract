@@ -228,8 +228,7 @@
                (define m
                  (for/fold ([m : (HashTable Index (℘ P)) (hash)]) ([Pᵢ (in-set Ps)])
                    (match Pᵢ
-                     [(P:St (cons (-st-ac (== 𝒾) i) acs) Q)
-                      (define P* (if (null? acs) Q (P:St acs Q)))
+                     [(P:St (-st-ac (== 𝒾) i) P*)
                       (hash-update m i (λ ([Ps : (℘ P)]) (set-add Ps P*)) mk-∅)]
                      [_ m])))
                (if (prim-struct? 𝒾)

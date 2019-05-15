@@ -105,25 +105,30 @@
       [_ (values {set V} ⊥ΔΣ)]))
 
   (: refine-T : T V Σ → ΔΣ)
-  (define (refine-T T₀ P Σ)
+  (define (refine-T T₀ P₀ Σ)
     (match-define (cons Ξ Γ) Σ)
-    (if (P? P)
-        (let go ([T : T T₀] [acs : (Listof -st-ac) '()])
+    (if (P? P₀)
+        (let go ([T : T T₀] [P : P P₀])
           (match T
-            [(T:@ (? -st-ac? ac) (list T*)) (go (assert T* T?) (cons ac acs))]
-            [_
-             (define Vs* (refine-V^ (unpack T Σ) (if (pair? acs) (P:St acs P) P) Σ))
-             (cons ⊥Ξ (hash T Vs*))]))
+            [(T:@ (? -st-ac? ac) (list T*)) (go (assert T* T?) (P:St ac P))]
+            [_ (cons ⊥Ξ (hash T (refine-V^ (unpack T Σ) P Σ)))]))
         ⊥ΔΣ))
 
   (: refine-not₁ : V V Σ → (Values V^ ΔΣ))
   (define (refine-not₁ V P Σ)
-    (match P
-      [(? Q?) (refine₁ V (P:¬ P) Σ)]
-      [(P:¬ Q) (refine₁ V Q Σ)]
-      [(P:St acs (? Q? Q)) (refine₁ V (P:St acs (P:¬ Q)) Σ)]
-      [(P:St acs (P:¬ Q)) (refine₁ V (P:St acs Q) Σ)]
-      [_ (values {set V} ⊥ΔΣ)]))
+    (define (default) (values {set V} ⊥ΔΣ))
+    (cond [(not (P? P)) (default)]
+          [(?negate P) => (λ (P*) (refine₁ V P* Σ))]
+          [else (default)]))
+
+  (define ?negate : (P → (Option P))
+    (match-lambda
+      [(P:¬ Q) Q]
+      [(P:St ac P) (match (?negate P)
+                     [(? values P*) (P:St ac P*)]
+                     [_ #f])]
+      [(? Q? Q) (P:¬ Q)]
+      [_ #f]))
 
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
@@ -211,9 +216,9 @@
        #:else
        [(P₀ Q₀)
         (match* (P₀ Q₀)
-          [((P:St acs P*) (P:St acs Q*))
+          [((P:St ac P*) (P:St ac Q*))
            (match (P+ P* Q*)
-             [(? values Ps) (map (λ ([P : P]) (P:St acs P)) Ps)]
+             [(? values Ps) (map (λ ([P : P]) (P:St ac P)) Ps)]
              [_ #f])]
           [(_ _) #f])]))
     (if (P? P₀) (merge/compact P+ P₀ Ps₀) Ps₀))
@@ -535,7 +540,7 @@
       [(_ 'none/c) '✗]
       [('any/c _) #f]
       [(P P) '✓]
-      [((P:St acs P*) (P:St acs Q*)) (simple-P⊢P Σ P* Q*)]
+      [((P:St ac P*) (P:St ac Q*)) (simple-P⊢P Σ P* Q*)]
       [((? symbol? P) (? symbol? Q)) (o⊢o P Q)]
       [((? -o? P) 'values) (match P ; TODO generalize
                              ['not '✗]
@@ -636,11 +641,11 @@
       ['zero? (P:= -zero)]
       [(P:¬ 'even?) 'odd?]
       [(P:¬ 'odd?) 'even?]
-      [(and P₀ (P:St acs P*))
+      [(and P₀ (P:St ac P*))
        (define P** (canonicalize P*))
        (cond [(eq? P** P*) P₀] ; try to re-use old instance
-             [(set? P**) (map/set (λ ([P : P]) (P:St acs P)) P**)]
-             [(P? P**) (P:St acs P**)]
+             [(set? P**) (map/set (λ ([P : P]) (P:St ac P)) P**)]
+             [(P? P**) (P:St ac P**)]
              [else P₀])]
       [P P]))
 

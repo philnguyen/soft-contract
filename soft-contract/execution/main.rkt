@@ -169,7 +169,7 @@
                 [((list (== T)) {singleton-set (-● Ps)})
                  #:when (γ? T)
                  (define Ps*
-                   (let ([Ps₀ (set-add (map/set (λ ([P : P]) (P:St* (list ac) P)) Ps) (-st-p 𝒾))])
+                   (let ([Ps₀ (set-add (map/set (λ ([P : P]) (P:St ac P)) Ps) (-st-p 𝒾))])
                      (if (and (equal? 𝒾 -𝒾-cons) (∋ Ps 'list?))
                          (set-add Ps₀ 'list?)
                          Ps₀)))

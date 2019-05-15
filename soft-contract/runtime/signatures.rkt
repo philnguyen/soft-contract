@@ -74,7 +74,7 @@
                                       [origin : ℓ]
                                       [ctc : W]
                                       [val : W]))
-(#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
+(#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St -st-ac P))
 (#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)) (P:vec-len Index))
 (#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K R))
 (#|Result         |# R .  ≜  . (Immutable-HashTable W (℘ ΔΣ)))
@@ -235,7 +235,6 @@
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
-   [P:St* : ((Listof -st-ac) P → P)]
    ))
 
 (define-signature prover^

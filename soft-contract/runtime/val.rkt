@@ -144,17 +144,10 @@
   (define (ac-Ps ac Ps)
     (for/fold ([Ps* : (℘ P) ∅]) ([P (in-set Ps)])
       (match P
-        [(P:St (cons (== ac) acs*) P*)
-         (set-add Ps* (if (pair? acs*) (P:St acs* P*) P*))]
+        [(P:St (== ac) P*) (set-add Ps* P*)]
         ;; Special case for rest of `list?`. TODO: reduce hack
         ['list? #:when (equal? ac -cdr) (set-add Ps* 'list?)]
         [_ Ps*])))
-
-  (: P:St* : (Listof -st-ac) P → P)
-  (define (P:St* acs P)
-    (match P
-      [(P:St acs₀ P*) (P:St (assert (append acs acs₀) pair?) P*)]
-      [_ (if (null? acs) P (P:St acs P))]))
 
   (: V⊔ : V^ V^ → V^)
   (define (V⊔ Vs₁ Vs₂)
