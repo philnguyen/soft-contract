@@ -94,7 +94,7 @@
     (define (touch/T T₀ Ξ Γ)
       (match (hash-ref Γ₀ T₀ #f)
         [(? set? Vs)
-         (for*/fold ([Ξ* : ΔΞ Ξ₀] [Γ* : ΔΓ (hash-set Γ T₀ Vs)])
+         (for*/fold ([Ξ* : ΔΞ Ξ] [Γ* : ΔΓ (hash-set Γ T₀ Vs)])
                     ([V (in-set Vs)]
                      [α* (in-set (V-root V))])
            (touch α* Ξ* Γ*))]
