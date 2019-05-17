@@ -26,9 +26,9 @@
     (define (parse-files ps)
       (with-post-processing (pre:parse-files (map pre:canonicalize-path ps))))
 
-    (: parse-stxs : (Listof Syntax) → (Listof -module))
-    (define (parse-stxs stxs)
-      (with-post-processing (pre:parse-stxs stxs))))
+    (: parse-stxs : (Listof Path-String) (Listof Syntax) → (Listof -module))
+    (define (parse-stxs fns stxs)
+      (with-post-processing (pre:parse-stxs fns stxs))))
 
   (: parse-module : Syntax → -module)
   (define (parse-module stx)
