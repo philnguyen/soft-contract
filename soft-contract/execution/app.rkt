@@ -59,19 +59,26 @@
        (unpack Vₕ^ Σ)))
     (if Tₐ
         (let ([Wₐ* (list {set Tₐ})])
-          (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)])
-            (match Wₐ
-              [(list Vsₐ)
-               #:when (not (∋ Vsₐ Tₐ))
-               (define upd : (ΔΣ → ΔΣ)
-                 (match Tₐ ; ignore mapping for symbolic accesses
-                   [(T:@ (? -st-ac?) _) values]
-                   [_ (match-lambda [(cons ΔΞ ΔΓ) (cons ΔΞ (hash-set ΔΓ Tₐ Vsₐ))])]))
-               (hash-update (hash-remove r* Wₐ)
-                            Wₐ*
-                            (λ ([ΔΣs* : (℘ ΔΣ)]) (∪ ΔΣs* (map/set upd ΔΣs)))
-                            mk-∅)]
-              [_ r*])))
+          (for/fold ([r* : R r])
+                    ([(Wₐ ΔΣs) (in-hash r)]
+                     #:when (= 1 (length Wₐ)))
+            (match-define (list Vsₐ) Wₐ)
+            (for/fold ([r* : R (hash-remove r* Wₐ)])
+                      ([ΔΣᵢ : ΔΣ (in-set ΔΣs)])
+              (define Vsₐ* (unpack Vsₐ (⧺ Σ ΔΣᵢ)))
+              (define ΔΣ*
+                (match Tₐ ; ignore mapping for symbolic accesses
+                  [(T:@ (? -st-ac?) _) ΔΣᵢ]
+                  [_
+                   (match-define (cons ΔΞ ΔΓ) ΔΣᵢ)
+                   (define ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ*))
+                   (define ΔΓ*
+                     (match Vsₐ
+                       [{singleton-set (? T? T*)}
+                        (hash-set ΔΓ₁ (T:@ (K:≡) (list Tₐ T*)) {set -tt})]
+                       [_ ΔΓ₁]))
+                   (cons ΔΞ ΔΓ*)]))
+              (hash-update r* Wₐ* (λ ([ΔΣs* : (℘ ΔΣ)]) (set-add ΔΣs* ΔΣ*)) mk-∅))))
         r))
 
   (: app/C : Σ ℓ V^ W → R)
