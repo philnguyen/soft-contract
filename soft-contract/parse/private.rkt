@@ -119,7 +119,9 @@
     (define (parse-stxs fns input-stxs)
       ;((listof syntax?) . -> . (listof -module?))
 
-      (parameterize ([struct-map (make-hash)]
+      (parameterize ([port-count-lines-enabled #t] ; TODO maybe no need
+                     [struct-map (make-hash)]
+                     [modules-to-parse (list->set fns)]
                      [id-occurence-count (make-hasheq)])
         (define stxs (map do-expand input-stxs))
         (stx-for-each figure-out-aliases! stxs fns)
