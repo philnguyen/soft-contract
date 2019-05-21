@@ -149,10 +149,11 @@
       [(-set! X E ℓ)
        (with-collapsing/R [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define ΔΣ:mut
-           (let ([α (if (symbol? X) (γ:lex X) (γ:top X))])
+           (let ([α (if (symbol? X) (γ:lex X) (γ:top X))]
+                 [Σ* (⧺ Σ ΔΣ:rhs)])
              (define α* (assert (Σ@/raw α Σ) α?))
-             (define rhs^ (unpack (car (collapse-W^ rhs)) Σ))
-             (define-values (rhs^* ΔΣ) (V^-escape-clos Σ rhs^))
+             (define rhs^ (unpack (car (collapse-W^ rhs)) Σ*))
+             (define-values (rhs^* ΔΣ) (V^-escape-clos Σ* rhs^))
              (⧺ ΔΣ (mut α* rhs^* Σ))))
          (R-of -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err! (Err:Raised s ℓ)) ⊥R]
