@@ -68,14 +68,14 @@
    [behavioral? : (V Σ → Boolean)]))
 
 (define-signature gc^
-  ([gc : ([(℘ α) Σ] [Σ] . ->* . Σ)]
+  ([gc : ([(℘ (U α T)) Σ] [Σ] . ->* . Σ)]
    [clear-live-set-cache! : (→ Void)]
-   [gc-R : ((℘ α) Σ R → R)]
-   [V-root : (V → (℘ α))]
-   [V^-root : (V^ → (℘ α))]
-   [W-root : (W → (℘ α))]
+   [gc-R : ((℘ (U α T)) Σ R → R)]
+   [V-root : (V → (℘ (U α T)))]
+   [V^-root : (V^ → (℘ (U α T)))]
+   [W-root : (W → (℘ (U α T)))]
    [E-root : (E → (℘ γ))]
-   [T-root : (T:@ → (℘ γ))]))
+   [T-root : (T:@ → (℘ T))]))
 
 (define-syntax with-collapsed
   (syntax-parser

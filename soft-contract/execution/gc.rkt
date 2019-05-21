@@ -23,37 +23,35 @@
           sto^ val^)
   (export gc^)
 
-  (: gc ([(℘ α) Σ] [Σ] . ->* . Σ))
+  (: gc ([(℘ (U α T)) Σ] [Σ] . ->* . Σ))
   ;; Garbage collect store(-delta) `Σ₀` with respect to live addresses `root`.
   ;; The context `Σ-ctx` is the full store, which may or may not coincide with `Σ₀`
   (define (gc root Σ₀ [ctx Σ₀])
-    (define-set touched : α)
+    (define-set touched : (U α T))
     (match-define (cons Ξ₀ Γ₀) Σ₀)
 
-    ;; Index of candidate symbolic expressions to retain
-    (define sym-exprs (filter T:@? (hash-keys (cdr ctx))))
-
-    (: touch : α Ξ Γ → (Values Ξ Γ))
+    (: touch : (U α T) Ξ Γ → (Values Ξ Γ))
     (define (touch α Ξ Γ)
       (touched-add! α)
-      (define-values (Ξ* Γ*)
-        ;; Look up full context to span addresses,
-        ;; but only copy entries from the store-delta in focus
-        (let ([Ξ₁ (match (hash-ref Ξ₀ α #f)
-                    [(? values r) (hash-set Ξ α r)]
-                    [#f Ξ])]
-              [Γ₁ (if (γ? α)
-                      (match (hash-ref Γ₀ α #f)
-                        [(? values D) (hash-set Γ α D)]
-                        [#f Γ])
-                      Γ)])
-          (if (γ? α)
-              (let-values ([(Ts sym-exprs*)
-                            (partition (λ ([T : T:@]) (all-live? T touched)) sym-exprs)])
-                (set! sym-exprs sym-exprs*)
-                (touch/Ts Ts Ξ₁ Γ₁))
-              (values Ξ₁ Γ₁))))
-      (define S (Σ@/raw α ctx)) ; `Σ@` instead of just `hash-ref` takes care of `γ:imm`
+
+      ;; Look up full context to span addresses,
+      ;; but only copy entries from the store-delta in focus
+      (define Ξ* (if (α? α)
+                     (match (hash-ref Ξ₀ α #f)
+                       [(? values r) (hash-set Ξ α r)]
+                       [#f Ξ])
+                     Ξ))
+      (define Γ* (if (T? α)
+                     (match (hash-ref Γ₀ α #f)
+                       [(? values D) (hash-set Γ α D)]
+                       [#f Γ])
+                     Γ))
+      (define S
+        (match α
+          [(? α?) (Σ@/raw α ctx)] ;`Σ@` instead of just `hash-ref` takes care of `γ:imm`
+          [(T:@ (? -st-ac?) _) (T-root α)]
+          [_ (hash-ref (cdr ctx) α)]))
+
       (cond
         [(vector? S)
          (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
@@ -68,7 +66,10 @@
                   (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
                              ([V (in-set D)]
                               [α* (in-set (V-root V))]
-                              #:unless (γ:lex? α*)
+                              ;; FIXME: Attempt to only touch "store-addresses"
+                              ;; But this may accidentally omit top-level addreses,
+                              ;; which are currently store
+                              #:unless (T? α*)
                               #:unless (touched-has? α*))
                     (touch α* Ξ* Γ*))]
                  [(not (touched-has? D)) (touch D Ξ* Γ*)]
@@ -80,73 +81,30 @@
            (touch α* Ξ* Γ*))]
         [else (touch S Ξ* Γ*)]))
 
-    (: touch* : (℘ α) Ξ Γ → (Values Ξ Γ))
+    (: touch* : (℘ (U α T)) Ξ Γ → (Values Ξ Γ))
     (define (touch* αs Ξ Γ)
       (for/fold ([Ξ : ΔΞ Ξ] [Γ : ΔΓ Γ]) ([α (in-set αs)])
         (touch α Ξ Γ)))
 
-    (: touch/Ts : (Listof T:@) Ξ Γ → (Values Ξ Γ))
-    (define (touch/Ts Ts Ξ Γ)
-      (for/fold ([Ξ : ΔΞ Ξ] [Γ : ΔΓ Γ]) ([T (in-list Ts)])
-        (touch/T T Ξ Γ)))
-
-    (: touch/T : T:@ Ξ Γ → (Values Ξ Γ))
-    (define (touch/T T₀ Ξ Γ)
-      (match (hash-ref Γ₀ T₀ #f)
-        [(? set? Vs)
-         (for*/fold ([Ξ* : ΔΞ Ξ] [Γ* : ΔΓ (hash-set Γ T₀ Vs)])
-                    ([V (in-set Vs)]
-                     [α* (in-set (V-root V))])
-           (touch α* Ξ* Γ*))]
-        [#f (values Ξ Γ)]))
-
     (let-values ([(Ξ₁ Γ₁) (touch* root ⊥Ξ ⊤Γ)])
       (define Ξ* (if (= (hash-count Ξ₀) (hash-count Ξ₁)) Ξ₀ Ξ₁))
-      (define Γ* (if (= (hash-count Γ₀) (hash-count Γ₁)) Γ₀ Γ₁))
+      (define Γ* (if (= (hash-count Γ₀) (hash-count Γ₁)) Γ₀ (retain-props touched Γ₀ Γ₁)))
       (if (and (eq? Ξ* Ξ₀) (eq? Γ* Γ₀))
           ;; Try to re-use old instance
           Σ₀
-          (remove-stale-refinements touched (cons Ξ* Γ*)))))
+          (cons Ξ* Γ*))))
 
-  (: remove-stale-refinements : (℘ α) Σ → Σ)
-  ;; TODO confirm no need to scan Ξ
-  (define (remove-stale-refinements root Σ₁)
-    (match-define (cons Ξ₁ Γ₁) Σ₁)
-    (: upd-Vs : V^ → V^)
-    (define (upd-Vs Vs)
-      (for/fold ([Vs* : V^ Vs]) ([Vᵢ (in-set Vs)])
-        (: replace-if-refinements-stale : (℘ P) ((℘ P) → V) → V^)
-        (define (replace-if-refinements-stale Ps mk-V)
-          (define Ps*
-            (for*/fold ([Ps* : (℘ P) Ps]) ([P (in-set Ps)] #:unless (⊆ (P-root P) root))
-              (set-remove Ps* P)))
-          ;; Try to reuse old instance
-          (if (eq? Ps* Ps) Vs* (set-add (set-remove Vs* Vᵢ) (mk-V Ps*))))
-        (match Vᵢ
-          [(-● Ps) (replace-if-refinements-stale Ps -●)]
-          [(St α Ps)
-           (replace-if-refinements-stale Ps (λ (Ps*) (St α Ps*)))]
-          [_ Vs*])))
-    
-    (define Ξ*
-      (for/fold ([Ξ₁ : Ξ Ξ₁]) ([(α r) (in-hash Ξ₁)])
-        (match-define (cons S N) r)
+  (: retain-props : (℘ (U α T)) Γ Γ → Γ)
+  (define (retain-props live Γ₀ Γ₁)
+    (for/fold ([acc : Γ Γ₁]) ([(T D) (in-hash Γ₀)]
+                              #:unless (hash-has-key? Γ₁ T)
+                              ;; FIXME rid of hack by fixing `Γ` representation
+                              #:when (match T
+                                       [(T:@ (K:≡) _) (all-live? live T)]
+                                       [_ #f]))
+      (hash-set acc T D)))
 
-        (define S* (S-map upd-Vs S))
-        (cond [(equal? S S*) Ξ₁]
-              [((inst S-ormap Boolean) set-empty? (λ _ #f) S*) (hash-remove Ξ₁ α)]
-              [else (hash-set Ξ₁ α (cons S* N))])))
-    (define Γ*
-      (for/fold ([Γ₁ : Γ Γ₁]) ([(α D) (in-hash Γ₁)])
-        (define D* (S-map upd-Vs D))
-        (cond [(equal? D D*) Γ₁]
-              [((inst S-ormap Boolean) set-empty? (λ _ #f) D*) (hash-remove Γ₁ α)]
-              [(or (set? D*) (α? D*)) (hash-set Γ₁ α D*)])))
-    (if (and (eq? Ξ* Ξ₁) (eq? Γ* Γ₁))
-        Σ₁
-        (cons Ξ* Γ*)))
-
-  (: gc-R : (℘ α) Σ R → R)
+  (: gc-R : (℘ (U α T)) Σ R → R)
   (define (gc-R root Σ r)
     (for/hash : R ([(W ΔΣs) (in-hash r)])
       (define root* (∪ root (W-root W)))
@@ -154,7 +112,7 @@
               (for/fold ([acc : (℘ ΔΣ) ∅]) ([ΔΣᵢ : ΔΣ (in-set ΔΣs)])
                 (ΔΣ⊔₁ (gc root* ΔΣᵢ (⧺ Σ ΔΣᵢ)) acc)))))
 
-  (define V-root : (V → (℘ α))
+  (define V-root : (V → (℘ (U α T)))
     (match-lambda
       [(St α _) {set α}]
       [(Vect α) {set α}]
@@ -187,7 +145,7 @@
       [(∀/C xs c α) (E-H-root xs c α)]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
-      [(? T:@? T) (T-root T)]
+      [(? T:@? T) (set-add (T-root T) T)]
       [(? -prim? p) (prim-root p)]
       [(? P? P) (P-root P)]
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
@@ -204,7 +162,7 @@
                         (set-filter (λ (α) (not (γ:lex? α))) (E-root E)))))
         (set-add tops α))))
 
-  (define P-root : (P → (℘ α))
+  (define P-root : (P → (℘ (U α T)))
     (match-lambda
       [(P:¬ Q) (P-root Q)]
       [(P:St _ P) (P-root P)]
@@ -214,10 +172,10 @@
              [else ∅])]
       [_ ∅]))
 
-  (: V^-root : V^ → (℘ α))
+  (: V^-root : V^ → (℘ (U α T)))
   (define (V^-root Vs) (set-union-map V-root Vs))
 
-  (: W-root : W → (℘ α))
+  (: W-root : W → (℘ (U α T)))
   (define (W-root W) (apply ∪ ∅ (map V^-root W)))
 
   (define ==>i-root : (==>i → (℘ α))
@@ -289,29 +247,39 @@
            [(? symbol? o) {set (γ:hv o)}]
            [_ ∅]))))
 
-    (: T-root : T:@ → (℘ γ))
+    (: T-root : T:@ → (℘ T))
+    ;; Compute terms mentioned by `T₀`
     (define (T-root T₀)
-      (define go-K : (K → (℘ γ))
+      (define go-K : (K → (℘ T))
         (match-lambda
           [(? -prim? p) (prim-root p)]
           [(? T? T) (go T)]
           [_ ∅]))
-      (define go : ((U T -b) → (℘ γ))
+      (define go : ((U T -b) → (℘ T))
         (match-lambda
-          [(T:@ K Ts) (apply ∪ (go-K K) (map go Ts))]
+          [(T:@ K Ts)
+           (if (-st-ac? K)
+               (∪ (go-K K) (go/ac (car Ts)))
+               (apply ∪ (go-K K) (map go Ts)))]
+          [(? -b?) ∅]
+          [(? γ? γ) {set γ}]))
+      (define go/ac : ((U -b T) → (℘ T))
+        (match-lambda
+          [(and T (T:@ K Ts))
+           (if (-st-ac? K)
+               (∪ (go-K K) (go/ac (car Ts)))
+               (apply ∪ (set-add (go-K K) T) (map go Ts)))]
           [(? -b?) ∅]
           [(? γ? γ) {set γ}]))
       (go T₀))
 
-    (: all-live? : T:@ (℘ α) → Boolean)
-    (define (all-live? T₀ γs)
-      (define go : (T:@ → Boolean)
-        (match-lambda [(T:@ K Ts) (and (go-K K) (andmap go-T Ts))]))
+    (: all-live? : (℘ (U α T)) T → Boolean)
+    (define (all-live? γs T₀)
       (define (go-T [x : (U T -b)]) : Boolean
-        (cond [(T:@? x) (go x)]
-              [(γ:lex? x) (∋ γs x)]
-              [else #t]))
-      (define (go-K [K : K]) (if (γ:lex? K) (∋ γs K) #t))
+        (cond [(∋ γs x) #t]
+              [(T:@? x) (and (go-K (T:@-_0 x)) (andmap go-T (T:@-_1 x)))]
+              [else (not (γ:lex? x))]))
+      (define (go-K [K : K]) (if (T? K) (∋ γs K) #t))
       (go-T T₀))
 
     ;; Cache for computing live variables depend on specific program's information

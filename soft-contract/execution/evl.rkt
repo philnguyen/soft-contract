@@ -45,7 +45,7 @@
        (with-collapsing [(ΔΣ rhs) (evl/arity Σ E (length Xs) ℓ)]
          (define l (current-module))
          (define lhs (map (λ ([x : Symbol]) (-𝒾 x l)) Xs))
-         (⧺ ΔΣ (alloc-top* lhs (collapse-W^ rhs))))]
+         (⧺ ΔΣ (alloc-top* lhs (unpack-W (collapse-W^ rhs) (⧺ Σ ΔΣ)))))]
       [(? -module? m) (evl-module Σ m)]
       [(? -e? E) (collapse-R/ΔΣ (evl Σ E))]))
 

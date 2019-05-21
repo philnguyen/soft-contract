@@ -134,7 +134,7 @@
       [(γ:imm V) (show-V V)]
       [(γ:imm:blob _ ℓ) (show-ℓ ℓ)]
       [(γ:imm:listof x V _) (format-symbol "~a:listof" x)]
-      [(γ:escaped-field 𝒾 i) (format-symbol "escaped-~a" (show-o (-st-ac 𝒾 i)))]))
+      [(γ:escaped-field 𝒾 i) (format-symbol "↑-~a" (show-o (-st-ac 𝒾 i)))]))
 
   (define show-β : (β → Symbol)
     (match-lambda

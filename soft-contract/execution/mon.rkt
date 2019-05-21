@@ -131,19 +131,9 @@
       (λ (W* ΔΣ)
         (with-collapsing/R [(ΔΣ* Ws) (mon-St/C-fields (⧺ Σ₀ ΔΣ) (car W*))]
           (define-values (Vₐ ΔΣₐ)
-            (match (unpack-W (collapse-W^ Ws) (⧺ Σ₀ ΔΣ*))
-              ;; Reduce allocation in common case
-              [(app ?singleton-opaques (? values l))
-               (define Ps
-                 (set-add
-                  (for/union : (℘ P) ([(Psᵢ i) (in-indexed l)])
-                    (map/set (λ ([P : P]) (P:St (-st-ac 𝒾 (assert i index?)) P))
-                             Psᵢ))
-                  (-st-p 𝒾)))
-               (values (-● Ps) (⧺ ΔΣ ΔΣ*))]
-              [W*
-               (define α (α:dyn (β:st-elems ctx 𝒾) H₀))
-               (values (St α ∅) (⧺ ΔΣ ΔΣ* (alloc α (list->vector W*))))]))
+            (let ([W* (unpack-W (collapse-W^ Ws) (⧺ Σ₀ ΔΣ*))])
+              (define α (α:dyn (β:st-elems ctx 𝒾) H₀))
+              (values (St α ∅) (⧺ ΔΣ ΔΣ* (alloc α (list->vector W*))))))
           (if (struct-all-immutable? 𝒾)
               (R-of Vₐ ΔΣₐ)
               (let ([α (α:dyn (β:st 𝒾 ctx) H₀)])
