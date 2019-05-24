@@ -120,7 +120,7 @@
   (test "unsafe/softy" check-fail)
 
   (test   "safe/proofs/inductive.rkt" check-safe)
-  #;(test "unsafe/proofs/inductive.rkt" check-fail)
+  (test "unsafe/proofs/inductive.rkt" check-fail)
 
   (test "safe/issues/cons-of-list.rkt" check-safe)
   (test "safe/issues/list2vector.rkt" check-safe)
