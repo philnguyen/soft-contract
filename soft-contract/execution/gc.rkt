@@ -69,7 +69,7 @@
                               ;; FIXME: Attempt to only touch "store-addresses"
                               ;; But this may accidentally omit top-level addreses,
                               ;; which are currently store
-                              #:unless (T? α*)
+                              #:unless (and (not (γ:top? α*)) (T? α*))
                               #:unless (touched-has? α*))
                     (touch α* Ξ* Γ*))]
                  [(not (touched-has? D)) (touch D Ξ* Γ*)]
@@ -259,7 +259,7 @@
         (match-lambda
           [(T:@ K Ts)
            (if (-st-ac? K)
-               (∪ (go-K K) (go/ac (car Ts)))
+               (∪ (prim-root K) (go/ac (car Ts)))
                (apply ∪ (go-K K) (map go Ts)))]
           [(? -b?) ∅]
           [(? γ? γ) {set γ}]))
@@ -267,7 +267,7 @@
         (match-lambda
           [(and T (T:@ K Ts))
            (if (-st-ac? K)
-               (∪ (go-K K) (go/ac (car Ts)))
+               (∪ (prim-root K) (go/ac (car Ts)))
                (apply ∪ (set-add (go-K K) T) (map go Ts)))]
           [(? -b?) ∅]
           [(? γ? γ) {set γ}]))

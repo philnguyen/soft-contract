@@ -238,6 +238,13 @@
                (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
               [_ '✗])]
            [(One-Of/C bs) (bool->Dec (and (-b? V₀) (∋ bs (-b-unboxed V₀))))]
+           [(P:St (-st-ac 𝒾 i) P*)
+            (match V₀
+              [(St α Ps)
+               (or (Ps⊢P Σ Ps P)
+                   (sat^₁ (λ (Vᵢ) (sat₁ Σ P* Vᵢ)) (vector-ref (Σ@/blob α Σ) i)))]
+              [(? -●?) !!!]
+              [_ '✗])]
            [(P:¬ Q) (neg (sat₁ Σ Q V₀))]
            [(P:≥ T) (sat₂ Σ '>= V₀ T)]
            [(P:> T) (sat₂ Σ '>  V₀ T)]
