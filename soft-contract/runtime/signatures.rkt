@@ -154,7 +154,7 @@
 (#|Dynamic Context|# H  . ≜ . (℘ ℓ))
 (#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
                                                   [#:reuse (Listof Fn/C-Sig)])
-(Renamings . ≜ . (Immutable-HashTable T (Option T)))
+(Renamings . ≜ . (Immutable-HashTable T (Option (U T -b))))
 
 ;; Size-change Stuff
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))

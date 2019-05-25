@@ -293,6 +293,7 @@
                 [(? One-Of/C?) #t]
                 [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
                 [(Clo xs _ _) (arity-includes? (shape xs) 1)]
+                [(-λ xs _ _) (arity-includes? (shape xs) 1)]
                 [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
                 [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
                 [_ #f]))
@@ -825,6 +826,10 @@
             (for/set: : (℘ (Pairof S S)) ([Tᵢ (in-list Ts)]
                                           [i (in-range (count-struct-fields 𝒾))])
               (cons (T:@ (-st-ac 𝒾 (assert i index?)) (list T)) Tᵢ))]
+           [(T:@ (-st-ac 𝒾 _) (and arg (list T*)))
+            (define fields (build-list (count-struct-fields 𝒾)
+                                       (λ ([i : Index]) (T:@ (-st-ac 𝒾 i) arg))))
+            {set (cons T* (T:@ (-st-mk 𝒾) fields))}]
            ;; e.g. 0 + x = x
            [(T:@ '+ (list T₁ T₂))
             {set (cons (T:@ '+ (list T₁ -zero)) T₁)

@@ -156,7 +156,7 @@
     (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
       (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T D) (in-hash ΔΓ₀)])
         (match (adjust-T T)
-          [(? values T*)
+          [(? T? T*)
            ;; If calle is wrapped in higher-order contract,
            ;; then `T` and `T*` are not the same values.
            ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
@@ -204,22 +204,19 @@
         (values (γ:lex x)
                 (and (not (assignable? x))
                      (match Vs
-                       [{singleton-set (? T? T)} T]
+                       [{singleton-set (and V (or (? -b?) (? T?)))} V]
                        [_ #f])))))
     (match fml
       [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
       [_ m]))
 
-  (: rename : Renamings → (case->
-                           [T → (Option T)]
-                           [(U T -b) → (Option (U T -b))]))
+  (: rename : Renamings → (U T -b) → (Option (U T -b)))
   ;; Compute renaming in general.
   ;; `#f` means there's no correspinding name
   (define (rename rn)
     (: go-K : (K → (Option K)))
-    (define (go-K K) (if (T? K) (go K) K))
-    (: go (case-> [T → (Option T)]
-                  [(U T -b) → (Option (U T -b))]))
+    (define (go-K K) (if (T? K) (cast (go K) (Option T)) K))
+    (: go : (U T -b) → (Option (U T -b)))
     (define (go T₀)
       (if (hash-has-key? rn T₀)
           (hash-ref rn T₀)
