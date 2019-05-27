@@ -145,7 +145,7 @@
       [(∀/C xs c α) (E-H-root xs c α)]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
       [(? α? α) {set α}]
-      [(? T:@? T) (set-add (T-root T) T)]
+      [(? T:@? T) (T-root T)]
       [(? -prim? p) (prim-root p)]
       [(? P? P) (P-root P)]
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
@@ -250,27 +250,21 @@
     (: T-root : T:@ → (℘ T))
     ;; Compute terms mentioned by `T₀`
     (define (T-root T₀)
-      (define go-K : (K → (℘ T))
+      (: go : (U T -b) → (℘ T))
+      (define (go T)
+        (match T
+          [(T:@ K Ts)
+           (if (-st-ac? K)
+               (∪ (prim-root K) (go (car Ts)))
+               (apply ∪ {set T} (go-K K) (map go Ts)))]
+          [(? -b?) ∅]
+          [(? γ? γ) {set γ}]))
+      (: go-K : K → (℘ T))
+      (define go-K
         (match-lambda
           [(? -prim? p) (prim-root p)]
           [(? T? T) (go T)]
           [_ ∅]))
-      (define go : ((U T -b) → (℘ T))
-        (match-lambda
-          [(T:@ K Ts)
-           (if (-st-ac? K)
-               (∪ (prim-root K) (go/ac (car Ts)))
-               (apply ∪ (go-K K) (map go Ts)))]
-          [(? -b?) ∅]
-          [(? γ? γ) {set γ}]))
-      (define go/ac : ((U -b T) → (℘ T))
-        (match-lambda
-          [(and T (T:@ K Ts))
-           (if (-st-ac? K)
-               (∪ (prim-root K) (go/ac (car Ts)))
-               (apply ∪ (set-add (go-K K) T) (map go Ts)))]
-          [(? -b?) ∅]
-          [(? γ? γ) {set γ}]))
       (go T₀))
 
     (: all-live? : (℘ (U α T)) T → Boolean)
