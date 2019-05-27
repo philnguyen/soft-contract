@@ -84,8 +84,12 @@
     (define key (intern-$:Key key*))
     (match (hash-ref $ₒᵤₜ key #f)
       [(? values r)
+       (define deps (dependants))
        ;; Record all configurations whose result depend on cache entry
-       (hash-update! dependencies key (λ ([ks : (℘ $:K)]) (∪ ks (dependants))) mk-∅eq)
+       (hash-update! dependencies key (λ ([ks : (℘ $:K)]) (∪ ks deps)) mk-∅eq)
+       ;; If using cache from a dirtied node, dirty all dependants too
+       (when (∋ dirties key)
+         (set! dirties (∪ dirties deps)))
        r]
       [#f
        (define r₀ (hash-ref $ᵢₙ key (λ () ⊥R)))

@@ -18,12 +18,12 @@
    [havoc-last : ((Listof Path-String) → (Values (℘ Err) $))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Err) $))]
-   [verify-modules : ((Listof Syntax) → (℘ Err))]
+   [verify-modules : ((Listof Path-String) (Listof Syntax) → (℘ Err))]
    #;[viz : (Runnable → Σ)]))
 
 (define-signature parser^ ; TODO
   ([parse-files : ((Listof Path-String) → (Listof -module))]
-   [parse-stxs : ((Listof Syntax) → (Listof -module))]
+   [parse-stxs : ((Listof Path-String) (Listof Syntax) → (Listof -module))]
    [parse-module : (Syntax → -module)]
    [parse-expr : (Syntax → -e)]
    [canonicalize-path : (Path-String → Path-String)]))

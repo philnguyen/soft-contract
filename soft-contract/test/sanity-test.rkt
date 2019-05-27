@@ -217,6 +217,7 @@
   (test "unsafe/issues/base-disjunct.rkt" check-fail)
   (test "unsafe/issues/thread-cells.rkt" check-fail)
   (test "unsafe/issues/issue-83.rkt" check-fail)
+  (test "unsafe/issues/bogus-prop.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

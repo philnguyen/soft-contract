@@ -38,10 +38,10 @@
     (with-initialized-static-info
       (exec (if (list? x) (-prog (parse-files x)) x))))
 
-  (: verify-modules : (Listof Syntax) → (℘ Err))
-  (define (verify-modules stxs)
+  (: verify-modules : (Listof Path-String) (Listof Syntax) → (℘ Err))
+  (define (verify-modules fns stxs)
     (with-initialized-static-info
-      (define ms (parse-stxs stxs))
+      (define ms (parse-stxs fns stxs))
       (define-values (es _) (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms)))))))
       ;; HACK to use `log-debug` instead of `printf`
       (log-debug (with-output-to-string (λ () (print-blames es))))

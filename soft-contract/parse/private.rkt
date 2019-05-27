@@ -116,17 +116,13 @@
          ;; learned from side-effects of `parse-module`
          (sort (stx-map parse-module stxs fns) module-before? #:key -module-path)))
 
-    (define (parse-stxs input-stxs)
+    (define (parse-stxs fns input-stxs)
       ;((listof syntax?) . -> . (listof -module?))
 
-      (define stx->name
-        (syntax-parser
-          [((~literal module) name:id _ _ ...)
-           (id-defining-module #'name)]))
-
-      (parameterize ([struct-map (make-hash)]
+      (parameterize ([port-count-lines-enabled #t] ; TODO maybe no need
+                     [struct-map (make-hash)]
+                     [modules-to-parse (list->set fns)]
                      [id-occurence-count (make-hasheq)])
-        (define fns (map stx->name input-stxs))
         (define stxs (map do-expand input-stxs))
         (stx-for-each figure-out-aliases! stxs fns)
         (stx-for-each figure-out-alternate-aliases!
