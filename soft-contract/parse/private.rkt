@@ -589,9 +589,12 @@
                                          (#%plain-app list))))))
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) (src->path src)))
-          (set-module-before! (src-base src) (cur-mod))
-          (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0))))))
-          (-x 𝒾* (next-ℓ! stx (cur-path)))]
+          (cond
+            [(equal? (src-base src) (cur-mod)) (-b '|TODO ignore. Probably ok|)]
+            [else
+             (set-module-before! (src-base src) (cur-mod))
+             (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0))))))
+             (-x 𝒾* (next-ℓ! stx (cur-path)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
