@@ -10,7 +10,9 @@
          racket/syntax
          syntax/parse
          "../ast/srcloc.rkt"
-         (prefix-in fake: "../fake-contract.rkt"))
+         "../ast/signatures.rkt"
+         (prefix-in fake: "../fake-contract.rkt")
+         (prefix-in r5: r5rs))
 
 (define-literal-set lits
   (let-values #%plain-lambda #%plain-app begin quote if #%variable-reference values list call-with-values))
@@ -180,6 +182,52 @@
                                   (range-expr #'rng)
                                   #'stx)])
                          (syntax->list #'(kase ...)))))
+
+(define-syntax-class scv-fake-lit
+  #:description "fake literal contract"
+  #:attributes (real)
+  (pattern (~literal fake:any/c) #:attr real 'any/c)
+  (pattern (~literal fake:none/c) #:attr real 'none/c)
+  (pattern (~literal fake:not/c) #:attr real 'not/c)
+  (pattern (~literal fake:and/c) #:attr real 'and/c)
+  (pattern (~literal fake:or/c ) #:attr real 'or/c)
+  (pattern (~literal fake:false/c) #:attr real 'not)
+  (pattern (~literal fake:listof) #:attr real 'listof)
+  (pattern (~literal fake:list/c) #:attr real 'list/c)
+  (pattern (~literal fake:between/c) #:attr real 'between/c)
+  (pattern (~literal fake:flat-contract) #:attr real 'values)
+  (pattern (~literal fake:hash/c) #:attr real 'hash/c) ; TODO doesn't work
+  (pattern (~literal fake:set/c) #:attr real 'set/c)
+  (pattern (~literal fake:dynamic-mon) #:attr real 'scv:mon)
+  (pattern (~literal fake:contract?) #:attr real 'contract?)
+
+  ;; FIX Tmp. Hacks for Scheme programs
+  (pattern (~literal r5:pair?) #:attr real -cons?)
+  (pattern (~literal r5:cdr) #:attr real -cdr)
+  (pattern (~literal r5:car) #:attr real -car)
+  (pattern (~literal r5:cons) #:attr real -cons)
+  (pattern (~literal r5:set-car!) #:attr real -set-car!)
+  (pattern (~literal r5:set-cdr!) #:attr real -set-cdr!)
+  (pattern (~literal r5:memq) #:attr real 'memq)
+  (pattern (~literal r5:list->mlist) #:attr real 'list)
+  (pattern (~literal r5:vector->list) #:attr real 'vector->list)
+  (pattern (~literal r5:list->vector) #:attr real 'list->vector)
+  (pattern (~literal r5:display) #:attr real 'display)
+  (pattern (~literal r5:length) #:attr real 'length)
+  (pattern (~literal r5:assq) #:attr real 'assq)
+  (pattern (~literal r5:map) #:attr real 'map)
+  (pattern (~literal r5:caddr) #:attr real 'caddr)
+  (pattern (~literal r5:caaaar) #:attr real 'caaaar)
+  (pattern (~literal r5:append) #:attr real 'append))
+
+(define-syntax-class scv-fake-cmp
+  #:description "fake comparison contract combinator"
+  #:attributes (op)
+  (pattern (~literal fake:=/c ) #:attr op '= )
+  (pattern (~literal fake:>/c ) #:attr op '> )
+  (pattern (~literal fake:>=/c) #:attr op '>=)
+  (pattern (~literal fake:</c ) #:attr op '< )
+  (pattern (~literal fake:<=/c) #:attr op '<=))
 
 
 (define-syntax-class scv-struct-decl
