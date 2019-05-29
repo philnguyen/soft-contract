@@ -646,8 +646,9 @@
         (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (next-ℓ! stx))]
       [(quote e) (parse-quote #'e)]
-      [(quote-syntax e)
-       (raise-syntax-error 'parse-e "TODO: ~a" stx)]
+      [(quote-syntax _ ...)
+       (log-warning "Ignore ~a" (syntax->datum stx))
+       (-b '|ignore quote-syntax|)]
       [((~literal #%top) . id)
        (raise-syntax-error 'parse-e "Unknown identifier" stx #'id)]
       [(#%variable-reference)
