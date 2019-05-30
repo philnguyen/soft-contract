@@ -18,7 +18,9 @@
    [havoc-last : ((Listof Path-String) → (Values (℘ Err) $))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Err) $))]
-   [verify-modules : ((Listof Path-String) (Listof Syntax) → (℘ Err))]
+   [verify-modules : ((Listof Path-String) (Listof Syntax) → (Listof (List -l
+                                                                           (List -l Integer Integer)
+                                                                           (List -l Integer Integer))))]
    #;[viz : (Runnable → Σ)]))
 
 (define-signature parser^ ; TODO

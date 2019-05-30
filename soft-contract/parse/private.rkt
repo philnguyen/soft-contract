@@ -20,7 +20,6 @@
          "hacks.rkt"
          "expand.rkt"
          (prefix-in fake: "../fake-contract.rkt")
-         (prefix-in r5: r5rs)
          "../signatures.rkt"
          "signatures.rkt"
          (for-syntax racket/base
@@ -96,12 +95,7 @@
     (if (pair? s) (mk-path (car s) (cdr s)) s))
 
   (splicing-local
-      ((define (figure-out-alternate-aliases-in-modules! stxs fns)
-         (for ([stx (in-list stxs)] [fn (in-list fns)])
-           (parameterize ([cur-mod fn])
-             (figure-out-alternate-aliases! stx))))
-
-       (define (stx-for-each proc stxs fns)
+      ((define (stx-for-each proc stxs fns)
          (for ([stx (in-list stxs)] [fn (in-list fns)])
            (parameterize ([cur-mod fn])
              (proc stx))))
@@ -156,62 +150,56 @@
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
       [(cons p q) (cons (cur-mod) q)]))
 
-  (define/contract (figure-out-aliases! stx)
-    (scv-syntax? . -> . void?)
+  (splicing-local
+      ((define (for-each-module-level-form! on-module-level-form! stx)
+         (let go! ([stx stx])
+           (syntax-parse stx
+             [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
+              (with-sub id
+                (for-each on-module-level-form! (syntax->list #'(forms ...))))]
+             [((~literal begin) form ...)
+              (for-each go! (syntax->list #'(form ...)))]
+             [_ (void)]))))
+    (define/contract (figure-out-aliases! stx)
+      (scv-syntax? . -> . void?)
+      (for-each-module-level-form!
+       (syntax-parser
+         #:literals (define-values #%plain-app quote)
+         [(define-values (ex:id _) (#%plain-app do-partial-app _ _ (quote in:id) _ ...))
+          #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
+          (define p (cur-path))
+          (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) p))
+          (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) p))
+          (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)]
+         [s (figure-out-aliases! #'s)])
+       stx))
 
-    (define on-module-level-form!
-      (syntax-parser
-        #:literals (define-values #%plain-app quote)
-        [(define-values (ex:id _) (#%plain-app do-partial-app _ _ (quote in:id) _ ...))
-         #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
-         (define p (cur-path))
-         (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) p))
-         (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) p))
-         (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)]
-        [s (figure-out-aliases! #'s)]))
-    
-    (syntax-parse stx
-      [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
-       (with-sub id
-         (for-each on-module-level-form! (syntax->list #'(forms ...))))]
-      [((~literal begin) form ...)
-       (for-each figure-out-aliases! (syntax->list #'(form ...)))]
-      [_ (void)]))
+    (define/contract (figure-out-alternate-aliases! stx)
+      (scv-syntax? . -> . void?)
 
-  (define/contract (figure-out-alternate-aliases! stx)
-    (scv-syntax? . -> . void?)
+      (define extractor->wrapper (make-hash))
+      (define wrapper->name (make-hash))
 
-    (define extractor->wrapper (make-hash))
-    (define wrapper->name (make-hash))
+      (for-each-module-level-form!
+       (syntax-parser
+         #:literals (define-values #%plain-app quote)
+         [(~and stx (define-values (wrapper:id _:id)
+                      (#%plain-app f _ _ (quote name:id) _ _ _ ...)))
+          #:when (eq? (syntax-e #'f) 'do-partial-app)
+          (define p (cur-path))
+          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) p) (-𝒾 (syntax-e #'name) p))]
+         [(define-values (extractor:id)
+            (#%plain-app f wrapper:id))
+          #:when (eq? (syntax-e #'f) 'wrapped-extra-arg-arrow-extra-neg-party-argument)
+          (define p (cur-path))
+          (hash-set! extractor->wrapper (-𝒾 (syntax-e #'extractor) p) (-𝒾 (syntax-e #'wrapper) p))]
+         [_ (void)])
+       stx)
 
-    (define on-module-level-form!
-      (syntax-parser
-        #:literals (define-values #%plain-app quote)
-        [(~and stx (define-values (wrapper:id _:id)
-           (#%plain-app f _ _ (quote name:id) _ _ _ ...)))
-         #:when (eq? (syntax-e #'f) 'do-partial-app)
-         (define p (cur-path))
-         (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) p) (-𝒾 (syntax-e #'name) p))]
-        [(define-values (extractor:id)
-           (#%plain-app f wrapper:id))
-         #:when (eq? (syntax-e #'f) 'wrapped-extra-arg-arrow-extra-neg-party-argument)
-         (define p (cur-path))
-         (hash-set! extractor->wrapper (-𝒾 (syntax-e #'extractor) p) (-𝒾 (syntax-e #'wrapper) p))]
-        [_ (void)]))
-
-    (let go! ([stx stx])
-      (syntax-parse stx
-        [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
-         (with-sub id
-           (for-each on-module-level-form! (syntax->list #'(forms ...))))]
-        [((~literal begin) form ...)
-         (for-each go! (syntax->list #'(form ...)))]
-        [_ (void)]))
-
-    (for ([(extractor wrapper) (in-hash extractor->wrapper)])
-      (define orig (hash-ref wrapper->name wrapper))
-      (set-alternate-alias! extractor orig #t)
-      (set-alternate-alias! wrapper orig #f)))
+      (for ([(extractor wrapper) (in-hash extractor->wrapper)])
+        (define orig (hash-ref wrapper->name wrapper))
+        (set-alternate-alias! extractor orig #t)
+        (set-alternate-alias! wrapper orig #f))))
 
   ;; Convert syntax to `top-level-form`
   (define/contract parse-top-level-form
@@ -562,11 +550,7 @@
        (-@ 'vectorof (list (parse-e #'c)) (next-ℓ! stx))]
       [c:scv-struct/c
        (-@ 'scv:struct/c (map parse-e (cons (attribute c.name) (attribute c.fields))) (next-ℓ! #'c))]
-      [(#%plain-app (~literal fake:=/c) c) (-comp/c '= (parse-e #'c) (next-ℓ! stx))]
-      [(#%plain-app (~literal fake:>/c) c) (-comp/c '> (parse-e #'c) (next-ℓ! stx))]
-      [(#%plain-app (~literal fake:>=/c) c) (-comp/c '>= (parse-e #'c) (next-ℓ! stx))]
-      [(#%plain-app (~literal fake:</c) c) (-comp/c '< (parse-e #'c) (next-ℓ! stx))]
-      [(#%plain-app (~literal fake:<=/c) c) (-comp/c '<= (parse-e #'c) (next-ℓ! stx))]
+      [(#%plain-app o:scv-fake-cmp c) (-comp/c (attribute o.op) (parse-e #'c) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:between/c) l h)
        (define ℓ (next-ℓ! stx))
        (-@ 'and/c (list 'real?
@@ -606,8 +590,10 @@
           (define src (id-defining-module #'id0))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'id0) (src->path src)))
           (set-module-before! (src-base src) (cur-mod))
-          (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0))))))
-          (-x 𝒾* (next-ℓ! stx (cur-path)))]
+          (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () #f)))
+          (cond [𝒾* (-x 𝒾* (next-ℓ! stx (cur-path)))]
+                [(equal? (src-base src) (cur-mod)) (-b '|SCV-generated stub|)]
+                [else (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -659,8 +645,9 @@
         (with-env ρ (-begin/simp (parse-es #'(b ...))))
         (next-ℓ! stx))]
       [(quote e) (parse-quote #'e)]
-      [(quote-syntax e)
-       (raise-syntax-error 'parse-e "TODO: ~a" stx)]
+      [(quote-syntax _ ...)
+       (log-warning "Ignore ~a" (syntax->datum stx))
+       (-b '|ignore quote-syntax|)]
       [((~literal #%top) . id)
        (raise-syntax-error 'parse-e "Unknown identifier" stx #'id)]
       [(#%variable-reference)
@@ -675,42 +662,7 @@
           (raise-syntax-error 'parse-e "TODO" stx #'id)])]
 
       ;; Hacks for now. Still need this because fake:any/c ≠ any/c
-      ;[(~literal null) -null]
-      ;[(~literal empty) -null]
-      [(~literal fake:any/c) 'any/c]
-      [(~literal fake:none/c) 'none/c]
-      [(~literal fake:not/c) 'not/c]
-      [(~literal fake:and/c) 'and/c]
-      [(~literal fake:or/c ) 'or/c]
-      [(~literal fake:false/c) 'not]
-      [(~literal fake:listof) 'listof]
-      [(~literal fake:list/c) 'list/c]
-      [(~literal fake:between/c) 'between/c]
-      [(~literal fake:flat-contract) 'values]
-      [(~literal fake:hash/c) 'hash/c] ; TODO doesn't work
-      [(~literal fake:set/c) 'set/c]
-      [(~literal fake:dynamic-mon) 'scv:mon]
-      [(~literal fake:contract?) 'contract?]
-
-      ;; FIX Tmp. Hacks for Scheme programs
-      [(~literal r5:pair?) -cons?]
-      [(~literal r5:cdr) -cdr]
-      [(~literal r5:car) -car]
-      [(~literal r5:cons) -cons]
-      [(~literal r5:set-car!) -set-car!]
-      [(~literal r5:set-cdr!) -set-cdr!]
-      [(~literal r5:memq) 'memq]
-      [(~literal r5:list->mlist) 'list]
-      [(~literal r5:vector->list) 'vector->list]
-      [(~literal r5:list->vector) 'list->vector]
-      [(~literal r5:display) 'display]
-      [(~literal r5:length) 'length]
-      [(~literal r5:assq) 'assq]
-      [(~literal r5:map) 'map]
-      [(~literal r5:caddr) 'caddr]
-      [(~literal r5:caaaar) 'caaaar]
-      [(~literal r5:append) 'append]
-      
+      [c:scv-fake-lit (attribute c.real)]
 
       ;; FIXME hack
       [x:id #:when (string-prefix? (symbol->string (syntax-e #'x)) "hash/c")

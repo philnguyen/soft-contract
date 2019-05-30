@@ -38,14 +38,16 @@
     (with-initialized-static-info
       (exec (if (list? x) (-prog (parse-files x)) x))))
 
-  (: verify-modules : (Listof Path-String) (Listof Syntax) → (℘ Err))
+  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof (List -l
+                                                                           (List -l Integer Integer)
+                                                                           (List -l Integer Integer))))
   (define (verify-modules fns stxs)
     (with-initialized-static-info
       (define ms (parse-stxs fns stxs))
       (define-values (es _) (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms)))))))
       ;; HACK to use `log-debug` instead of `printf`
       (log-debug (with-output-to-string (λ () (print-blames es))))
-      es))
+      (set-map (set-filter Blm? es) serialize-Blm)))
 
   (: havoc : (Listof Path-String) → (Values (℘ Err) $))
   (define (havoc ps)
@@ -76,5 +78,13 @@
       (define ms (parse-files ps))
       (define hv (-module 'havoc (list (gen-havoc-expr (list (last ms))))))
       (exec (-prog `(,@ms ,hv)))))
+
+  (define serialize-Blm : (Blm → (List -l
+                                       (List -l Integer Integer)
+                                       (List -l Integer Integer)))
+    (let ([serialize-ℓ (λ ([ℓ : ℓ]) (list (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ)))])
+      (match-lambda
+        [(Blm party site origin _ _)
+         (list party (serialize-ℓ site) (serialize-ℓ origin))])))
   )
 
