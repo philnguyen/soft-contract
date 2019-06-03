@@ -119,6 +119,8 @@
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
 
+  (test   "safe/termination/fact.rkt" check-safe)
+  (test "unsafe/termination/fact.rkt" check-fail)
   (test   "safe/termination/fo-sc" check-safe)
   (test "unsafe/termination/fo-sc" check-fail)
   (test "safe/termination/ho-sc/ack.rkt" (check 'Ok-pos 0 #f))

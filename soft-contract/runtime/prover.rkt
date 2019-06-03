@@ -157,7 +157,7 @@
       ['=
        (refine-both (K:=) -ff V₁ (compose P:¬ P:=) V₂ (compose P:¬ P:=) Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both (K:=) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
+       (refine-both (K:≡) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-V^ : V^ (U V V^) Σ → V^)
