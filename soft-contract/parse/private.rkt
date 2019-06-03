@@ -113,15 +113,19 @@
     (define (parse-stxs fns input-stxs)
       ;((listof syntax?) . -> . (listof -module?))
 
+      (define (do-expand/path stx pth)
+        (parameterize ([current-directory (path-only pth)])
+          (do-expand stx)))
+
       (parameterize ([port-count-lines-enabled #t] ; TODO maybe no need
                      [struct-map (make-hash)]
                      [modules-to-parse (list->set fns)]
                      [id-occurence-count (make-hasheq)])
-        (define stxs (map do-expand input-stxs))
+        (define stxs (map do-expand/path input-stxs fns))
         (stx-for-each figure-out-aliases! stxs fns)
         (stx-for-each figure-out-alternate-aliases!
                       (parameterize ([expander expand])
-                        (map do-expand input-stxs))
+                        (map do-expand/path input-stxs fns))
                       fns)
         (stxs->modules stxs fns)))
 
