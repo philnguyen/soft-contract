@@ -42,7 +42,7 @@
   (define (hv Σ αₕᵥ)
     (define root {set αₕᵥ})
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Hv Σ* αₕᵥ)
+    (ref-$! ($:Key:Hv Σ* (current-MS) αₕᵥ)
             (λ ()
               (gc-R root Σ*
                 (let ([ΔΣ₁
@@ -129,7 +129,7 @@
                      [Fn/C → (U Natural arity-at-least (Listof (U Natural arity-at-least)))]))
   (define guard-arity-of
     (match-lambda
-      [(==>i doms _) (shape doms)]
+      [(==>i doms _ _) (shape doms)]
       [(Case-=> cases) (map guard-arity-of cases)]
       [(∀/C _ E _) (E-arity-of E)]))
 
@@ -138,7 +138,7 @@
                    [E → (U Natural arity-at-least (Listof (U Natural arity-at-least)))]))
   (define E-arity-of
     (match-lambda
-      [(-->i doms _) (shape doms)]
+      [(-->i doms _ _) (shape doms)]
       [(case--> cases) (map E-arity-of cases)]
       [(-∀/c _ E _) (E-arity-of E)]
       [_ ???]))
@@ -168,7 +168,7 @@
 
     (define check-==>i : (==>i → Boolean)
       (match-lambda
-        [(==>i (-var init rest) rng)
+        [(==>i (-var init rest) rng _)
          (or (ormap check-dom init)
              (and rest (check-dom rest))
              (and rng (ormap check-dom rng)))]))

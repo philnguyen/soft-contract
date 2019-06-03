@@ -87,13 +87,14 @@
 
   (define show-==>i : (==>i → Sexp)
     (match-lambda
-      [(==>i (-var Dom:init ?Dom:rest) Rng)
+      [(==>i (-var Dom:init ?Dom:rest) Rng total?)
        `(->i ,(map show-Dom Dom:init)
              ,@(if ?Dom:rest `(#:rest ,(show-Dom ?Dom:rest)) '())
              ,(match Rng
                 [#f 'any]
                 [(list d) (show-Dom d)]
-                [(? values ds) `(values ,@(map show-Dom ds))]))]))
+                [(? values ds) `(values ,@(map show-Dom ds))])
+             ,@(if total? '(#:total? #t) '()))]))
 
   (: show-V^ : V^ → Sexp)
   (define (show-V^ V^)
@@ -240,20 +241,22 @@
                             ,(if (integer? xs) `(,xs args) (show-W xs))
                             ,(show-ℓ ℓ))]
       [(Err:Sealed x ℓ) `(inspect-sealed-value ,x ,(show-ℓ ℓ))]
+      [(Err:Term l+ ℓ ℓₒ fun args)
+       `(nontermination ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-V fun) ,(show-W args))]
       [(Blm l+ ℓ ℓₒ ctc val)
        `(blame ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-W ctc) ,(show-W val))]))
 
   (define show-$:Key : ($:Key → Sexp)
     (match-lambda
-      [($:Key:Exp Σ E)
+      [($:Key:Exp Σ _ E)
        `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
-      [($:Key:Mon Σ Ctx V V^)
+      [($:Key:Mon Σ _ Ctx V V^)
        `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
-      [($:Key:Fc Σ ℓ V V^)
+      [($:Key:Fc Σ _ ℓ V V^)
        `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
-      [($:Key:App Σ ℓ V W)
+      [($:Key:App Σ _ ℓ V W)
        `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
-      [($:Key:Hv Σ α)
+      [($:Key:Hv Σ _ α)
        `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
 
   (define (sexp->string [s : Sexp]) (format "~a" s))
@@ -324,7 +327,15 @@
        (printf "    - Application at ~a~n" (show-full-ℓ ℓ))]
       [(Err:Sealed x ℓ)
        (printf "~a Attempt to inspect value sealed in ~a~n" idx x)
-       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Term l+ ℓ ℓₒ fun args)
+       (printf "~a Potential non-termination at ~a~n" idx (show-full-ℓ ℓ))
+       (printf "    - Blaming: ~a~n" l+)
+       (printf "    - Contract from: ~a~n" (show-full-ℓ ℓₒ))
+       (printf "    - Function: ~a~n" (show-V fun))
+       (printf "    - Arguments:~n")
+       (for ([arg (in-list args)])
+         (printf "        * ~a~n" (show-V^ arg)))]))
 
   (: print-blames : (℘ Err) → Void)
   (define (print-blames blames)

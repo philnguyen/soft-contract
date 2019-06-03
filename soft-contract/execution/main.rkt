@@ -20,6 +20,7 @@
          "mon.rkt"
          "hv.rkt"
          "gc.rkt"
+         "termination.rkt"
          )
 
 (define-unit fix@
@@ -36,6 +37,8 @@
   (define db:max-steps ((inst make-parameter (Option Index)) #f))
   (define db:depth ((inst make-parameter Natural) 0))
   (define current-module ((inst make-parameter -l) 'scv))
+  (define current-MS ((inst make-parameter (Option MS)) #f))
+  (define current-app ((inst make-parameter (Option -λ)) #f))
 
   ;;; For incremental
   ;; Configurations that depend on result of current computation
@@ -147,6 +150,7 @@
         [(Err:Arity _ _ ℓ) (ℓ-src ℓ)]
         [(Err:Varargs _ _ ℓ) (ℓ-src ℓ)]
         [(Err:Sealed _ ℓ) (ℓ-src ℓ)]
+        [(Err:Term l+ _ _ _ _) l+]
         [(Blm l+ _ _ _ _) l+]))
     (transparent-module? (violator err)))
 
@@ -247,4 +251,4 @@
           sto^ cache^ val^ pretty-print^
           prover^ prims^)
   (export exec^ hv^ mon^ app^)
-  (link gc@ app@ evl@ mon@ hv@ fix@))
+  (link gc@ app@ evl@ mon@ hv@ fix@ termination@))

@@ -119,6 +119,21 @@
   (test   "safe/softy" check-safe)
   (test "unsafe/softy" check-fail)
 
+  (test   "safe/termination/fo-sc" check-safe)
+  (test "unsafe/termination/fo-sc" check-fail)
+  (test "safe/termination/ho-sc/ack.rkt" (check 'Ok-pos 0 #f))
+  (test "safe/termination/ho-sc/fg.rkt" check-safe)
+  (test "safe/termination/ho-sc/fold.rkt" check-safe)
+  (test "unsafe/termination/ho-sc" check-fail)
+  (test "safe/termination/krauss/permute.rkt" check-safe)
+  (test "safe/termination/manolios/fig-6.rkt" check-safe)
+  (test "safe/termination/vazou/map.rkt" check-safe)
+  (test "safe/termination/vazou/merge.rkt" check-safe)
+  (test "safe/termination/vazou/tfact.rkt" check-safe)
+  (test "unsafe/termination/krauss" check-fail)
+  (test "unsafe/termination/manolios" check-fail)
+  (test "unsafe/termination/vazou" check-fail)
+
   (test   "safe/proofs/inductive.rkt" check-safe)
   (test "unsafe/proofs/inductive.rkt" check-fail)
 

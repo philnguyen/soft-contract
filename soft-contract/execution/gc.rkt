@@ -180,7 +180,7 @@
 
   (define ==>i-root : (==>i → (℘ α))
     (match-lambda
-      [(==>i (-var doms ?doms:rst) rng)
+      [(==>i (-var doms ?doms:rst) rng _)
        (∪ (apply ∪ (if ?doms:rst (Dom-root ?doms:rst) ∅) (map Dom-root doms))
           (if rng (apply ∪ ∅ (map Dom-root rng)) ∅))]))
 
@@ -223,7 +223,7 @@
            [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
            [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
            [(-μ/c x e) (set-remove (E-root e) (γ:lex x))]
-           [(-->i (-var cs c) d)
+           [(-->i (-var cs c) d _)
             (define dom-E-root : (-dom → (℘ γ))
               (match-lambda
                 [(-dom _ ?xs d _) (set-subtract (E-root d) (if ?xs (list->set (map γ:lex ?xs)) ∅))]))

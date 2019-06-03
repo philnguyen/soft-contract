@@ -88,7 +88,7 @@
             
             ;; contract stuff
             (-μ/c Symbol -e)
-            (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))])
+            (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))] [total? : (Option ℓ)])
             (case--> [cases : (Listof -->i)])
             (-x/c.tmp Symbol) ; hack
             (-∀/c (Listof Symbol) -e ℓ)
@@ -217,7 +217,7 @@
 (define-signature ast-macros^
   ([-define : (Symbol -e ℓ → -define-values)]
    [-cond : ((Assoc -e -e) -e ℓ → -e)]
-   [--> : ((-var -e) -e ℓ → -->i)]
+   [--> : ([(-var -e) -e ℓ] [#:total? (Option ℓ)] . ->* . -->i)]
    [-cons/c : (-e -e ℓ → -e)]
    [-box/c : (-e ℓ → -e)]
    [-list/c : ((Assoc ℓ -e) → -e)]

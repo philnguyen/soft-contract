@@ -354,7 +354,7 @@
                 ,@(for/list ([i (in-list (map car mut-list))])
                     (-st-mut 𝒾 (+ offset i))))
               (next-ℓ! #'d))
-          (syntax-ℓ #'d)))]
+          (next-ℓ! #'d)))]
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
@@ -364,7 +364,7 @@
        (define lhs (syntax-e #'x))
        (define rhs (parse-e #'e))
        (define frees (free-x/c rhs))
-       (define ℓ (syntax-ℓ #'d))
+       (define ℓ (next-ℓ! #'d))
        (cond
          [(set-empty? frees)
           (add-top-level! (-𝒾 lhs (cur-path)))
@@ -372,7 +372,7 @@
          [(set-empty? (set-remove frees lhs))
           (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-path)))
-          (-define-values (list lhs) (-μ/c x (e/ lhs (-x x (syntax-ℓ #'e)) rhs)) ℓ)]
+          (-define-values (list lhs) (-μ/c x (e/ lhs (-x x (next-ℓ! #'e)) rhs)) ℓ)]
          [else
           (raise-syntax-error
            'recursive-contract
@@ -383,7 +383,7 @@
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
          (add-top-level! (-𝒾 i (cur-path))))
-       (-define-values lhs (parse-e #'e) (syntax-ℓ #'d))]
+       (-define-values lhs (parse-e #'e) (next-ℓ! #'d))]
       [(#%require spec ...) #f]
       [(~and d (define-syntaxes (k:id) ; constructor alias
                  (~and rhs
@@ -497,13 +497,11 @@
       
 
       ;;; Contracts
-      ;; Terminating contract
-      [(~literal fake:terminating/c) 'scv:terminating/c]
       ;; Parametric contract
       [ctc:scv-parametric->/c
        (define-values (xs ρ) (parse-formals (attribute ctc.params)))
        (match-define (-var xs₀ #f) xs)
-       (-∀/c xs₀ (with-env ρ (parse-e (attribute ctc.body))) (syntax-ℓ #'ctc))]
+       (-∀/c xs₀ (with-env ρ (parse-e (attribute ctc.body))) (next-ℓ! #'ctc))]
       ;; Dependent contract (also subsumes non-dependent one)
       [e:scv-->i
        (define stx-init-doms (attribute e.init-domains))
@@ -525,10 +523,7 @@
          (define ds (and stx-ranges (map parse-named-domain stx-ranges)))
          (cond [(first-forward-ref `(,@cs ,@(if cr (list cr) '()) ,@(if ds ds '()))) =>
                 (λ (x) (error 'scv "forward reference to `~a` in `->i` is not yet supported, probably never will be" x))])
-         (define ctc (-->i (-var cs cr) ds))
-         (if (attribute e.total?)
-             (-@ 'and/c (list ctc 'scv:terminating/c) (next-ℓ! #'c))
-             ctc))]
+         (-->i (-var cs cr) ds (and (attribute e.total?) (next-ℓ! #'e))))]
       [e:scv-case->
        (case-->
         (map
@@ -598,7 +593,7 @@
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
       [(if i t e)
-       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e) (syntax-ℓ stx))]
+       (-if/simp (parse-e #'i) (parse-e #'t) (parse-e #'e) (next-ℓ! stx))]
       [(let-values (bindings ...) b ...)
        (define-values (bindings-rev ρ)
          (for/fold ([bindings-rev '()] [ρ (env)])
@@ -613,11 +608,11 @@
       [(set! i:identifier e)
        (match-define (-x x _) (parse-ref #'i))
        (set-assignable! x)
-       (-set! x (parse-e #'e) (syntax-ℓ stx))]
+       (-set! x (parse-e #'e) (next-ℓ! stx))]
       [(#%plain-lambda fmls b ...+)
        (define-values (xs ρ) (parse-formals #'fmls))
        ;; put sequence back to `(begin ...)` to special cases of fake-contracts
-       (-λ xs (with-env ρ (parse-e #'(begin b ...))) (syntax-ℓ stx))]
+       (-λ xs (with-env ρ (parse-e #'(begin b ...))) (next-ℓ! stx))]
       
       [(case-lambda [fml bodies ...+] ...)
        (-case-λ
@@ -625,7 +620,7 @@
                    [bodiesᵢ (in-syntax-list #'((bodies ...) ...))])
           ;; Compute case arity and extended context for RHS
           (define-values (xsᵢ ρᵢ) (parse-formals fmlᵢ))
-          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))) (syntax-ℓ stx)))
+          (-λ xsᵢ (with-env ρᵢ (-begin/simp (parse-es bodiesᵢ))) (next-ℓ! stx)))
         (next-ℓ! stx))]
       [(letrec-values () b ...) (-begin/simp (parse-es #'(b ...)))]
       [(letrec-values (bindings ...) b ...)
@@ -684,7 +679,7 @@
          (match (attribute dom.dependency)
            [#f #f]
            [zs (map lookup zs)]))
-       (-dom x ?dep c (syntax-ℓ #'dom))]))
+       (-dom x ?dep c (next-ℓ! #'dom))]))
 
   (define/contract (parse-ref id)
     (identifier? . -> . -x?)

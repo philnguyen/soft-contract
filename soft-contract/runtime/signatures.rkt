@@ -60,7 +60,7 @@
                                (Vect/C α)
                                (Hash/C α α ℓ)
                                (Set/C α ℓ))
-(#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
+(#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))] [total? : (Option ℓ)])
                                   (∀/C (Listof Symbol) E α)
                                   (Case-=> (Listof ==>i))) 
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
@@ -69,6 +69,7 @@
                                  (Err:Arity [proc : (U V ℓ)] [args : (U Natural W)] [site : ℓ])
                                  (Err:Varargs W V^ ℓ)
                                  (Err:Sealed [seal : Symbol] [site : ℓ])
+                                 (Err:Term [violator : -l] [site : ℓ] [origin : ℓ] [fun : V] [args : W])
                                  (Blm [violator : -l]
                                       [site : ℓ]
                                       [origin : ℓ]
@@ -139,11 +140,11 @@
                                ;; For values wrapped in seals
                                (β:sealed Symbol ℓ) ; points to wrapped objects
                                )
-(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
-                                   ($:Key:Mon Σ Ctx V V^)
-                                   ($:Key:Fc Σ ℓ V V^)
-                                   ($:Key:App Σ ℓ V W)
-                                   ($:Key:Hv Σ α))
+(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ ?MS E)
+                                   ($:Key:Mon Σ ?MS Ctx V V^)
+                                   ($:Key:Fc Σ ?MS ℓ V V^)
+                                   ($:Key:App Σ ?MS ℓ V W)
+                                   ($:Key:Hv Σ ?MS α))
 (#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
 (#|Cardinalities  |# N . ::= . 0 '? 1 'N)
 (#|Havoc Tags     |# HV-Tag . ≜ . (Option -l))
@@ -157,8 +158,11 @@
 (Renamings . ≜ . (Immutable-HashTable T (Option (U T -b))))
 
 ;; Size-change Stuff
+(#|SC. Mon-ing Status|# MS . ::= . (MS [pos : -l] [origin : ℓ] [graphs : M]))
+(#|Call Histories    |# M   . ≜ . (Immutable-HashTable -λ (Immutable-HashTable -λ (℘ SCG)))) ; Target -> Source -> Graphs
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (#|Changes           |# Ch . ::= . '↓ '↧)
+(?MS . ≜ . (Option MS))
 
 (define-interner $:K $:Key
   #:intern-function-name intern-$:Key
@@ -238,7 +242,7 @@
    ))
 
 (define-signature prover^
-  ([sat : (Σ V V^ → ?Dec)]
+  ([sat : (Σ V V^ * → ?Dec)]
    [P⊢P : (Σ V V → ?Dec)]
    [refine-Ps : ((℘ P) V Σ → (℘ P))]
    [maybe=? : (Σ Integer V^ → Boolean)]

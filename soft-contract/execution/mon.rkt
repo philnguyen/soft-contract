@@ -36,7 +36,7 @@
     (fold-ans (λ ([C : V])
                 (define root (∪ (V-root C) args:root))
                 (define Σ* (gc root Σ))
-                (ref-$! ($:Key:Mon Σ* ctx C V^)
+                (ref-$! ($:Key:Mon Σ* (current-MS) ctx C V^)
                         (λ () (gc-R root Σ* ((mon₁ C) Σ* ctx V^)))))
               (unpack C^ Σ)))
 
@@ -87,7 +87,7 @@
             (define C:sig
               (let ([sig : (==>i → Fn/C-Sig)
                      (match-lambda
-                       [(==>i doms rngs)
+                       [(==>i doms rngs _)
                         (cons (var-map Dom-name doms) (and rngs (map Dom-name rngs)))])])
                 (match C
                   [(? ==>i?) (sig C)]
@@ -351,7 +351,7 @@
      (λ (C)
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
-       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
+       (ref-$! ($:Key:Fc Σ₀* (current-MS) ℓ C Vs)
                (λ () (gc-R root Σ₀* (fc₁ Σ₀* ℓ C Vs)))))
      Cs))
 

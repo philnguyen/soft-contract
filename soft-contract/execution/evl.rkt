@@ -70,7 +70,7 @@
   (define (evl Σ E)
     (define root (E-root E))
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Exp Σ* E) (λ () (gc-R root Σ* (do-evl Σ* E)))))
+    (ref-$! ($:Key:Exp Σ* (current-MS) E) (λ () (gc-R root Σ* (do-evl Σ* E)))))
 
   (: do-evl : Σ E → R)
   ;; Evaluate `E₀` under `Σ` without caching `E₀`
@@ -163,7 +163,7 @@
        (define ΔΣ₀ (alloc-lex Σ x C:rec))
        (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse +ℓ₀) (⧺ Σ ΔΣ₀) E)]
          (R-of C:rec (⧺ ΔΣ₀ ΔΣ₁ (alloc α C))))]
-      [(-->i (-var doms ?doms:rst) rngs)
+      [(-->i (-var doms ?doms:rst) rngs total?)
        (: mk-Dom : ΔΣ -dom (U Clo V^) → (Values Dom ΔΣ))
        (define (mk-Dom Σ dom C)
          (match-define (-dom x _ _ ℓ) dom)
@@ -192,8 +192,8 @@
              (let ([Σ* (⧺ Σ ΔΣ-acc)])
                (with-collapsed/R [(cons W-rngs ΔΣ₀) (evl*/collapse evl-dom Σ* rngs)]
                  (define-values (Rngs ΔΣ₁) (mk-Doms (⧺ Σ* ΔΣ₀) rngs W-rngs))
-                 (R-of (==>i doms Rngs) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁))))
-             (R-of (==>i doms #f) ΔΣ-acc)))
+                 (R-of (==>i doms Rngs total?) (⧺ ΔΣ-acc ΔΣ₀ ΔΣ₁))))
+             (R-of (==>i doms #f total?) ΔΣ-acc)))
        
        (with-collapsed/R [(cons W-init ΔΣ₀) (evl*/collapse evl-dom Σ doms)]
          (define-values (Inits ΔΣ₁) (mk-Doms (⧺ Σ ΔΣ₀) doms W-init))

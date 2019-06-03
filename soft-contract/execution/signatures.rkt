@@ -6,6 +6,7 @@
          mon^
          hv^
          gc^
+         termination^
          with-collapsed with-collapsed/R
          with-collapsing with-collapsing/R
          with-each-path
@@ -34,6 +35,8 @@
    [ref-$! : ($:Key (→ R) → R)]
    [err! : ((U (℘ Err) Err) → Void)]
    [current-module : (Parameterof -l)]
+   [current-MS : (Parameterof (Option MS))]
+   [current-app : (Parameterof (Option -λ))]
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
    [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
@@ -66,6 +69,9 @@
   ([leak : (Σ γ:hv V^ → R)]
    [gen-havoc-expr : ((Listof -module) → E)]
    [behavioral? : (V Σ → Boolean)]))
+
+(define-signature termination^
+  ([update-M : (Σ M -λ -λ W → (Option M))]))
 
 (define-signature gc^
   ([gc : ([(℘ (U α T)) Σ] [Σ] . ->* . Σ)]

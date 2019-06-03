@@ -31,8 +31,12 @@
           prims^)
   (export prover^)
 
-  (: sat : Σ V V^ → ?Dec)
-  (define (sat Σ P V) (sat^₁ (λ (V) (sat₁ Σ P V)) V))
+  (: sat : Σ V V^ * → ?Dec)
+  (define (sat Σ P . Vs)
+    (match Vs
+      [(list V) (sat^₁ (λ (V) (sat₁ Σ P V)) V)]
+      [(list V₁ V₂) (sat^₂ (λ (V₁ V₂) (sat₂ Σ P V₁ V₂)) V₁ V₂)]
+      [_ #f]))
 
   (: maybe=? : Σ Integer V^ → Boolean)
   ;; Check if value `V` can possibly be integer `i`
@@ -133,38 +137,28 @@
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
     (match P
-      ['<  (refine-both (K:<) V₁ P:< V₂ P:> Σ)]
-      ['<= (refine-both (K:≤) V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both (K:>) V₁ P:> V₂ P:< Σ)]
-      ['>= (refine-both (K:≥) V₁ P:≥ V₂ P:≤ Σ)]
-      ['=  (refine-both (K:=) V₁ P:= V₂ P:= Σ)]
+      ['<  (refine-both (K:<) -tt V₁ P:< V₂ P:> Σ)]
+      ['<= (refine-both (K:≤) -tt V₁ P:≤ V₂ P:≥ Σ)]
+      ['>  (refine-both (K:>) -tt V₁ P:> V₂ P:< Σ)]
+      ['>= (refine-both (K:≥) -tt V₁ P:≥ V₂ P:≤ Σ)]
+      ['=  (refine-both (K:=) -tt V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both (K:≡) V₁ P:≡ V₂ P:≡ Σ)]
+       (refine-both (K:≡) -tt V₁ P:≡ V₂ P:≡ Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine-not₂ V₁ V₂ P Σ)
-    (define (default) (values {set V₁} {set V₂} ⊥ΔΣ))
     (define (refine [P* : Q]) (refine₂ V₁ V₂ P* Σ))
     (match P
-      ['< (refine '>=)]
+      ['<  (refine '>=)]
       ['<= (refine '>)]
-      ['> (refine '<=)]
+      ['>  (refine '<=)]
       ['>= (refine '<)]
+      ['=
+       (refine-both (K:=) -ff V₁ (compose P:¬ P:=) V₂ (compose P:¬ P:=) Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       ;; TODO refactor
-       (cond
-         [(and (T? V₁) (T? V₂))
-          (define T-eq (T:@ (K:≡) (list V₁ V₂)))
-          (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-eq {set -ff})))]
-         [(and (T? V₁) (or (-b? V₂) (T? V₂)))
-          (define-values (V₁* ΔΣ) (refine-not₁ V₁ (P:≡ V₂) Σ))
-          (values V₁* {set V₂} ΔΣ)]
-         [(and (T? V₂) (or (-b? V₁) (T? V₁)))
-          (define-values (V₂* ΔΣ) (refine-not₁ V₂ (P:≡ V₁) Σ))
-          (values {set V₁} V₂* ΔΣ)]
-         [else (default)])]
-      [_ (default)]))
+       (refine-both (K:=) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
+      [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-V^ : V^ (U V V^) Σ → V^)
   (define (refine-V^ Vs P* Σ)
@@ -207,7 +201,8 @@
         (list 'exact-nonnegative-integer?)]
        [((or 'exact-integer? 'exact-nonnegative-integer?) 'zero?)
         (list (P:≡ -zero))]
-       [('exact-nonnegative-integer? (P:¬ (P:= (-b 0))))
+       [('exact-nonnegative-integer? (or (P:¬ (or 'zero? (P:= (-b 0)) (P:≤ (-b 0))))
+                                         (P:> (-b 0))))
         (list 'exact-positive-integer?)]
        [('list? (P:¬ 'null?)) (list 'list? -cons?)]
        [('list? (P:¬ -cons?)) (list 'null?)]
@@ -412,6 +407,7 @@
           [(or (P:= (-b (? real? y)))
                (P:≡ (-b (? real? y))))
            (bool->Dec (= x (assert y)))]
+          [(P:¬ (P:= (-b (== x)))) '✗]
           [_ #f]))
       (set-ormap check-P Ps))
     (match* (V₁ V₂)
@@ -465,6 +461,22 @@
     (: go-V^ : V^ V^ → ?Dec)
     (define (go-V^ Vs₁ Vs₂) (sat^₂ go-V Vs₁ Vs₂))
 
+    (define-set seen : (Pairof α α) #:mutable? #t)
+    (: go-blob : α α → ?Dec)
+    (define (go-blob α₁ α₂)
+      (define k (cons α₁ α₂))
+      (cond [(seen-has? k) '✓]
+            [else
+             (seen-add! k)
+             (for/fold ([acc : ?Dec '✓])
+                       ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
+                        [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
+                        #:break (eq? acc '✗))
+               (case (go-V^ Vs₁ Vs₂)
+                 [(✓) acc]
+                 [(✗) '✗]
+                 [(#f) #f]))]))
+
     (: go-V : V V → ?Dec)
     (define go-V
       (match-lambda**
@@ -480,15 +492,7 @@
        [((not (or (? -●?) (? T?) (? -prim?))) (? -prim?)) '✗]
        [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
          (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))
-        (and (equal? 𝒾₁ 𝒾₂)
-             (for/fold ([acc : ?Dec '✓])
-                       ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
-                        [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
-                        #:break (eq? acc '✗))
-               (case (go-V^ Vs₁ Vs₂)
-                 [(✓) acc]
-                 [(✗) '✗]
-                 [(#f) #f])))]
+        (and (equal? 𝒾₁ 𝒾₂) (go-blob α₁ α₂))]
        [((? T? T₁) (? T? T₂)) (check-equal?/congruence (cdr Σ) T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
@@ -784,16 +788,16 @@
             (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f)))
                  (cons (list Vs₁:f Vs₂:f) (assert ΔΣ:f)))))
 
-  (: refine-both : K V ((U T -b) → P) V ((U T -b) → P) Σ → (Values V^ V^ ΔΣ))
-  (define (refine-both P V₁ P₁ V₂ P₂ Σ)
+  (: refine-both : K -b V (-b → P) V (-b → P) Σ → (Values V^ V^ ΔΣ))
+  (define (refine-both P b V₁ P₁ V₂ P₂ Σ)
     (cond
       [(and (T? V₁) (T? V₂))
        (define T-prop (T:@ P (list V₁ V₂)))
-       (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-prop {set -tt})))]
-      [(and (T? V₁) (or (-b? V₂) (T? V₂)))
+       (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-prop {set b})))]
+      [(and (T? V₁) (-b? V₂))
        (define-values (V₁* ΔΣ) (refine₁ V₁ (P₁ V₂) Σ))
        (values V₁* {set V₂} ΔΣ)]
-      [(and (T? V₂) (or (-b? V₁) (T? V₁)))
+      [(and (T? V₂) (-b? V₁))
        (define-values (V₂* ΔΣ) (refine₁ V₂ (P₂ V₁) Σ))
        (values {set V₁} V₂* ΔΣ)]
       [else (values {set V₁} {set V₂} ⊥ΔΣ)]))

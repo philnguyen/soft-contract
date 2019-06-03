@@ -120,13 +120,14 @@
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
-      [(-->i (-var cs c) d)
+      [(-->i (-var cs c) d t?)
        `(->i ,@(map show-dom cs)
              ,@(if c `(#:rest ,(show-dom c)) '())
              ,(match d
                 [#f 'any]
                 [(list d) (show-dom d)]
-                [(? values ds) `(values ,@(map show-dom ds))]))]
+                [(? values ds) `(values ,@(map show-dom ds))])
+             ,@(if t? '(#:total? #t) '()))]
       [(case--> cases) `(case-> ,@(map show-e cases))]
       [(-x/c.tmp x) x]
       [(-∀/c xs c _) `(parametric->/c ,xs ,(show-e c))]))

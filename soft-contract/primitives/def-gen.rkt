@@ -398,7 +398,7 @@
          (with-syntax ([(x ...) (gen-names (syntax->list #'(rng ...)) (-o))]
                        [ℓₓ (gen-stx-ℓ rngs)])
            #'(list (Dom 'x rng (ℓ-with-id ℓₓ 'x)) ...))]))
-    #'(==>i (-var init-doms rest-dom) rng-doms))
+    #'(==>i (-var init-doms rest-dom) rng-doms #f))
 
   (define/contract (gen-names xs pre)
     (list? identifier? . -> . (listof symbol?))

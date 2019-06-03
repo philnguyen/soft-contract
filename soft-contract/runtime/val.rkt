@@ -106,7 +106,7 @@
                   [Fn/C → Arity]))
   (define guard-arity
     (match-lambda
-      [(==>i doms _) (shape doms)]
+      [(==>i doms _ _) (shape doms)]
       [(Case-=> cases) (map guard-arity cases)]
       [(∀/C _ E _)
        ;; TODO: real Racket just returns `(arity-at-least 0)`
@@ -117,7 +117,7 @@
               [E → Arity]))
   (define E-arity
     (match-lambda
-      [(-->i doms _) (shape doms)]
+      [(-->i doms _ _) (shape doms)]
       [(case--> cases) (map E-arity cases)]
       [(-∀/c _ E _) (E-arity E)]
       [E (error 'E-arity "~a" E)]))

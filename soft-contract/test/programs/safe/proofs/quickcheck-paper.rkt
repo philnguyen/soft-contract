@@ -28,6 +28,27 @@
     [(list _) #t]
     [(cons x₁ (and xs* (cons x₂ _))) (and (<= x₁ x₂) (ordered? xs*))]))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;; helpers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(define/contract append-right-id
+  (->i ([l list?])
+       (_ {l} (λ (_) (equal? (append l '()) l))))
+  (match-lambda
+    ['() 'trivial]
+    [(cons _ l) (append-right-id l)]))
+
+(define/contract append-assoc
+  (->i ([xs list?]
+        [ys list?]
+        [zs list?])
+       (_ {xs ys zs} (λ (_) (equal? (append (append xs ys) zs)
+                                    (append xs (append ys zs))))))
+  (λ (xs ys zs)
+    (match xs
+      ['() 'trivial]
+      [(cons _ xs*) (append-assoc xs* ys zs)])))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 2.1 Simple Example
@@ -35,20 +56,26 @@
 
 (define/contract thm-rev-unit
   (->i ([x any/c])
-       (_ {x} (equal? (reverse (list x)) (list x))))
+       (_ {x} (λ (_) (equal? (reverse (list x)) (list x)))))
   auto)
 (define/contract thm-rev-app
-  (->i ([xs list?]
-        [ys list?])
-       (_ {xs ys} (λ (_) (equal? (reverse (append xs ys))
-                                 (append (reverse ys) (reverse xs))))))
-  (λ (xs ys)
-    'TODO))
+  (->i ([Xs list?]
+        [Ys list?])
+       (_ {Xs Ys} (λ (_) (equal? (reverse (append Ys Xs))
+                                 (append (reverse Xs) (reverse Ys))))))
+  (λ (Xs Ys)
+    (match Ys
+      ['() (append-right-id (reverse Xs))]
+      [(cons Y Ys*) (thm-rev-app Xs Ys*)
+                    (append-assoc (reverse Xs) (reverse Ys*) (list Y))])))
 (define/contract thm-rev-rev
   (->i ([xs list?])
        (_ {xs} (λ (_) (equal? (reverse (reverse xs)) xs))))
-  (λ (xs)
-    'TODO))
+  (match-lambda
+    ['() 'trivial]
+    [(cons x xs*) (thm-rev-rev xs*)
+                  (thm-rev-unit x)
+                  (thm-rev-app (list x) (reverse xs*))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -57,14 +84,15 @@
 
 ;; In paper, test needed a monomorphic instance.
 ;; Verification needs not.
-(define ((=== f g) x) (equal? (f x) (g x)))
-(define/contract thm-comp-assoc
+#;(define ((=== f g) x) (equal? (f x) (g x)))
+#;(define ((compose f g) x) (f (g x)))
+#;(define/contract thm-comp-assoc
   ;; FIXME parametric contract
   (->i ([f (any/c . -> . any/c)]
         [g (any/c . -> . any/c)]
         [h (any/c . -> . any/c)]
         [x any/c])
-       (_ {f g h x} (λ (_) ((=== (compose1 f (compose1 g h)) (compose (compose1 f g) h)) x))))
+       (_ {f g h x} (λ (_) ((=== (compose f (compose g h)) (compose (compose f g) h)) x))))
   auto)
 
 
@@ -72,7 +100,7 @@
 ;; 2.3 Conditional Laws
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define/contract thm-max-le
+#;(define/contract thm-max-le
   (->i ([x integer?]
         [y {x} (and/c integer? (>=/c x))])
        (_ {x y} (λ (x y) (equal? (max x y) y))))
@@ -80,9 +108,13 @@
 
 (define/contract thm-insert
   (->i ([x integer?]
-        [xs (and/c (listof integer?) ordered?)])
-       (_ {x xs} (λ (_) (ordered? (insert x xs)))))
-  auto)
+        [xs (listof integer?)])
+       (_ {x xs} (λ (_)
+                   (if (ordered? xs)
+                       (ordered? (insert x xs))
+                       #t))))
+  (λ (x xs)
+    'TODO))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -93,24 +125,24 @@
 
 (provide
  (contract-out
-  [thm-rev-unit (->i ([x any/c])
-                     (_ {x} (equal? (reverse (list x)) (list x))))]
-  [thm-rev-app (->i ([xs list?]
-                     [ys list?])
-                    (_ {xs ys} (λ (_) (equal? (reverse (append xs ys))
-                                              (append (reverse ys) (reverse xs))))))]
-  [thm-rev-rev (->i ([xs list?])
+  #;[thm-rev-unit (->i ([x any/c])
+                     (_ {x} (λ (_) (equal? (reverse (list x)) (list x)))))]
+  #;[thm-rev-app (-> list? list? any/c)]
+  #;[thm-rev-rev (->i ([xs list?])
                     (_ {xs} (λ (_) (equal? (reverse (reverse xs)) xs))))]
-  [thm-comp-assoc
+  #;[thm-comp-assoc
    ;; FIXME parametric contract
    (->i ([f (any/c . -> . any/c)]
          [g (any/c . -> . any/c)]
          [h (any/c . -> . any/c)]
          [x any/c])
-        (_ {f g h x} (λ (_) ((=== (compose1 f (compose1 g h)) (compose (compose1 f g) h)) x))))]
-  [thm-max-le (->i ([x integer?]
+        (_ {f g h x} any/c #;(λ (_) ((=== (compose1 f (compose1 g h)) (compose (compose1 f g) h)) x))))]
+  #;[thm-max-le (->i ([x integer?]
                     [y {x} (and/c integer? (>=/c x))])
                    (_ {x y} (λ (x y) (equal? (max x y) y))))]
   [thm-insert (->i ([x integer?]
-                    [xs (and/c (listof integer?) ordered?)])
-                   (_ {x xs} (λ (_) (ordered? (insert x xs)))))]))
+                    [xs (listof integer?)])
+                   (_ {x xs} (λ (_)
+                               (if (ordered? xs)
+                                   (ordered? (insert x xs))
+                                   #t))))]))

@@ -6,6 +6,7 @@
          racket/list
          racket/match
          racket/vector
+         (only-in racket/function curry)
          typed/racket/unit
          syntax/parse/define
          set-extras
@@ -26,7 +27,7 @@
   (import meta-functions^ static-info^
           sto^ cache^ val^ pretty-print^
           prims^ prover^
-          exec^ evl^ mon^ hv^ gc^)
+          exec^ evl^ mon^ hv^ gc^ termination^)
   (export app^)
 
   ;; A call history tracks the call chain that leads to the current expression, modulo loops
@@ -40,6 +41,14 @@
   (define (app Σ ℓ Vₕ^ W*)
     (define-values (W ΔΣ₁) (escape-clos Σ W*))
     (define W:root (W-root W))
+    (define r
+      ((inst fold-ans V)
+       (λ (Vₕ)
+         (define root (∪ W:root (V-root Vₕ)))
+         (define Σ* (gc root (⧺ Σ ΔΣ₁)))
+         (ref-$! ($:Key:App Σ* (current-MS) ℓ Vₕ W)
+                 (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W))))))
+       (unpack Vₕ^ Σ)))
     (define Tₐ : (Option T:@)
       (match* (Vₕ^ W*)
         [({singleton-set (? K? o)}
@@ -49,14 +58,6 @@
                       (and (T:@? T) (not (set-empty? (T-root T))))))
          (T:@ o (cast Tₓ (Listof (U T -b))))]
         [(_ _) #f]))
-    (define r
-      ((inst fold-ans V)
-       (λ (Vₕ)
-         (define root (∪ W:root (V-root Vₕ)))
-         (define Σ* (gc root (⧺ Σ ΔΣ₁)))
-         (ref-$! ($:Key:App Σ* ℓ Vₕ W)
-                 (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W Tₐ))))))
-       (unpack Vₕ^ Σ)))
     (if Tₐ
         (let ([Wₐ* (list {set Tₐ})])
           (for/fold ([r* : R r])
@@ -87,10 +88,10 @@
     (R⊔ (cond [(set-empty? Cs*) ⊥R]
               [else (app Σ ℓ Cs* W)])
         (cond [(set-empty? bs) ⊥R]
-              [else (app₁ Σ ℓ 'equal? (cons bs W) #f)])))
+              [else (app₁ Σ ℓ 'equal? (cons bs W))])))
 
-  (: app₁ : Σ ℓ V W (Option T) → R)
-  (define (app₁ Σ ℓ V W Tₐ)
+  (: app₁ : Σ ℓ V W → R)
+  (define (app₁ Σ ℓ V W)
     (define f (match V
                 [(? -λ? V) (app-λ V)]
                 [(? Clo? V) (app-Clo V)]
@@ -101,10 +102,9 @@
                 [(-st-mut 𝒾 i) (app-st-mut 𝒾 i)]
                 [(? symbol? o) (app-prim o)]
                 [(Guarded ctx (? Fn/C? G) α)
-                 (cond [(==>i? G)    (app-==>i ctx G α Tₐ)]
-                       [(∀/C? G)     (app-∀/C  ctx G α)]
-                       [(Case-=>? G) (app-Case-=> ctx G α)]
-                       [else (app-Terminating/C ctx α)])]
+                 (cond [(==>i? G) (app-==>i ctx G α)]
+                       [(∀/C? G) (app-∀/C  ctx G α)]
+                       [else     (app-Case-=> ctx G α)])]
                 [(And/C α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-And/C α₁ α₂ ℓ)]
                 [(Or/C  α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-Or/C  α₁ α₂ ℓ)]
                 [(Not/C α ℓ) (app-Not/C α ℓ)]
@@ -124,33 +124,30 @@
   (: app-λ : -λ → ⟦F⟧)
   (define ((app-λ Vₕ) Σ ℓ Wₓ*)
     (match-define (-λ fml E ℓₕ) Vₕ)
-    (cond [(arity-includes? (shape fml) (length Wₓ*))
-           (match-define (-var xs xᵣ) fml)
+    (with-guarded-arity Wₓ* ℓₕ ℓ
+      [(app length (? (curry arity-includes? (shape fml))))
+       (with-sct-guard Σ ℓ Vₕ Wₓ*
+         (λ ()
            (define Wₓ (unpack-W Wₓ* Σ))
-           (define ΔΣₓ
-             (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (alloc-lex* Σ xs W₀)
-                  (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ))))
+           (define ΔΣₓ (alloc-args Σ fml Wₓ))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            ;; TODO: code dup
-           (let ([root (∪ (E-root Vₕ) (W-root Wₓ))])
-             (define Σ₁ (gc root Σ))
+           (let* ([root (∪ (E-root Vₕ) (W-root Wₓ))]
+                  [Σ₁ (gc root Σ)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E))
              (define rn (make-renamings fml Wₓ*))
-             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
-          [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ)) ⊥R]))
+             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))))]))
 
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
     (match-define (Clo fml E (and αₕ (α:dyn (β:clo ℓₕ) _))) Vₕ)
-    (cond [(arity-includes? (shape fml) (length Wₓ*))
-           (match-define (-var xs xᵣ) fml)
+    (with-guarded-arity Wₓ* ℓₕ ℓ
+      [(app length (? (curry arity-includes? (shape fml))))
+       (with-sct-guard Σ ℓ (-λ fml E ℓₕ) Wₓ*
+         (λ ()
            (define Wₓ (unpack-W Wₓ* Σ))
-           (define ΔΣₓ
-             (let-values ([(W₀ Wᵣ) (if xᵣ (split-at Wₓ (length xs)) (values Wₓ '()))])
-               (⧺ (alloc-lex* Σ xs W₀)
-                  (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ))))
+           (define ΔΣₓ (alloc-args Σ fml Wₓ))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            (let* ([root (∪ (V-root Vₕ) (W-root Wₓ))]
@@ -158,9 +155,31 @@
                   [Σ₁ (cons (car (gc root Σ)) Γ*)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
              (define rn (insert-fv-erasures Γ* (make-renamings fml Wₓ*)))
-             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))]
-          [else (err! (Err:Arity ℓₕ (length Wₓ*) ℓ))
-                ⊥R]))
+             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))))]))
+
+  (: alloc-args : Σ -formals W → ΔΣ)
+  (define (alloc-args Σ fml W)
+    (match-define (-var xs xᵣ) fml)
+    (define-values (W₀ Wᵣ) (if xᵣ (split-at W (length xs)) (values W '())))
+    (⧺ (alloc-lex* Σ xs W₀)
+       (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ)))
+
+  (: with-sct-guard : Σ ℓ -λ W (→ R) → R)
+  (define (with-sct-guard Σ ℓ ee W comp)
+    (match (current-MS)
+      [(MS l+ ℓₒ M)
+       (match (current-app)
+         [(? values er)
+          (match (update-M Σ M er ee W)
+            [(? values M*)
+             (parameterize ([current-MS (MS l+ ℓₒ M*)]
+                            [current-app ee])
+               (comp))]
+            [#f (err! (Err:Term l+ ℓ ℓₒ ee W))
+                ⊥R])]
+         [#f (parameterize ([current-app ee])
+               (comp))])]
+      [#f (comp)]))
 
   (: evl/history : Σ E → R)
   (define (evl/history Σ₁ E)
@@ -273,12 +292,12 @@
     ; TODO massage raw result
     ((get-prim o) Σ ℓ Wₓ))
 
-  (: app-==>i : (Pairof -l -l) ==>i α (Option T) → ⟦F⟧)
-  (define ((app-==>i ctx:saved G αₕ Tₐ) Σ₀-full ℓ Wₓ*)
+  (: app-==>i : (Pairof -l -l) ==>i α → ⟦F⟧)
+  (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
     (match-define (cons l+ l-) ctx:saved)
     (define Wₓ (unpack-W Wₓ* Σ₀-full))
     (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full))
-    (match-define (==>i (-var Doms ?Doms:rest) Rngs) G)
+    (match-define (==>i (-var Doms ?Doms:rest) Rngs ?total) G)
 
     (: mon-doms : Σ -l -l (Listof Dom) W → R)
     (define (mon-doms Σ₀ l+ l- Doms₀ Wₓ₀)
@@ -325,6 +344,7 @@
 
     (define Dom-ref (match-lambda [(Dom x _ _) {set (γ:lex x)}]))
 
+    ;; Maybe monitor the result from applying the inner function
     (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ R)])
       (define r
         (if Rngs
@@ -333,12 +353,23 @@
             (ΔΣ⧺R ΔΣ-acc (comp))))
       (fix-return (make-renamings (map Dom-name Doms) Wₓ*) Σ₀ r))
 
+    (: maybe-check-termination : (→ R) → (→ R))
+    (define (maybe-check-termination comp)
+      (if ?total
+          (λ ()
+            (parameterize ([current-MS
+                            (MS l+ ?total (match (current-MS)
+                                            [(MS _ _ M) M]
+                                            [#f         (hash)]))])
+              (comp)))
+          comp))
+
     (with-guarded-arity Wₓ G ℓ
       [Wₓ
        #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
        (with-each-path ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
          (define args (map Dom-ref Doms))
-         (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args))))]
+         (with-result ΔΣₓ (maybe-check-termination (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args)))))]
       [Wₓ
        #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
        (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
@@ -348,7 +379,8 @@
          (define args-init (map Dom-ref Doms))
          (define arg-rest (Dom-ref ?Doms:rest))
          (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
-           (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest))))]))
+           (maybe-check-termination
+            (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))]))
 
   (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)
@@ -360,14 +392,10 @@
     (define n (length Wₓ))
     (match-define (Case-=> Cs) G)
     (match ((inst findf ==>i)
-            (match-lambda [(==>i doms _) (arity-includes? (shape doms) n)])
+            (match-lambda [(==>i doms _ _) (arity-includes? (shape doms) n)])
             Cs)
-      [(? values C) ((app-==>i ctx C α #|FIXME|# #f) Σ ℓ Wₓ)]
+      [(? values C) ((app-==>i ctx C α) Σ ℓ Wₓ)]
       [#f (err! (Err:Arity G n ℓ)) ⊥R]))
-
-  (: app-Terminating/C : Ctx α → ⟦F⟧)
-  (define ((app-Terminating/C ctx α) Σ ℓ Wₓ)
-    ???)
 
   (: app-And/C : α α ℓ → ⟦F⟧)
   (define ((app-And/C α₁ α₂ ℓₕ) Σ ℓ Wₓ)
@@ -441,7 +469,16 @@
       (λ _
         (define P-arity (P:arity-includes (length Wₓ*)))
         (with-split-Σ Σ P-arity Wₕ
-          (λ _ (leak Σ (γ:hv #f) ((inst foldl V^ V^) ∪ ∅ (unpack-W Wₓ* Σ))))
+          (λ _
+            (define (run-opq)
+              (leak Σ (γ:hv #f) ((inst foldl V^ V^) ∪ ∅ (unpack-W Wₓ* Σ))))
+            (cond
+              [(not (transparent-module? (ℓ-src ℓ))) (run-opq)]
+              [(current-MS) => (match-lambda
+                                 [(MS l+ ℓₒ _)
+                                  (err! (Err:Term l+ ℓ ℓₒ (-● Ps) Wₓ*))
+                                  (run-opq)])]
+              [else (run-opq)]))
           (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set P-arity}) Wₕ))
              ⊥R)))
       (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set 'procedure?}) Wₕ))
