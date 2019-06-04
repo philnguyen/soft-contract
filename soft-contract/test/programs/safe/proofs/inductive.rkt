@@ -1,5 +1,7 @@
 #lang racket
 
+(require soft-contract/fake-contract)
+
 (define (length l)
   (if (null? l) 0 (+ 1 (length (cdr l)))))
 
@@ -16,7 +18,8 @@
 (define/contract map-preserves-length
   (->i ([F (any/c . -> . any/c)]
         [Xs list?])
-       (_ {F Xs} (λ (_) (equal? (length Xs) (length (map F Xs))))))
+       (_ {F Xs} (λ (_) (equal? (length Xs) (length (map F Xs)))))
+       #:total? #t)
   (λ (h zs)
     (match zs
       ['() 'trivial]
@@ -27,7 +30,8 @@
         [Ys list?]
         [Zs list?])
        (_ {Xs Ys Zs} (λ (_) (equal? (append Xs (append Ys Zs))
-                                    (append (append Xs Ys) Zs)))))
+                                    (append (append Xs Ys) Zs))))
+       #:total? #t)
   (λ (xs ys zs)
     (match xs
       ['() 'trivial]
@@ -38,13 +42,14 @@
         [Xs list?]
         [Ys list?])
        (_ {F Xs Ys} (λ (_) (equal? (map F (append Xs Ys))
-                                   (append (map F Xs) (map F Ys))))))
+                                   (append (map F Xs) (map F Ys)))))
+       #:total? #t)
   (λ (f xs ys)
     (match xs
       ['() 'trivial]
       [(cons _ xs*) (map-append f xs* ys)])))
 
-#;(define/contract length-append
+(define/contract length-append
   (->i ([Xs list?]
         [Ys list?])
        (_ {Xs Ys} (λ (_) (equal? (+ (length Xs) (length Ys))
@@ -56,7 +61,7 @@
 
 (provide
  (contract-out
-  [map-preserves-length ((any/c . -> . any/c) list? . -> . any/c)]
+  [map-preserves-length ((any/c . -> . any/c #:total? #t) list? . -> . any/c)]
   [append-assoc (list? list? list? . -> . any/c)]
-  [map-append ((any/c . -> . any/c) list? list? . -> . any/c)]
+  [map-append ((any/c . -> . any/c #:total? #t) list? list? . -> . any/c)]
   #;[length-append (list? list? . -> . any/c)]))

@@ -159,9 +159,10 @@
 
 ;; Size-change Stuff
 (#|SC. Mon-ing Status|# MS . ::= . (MS [pos : -l] [origin : ℓ] [graphs : M]))
-(#|Call Histories    |# M   . ≜ . (Immutable-HashTable -λ (Immutable-HashTable -λ (℘ SCG)))) ; Target -> Source -> Graphs
+(#|Call Histories    |# M   . ≜ . (Immutable-HashTable CP (Immutable-HashTable CP (℘ SCG)))) ; Target -> Source -> Graphs
 (#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
 (#|Changes           |# Ch . ::= . '↓ '↧)
+(#|Check Points      |# CP .  ≜  . (U -λ (Listof Symbol)))
 (?MS . ≜ . (Option MS))
 
 (define-interner $:K $:Key

@@ -164,8 +164,9 @@
     (⧺ (alloc-lex* Σ xs W₀)
        (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ)))
 
-  (: with-sct-guard : Σ ℓ -λ W (→ R) → R)
-  (define (with-sct-guard Σ ℓ ee W comp)
+  (: with-sct-guard : Σ ℓ V W (→ R) → R)
+  (define (with-sct-guard Σ ℓ ee:raw W comp)
+    (define ee (check-point ee:raw))
     (match (current-MS)
       [(MS l+ ℓₒ M)
        (match (current-app)
@@ -175,7 +176,7 @@
              (parameterize ([current-MS (MS l+ ℓₒ M*)]
                             [current-app ee])
                (comp))]
-            [#f (err! (Err:Term l+ ℓ ℓₒ ee W))
+            [#f (err! (Err:Term l+ ℓ ℓₒ (assert ee -λ?) W))
                 ⊥R])]
          [#f (parameterize ([current-app ee])
                (comp))])]
@@ -354,15 +355,15 @@
       (fix-return (make-renamings (map Dom-name Doms) Wₓ*) Σ₀ r))
 
     (: maybe-check-termination : (→ R) → (→ R))
-    (define (maybe-check-termination comp)
-      (if ?total
-          (λ ()
-            (parameterize ([current-MS
-                            (MS l+ ?total (match (current-MS)
-                                            [(MS _ _ M) M]
-                                            [#f         (hash)]))])
-              (comp)))
-          comp))
+    (define ((maybe-check-termination comp))
+      (with-sct-guard Σ₀ ℓ (Guarded ctx:saved G αₕ) Wₓ*
+        (cond [(not ?total) comp]
+              [else (λ ()
+                      (parameterize ([current-MS
+                                      (MS l+ ?total (match (current-MS)
+                                                      [(MS _ _ M) M]
+                                                      [#f         (hash)]))])
+                        (comp)))])))
 
     (with-guarded-arity Wₓ G ℓ
       [Wₓ

@@ -17,23 +17,35 @@
           prover^)
   (export termination^)
 
-  (: update-M : Σ M -λ -λ W → (Option M))
+  (: update-M : Σ M CP CP W → (Option M))
   (define (update-M Σ M er ee W)
-    (define G
-      (match-let ([(-λ fml _ _) er])
-        (make-sc-graph Σ fml W)))
+    (define G (make-sc-graph Σ (binders er) W))
+    ;; Quirk: only fail if target is a lambda.
+    ;; In particular, ignore any loop from a wrapped function to itself.
     (cond
       ;; Immediate graph fails sc, fail
-      [(and (equal? er ee) (sc-violating? G)) #f]
+      [(and (-λ? ee) (equal? er ee) (sc-violating? G)) #f]
       [else
        (define ΔM (transitive-graphs M er ee G))
-       (and (not (set-ormap sc-violating? (hash-ref ΔM ee mk-∅)))
+       (and (not (and (-λ? ee) (set-ormap sc-violating? (hash-ref ΔM ee mk-∅))))
             (merge-M (merge-M M ee (hash er {set G})) ee ΔM))]))
 
-  (: transitive-graphs : M -λ -λ SCG → (Immutable-HashTable -λ (℘ SCG)))
+  (define binders : (CP → (Listof Symbol))
+    (match-lambda
+      [(-λ (-var xs _) _ _) xs]
+      [(? list? xs) xs]))
+
+  (define check-point : (V → CP)
+    (match-lambda
+      [(? -λ? x) x]
+      [(Clo xs E (α:dyn (β:clo ℓ) _)) (-λ xs E ℓ)]
+      [(Guarded _ (==>i (-var doms _) _ _) _) (map Dom-name doms)]
+      [_ !!!]))
+
+  (: transitive-graphs : M CP CP SCG → (Immutable-HashTable CP (℘ SCG)))
   (define (transitive-graphs M₀ src tgt G)
-    (for/hash : (Immutable-HashTable -λ (℘ SCG))
-        ([(src₀ Gs₀) (in-hash (hash-ref M₀ src (inst hash -λ (℘ SCG))))])
+    (for/hash : (Immutable-HashTable CP (℘ SCG))
+        ([(src₀ Gs₀) (in-hash (hash-ref M₀ src (inst hash CP (℘ SCG))))])
       (values src₀ ((inst map/set SCG SCG) (λ ([G₀ : SCG]) (concat-graph G₀ G)) Gs₀))))
 
   (: sc-violating? : SCG → Boolean)
@@ -43,12 +55,12 @@
                 (and (eq? ch '↓)
                      (eq? (car edge) (cdr edge)))))))
 
-  (: merge-M : M -λ (Immutable-HashTable -λ (℘ SCG)) → M)
+  (: merge-M : M CP (Immutable-HashTable CP (℘ SCG)) → M)
   (define (merge-M M₀ tgt tbl)
-    ((inst hash-update -λ (Immutable-HashTable -λ (℘ SCG)))
+    ((inst hash-update CP (Immutable-HashTable CP (℘ SCG)))
      M₀ tgt
      (λ (tbl₀)
-       (for/fold ([tbl* : (Immutable-HashTable -λ (℘ SCG)) tbl₀])
+       (for/fold ([tbl* : (Immutable-HashTable CP (℘ SCG)) tbl₀])
                  ([(src Gs) (in-hash tbl)])
          (hash-update tbl* src (λ ([Gs₀ : (℘ SCG)]) (∪ Gs₀ Gs)) mk-∅)))
      hash))
@@ -58,21 +70,28 @@
     (for/or : Boolean ([(tgt M*) (in-hash M)])
       (set-ormap sc-violating? (hash-ref M* tgt mk-∅))))
 
-  (: make-sc-graph : Σ -formals W → SCG)
-  (define (make-sc-graph Σ fml W)
-    (match-define (-var xs _) fml) ; nobody decreases by rest-arg?
+  (: make-sc-graph : Σ (Listof Symbol) W → SCG)
+  (define (make-sc-graph Σ xs W)
+    (define Σ* (with-dummy xs W Σ))
     (for*/hash : SCG ([(x i₀) (in-indexed xs)]
                       [(Vs₁ i₁) (in-indexed W)]
-                      [?↓ (in-value (cmp (with-dummy x Σ) (γ:lex x) Vs₁))]
+                      [?↓ (in-value (cmp Σ* (γ:lex x) Vs₁))]
                       #:when ?↓)
       (values (cons i₀ i₁) ?↓)))
 
-  (: with-dummy : Symbol Σ → Σ)
-  (define (with-dummy x Σ)
-    (define γ (γ:lex x))
-    (if (hash-has-key? (cdr Σ) γ)
-        Σ
-        (cons (car Σ) (hash-set (cdr Σ) γ {set (-● ∅)}))))
+  (: with-dummy : (Listof Symbol) W Σ → Σ)
+  (define (with-dummy xs W Σ)
+    (define ● {set (-● ∅)})
+    (cons (car Σ)
+          (let ([Γ₁ (for*/fold ([Γ : Γ (cdr Σ)]) ([x (in-list xs)]
+                                                  [γ (in-value (γ:lex x))]
+                                                  #:unless (hash-has-key? Γ γ))
+                      (hash-set Γ γ ●))])
+            (for*/fold ([Γ : Γ Γ₁]) ([Vs (in-list W)]
+                                     [V (in-set Vs)]
+                                     #:when (T? V)
+                                     #:unless (hash-has-key? Γ V))
+              (hash-set Γ V ●)))))
 
   (: concat-graph : SCG SCG → SCG)
   (define (concat-graph G₁ G₂)
@@ -91,7 +110,6 @@
 
   (: cmp : Σ T V^ → (Option Ch))
   (define (cmp Σ T₀ Vs₁)
-
     (: must-be? : V P → Boolean)
     (define (must-be? V P) (eq? '✓ (sat Σ P {set V})))
     (: must-be?₂ : V P V → Boolean)

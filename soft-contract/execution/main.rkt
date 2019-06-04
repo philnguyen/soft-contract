@@ -38,7 +38,7 @@
   (define db:depth ((inst make-parameter Natural) 0))
   (define current-module ((inst make-parameter -l) 'scv))
   (define current-MS ((inst make-parameter (Option MS)) #f))
-  (define current-app ((inst make-parameter (Option -λ)) #f))
+  (define current-app ((inst make-parameter (Option CP)) #f))
 
   ;;; For incremental
   ;; Configurations that depend on result of current computation

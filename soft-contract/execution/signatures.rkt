@@ -36,7 +36,7 @@
    [err! : ((U (℘ Err) Err) → Void)]
    [current-module : (Parameterof -l)]
    [current-MS : (Parameterof (Option MS))]
-   [current-app : (Parameterof (Option -λ))]
+   [current-app : (Parameterof (Option CP))]
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
    [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
@@ -71,7 +71,8 @@
    [behavioral? : (V Σ → Boolean)]))
 
 (define-signature termination^
-  ([update-M : (Σ M -λ -λ W → (Option M))]))
+  ([update-M : (Σ M CP CP W → (Option M))]
+   [check-point : (V → CP)]))
 
 (define-signature gc^
   ([gc : ([(℘ (U α T)) Σ] [Σ] . ->* . Σ)]
