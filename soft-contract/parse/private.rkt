@@ -341,8 +341,9 @@
 
        ;; Parse for direct field accessors/mutators
        (match-define (cons accs muts) (attribute d.accessors+mutators))
-       
-       (add-struct-info! 𝒾 (attribute d.field-count) (list->seteq (hash-keys muts)))
+
+       (let ([acc-names (build-list (attribute d.field-count) (λ (i) (hash-ref accs i)))])
+         (add-struct-info! 𝒾 acc-names (list->seteq (hash-keys muts))))
        (for ([name (in-sequences (list ctor (attribute d.predicate-name))
                                  (hash-values accs)
                                  (hash-values muts))])
