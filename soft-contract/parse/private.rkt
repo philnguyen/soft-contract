@@ -492,7 +492,8 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) (src->path f.src))
-          (λ () (raise (exn:missing "missing" (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
+          (λ () (raise (exn:missing (format "missing `~a` for `~a`" (src-base f.src) (syntax-e #'f))
+                                    (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
        (set-module-before! (src-base f.src) (cur-mod))
        (define f-ref (-x f-resolved (next-ℓ! #'f (cur-path))))
        (cond
@@ -598,7 +599,8 @@
           (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () #f)))
           (cond [𝒾* (-x 𝒾* (next-ℓ! stx (cur-path)))]
                 [(equal? (src-base src) (cur-mod)) (-b '|SCV-generated stub|)]
-                [else (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
+                [else (raise (exn:missing (format "missing `~a` for `~a`" (src-base src) (syntax-e #'id0))
+                                          (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -714,7 +716,8 @@
        #:when (not (equal? src 'Λ))
        (define src:base (src-base src))
        (unless (∋ (modules-to-parse) src:base)
-         (raise (exn:missing "missing" (current-continuation-marks) src:base (syntax-e id))))
+         (raise (exn:missing (format "missing `~a` for `~a`" src:base (syntax-e id))
+                             (current-continuation-marks) src:base (syntax-e id))))
        (unless (equal? src:base (cur-mod))
          (set-module-before! src (cur-mod)))
        (-x (-𝒾 (syntax-e id) (src->path src)) (next-ℓ! id (cur-path)))]
