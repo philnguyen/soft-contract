@@ -300,6 +300,11 @@
            (define ac-name (format-symbol "~a-~a" s-name ac))
            (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
        (list* dec-constr dec-pred dec-acs)]
+      [d:scv-id-struct-out
+       (define s-name (attribute d.struct-name))
+       (list* s-name
+              (format-symbol "~a?" s-name)
+              (struct-direct-accessor-names (-𝒾 s-name (cur-path))))]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]
       [x:id

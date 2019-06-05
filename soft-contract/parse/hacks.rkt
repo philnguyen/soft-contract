@@ -304,6 +304,13 @@
            #:attr field-names (map syntax-e (syntax->list #'(ac ...)))
            #:attr field-contracts (syntax->list #'(c ...))))
 
+(define-syntax-class scv-id-struct-out
+  #:description "hacked scv id-struct-out"
+  #:literal-sets (lits)
+  #:attributes (struct-name)
+  (pattern (#%plain-app (~literal fake:dynamic-id-struct-out) (quote s:id))
+           #:attr struct-name (syntax-e #'s)))
+
 (define range-expr
   (syntax-parser
     #:literal-sets (lits)
