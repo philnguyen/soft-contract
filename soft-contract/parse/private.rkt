@@ -274,11 +274,11 @@
       #:literals (quote #%plain-app)
       [d:scv-struct-out
        (define ℓ (attribute d.loc))
-       (define s-name (attribute d.name))
-       (define 𝒾 (-𝒾 s-name (cur-path)))
+       (define ctr (attribute d.constr))
+       (define s-name (syntax-e ctr))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (define st-p (-@ 'scv:struct/c (cons (-st-mk 𝒾) st-doms) ℓ))
+       (define st-p (-@ 'scv:struct/c (cons (parse-ref ctr) st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
@@ -290,14 +290,15 @@
                       (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         (let ([offset (struct-offset 𝒾)])
-           (for/list ([ac (in-list (attribute d.field-names))]
-                      [st-dom st-doms]
-                      [i (in-naturals)] #:when (>= i offset))
-             (define ℓᵢ (ℓ-with-id ℓ i))
-             (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-             (define ac-name (format-symbol "~a-~a" s-name ac))
-             (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ))))
+         ;; HACK also export non-existent names for super-struct's accessors,
+         ;; which should never be referenced
+         (for/list ([ac (in-list (attribute d.field-names))]
+                    [st-dom st-doms]
+                    [i (in-naturals)])
+           (define ℓᵢ (ℓ-with-id ℓ i))
+           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+           (define ac-name (format-symbol "~a-~a" s-name ac))
+           (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
        (list* dec-constr dec-pred dec-acs)]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]

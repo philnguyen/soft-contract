@@ -295,12 +295,12 @@
 (define-syntax-class scv-struct-out
   #:description "hacked scv struct-out"
   #:literal-sets (lits)
-  #:attributes (name field-names field-contracts loc)
+  #:attributes (constr field-names field-contracts loc)
   (pattern (#%plain-app (~literal fake:dynamic-struct-out)
                         (quote s:id)
                         (#%plain-app list (quote ac:id) c) ...)
            #:attr loc (syntax-ℓ #'s)
-           #:attr name (syntax-e #'s)
+           #:attr constr #'s
            #:attr field-names (map syntax-e (syntax->list #'(ac ...)))
            #:attr field-contracts (syntax->list #'(c ...))))
 
