@@ -278,15 +278,16 @@
        (define s-name (syntax-e ctr))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (define st-p (-@ 'scv:struct/c (cons (parse-ref ctr) st-doms) ℓ))
+       (match-define (and ctr-ref (-x (-𝒾 _ src) _)) (parse-ref ctr))
+       (define st-p (-@ 'scv:struct/c (cons ctr-ref st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-           (-p/c-item s-name (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
+           (-p/c-item (-𝒾 s-name src) (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
-           (-p/c-item (format-symbol "~a?" s-name)
+           (-p/c-item (-𝒾 (format-symbol "~a?" s-name) src)
                       (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
@@ -298,17 +299,16 @@
            (define ℓᵢ (ℓ-with-id ℓ i))
            (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
            (define ac-name (format-symbol "~a-~a" s-name ac))
-           (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
+           (-p/c-item (-𝒾 ac-name src) (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
        (list* dec-constr dec-pred dec-acs)]
       [d:scv-id-struct-out
-       (define s-name (attribute d.struct-name))
-       (list* s-name
-              (format-symbol "~a?" s-name)
-              (struct-direct-accessor-names (-𝒾 s-name (cur-path))))]
+       (match-define (and s-id (-𝒾 s-name src)) (parse-id (attribute d.struct-id)))
+       (list* s-id
+              (-𝒾 (format-symbol "~a?" s-name) src)
+              (map (λ (x) (-𝒾 x src)) (struct-direct-accessor-names (-𝒾 s-name src))))]
       [(#%plain-app (~literal list) x:id c:expr)
-       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]
-      [x:id
-       (list (syntax-e #'x))]))
+       (list (-p/c-item (parse-id #'x) (parse-e #'c) (next-ℓ! #'x)))]
+      [x:id (list (parse-id #'x))]))
 
   (define/contract parse-general-top-level-form
     (scv-syntax? . -> . (or/c #f -general-top-level-form?))
@@ -729,6 +729,8 @@
        (-x (-𝒾 (syntax-e id) (src->path src)) (next-ℓ! id (cur-path)))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
+
+  (define (parse-id id) (-x-_0 (parse-ref id)))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)

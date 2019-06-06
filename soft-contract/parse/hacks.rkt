@@ -307,9 +307,9 @@
 (define-syntax-class scv-id-struct-out
   #:description "hacked scv id-struct-out"
   #:literal-sets (lits)
-  #:attributes (struct-name)
+  #:attributes (struct-id)
   (pattern (#%plain-app (~literal fake:dynamic-id-struct-out) (quote s:id))
-           #:attr struct-name (syntax-e #'s)))
+           #:attr struct-id #'s))
 
 (define range-expr
   (syntax-parser
