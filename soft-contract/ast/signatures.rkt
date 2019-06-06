@@ -64,8 +64,8 @@
 
 (-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
 
-(-provide-spec . ::= . (-p/c-item [id : Symbol] [spec : -e] [loc : ℓ])
-                       Symbol)
+(-provide-spec . ::= . (-p/c-item [id : -𝒾] [spec : -e] [loc : ℓ])
+                       -𝒾)
 
 (-require-spec . ::= . -l #|TODO|#)
 
@@ -199,7 +199,6 @@
 (define-signature ast-pretty-print^
   ([show-b : (Base → Sexp)]
    [show-o : (-o → Symbol)]
-   [show-ac : (-𝒾 Index → Symbol)]
    [show-e : (-e → Sexp)]
    [show-es : ((Sequenceof -e) → (Listof Sexp))]
    [show-module : (-module → (Listof Sexp))]
@@ -248,7 +247,7 @@
 ;;;;; program-dependent static info
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-new-subtype -struct-info (Vector->struct-info (Vectorof Boolean)))
+(define-new-subtype -struct-info (Vector->struct-info (Vectorof (Pairof Symbol Boolean))))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
@@ -268,7 +267,9 @@
    [count-direct-struct-fields : (-𝒾 → Index)]
    [struct-all-immutable? : (-𝒾 → Boolean)]
    [struct-mutable? : (-𝒾 Natural → Boolean)]
-   [add-struct-info! : (-𝒾 Natural (℘ Natural) → Void)]
+   [struct-direct-accessor-names : (-𝒾 → (Listof Symbol))]
+   [struct-accessor-name : (-𝒾 Integer → Symbol)]
+   [add-struct-info! : (-𝒾 (Listof Symbol) (℘ Natural) → Void)]
    [add-top-level! : (-𝒾 → Void)]
    [top-levels : (→ (Listof -𝒾))]
    [get-public-accs : (-𝒾 → (℘ -st-ac))]

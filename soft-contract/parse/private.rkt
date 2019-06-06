@@ -274,35 +274,41 @@
       #:literals (quote #%plain-app)
       [d:scv-struct-out
        (define ℓ (attribute d.loc))
-       (define s-name (attribute d.name))
-       (define 𝒾 (-𝒾 s-name (cur-path)))
+       (define ctr (attribute d.constr))
+       (define s-name (syntax-e ctr))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (define st-p (-@ 'scv:struct/c (cons (-st-mk 𝒾) st-doms) ℓ))
+       (match-define (and ctr-ref (-x (-𝒾 _ src) _)) (parse-ref ctr))
+       (define st-p (-@ 'scv:struct/c (cons ctr-ref st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-           (-p/c-item s-name (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
+           (-p/c-item (-𝒾 s-name src) (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
-           (-p/c-item (format-symbol "~a?" s-name)
+           (-p/c-item (-𝒾 (format-symbol "~a?" s-name) src)
                       (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         (let ([offset (struct-offset 𝒾)])
-           (for/list ([ac (in-list (attribute d.field-names))]
-                      [st-dom st-doms]
-                      [i (in-naturals)] #:when (>= i offset))
-             (define ℓᵢ (ℓ-with-id ℓ i))
-             (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-             (define ac-name (format-symbol "~a-~a" s-name ac))
-             (-p/c-item ac-name (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ))))
+         ;; HACK also export non-existent names for super-struct's accessors,
+         ;; which should never be referenced
+         (for/list ([ac (in-list (attribute d.field-names))]
+                    [st-dom st-doms]
+                    [i (in-naturals)])
+           (define ℓᵢ (ℓ-with-id ℓ i))
+           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+           (define ac-name (format-symbol "~a-~a" s-name ac))
+           (-p/c-item (-𝒾 ac-name src) (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
        (list* dec-constr dec-pred dec-acs)]
+      [d:scv-id-struct-out
+       (match-define (and s-id (-𝒾 s-name src)) (parse-id (attribute d.struct-id)))
+       (list* s-id
+              (-𝒾 (format-symbol "~a?" s-name) src)
+              (map (λ (x) (-𝒾 x src)) (struct-direct-accessor-names (-𝒾 s-name src))))]
       [(#%plain-app (~literal list) x:id c:expr)
-       (list (-p/c-item (syntax-e #'x) (parse-e #'c) (next-ℓ! #'x)))]
-      [x:id
-       (list (syntax-e #'x))]))
+       (list (-p/c-item (parse-id #'x) (parse-e #'c) (next-ℓ! #'x)))]
+      [x:id (list (parse-id #'x))]))
 
   (define/contract parse-general-top-level-form
     (scv-syntax? . -> . (or/c #f -general-top-level-form?))
@@ -340,8 +346,9 @@
 
        ;; Parse for direct field accessors/mutators
        (match-define (cons accs muts) (attribute d.accessors+mutators))
-       
-       (add-struct-info! 𝒾 (attribute d.field-count) (list->seteq (hash-keys muts)))
+
+       (let ([acc-names (build-list (attribute d.field-count) (λ (i) (hash-ref accs i)))])
+         (add-struct-info! 𝒾 acc-names (list->seteq (hash-keys muts))))
        (for ([name (in-sequences (list ctor (attribute d.predicate-name))
                                  (hash-values accs)
                                  (hash-values muts))])
@@ -491,7 +498,8 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) (src->path f.src))
-          (λ () (raise (exn:missing "missing" (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
+          (λ () (raise (exn:missing (format "missing `~a` for `~a`" (src-base f.src) (syntax-e #'f))
+                                    (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
        (set-module-before! (src-base f.src) (cur-mod))
        (define f-ref (-x f-resolved (next-ℓ! #'f (cur-path))))
        (cond
@@ -592,7 +600,8 @@
           (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () #f)))
           (cond [𝒾* (-x 𝒾* (next-ℓ! stx (cur-path)))]
                 [(equal? (src-base src) (cur-mod)) (-b '|SCV-generated stub|)]
-                [else (raise (exn:missing "missing" (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
+                [else (raise (exn:missing (format "missing `~a` for `~a`" (src-base src) (syntax-e #'id0))
+                                          (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
       [(begin0 e₀ e ...) (-begin0 (parse-e #'e₀) (parse-es #'(e ...)))]
@@ -708,12 +717,15 @@
        #:when (not (equal? src 'Λ))
        (define src:base (src-base src))
        (unless (∋ (modules-to-parse) src:base)
-         (raise (exn:missing "missing" (current-continuation-marks) src:base (syntax-e id))))
+         (raise (exn:missing (format "missing `~a` for `~a`" src:base (syntax-e id))
+                             (current-continuation-marks) src:base (syntax-e id))))
        (unless (equal? src:base (cur-mod))
          (set-module-before! src (cur-mod)))
        (-x (-𝒾 (syntax-e id) (src->path src)) (next-ℓ! id (cur-path)))]
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
+
+  (define (parse-id id) (-x-_0 (parse-ref id)))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)

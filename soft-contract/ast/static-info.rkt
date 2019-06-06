@@ -13,10 +13,10 @@
   (export static-info^)
 
   (define primitive-struct-info : (Immutable-HashTable -𝒾 -struct-info)
-    (hash -𝒾-cons (Vector->struct-info (vector-immutable #f #f))
-          -𝒾-mcons (Vector->struct-info (vector-immutable #t #t))
-          -𝒾-box (Vector->struct-info (vector-immutable #t))
-          -𝒾-thread-cell (Vector->struct-info (vector-immutable #t))))
+    (hash -𝒾-cons (Vector->struct-info (vector-immutable (cons 'car #f) (cons 'cdr #f)))
+          -𝒾-mcons (Vector->struct-info (vector-immutable (cons 'mcar #t) (cons 'mcdr #t)))
+          -𝒾-box (Vector->struct-info (vector-immutable (cons 'unbox #t)))
+          -𝒾-thread-cell (Vector->struct-info (vector-immutable (cons 'thread-cell-ref #t)))))
 
   (define (new-static-info)
     (-static-info (make-hash (hash->list primitive-struct-info))
@@ -54,24 +54,35 @@
 
   ;; Return number of fields that this struct directly declares
   (define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
-  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (vector-ref (get-struct-info 𝒾) (- i (struct-offset 𝒾))))
+  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (cdr (vector-ref (get-struct-info 𝒾) (- i (struct-offset 𝒾)))))
   (define (struct-all-immutable? [𝒾 : -𝒾])
-    (not (for/or : Boolean ([mut? (in-vector (get-struct-info 𝒾))])
-           mut?)))
-  (define (add-struct-info! [𝒾 : -𝒾] [arity : Natural] [mutables : (Setof Natural)])
+    (not (for/or : Boolean ([fld-info (in-vector (get-struct-info 𝒾))])
+           (cdr fld-info))))
+  (define (struct-direct-accessor-names [𝒾 : -𝒾])
+    (define pre (-𝒾-name 𝒾))
+    (for/list : (Listof Symbol) ([fld (in-vector (get-struct-info 𝒾))])
+      (car fld)))
+  (define (struct-accessor-name [𝒾 : -𝒾] [i : Integer]) : Symbol
+    (define o (struct-offset 𝒾))
+    (if (>= i o)
+        (car (vector-ref (get-struct-info 𝒾) (- i o)))
+        (let ([𝒾* (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)])
+          (struct-accessor-name 𝒾* (- i o)))))
+  (define (add-struct-info! [𝒾 : -𝒾] [direct-fields : (Listof Symbol)] [mutables : (Setof Natural)])
     (define v
-      (for/vector : (Vectorof Boolean) #:length arity ([i arity])
-                  (∋ mutables i)))
+      (for/vector : (Vectorof (Pairof Symbol Boolean)) #:length (length direct-fields)
+                  ([(fld i) (in-indexed direct-fields)])
+        (cons fld (∋ mutables i))))
     (define m (-static-info-structs (current-static-info)))
     (cond
       [(hash-ref m 𝒾 #f) =>
-                         (λ ([v₀ : -struct-info])
-                           (cond [(equal? v₀ v) (void)]
-                                 [else (error 'add-struct-info!
-                                              "inconsistent struct information for ~a:~n - ~a~n - ~a"
-                                              (-𝒾-name 𝒾)
-                                              v₀
-                                              v)]))]
+        (λ ([v₀ : -struct-info])
+          (cond [(equal? v₀ v) (void)]
+                [else (error 'add-struct-info!
+                             "inconsistent struct information for ~a:~n - ~a~n - ~a"
+                             (-𝒾-name 𝒾)
+                             v₀
+                             v)]))]
       [else
        (hash-set! m 𝒾 (Vector->struct-info v))]))
 

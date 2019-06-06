@@ -51,19 +51,19 @@
 
   (: evl-spec : Σ -provide-spec → (Option ΔΣ))
   (define (evl-spec Σ spec)
+    (define (in+out [id : -𝒾])
+      (match-define (and 𝒾 (-𝒾 x l)) id)
+      (match (current-module)
+        [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
+        [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))]))
     (match spec
       [(-p/c-item x c ℓ)
-       (define l (current-module))
-       (define 𝒾 (-𝒾 x l))
-       (define α  (γ:top 𝒾))
-       (define α* (γ:wrp 𝒾))
+       (define-values (α α*) (in+out x))
        (with-collapsed [(cons C^ ΔΣ) ((evl/single/collapse ℓ) Σ c)]
-         (with-collapsing [(ΔΣ* Ws) (mon (⧺ Σ ΔΣ) (Ctx l 'dummy- ℓ ℓ) C^ (unpack α Σ))]
+         (with-collapsing [(ΔΣ* Ws) (mon (⧺ Σ ΔΣ) (Ctx (current-module) 'dummy- ℓ ℓ) C^ (unpack α Σ))]
            (⧺ ΔΣ ΔΣ* (alloc α* (car (collapse-W^ Ws))))))]
-      [(? symbol? x)
-       (define 𝒾 (-𝒾 x (current-module)))
-       (define α  (γ:top 𝒾))
-       (define α* (γ:wrp 𝒾))
+      [(? -𝒾? x)
+       (define-values (α α*) (in+out x))
        (alloc α* (unpack (Σ@ α Σ) Σ))]))
 
   (: evl : Σ E → R)

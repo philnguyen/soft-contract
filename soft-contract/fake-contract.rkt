@@ -32,6 +32,7 @@
          dynamic-struct/c
          dynamic-recursive-contract
          dynamic-struct-out
+         dynamic-id-struct-out
          define/contract dynamic-mon
          --> forall
          (rename-out [--> ⇒] [forall ∀]))
@@ -209,6 +210,7 @@
          (dynamic-provide/contract
           i ...
           (list p/i ctc) ... ...
+          (dynamic-id-struct-out 'so) ...
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))
 
 (define-syntax define/contract
@@ -232,6 +234,7 @@
 (define (dynamic->i . _) (void))
 (define (dynamic-struct/c . _) (void))
 (define (dynamic-struct-out . _) (void))
+(define (dynamic-id-struct-out _) (void))
 (define (dynamic-parametric->/c v) v)
 (define (dynamic-case-> . _) (void))
 (define (dynamic-provide/contract . _) (void))

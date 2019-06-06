@@ -14,7 +14,7 @@
 
 (provide ast-pretty-print@)
 (define-unit ast-pretty-print@
-  (import)
+  (import static-info^)
   (export ast-pretty-print^)
 
   (define (show-b [x : Base]) : Sexp
@@ -39,21 +39,12 @@
     (match-lambda
       [(? symbol? s) s]
       [(-st-mk 𝒾) (format-symbol "_~a" (-𝒾-name 𝒾))]
-      [(-st-ac 𝒾 i) (format-symbol "_~a" (show-ac 𝒾 i))]
+      [(-st-ac 𝒾 i) (format-symbol "_~a" (struct-accessor-name 𝒾 i))]
       [(-st-p 𝒾) (format-symbol "_~a?" (-𝒾-name 𝒾))]
       [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
       [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
       [(-st-mut (== -𝒾-box) _) 'set-box!]
       [(-st-mut 𝒾 i) (format-symbol "set-~a._~a!" (-𝒾-name 𝒾) i)]))
-
-  (define (show-ac [𝒾 : -𝒾] [i : Index]) : Symbol
-    (match* (𝒾 i)
-      [((== -𝒾-cons) 0) 'car]
-      [((== -𝒾-cons) 1) 'cdr]
-      [((== -𝒾-mcons) 0) 'mcar]
-      [((== -𝒾-mcons) 1) 'mcdr]
-      [((== -𝒾-box) _) 'unbox]
-      [(𝒾 i) (format-symbol "~a._~a" (-𝒾-name 𝒾) i)]))
 
   (define (show-e [e : -e]) : Sexp
     (match e
@@ -164,8 +155,8 @@
 
   (define show-provide-spec : (-provide-spec → Sexp)
     (match-lambda
-      [(-p/c-item x c _) `(,x ,(show-e c))]
-      [(? symbol? x) x]))
+      [(-p/c-item (-𝒾 x _) c _) `(,x ,(show-e c))]
+      [(-𝒾 x _) x]))
 
   (define show-require-spec : (-require-spec → Sexp)
     values)

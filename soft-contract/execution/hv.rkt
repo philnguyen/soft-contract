@@ -61,7 +61,7 @@
                                 [path (in-value (-module-path m))]
                                 [form (in-list (-module-body m))] #:when (-provide? form)
                                 [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
-        (match-define (-p/c-item x _ _) spec)
+        (match-define (-p/c-item (-𝒾 x _) _ _) spec)
         (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
     (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
 
