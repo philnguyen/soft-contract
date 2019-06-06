@@ -76,7 +76,6 @@
             (-wcm [key : -e] [val : -e] [body : -e])
             -begin/e
             (-begin0 -e (Listof -e))
-            (-quote Any)
             (-let-values [bnds : (Listof Binding)]
                          [body : -e]
                          [loc : ℓ])

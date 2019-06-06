@@ -734,7 +734,7 @@
       [(l . r)
        (-@ -cons
            (list (parse-quote #'l) (parse-quote #'r))
-           (ℓ-with-id (next-ℓ! #'(l . r)) (syntax-e #'r)))]
+           (next-ℓ! #'(l . r)))]
       [() -null]
       [h #:when (hash? (syntax->datum #'h)) (-•)] ; FIXME
       [#(x ...) (-@ 'vector (map parse-quote (syntax->list #'(x ...))) (next-ℓ! #'(x ...)))]

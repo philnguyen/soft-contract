@@ -127,7 +127,6 @@
           (with-collapsed/R [ΔΣ* (evl*/discard/collapse evl/discard/collapse (⧺ Σ ΔΣ₀) Es)]
             (R⧺ΔΣ r₀ ΔΣ*))]
          [#f ⊥R])]
-      [(-quote b) (if (Base? b) (R-of (-b b)) (error 'TODO "(quote ~a)" b))]
       [(-let-values bnds E ℓ)
        (define ΔΣₓs (evl-bnd* Σ ℓ bnds))
        (if (set-empty? ΔΣₓs)

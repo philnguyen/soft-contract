@@ -9,11 +9,12 @@
 ;; Temporary definition of module path
 (define-type -l (U Symbol String))
 (define-predicate l? -l)
+(define-type Loc-Id (U Number String Symbol Char Boolean (Listof Loc-Id)))
 
 (struct loc ([src : -l]
              [line : Natural]
              [col : Natural]
-             [id : (Listof Any)])
+             [id : (Listof Loc-Id)])
   #:transparent)
 
 (define-interner ℓ loc
@@ -39,7 +40,7 @@
          (loc->ℓ (loc src line col '()))]
         [else (error 'syntax-ℓ "expect syntax, given ~a" stx)]))
 
-(: ℓ-with-id : ℓ Any → ℓ)
+(: ℓ-with-id : ℓ Loc-Id → ℓ)
 (define (ℓ-with-id ℓ id)
   (match-define (loc src line col ids) (ℓ->loc ℓ))
   (loc->ℓ (loc src line col (cons id ids))))

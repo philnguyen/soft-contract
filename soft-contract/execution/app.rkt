@@ -37,6 +37,18 @@
   ;; FIXME: memory leak. Reset for each program.
   (define global-stores : (HashTable (Pairof Stk Γ) Σ) (make-hash))
 
+  (define sym-list : (W → (Option (Listof (U T -b))))
+    (match-lambda
+      ['() '()]
+      [(cons Vs W*)
+       (match Vs
+         [{singleton-set T}
+          #:when (or (-b? T) (T? T))
+          (match (sym-list W*)
+            [(? values Ts) (cons T Ts)]
+            [#f #f])]
+         [_ #f])]))
+
   (: app : Σ ℓ V^ W → R)
   (define (app Σ ℓ Vₕ^ W*)
     (define-values (W ΔΣ₁) (escape-clos Σ W*))
@@ -49,14 +61,14 @@
          (ref-$! ($:Key:App Σ* (current-MS) ℓ Vₕ W)
                  (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W))))))
        (unpack Vₕ^ Σ)))
+
     (define Tₐ : (Option T:@)
       (match* (Vₕ^ W*)
-        [({singleton-set (? K? o)}
-          (list {singleton-set (and Tₓ (or (? -b?) (? T?)))} ...))
+        [({singleton-set (? K? o)} (app sym-list (? values Tₓ)))
          #:when (for/or : Boolean ([T (in-list Tₓ)])
                   (or (γ? T)
                       (and (T:@? T) (not (set-empty? (T-root T))))))
-         (T:@ o (cast Tₓ (Listof (U T -b))))]
+         (T:@ o Tₓ)]
         [(_ _) #f]))
     (if Tₐ
         (let ([Wₐ* (list {set Tₐ})])
