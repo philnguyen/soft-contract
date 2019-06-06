@@ -15,45 +15,53 @@
     ['() ys]
     [(cons x xs*) (cons x (append xs* ys))]))
 
-(define/contract map-preserves-length
-  (->i ([F (any/c . -> . any/c)]
+(define prop:map-preserves-length
+  (->i ([F (any/c . -> . any/c #:total? #t)]
         [Xs list?])
        (_ {F Xs} (λ (_) (equal? (length Xs) (length (map F Xs)))))
-       #:total? #t)
+       #:total? #t))
+(define/contract map-preserves-length
+  prop:map-preserves-length
   (λ (h zs)
     (match zs
       ['() 'trivial]
       [(cons _ zs*) (map-preserves-length h zs*)])))
 
-(define/contract append-assoc
+(define prop:append-assoc
   (->i ([Xs list?]
         [Ys list?]
         [Zs list?])
        (_ {Xs Ys Zs} (λ (_) (equal? (append Xs (append Ys Zs))
                                     (append (append Xs Ys) Zs))))
-       #:total? #t)
+       #:total? #t))
+(define/contract append-assoc
+  prop:append-assoc
   (λ (xs ys zs)
     (match xs
       ['() 'trivial]
       [(cons _ xs*) (append-assoc xs* ys zs)])))
 
-(define/contract map-append
-  (->i ([F (any/c . -> . any/c)]
+(define prop:map-append
+  (->i ([F (any/c . -> . any/c #:total? #t)]
         [Xs list?]
         [Ys list?])
        (_ {F Xs Ys} (λ (_) (equal? (map F (append Xs Ys))
                                    (append (map F Xs) (map F Ys)))))
-       #:total? #t)
+       #:total? #t))
+(define/contract map-append
+  prop:map-append
   (λ (f xs ys)
     (match xs
       ['() 'trivial]
       [(cons _ xs*) (map-append f xs* ys)])))
 
-(define/contract length-append
+(define prop:length-append
   (->i ([Xs list?]
         [Ys list?])
        (_ {Xs Ys} (λ (_) (equal? (+ (length Xs) (length Ys))
-                                 (length (append Xs Ys))))))
+                                 (length (append Xs Ys)))))))
+(define/contract length-append
+  prop:length-append
   (λ (xs ys)
     (if (null? xs)
         'trivial
@@ -61,7 +69,7 @@
 
 (provide
  (contract-out
-  [map-preserves-length ((any/c . -> . any/c #:total? #t) list? . -> . any/c)]
-  [append-assoc (list? list? list? . -> . any/c)]
-  [map-append ((any/c . -> . any/c #:total? #t) list? list? . -> . any/c)]
+  [map-preserves-length prop:map-preserves-length]
+  [append-assoc prop:append-assoc]
+  [map-append prop:map-append]
   #;[length-append (list? list? . -> . any/c)]))
