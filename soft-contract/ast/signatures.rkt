@@ -220,6 +220,7 @@
    [-box/c : (-e ℓ → -e)]
    [-list/c : ((Assoc ℓ -e) → -e)]
    [-list : ((Assoc ℓ -e) → -e)]
+   [-list* : ((Assoc ℓ -e) -e → -e)]
    [-and : ((Listof -e) ℓ → -e)]
    [-comp/c : (Symbol -e ℓ → -e)]
    [-begin/simp : (∀ (X) (Listof X) → (U X (-begin X)))]

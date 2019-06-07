@@ -49,7 +49,7 @@
   (def-const null)
   (def list? (any/c . -> . boolean?))
   (def list (∀/c (α) (() #:rest (listof α) . ->* . (listof α))))
-  (def list* (() #:rest list? . ->* . list?)) ; FIXME
+  ;(def list* (() #:rest list? . ->* . list?)) ; FIXME
   (def build-list (∀/c (α) (exact-nonnegative-integer?
                             (exact-nonnegative-integer? . -> . α)
                             . -> . (listof α))))

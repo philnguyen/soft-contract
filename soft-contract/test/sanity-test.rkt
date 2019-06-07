@@ -207,6 +207,7 @@
   (test '("programs/safe/issues/re-exported-struct/posn-untyped.rkt"
           "programs/safe/issues/re-exported-struct/posn-typed.rkt")
         check-safe)
+  (test "safe/issues/list-star.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -241,6 +242,7 @@
   (test '("programs/unsafe/issues/re-exported-struct/posn-untyped.rkt"
           "programs/unsafe/issues/re-exported-struct/posn-typed.rkt")
         check-fail)
+  (test "unsafe/issues/list-star.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

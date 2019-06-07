@@ -184,7 +184,7 @@
                          (syntax->list #'(kase ...)))))
 
 (define-syntax-class scv-fake-lit
-  #:description "fake literal contract"
+  #:description "fake literals"
   #:attributes (real)
   (pattern (~literal fake:any/c) #:attr real 'any/c)
   (pattern (~literal fake:none/c) #:attr real 'none/c)

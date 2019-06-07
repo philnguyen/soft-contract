@@ -450,6 +450,11 @@
        (-list
         (for/list ([e (in-syntax-list #'(e ...))])
           (cons (next-ℓ! e) (parse-e e))))]
+      [(#%plain-app (~literal list*) inits ... tail)
+       (-list*
+        (for/list ([e (in-syntax-list #'(inits ...))])
+          (cons (next-ℓ! e) (parse-e e)))
+        (parse-e #'tail))]
 
       ;; HACK for immediate uses of accessors
       [(#%plain-app (~literal cadr) e)

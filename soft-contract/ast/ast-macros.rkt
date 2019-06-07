@@ -67,6 +67,12 @@
       [(cons (cons ℓ e) args*)
        (-@ -cons (list e (-list args*)) (ℓ-with-id ℓ 'list))]))
 
+  (: -list* : (Assoc ℓ -e) -e → -e)
+  (define (-list* args tail)
+    (foldr (λ ([i : (Pairof ℓ -e)] [ac : -e]) (-@ -cons (list (cdr i) ac) (car i)))
+           tail
+           args))
+
   (: -and : (Listof -e) ℓ → -e)
   ;; Return ast representing conjuction of 2 expressions
   (define (-and es ℓ)
