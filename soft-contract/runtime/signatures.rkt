@@ -30,7 +30,7 @@
                                T
                                (-● (℘ P)))
 (#|Identities     |# T . ::= . γ (T:@ K (Listof (U T -b))))
-(#|               |# K . ::= . T '+ '- '* '/ 'add1 'sub1 -st-ac -st-mk (K:≡) (K:<) (K:≤) (K:>) (K:≥) (K:=))
+(#|               |# K . ::= . T '+ '- '* '/ 'add1 'sub1 -st-ac -st-mk (K:≡) (K:≤) (K:=))
 (#|Environments   |# Γ .  ≜  . (Immutable-HashTable T S*))
 (#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Memories       |# Σ .  ≜  . (Pairof Ξ Γ))

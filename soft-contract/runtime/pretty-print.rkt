@@ -118,10 +118,7 @@
   (define (show-K [K : K]) : Sexp
     (cond [(T? K) (show-T K)]
           [(K:≡? K) '≡]
-          [(K:<? K) '<]
           [(K:≤? K) '≤]
-          [(K:>? K) '>]
-          [(K:≥? K) '≥]
           [(K:=? K) '=]
           [else (show-o K)]))
 

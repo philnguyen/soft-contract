@@ -100,7 +100,7 @@
                               #:unless (hash-has-key? Γ₁ T)
                               ;; FIXME rid of hack by fixing `Γ` representation
                               #:when (match T
-                                       [(T:@ (K:≡) _) (all-live? live T)]
+                                       [(T:@ (or (K:≡) (K:≤)) _) (all-live? live T)]
                                        [_ #f]))
       (hash-set acc T D)))
 
@@ -254,9 +254,7 @@
       (define (go T)
         (match T
           [(T:@ K Ts)
-           (if (-st-ac? K)
-               (∪ (prim-root K) (go (car Ts)))
-               (apply ∪ {set T} (go-K K) (map go Ts)))]
+           (∪ (go-K K) (apply ∪ (if (-st-ac? K) ∅ {set T}) (map go Ts)))]
           [(? -b?) ∅]
           [(? γ? γ) {set γ}]))
       (: go-K : K → (℘ T))

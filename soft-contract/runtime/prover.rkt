@@ -137,10 +137,10 @@
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
     (match P
-      ['<  (refine-both (K:<) -tt V₁ P:< V₂ P:> Σ)]
+      ['<  (refine-both (K:≤) -ff V₂ P:> V₁ P:< Σ)] ; V₁ < V₂ ⇔ ¬ (V₁ ≥ V₂) ⇔ ¬ (V₂ ≤ V₁)
       ['<= (refine-both (K:≤) -tt V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both (K:>) -tt V₁ P:> V₂ P:< Σ)]
-      ['>= (refine-both (K:≥) -tt V₁ P:≥ V₂ P:≤ Σ)]
+      ['>  (refine-both (K:≤) -ff V₁ P:> V₂ P:< Σ)] ; V₁ > V₂ ⇔ ¬ (V₁ ≤ V₂)
+      ['>= (refine-both (K:≤) -tt V₂ P:≤ V₁ P:≥ Σ)]
       ['=  (refine-both (K:=) -tt V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
        (refine-both (K:≡) -tt V₁ P:≡ V₂ P:≡ Σ)]
