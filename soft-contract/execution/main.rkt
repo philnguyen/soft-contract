@@ -232,7 +232,7 @@
             [(T:@ o Ts)
              (match (go-K o)
                [(? values o*) (define Ts* (go* Ts))
-                              (and Ts* (T:@ o* Ts*))]
+                              (and Ts* (T:@/simp o* Ts*))]
                [#f #f])]
             [_ T₀])))
     (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))

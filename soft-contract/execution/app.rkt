@@ -62,13 +62,13 @@
                  (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W))))))
        (unpack Vₕ^ Σ)))
 
-    (define Tₐ : (Option T:@)
+    (define Tₐ : (Option T)
       (match* (Vₕ^ W*)
         [({singleton-set (? K? o)} (app sym-list (? values Tₓ)))
          #:when (for/or : Boolean ([T (in-list Tₓ)])
                   (or (γ? T)
                       (and (T:@? T) (not (set-empty? (T-root T))))))
-         (T:@ o Tₓ)]
+         (T:@/simp o Tₓ)]
         [(_ _) #f]))
     (if Tₐ
         (let ([Wₐ* (list {set Tₐ})])
@@ -140,8 +140,7 @@
       [(app length (? (curry arity-includes? (shape fml))))
        (with-sct-guard Σ ℓ Vₕ Wₓ*
          (λ ()
-           (define Wₓ (unpack-W Wₓ* Σ))
-           (define ΔΣₓ (alloc-args Σ fml Wₓ))
+           (define-values (ΔΣₓ Wₓ) (alloc-args Σ fml Wₓ*))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            ;; TODO: code dup
@@ -158,8 +157,7 @@
       [(app length (? (curry arity-includes? (shape fml))))
        (with-sct-guard Σ ℓ (-λ fml E ℓₕ) Wₓ*
          (λ ()
-           (define Wₓ (unpack-W Wₓ* Σ))
-           (define ΔΣₓ (alloc-args Σ fml Wₓ))
+           (define-values (ΔΣₓ Wₓ) (alloc-args Σ fml Wₓ*))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            (let* ([root (∪ (V-root Vₕ) (W-root Wₓ))]
@@ -169,12 +167,47 @@
              (define rn (insert-fv-erasures Γ* (make-renamings fml Wₓ*)))
              (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))))]))
 
-  (: alloc-args : Σ -formals W → ΔΣ)
-  (define (alloc-args Σ fml W)
+  (: alloc-args : Σ -formals W → (Values ΔΣ W))
+  ;; Unpack and allocate the arguments given parameter list
+  (define (alloc-args Σ fml W*)
+    (define W (unpack-W W* Σ))
     (match-define (-var xs xᵣ) fml)
     (define-values (W₀ Wᵣ) (if xᵣ (split-at W (length xs)) (values W '())))
-    (⧺ (alloc-lex* Σ xs W₀)
-       (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ)))
+    (values (⧺ (alloc-lex* Σ xs W₀)
+               (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ)
+               (cons ⊥Ξ (rename-props Σ xs W*)))
+            W))
+
+  (: rename-props : Σ (Listof Symbol) W → Γ)
+  (define (rename-props Σ xs W)
+    (define caller-props
+      (for/hash : Γ ([(T D) (in-hash (cdr Σ))]
+                     #:when (match T
+                              [(T:@ (or (? K:≡?) (? K:≤?) (? K:=?)) _) #t]
+                              [_ #f]))
+        (values T D)))
+
+    (: acc-rn : Renamings γ T → Renamings)
+    (define (acc-rn rn lhs rhs)
+      (let loop ([rn : Renamings rn] [lhs : T lhs] [rhs : T rhs])
+        (define rn* (hash-set rn rhs lhs))
+        (match rhs
+          [(T:@ (-st-mk 𝒾) Ts)
+           (for/fold ([rn : Renamings rn*])
+                     ([(Tᵢ i) (in-indexed Ts)] #:when (T? Tᵢ))
+             (loop rn (T:@ (-st-ac 𝒾 (assert i index?)) (list lhs)) Tᵢ))]
+          [_ rn*])))
+    (define rn
+      (rename (for/fold ([rn : Renamings (hash)])
+                        ([x (in-list xs)]
+                         [Vs (in-list W)]
+                         #:when (= 1 (set-count Vs))
+                         [V (in-value (set-first Vs))]
+                         #:when (T? V))
+                (acc-rn rn (γ:lex x) V))))
+    (for*/hash : Γ ([(T D) (in-hash caller-props)]
+                    [T* (in-value (rn T))] #:when (T? T*))
+      (values T* D)))
 
   (: with-sct-guard : Σ ℓ V W (→ R) → R)
   (define (with-sct-guard Σ ℓ ee:raw W comp)
@@ -199,13 +232,21 @@
     (define stk (current-chain))
     (define stk* (cond [(memq E stk) => values]
                        [else (cons E stk)]))
-    (define k (cons stk* (cdr Σ₁)))
+    (define k (cons stk* (remove-props (cdr Σ₁))))
     (define Σ* (match (hash-ref global-stores k #f)
                  [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₁)]
                  [_ Σ₁]))
     (hash-set! global-stores k Σ*)
     (parameterize ([current-chain stk*])
       (evl Σ* E)))
+
+  (: remove-props : Γ → Γ)
+  (define (remove-props Γ₀)
+    (for/fold ([acc : Γ Γ₀]) ([T (in-hash-keys Γ₀)]
+                              #:when (match T
+                                       [(T:@ (or (? K:≡?) (? K:≤?) (? K:=?)) _) #t]
+                                       [_ #f]))
+      (hash-remove acc T)))
 
   (: app-Case-Clo : Case-Clo → ⟦F⟧)
   (define ((app-Case-Clo Vₕ) Σ ℓ Wₓ)

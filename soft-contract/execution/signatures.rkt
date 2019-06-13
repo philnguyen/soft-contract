@@ -41,7 +41,8 @@
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
    [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
    [with-split-Σ : (Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)]
-   [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)]
+   [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)] ; FIXME move?
+   [rename : (Renamings → (U T -b) → (Option (U T -b)))] ; FIXME move?
    [fix-return : (Renamings Σ R → R)]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Index))]

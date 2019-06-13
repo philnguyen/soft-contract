@@ -140,6 +140,11 @@
         [(T:@ _ Ts) (ormap go Ts)]
         [_ #f])))
 
+  (define T:@/simp : (K (Listof (U T -b)) → T)
+    (match-lambda**
+     [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (assert (list-ref Ts i) T?)]
+     [(K Ts) (T:@ K Ts)]))
+
   (: ac-Ps : -st-ac (℘ P) → (℘ P))
   (define (ac-Ps ac Ps)
     (for/fold ([Ps* : (℘ P) ∅]) ([P (in-set Ps)])
