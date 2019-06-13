@@ -99,9 +99,8 @@
     (for/fold ([acc : Γ Γ₁]) ([(T D) (in-hash Γ₀)]
                               #:unless (hash-has-key? Γ₁ T)
                               ;; FIXME rid of hack by fixing `Γ` representation
-                              #:when (match T
-                                       [(T:@ (or (K:≡) (K:≤)) _) (all-live? live T)]
-                                       [_ #f]))
+                              #:when (prop? T D)
+                              #:when (all-live? live T))
       (hash-set acc T D)))
 
   (: gc-R : (℘ (U α T)) Σ R → R)

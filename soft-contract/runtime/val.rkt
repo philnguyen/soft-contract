@@ -145,6 +145,13 @@
      [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (assert (list-ref Ts i) T?)]
      [(K Ts) (T:@ K Ts)]))
 
+  ;; Check if the pair `T S*` encodes a proposition
+  ;; This is a temporary HACK that should eventually be obsolete by refactoring
+  (define prop? : (T S* → Boolean)
+    (match-lambda**
+     [((T:@ (or (? K:≡?) (? K:≤?) (? K:=?) (? γ:top?)) _) {singleton-set (? -b?)}) #t]
+     [(_ _) #f]))
+
   (: ac-Ps : -st-ac (℘ P) → (℘ P))
   (define (ac-Ps ac Ps)
     (for/fold ([Ps* : (℘ P) ∅]) ([P (in-set Ps)])

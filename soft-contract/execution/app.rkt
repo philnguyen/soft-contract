@@ -181,10 +181,7 @@
   (: rename-props : Σ (Listof Symbol) W → Γ)
   (define (rename-props Σ xs W)
     (define caller-props
-      (for/hash : Γ ([(T D) (in-hash (cdr Σ))]
-                     #:when (match T
-                              [(T:@ (or (? K:≡?) (? K:≤?) (? K:=?)) _) #t]
-                              [_ #f]))
+      (for/hash : Γ ([(T D) (in-hash (cdr Σ))] #:when (prop? T D))
         (values T D)))
 
     (: acc-rn : Renamings γ T → Renamings)
@@ -242,10 +239,7 @@
 
   (: remove-props : Γ → Γ)
   (define (remove-props Γ₀)
-    (for/fold ([acc : Γ Γ₀]) ([T (in-hash-keys Γ₀)]
-                              #:when (match T
-                                       [(T:@ (or (? K:≡?) (? K:≤?) (? K:=?)) _) #t]
-                                       [_ #f]))
+    (for/fold ([acc : Γ Γ₀]) ([(T D) (in-hash Γ₀)] #:when (prop? T D))
       (hash-remove acc T)))
 
   (: app-Case-Clo : Case-Clo → ⟦F⟧)

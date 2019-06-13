@@ -241,6 +241,7 @@
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
    [T:@/simp : (K (Listof (U T -b)) → T)]
+   [prop? : (T S* → Boolean)]
    ))
 
 (define-signature prover^
