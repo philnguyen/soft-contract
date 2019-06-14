@@ -160,9 +160,13 @@
     (define adjust-T (rename rn))
     (define (go-ΔΣ [ΔΣ₀ : ΔΣ])
       (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
-      (cons ΔΞ₀ (go-ΔΓ ΔΓ₀)))
+      (define ΔΓ* (go-ΔΓ ΔΓ₀))
+      (and ΔΓ* (cons ΔΞ₀ ΔΓ*)))
     (define (go-ΔΓ [ΔΓ₀ : ΔΓ])
-      (for/fold ([acc : ΔΓ ⊤ΔΓ]) ([(T D) (in-hash ΔΓ₀)])
+      (for/fold ([acc : (Option ΔΓ) ⊤ΔΓ])
+                ([(T D) (in-hash ΔΓ₀)]
+                 #:break (not acc))
+        (assert acc)
         (match (adjust-T T)
           [(? T? T*)
            ;; If calle is wrapped in higher-order contract,
@@ -183,6 +187,24 @@
                          Ps₀)))
                  (hash-set acc T {set (-● Ps*)})]
                 [(_ _) acc])]
+             [((T:@ (-st-mk 𝒾) Ts) (and D* {singleton-set (St α Ps)}))
+              (define Ps-list
+                (let ([Ps-list ((inst make-vector (℘ P)) (length Ts) ∅)])
+                  (for ([P (in-set Ps)])
+                    (match P
+                      [(P:St (-st-ac (== 𝒾) i) P*)
+                       (vector-set! Ps-list i (set-add (vector-ref Ps-list i) P*))]
+                      [_ (void)]))
+                  Ps-list))
+              (for/fold ([acc : (Option ΔΓ) (hash-set acc T* D*)])
+                        ([T (in-list Ts)]
+                         [Ps (in-vector Ps-list)]
+                         [Vs (in-vector (Σ@/blob α (Σₑₑ)))]
+                         #:unless (-b? T)
+                         #:break (not acc))
+                (define-values (Vs* _) (refine Vs Ps (Σₑₑ)))
+                (and (not (set-empty? Vs*)) ; indicating spurious branch
+                     (hash-set (assert acc) T Vs*)))]
              [(_ D*) (hash-set acc T* D*)])]
           [_ acc])))
     (define (go-W [W : W]) (map go-V^ W))
@@ -199,7 +221,9 @@
       (parameterize ([Σₑₑ (⧺ Σ₀ ΔΣᵢ)])
         (define W* (go-W Wᵢ))
         (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (hash-update r* W* (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣ*)) mk-∅))))
+        (if ΔΣ*
+            (hash-update r* W* (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣ*)) mk-∅)
+            r*))))
 
   (: make-renamings : (U (Listof Symbol) -formals) W → Renamings)
   (define (make-renamings fml W)

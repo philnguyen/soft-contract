@@ -223,6 +223,7 @@
    #;[V/ : (S → V → V)]
    [W⊔ : (W W → W)]
    [V⊔ : (V^ V^ → V^)]
+   [V⊓ : (V^ V^ → (Option V^))]
    [V⊔₁ : (V V^ → V^)]
    [Ctx-with-site : (Ctx ℓ → Ctx)]
    [Ctx-with-origin : (Ctx ℓ → Ctx)]

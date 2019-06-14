@@ -84,14 +84,21 @@
                   [(T:@ (? -st-ac?) _) ΔΣᵢ]
                   [_
                    (match-define (cons ΔΞ ΔΓ) ΔΣᵢ)
-                   (define ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ*))
-                   (define ΔΓ*
-                     (match Vsₐ
-                       [{singleton-set (? T? T*)}
-                        (hash-set ΔΓ₁ (T:@ (K:≡) (list Tₐ T*)) {set -tt})]
-                       [_ ΔΓ₁]))
-                   (cons ΔΞ ΔΓ*)]))
-              (hash-update r* Wₐ* (λ ([ΔΣs* : (℘ ΔΣ)]) (set-add ΔΣs* ΔΣ*)) mk-∅))))
+                   (define Vsₐ**
+                     (match (hash-ref ΔΓ Tₐ #f)
+                       [(? set? Vsₐ₀) (V⊓ Vsₐ₀ Vsₐ*)]
+                       [#f Vsₐ*]))
+                   (and Vsₐ**
+                        (let ([ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ**)])
+                          (define ΔΓ*
+                            (match Vsₐ
+                              [{singleton-set (? T? T*)}
+                               (hash-set ΔΓ₁ (T:@ (K:≡) (list Tₐ T*)) {set -tt})]
+                              [_ ΔΓ₁]))
+                          (cons ΔΞ ΔΓ*)))]))
+              (if ΔΣ*
+                  (hash-update r* Wₐ* (λ ([ΔΣs* : (℘ ΔΣ)]) (set-add ΔΣs* ΔΣ*)) mk-∅)
+                  r*))))
         r))
 
   (: app/C : Σ ℓ V^ W → R)

@@ -185,6 +185,30 @@
                   (and (set-ormap -o? Ps*) (-● Ps*))])]
      [(V₁ V₂) (and (equal? V₁ V₂) V₁)]))
 
+  (: V⊓ : V^ V^ → (Option V^))
+  (define (V⊓ Vs₁ Vs₂)
+    (: set-extract-single (∀ (X T) (X → Boolean : T) (℘ X) → (Option T)))
+    (define (set-extract-single p? xs)
+      (match (set-filter p? xs)
+        [{singleton-set t} t]
+        [(? set-empty?) #f]
+        [_ !!!]))
+    (define ●*
+      (match* ((set-extract-single -●? Vs₁) (set-extract-single -●? Vs₂))
+        [((-● Ps) (-● Qs))
+         (define Ps*
+           (for/fold ([Ps : (℘ P) Ps]) ([Q (in-set Qs)])
+             (refine-Ps Ps Q ⊥Σ)))
+         {set (-● Ps*)}]
+        [((? values V₁) #f) {set V₁}]
+        [(#f (? values V₂)) {set V₂}]
+        [(#f #f) ∅]))
+    (define Vs* (∪ (∩ Vs₁ Vs₂)
+                   (set-filter T? Vs₁)
+                   (set-filter T? Vs₂)
+                   ●*))
+    (and (not (set-empty? Vs*)) Vs*))
+
   (define opposite? : (P P → Boolean)
     (match-lambda**
      [((P:¬ Q) Q) #t]
