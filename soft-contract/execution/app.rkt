@@ -57,7 +57,8 @@
          #:when (for/or : Boolean ([T (in-list Tₓ)])
                   (or (γ? T)
                       (and (T:@? T) (not (set-empty? (T-root T))))))
-         (T:@/simp o Tₓ)]
+         (define Tₐ* (T:@/simp o Tₓ))
+         (and (not (-b? Tₐ*)) Tₐ*)]
         [(_ _) #f]))
     (if Tₐ
         (let ([Wₐ* (list {set Tₐ})])

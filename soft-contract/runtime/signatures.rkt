@@ -241,7 +241,7 @@
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
-   [T:@/simp : (K (Listof (U T -b)) → T)]
+   [T:@/simp : (K (Listof (U T -b)) → (U T -b))]
    [prop? : (T S* → Boolean)]
    ))
 

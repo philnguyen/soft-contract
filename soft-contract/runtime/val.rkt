@@ -140,9 +140,9 @@
         [(T:@ _ Ts) (ormap go Ts)]
         [_ #f])))
 
-  (define T:@/simp : (K (Listof (U T -b)) → T)
+  (define T:@/simp : (K (Listof (U T -b)) → (U -b T))
     (match-lambda**
-     [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (assert (list-ref Ts i) T?)]
+     [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (list-ref Ts i)]
      [(K Ts) (T:@ K Ts)]))
 
   ;; Check if the pair `T S*` encodes a proposition
