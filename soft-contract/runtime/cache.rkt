@@ -114,25 +114,19 @@
     ((inst hash-union W (℘ ΔΣ)) R₁ R₂ #:combine compact))
 
   (: group-by-ans : Σ R → R)
-  ;; Parition store-deltas by (absolute) return values then collapse
+  ;; Colllapse redundant store deltas
   (define (group-by-ans Σ r)
-    (define m
-      (for*/fold ([acc : (HashTable W (HashTable W (℘ ΔΣ))) (hash)])
-                 ([(Wᵢ ΔΣsᵢ) (in-hash r)]
-                  [ΔΣᵢ : ΔΣ(in-set ΔΣsᵢ)])
-        (define Σ* (⧺ Σ ΔΣᵢ))
-        (define Wᵢ:unpacked (unpack-W Wᵢ Σ*))
-        ((inst hash-update W (HashTable W (℘ ΔΣ)))
-         acc Wᵢ
-         (λ ([h : (HashTable W (℘ ΔΣ))])
-           (hash-update h Wᵢ:unpacked (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣᵢ)) mk-∅))
-         (λ () (hash)))))
-    (for/hash : R ([(W h) (in-hash m)])
-      (values W (for/set: : (℘ ΔΣ) ([ΔΣs (in-hash-values h)])
-                  (precise-collapse-ΔΣs Σ ΔΣs)))))
+    (for/hash : R ([(W ΔΣs) (in-hash r)])
+      ;; Partition store-deltas by "absolute" answers
+      (define ΔΣs* (ΔΣs . partition-by . (λ ([ΔΣ : ΔΣ]) (unpack-W W (⧺ Σ ΔΣ)))))
+      ;; Partition further by some heuristic notion of "path invariant" before collapsing
+      (define ΔΣs**
+        (for/union : (℘ ΔΣ) ([ΔΣs (in-hash-values ΔΣs*)])
+                   (precise-collapse-ΔΣs Σ ΔΣs)))
+      (values W ΔΣs**)))
 
-  (: precise-collapse-ΔΣs : Σ (℘ ΔΣ) → ΔΣ)
-  ;; Collapse store-deltas with full sotre as context, so can collapse many symbolic expressions
+  (: precise-collapse-ΔΣs : Σ (℘ ΔΣ) → (℘ ΔΣ))
+  ;; Collapse store-deltas with full store as context, so can collapse many symbolic expressions
   (define (precise-collapse-ΔΣs Σ ΔΣs)
     ;; Compute largest common path-condition domain
     (define shared-dom
@@ -147,8 +141,26 @@
             (for/fold ([acc : ΔΓ ΔΓ₀])
                       ([T (in-hash-keys ΔΓ₀)] #:unless (∋ shared-dom T))
               (hash-set acc T (unpack T Σ*)))))
-    ;; Collapse store-deltas as usual
-    (collapse-ΔΣs (map/set restrict ΔΣs)))
+    (define partitions
+      (ΔΣs
+       . partition-by .
+       (λ ([ΔΣ : ΔΣ])
+         (for*/hash : (HashTable T Base) ([(T D) (in-hash (cdr ΔΣ))]
+                                          #:when (∋ shared-dom T)
+                                          #:when (prop? T D)
+                                          #:when (set? D)
+                                          #:when (= 1 (set-count D))
+                                          [V (in-value (set-first D))]
+                                          #:when (-b? V))
+           (values T (-b-unboxed V))))))
+    (for/set: : (℘ ΔΣ) ([ΔΣs : (℘ ΔΣ) (in-hash-values partitions)])
+      (collapse-ΔΣs (map/set restrict ΔΣs))))
+
+  (: partition-by (∀ (X Y) (℘ X) (X → Y) → (Immutable-HashTable Y (℘ X))))
+  (define (partition-by xs f)
+    (for/fold ([m : (Immutable-HashTable Y (℘ X)) (hash)])
+              ([x (in-set xs)])
+      (hash-update m (f x) (λ ([xs : (℘ X)]) (set-add xs x)) mk-∅)))
 
   (: map-R:ΔΣ : (ΔΣ → ΔΣ) R → R)
   (define (map-R:ΔΣ f R₀)

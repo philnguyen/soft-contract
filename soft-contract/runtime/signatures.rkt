@@ -247,6 +247,7 @@
 
 (define-signature prover^
   ([sat : (Σ V V^ * → ?Dec)]
+   [Γ-sat? : (Γ → Boolean)]
    [P⊢P : (Σ V V → ?Dec)]
    [refine-Ps : ((℘ P) V Σ → (℘ P))]
    [maybe=? : (Σ Integer V^ → Boolean)]

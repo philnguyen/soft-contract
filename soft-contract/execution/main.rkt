@@ -221,7 +221,7 @@
       (parameterize ([Σₑₑ (⧺ Σ₀ ΔΣᵢ)])
         (define W* (go-W Wᵢ))
         (define ΔΣ* (go-ΔΣ ΔΣᵢ))
-        (if ΔΣ*
+        (if (and ΔΣ* (Γ-sat? (cdr ΔΣ*)))
             (hash-update r* W* (λ ([ΔΣs : (℘ ΔΣ)]) (set-add ΔΣs ΔΣ*)) mk-∅)
             r*))))
 

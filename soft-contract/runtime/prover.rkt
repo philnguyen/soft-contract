@@ -27,7 +27,7 @@
 
 (define-unit prover@
   (import static-info^ meta-functions^
-          sto^ val^ pretty-print^
+          sto^ val^
           prims^)
   (export prover^)
 
@@ -37,6 +37,14 @@
       [(list V) (sat^₁ (λ (V) (sat₁ Σ P V)) V)]
       [(list V₁ V₂) (sat^₂ (λ (V₁ V₂) (sat₂ Σ P V₁ V₂)) V₁ V₂)]
       [_ #f]))
+
+  (: Γ-sat? : Γ → Boolean)
+  ;; Check if envronment/path-condition is satisfiable.
+  ;; - `#f` means "definitely unsat"
+  ;; - `#f` means "maybe sat"
+  (define (Γ-sat? Γ)
+    (define-values (eqs diseqs) (Γ->eqs/diseqs Γ))
+    (sat/extra? eqs diseqs))
 
   (: maybe=? : Σ Integer V^ → Boolean)
   ;; Check if value `V` can possibly be integer `i`
@@ -506,23 +514,24 @@
 
   (: check-equal?/congruence : Γ (U T -b) (U T -b) → ?Dec)
   (define (check-equal?/congruence Γ T₁ T₂)
-    ;; Base assumptions
-    (define-values (eqs diseqs)
-      (for/fold ([eqs : (Listof (Pairof S S)) '()]
-                 [diseqs : (Listof (Pairof S S)) '()])
-                ([(T D) (in-hash Γ)])
-        (match* (T D)
-          [((T:@ (K:≡) (list T₁ T₂)) {singleton-set (-b b)})
-           (if b
-               (values (cons (cons T₁ T₂) eqs) diseqs)
-               (values eqs (cons (cons T₁ T₂) diseqs)))]
-          [(_ {singleton-set (and T* (or (? -b?) (? T?)))})
-           (values (cons (cons T T*) eqs) diseqs)]
-          [(_ _) (values eqs diseqs)])))
-    (cond
-      [(not (sat/extra? eqs (cons (cons T₁ T₂) diseqs))) '✓]
-      [(not (sat/extra? (cons (cons T₁ T₂) eqs) diseqs)) '✗]
-      [else #f]))
+    (define-values (eqs diseqs) (Γ->eqs/diseqs Γ))
+    (cond [(not (sat/extra? eqs (cons (cons T₁ T₂) diseqs))) '✓]
+          [(not (sat/extra? (cons (cons T₁ T₂) eqs) diseqs)) '✗]
+          [else #f]))
+
+  (: Γ->eqs/diseqs : Γ → (Values (Listof (Pairof S S)) (Listof (Pairof S S))))
+  (define (Γ->eqs/diseqs Γ)
+    (for/fold ([eqs : (Listof (Pairof S S)) '()]
+               [diseqs : (Listof (Pairof S S)) (list (cons -tt -ff))])
+              ([(T D) (in-hash Γ)])
+      (match* (T D)
+        [((T:@ (K:≡) (list T₁ T₂)) {singleton-set (-b b)})
+         (if b
+             (values (cons (cons T₁ T₂) eqs) diseqs)
+             (values eqs (cons (cons T₁ T₂) diseqs)))]
+        [(_ {singleton-set (and T* (or (? -b?) (? T?)))})
+         (values (cons (cons T T*) eqs) diseqs)]
+        [(_ _) (values eqs diseqs)])))
 
   (:* Ps⊢P simple-Ps⊢P : Σ (℘ P) V → ?Dec)
   (define (Ps⊢P Σ Ps Q)

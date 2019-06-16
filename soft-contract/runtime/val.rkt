@@ -143,7 +143,22 @@
   (define T:@/simp : (K (Listof (U T -b)) → (U -b T))
     (match-lambda**
      [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (list-ref Ts i)]
+     [((-st-mk 𝒾) (list (T:@ (-st-ac 𝒾s #{ks : (Listof Index)}) (list #{Ts : (Listof (U -b T))})) ...))
+      #:when (and (pair? Ts)
+                  (counting-up? ks)
+                  (all-same? 𝒾 𝒾s)
+                  (all-same? (car Ts) (cdr Ts)))
+      (car Ts)]
      [(K Ts) (T:@ K Ts)]))
+
+  (: counting-up? : (Listof Integer) → Boolean)
+  (define (counting-up? ns)
+    (for/and : Boolean ([(n i) (in-indexed ns)])
+      (equal? n i)))
+
+  (: all-same? : Any (Listof Any) → Boolean)
+  (define (all-same? x xs)
+    (or (null? xs) (and (equal? x (car xs)) (all-same? x (cdr xs)))))
 
   ;; Check if the pair `T S*` encodes a proposition
   ;; This is a temporary HACK that should eventually be obsolete by refactoring
