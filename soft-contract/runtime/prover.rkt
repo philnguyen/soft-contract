@@ -459,7 +459,10 @@
       [((and T₁ (or (? -b?) (? T?))) (and T₂ (or (? -b?) (? T?))))
        (match (hash-ref (cdr Σ) (T:@ (K:≤) (list T₁ T₂)) #f)
          [{singleton-set (-b b)} (if b '✓ '✗)]
-         [_ #f])]
+         [_
+          (match (hash-ref (cdr Σ) (T:@ (K:≤) (list T₂ T₁)) #f)
+            [{singleton-set (-b #f)} '✓]
+            [_ #f])])]
       [(_ _) #f]))
 
   (: check-equal? : Σ V V → ?Dec)
