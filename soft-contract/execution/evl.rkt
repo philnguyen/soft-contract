@@ -22,8 +22,8 @@
          )
 
 (define-unit evl@
-  (import meta-functions^ static-info^ ast-pretty-print^
-          sto^ cache^ val^ pretty-print^
+  (import meta-functions^ static-info^
+          sto^ cache^ val^
           exec^ app^ mon^ gc^)
   (export evl^)
 

@@ -25,7 +25,7 @@
 
 (define-unit app@
   (import meta-functions^ static-info^
-          sto^ cache^ val^ pretty-print^
+          sto^ cache^ val^
           prims^ prover^
           exec^ evl^ mon^ hv^ gc^ termination^)
   (export app^)
@@ -172,11 +172,11 @@
     (define-values (W₀ Wᵣ) (if xᵣ (split-at W (length xs)) (values W '())))
     (values (⧺ (alloc-lex* Σ xs W₀)
                (if xᵣ (alloc-vararg Σ xᵣ Wᵣ) ⊥ΔΣ)
-               (cons ⊥Ξ (rename-props Σ xs W*)))
+               (cons ⊥Ξ (caller->callee-props Σ xs W*)))
             W))
 
-  (: rename-props : Σ (Listof Symbol) W → Γ)
-  (define (rename-props Σ xs W)
+  (: caller->callee-props : Σ (Listof Symbol) W → Γ)
+  (define (caller->callee-props Σ xs W)
     (define caller-props
       (for/hash : Γ ([(T D) (in-hash (cdr Σ))] #:when (prop? T D))
         (values T D)))
@@ -191,14 +191,20 @@
                      ([(Tᵢ i) (in-indexed Ts)] #:when (T? Tᵢ))
              (loop rn (T:@ (-st-ac 𝒾 (assert i index?)) (list lhs)) Tᵢ))]
           [_ rn*])))
+    (: erase-bounds : Renamings → Renamings)
+    (define (erase-bounds rn)
+      (for/fold ([rn : Renamings rn])
+                ([x (in-list xs)])
+        (hash-set rn (γ:lex x) #f)))
     (define rn
-      (rename (for/fold ([rn : Renamings (hash)])
-                        ([x (in-list xs)]
-                         [Vs (in-list W)]
-                         #:when (= 1 (set-count Vs))
-                         [V (in-value (set-first Vs))]
-                         #:when (T? V))
-                (acc-rn rn (γ:lex x) V))))
+      (rename (erase-bounds
+               (for/fold ([rn : Renamings (hash)])
+                         ([x (in-list xs)]
+                          [Vs (in-list W)]
+                          #:when (= 1 (set-count Vs))
+                          [V (in-value (set-first Vs))]
+                          #:when (T? V))
+                 (acc-rn rn (γ:lex x) V)))))
     (for*/hash : Γ ([(T D) (in-hash caller-props)]
                     [T* (in-value (rn T))] #:when (T? T*))
       (values T* D)))
@@ -226,7 +232,7 @@
     (define stk (current-chain))
     (define stk* (cond [(memq E stk) => values]
                        [else (cons E stk)]))
-    (define k (cons stk* (remove-props (cdr Σ₁))))
+    (define k (cons stk* (cdr Σ₁)))
     (define Σ* (match (hash-ref global-stores k #f)
                  [(? values Σ₀) (ΔΣ⊔ Σ₀ Σ₁)]
                  [_ Σ₁]))
@@ -340,9 +346,12 @@
   (: app-==>i : (Pairof -l -l) ==>i α → ⟦F⟧)
   (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
     (match-define (cons l+ l-) ctx:saved)
-    (define Wₓ (unpack-W Wₓ* Σ₀-full))
-    (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full))
     (match-define (==>i (-var Doms ?Doms:rest) Rngs ?total) G)
+    (define Wₓ (unpack-W Wₓ* Σ₀-full))
+    (define Σ₀ (⧺ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full)
+                  (cons ⊥Ξ (caller->callee-props Σ₀-full
+                                                 (map Dom-name Doms)
+                                                 Wₓ*))))
 
     (: mon-doms : Σ -l -l (Listof Dom) W → R)
     (define (mon-doms Σ₀ l+ l- Doms₀ Wₓ₀)
@@ -377,6 +386,7 @@
                           #:unless (hash-has-key? Γ* T))
                  (hash-set Γ* T D)))
              (cons Ξ Γ*)))
+
          (with-each-path ([(ΔΣ₁ W) (evl Σ₀ E)]
                          [(ΔΣ₂ W) (mon (⧺ Σ₀ ΔΣ₁) ctx (car W) V)])
            (match-define (list V*) W) ; FIXME catch
