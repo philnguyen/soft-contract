@@ -50,7 +50,17 @@
   (: get-struct-info : -𝒾 → -struct-info)
   (define (get-struct-info 𝒾)
     (define structs (-static-info-structs (current-static-info)))
-    (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
+    (hash-ref
+     structs 𝒾
+     (λ ()
+       (define show : (-𝒾 → String)
+         (match-lambda [(-𝒾 x l) "~a@~a" x l]))
+       (error 'get-struct-info "Nothing for ~a among ~a"
+              𝒾
+              (string-join (map show (hash-keys structs))
+                           ", "
+                           #:before-first "["
+                           #:after-last "]")))))
 
   ;; Return number of fields that this struct directly declares
   (define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
