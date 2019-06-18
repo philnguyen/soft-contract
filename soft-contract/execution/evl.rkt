@@ -92,8 +92,9 @@
        (ensure-defined x ℓ (resolve 𝒾 Σ) Σ)]
       [(-x (and 𝒾 (-𝒾 x l)) ℓ) ; cross-module top-level reference
        (define Vs
-         (let ([Vs (unpack (Σ@ (γ:wrp 𝒾) Σ) Σ)]
-               [l- (ℓ-src ℓ)])
+         (let* ([γ (if (hash-has-key? (car Σ) (γ:wrp 𝒾)) (γ:wrp 𝒾) (γ:top 𝒾))]
+                [Vs (unpack (Σ@ γ Σ) Σ)]
+                [l- (ℓ-src ℓ)])
            (if (symbol? l)
                (for/set: : V^ ([V (in-set Vs)])
                  (with-negative-party l- V))

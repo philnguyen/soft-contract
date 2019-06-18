@@ -208,6 +208,11 @@
           "programs/safe/issues/re-exported-struct/posn-typed.rkt")
         check-safe)
   (test "safe/issues/list-star.rkt" check-safe)
+  (test '("programs/safe/issues/struct-out-twice/m1.rkt"
+          "programs/safe/issues/struct-out-twice/m2.rkt"
+          "programs/safe/issues/struct-out-twice/m3.rkt"
+          "programs/safe/issues/struct-out-twice/main.rkt")
+        check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -243,6 +248,11 @@
           "programs/unsafe/issues/re-exported-struct/posn-typed.rkt")
         check-fail)
   (test "unsafe/issues/list-star.rkt" check-fail)
+  (test '("programs/unsafe/issues/struct-out-twice/m1.rkt"
+          "programs/unsafe/issues/struct-out-twice/m2.rkt"
+          "programs/unsafe/issues/struct-out-twice/m3.rkt"
+          "programs/unsafe/issues/struct-out-twice/main.rkt")
+        check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
@@ -291,7 +301,7 @@
   ;; big ones
   (test "safe/real/nucleic2-modular-fixed.rkt" (check 'Ok-pos 0 8))
   (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 10))
-  (test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
+  #;(test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
 
   (test   "safe/interp/main.rkt" check-safe)
   (test "unsafe/interp/main.rkt" check-fail)

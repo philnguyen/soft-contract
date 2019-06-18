@@ -200,9 +200,9 @@
            [(? -prim? p) (prim-root p)]
            [(? -•?) {set (γ:hv #f)}]
            [(-x x ℓ)
-            {set (cond [(symbol? x) (γ:lex x)]
-                       [(equal? (ℓ-src ℓ) (-𝒾-src x)) (γ:top x)]
-                       [else (γ:wrp x)])}]
+            (cond [(symbol? x) {set (γ:lex x)}]
+                  [(equal? (ℓ-src ℓ) (-𝒾-src x)) {set (γ:top x)}]
+                  [else {set #|want both due to Racket's internal opt.|# (γ:top x) (γ:wrp x)}])]
            [(-λ xs e _) (set-subtract (E-root e) (map/set γ:lex (formals->names xs #:eq? #f)))]
            [(-case-λ cases _) (apply ∪ ∅ (map E-root cases))]
            [(-@ f xs _) (apply ∪ (E-root f) (map E-root xs))]

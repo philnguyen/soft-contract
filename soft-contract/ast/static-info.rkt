@@ -35,6 +35,7 @@
                   (make-hash)
                   (make-hash)
                   (make-hash)
+                  (make-hash)
                   (make-hash)))
 
   (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -54,11 +55,9 @@
     (hash-ref
      structs 𝒾
      (λ ()
-       (define show : (-𝒾 → String)
-         (match-lambda [(-𝒾 x l) (format "~a@~a" x l)]))
        (error 'get-struct-info "Nothing for ~a among ~a"
-              𝒾
-              (string-join (map show (hash-keys structs))
+              (show-𝒾 𝒾)
+              (string-join (map show-𝒾 (hash-keys structs))
                            ", "
                            #:before-first "["
                            #:after-last "]")))))
@@ -81,9 +80,10 @@
           (struct-accessor-name 𝒾* (- i o)))))
   (define (add-struct-info! [𝒾 : -𝒾] [direct-fields : (Listof Symbol)] [mutables : (Setof Natural)])
     (define v
-      (for/vector : (Vectorof (Pairof Symbol Boolean)) #:length (length direct-fields)
-                  ([(fld i) (in-indexed direct-fields)])
-        (cons fld (∋ mutables i))))
+      (vector->immutable-vector
+       (for/vector : (Vectorof (Pairof Symbol Boolean)) #:length (length direct-fields)
+                   ([(fld i) (in-indexed direct-fields)])
+                   (cons fld (∋ mutables i)))))
     (define m (-static-info-structs (current-static-info)))
     (cond
       [(hash-ref m 𝒾 #f) =>
@@ -273,4 +273,17 @@
 
   (: prim-struct? : -𝒾 → Boolean)
   (define (prim-struct? 𝒾) (hash-has-key? primitive-struct-info 𝒾))
+
+  (: set-struct-alias! : -𝒾 -𝒾 → Void)
+  (define (set-struct-alias! 𝒾-ref 𝒾-def)
+    (define m (-static-info-struct-alias (current-static-info)))
+    (match (hash-ref m 𝒾-ref #f)
+      [#f (hash-set! m 𝒾-ref 𝒾-def)]
+      [(== 𝒾-def) (void)]
+      [(? values 𝒾*) (error 'set-struct-alias! "~a ↦ ~a, attempt to set to ~a"
+                            (show-𝒾 𝒾-ref) (show-𝒾 𝒾*) (show-𝒾 𝒾-def))]))
+
+  (: resolve-struct-alias : -𝒾 → -𝒾)
+  (define (resolve-struct-alias 𝒾)
+    (hash-ref (-static-info-struct-alias (current-static-info)) 𝒾 (λ () 𝒾)))
   )
