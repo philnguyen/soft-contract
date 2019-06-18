@@ -207,7 +207,7 @@
    [show-provide-spec : (-provide-spec → Sexp)]
    [show-require-spec : (-require-spec → Sexp)]
    [show-formals : (-formals → Sexp)]
-   [show-𝒾 : (-𝒾 → Sexp)]
+   [show-𝒾 : (-𝒾 → String)]
    [show-values-lift : (∀ (X) (X → Sexp) → (Listof X) → Sexp)]
    [show-values : ((Listof -e) → Sexp)]
    [show-subst : (Subst → (Listof Sexp))]
@@ -247,7 +247,7 @@
 ;;;;; program-dependent static info
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-new-subtype -struct-info (Vector->struct-info (Vectorof (Pairof Symbol Boolean))))
+(define-new-subtype -struct-info (Vector->struct-info (Immutable-Vectorof (Pairof Symbol Boolean))))
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
@@ -258,7 +258,8 @@
                       [alternate-alias-ids : (HashTable -l Symbol)]
                       [assignables : (HashTable (U Symbol -𝒾) #t)]
                       [parentstruct : (HashTable -𝒾 -𝒾)]
-                      [transparent-modules : (HashTable -l #t)])
+                      [transparent-modules : (HashTable -l #t)]
+                      [struct-alias : (HashTable -𝒾 -𝒾)])
   #:transparent)
 
 (define-signature static-info^
@@ -293,4 +294,6 @@
    [count-struct-fields : (-𝒾 → Index)]
    [add-transparent-module! : (-l → Void)]
    [transparent-module? : (-l → Boolean)]
-   [prim-struct? : (-𝒾 → Boolean)]))
+   [prim-struct? : (-𝒾 → Boolean)]
+   [resolve-struct-alias : (-𝒾 → -𝒾)]
+   [set-struct-alias! : (-𝒾 -𝒾 → Void)]))

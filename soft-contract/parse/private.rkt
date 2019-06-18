@@ -303,9 +303,12 @@
        (list* dec-constr dec-pred dec-acs)]
       [d:scv-id-struct-out
        (match-define (and s-id (-𝒾 s-name src)) (parse-id (attribute d.struct-id)))
+       (define 𝒾* (resolve-struct-alias s-id))
+       (unless (equal? (cur-path) (-𝒾-src 𝒾*))
+         (set-struct-alias! (-𝒾 (-𝒾-name 𝒾*) (cur-path)) 𝒾*))
        (list* s-id
               (-𝒾 (format-symbol "~a?" s-name) src)
-              (map (λ (x) (-𝒾 x src)) (struct-direct-accessor-names (-𝒾 s-name src))))]
+              (map (λ (x) (-𝒾 x src)) (struct-direct-accessor-names 𝒾*)))]
       [(#%plain-app (~literal list) x:id c:expr)
        (list (-p/c-item (parse-id #'x) (parse-e #'c) (next-ℓ! #'x)))]
       [x:id (list (parse-id #'x))]))

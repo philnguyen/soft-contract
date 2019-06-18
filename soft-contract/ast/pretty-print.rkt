@@ -165,9 +165,9 @@
       [(-var xs (? values x)) (cons xs x)]
       [(-var xs _) xs]))
 
-  (define show-𝒾 : (-𝒾 → Symbol)
+  (define show-𝒾 : (-𝒾 → String)
     (match-lambda
-      [(-𝒾 name from) (format-symbol "~a@~a" name from)]))
+      [(-𝒾 name from) (format "~a@~a" name from)]))
 
   (: show-values-lift (∀ (X) (X → Sexp) → (Listof X) → Sexp))
   (define (show-values-lift show-elem)

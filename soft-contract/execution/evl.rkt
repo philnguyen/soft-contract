@@ -94,7 +94,7 @@
                 (values (γ:lex x) (inst values V^))]
                [(equal? (ℓ-src ℓ) (-𝒾-src x))
                 (values (γ:top x) (inst values V^))]
-               [else
+               [(hash-has-key? Σ (γ:wrp x))
                 (values (γ:wrp x)
                         (if (symbol? (-𝒾-src x))
                             (λ ([Vs : V^])
@@ -103,7 +103,9 @@
                             (λ ([Vs : V^])
                               (for/set: : V^ ([V (in-set (unpack Vs Σ))])
                                 (with-positive-party 'dummy+
-                                  (with-negative-party (ℓ-src ℓ) V))))))]))
+                                  (with-negative-party (ℓ-src ℓ) V))))))]
+               [else ; HACK for some expanded program referring to unprovided + unchecked identifiers
+                (values (γ:top x) (inst values V^))]))
        (define res (modify-Vs (lookup α Σ)))
        (define r (R-of (if (set? res) (set-remove res -undefined) res)))
        (define es (if (∋ (unpack res Σ) -undefined)
