@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         (only-in racket/string string-join)
          typed/racket/unit
          set-extras
          "signatures.rkt")
@@ -54,7 +55,7 @@
      structs 𝒾
      (λ ()
        (define show : (-𝒾 → String)
-         (match-lambda [(-𝒾 x l) "~a@~a" x l]))
+         (match-lambda [(-𝒾 x l) (format "~a@~a" x l)]))
        (error 'get-struct-info "Nothing for ~a among ~a"
               𝒾
               (string-join (map show (hash-keys structs))
