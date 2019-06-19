@@ -42,17 +42,22 @@
   (def (scv:struct/c Σ ℓ W)
     #:init ([Vₖ any/c])
     #:rest [Wᵣ (listof contract?)]
-    ((inst fold-ans V)
-     (match-lambda
-       [(-st-mk 𝒾)
-        (if (= (count-struct-fields 𝒾) (length Wᵣ))
-            (let ([α (α:dyn (β:st/c-elems ℓ 𝒾) H₀)])
-              (R-of (St/C α) (alloc α (list->vector Wᵣ))))
-            (begin (err! (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ))
-                   ⊥R))]
-       [_ (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))
-          ⊥R])
-     (unpack Vₖ Σ)))
+    (define-set seen : α #:mutable? #t)
+    (define step : (V → R)
+      (match-lambda
+        [(-st-mk 𝒾)
+         (if (= (count-struct-fields 𝒾) (length Wᵣ))
+             (let ([α (α:dyn (β:st/c-elems ℓ 𝒾) H₀)])
+               (R-of (St/C α) (alloc α (list->vector Wᵣ))))
+             (begin (err! (Err:Arity (-𝒾-name 𝒾) Wᵣ ℓ))
+                    ⊥R))]
+        [(Guarded _ _ α)
+         (cond [(seen-has? α) ⊥R]
+               [else (seen-add! α)
+                     (fold-ans step (Σ@ α Σ))])]
+        [_ (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))
+           ⊥R]))
+    (fold-ans step (unpack Vₖ Σ)))
 
   (def (scv:hash-key Σ ℓ W)
     #:init ([Vₕ hash?])

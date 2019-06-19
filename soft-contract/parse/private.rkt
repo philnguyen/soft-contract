@@ -274,16 +274,17 @@
       #:literals (quote #%plain-app)
       [d:scv-struct-out
        (define ℓ (attribute d.loc))
-       (define ctr (attribute d.constr))
-       (define s-name (syntax-e ctr))
        (define st-doms (map parse-e (attribute d.field-contracts)))
        (define n (length st-doms))
-       (match-define (and ctr-ref (-x (-𝒾 _ src) _)) (parse-ref ctr))
+       (match-define (and ctr-ref (-x (and s-id (-𝒾 s-name src)) _)) (parse-ref (attribute d.struct-id)))
+       (define 𝒾* (resolve-struct-alias s-id))
+       (unless (equal? (cur-path) (-𝒾-src 𝒾*))
+         (set-struct-alias! (-𝒾 (-𝒾-name 𝒾*) (cur-path)) 𝒾*))
        (define st-p (-@ 'scv:struct/c (cons ctr-ref st-doms) ℓ))
        (define dec-constr
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
-           (-p/c-item (-𝒾 s-name src) (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
+           (-p/c-item s-id (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
@@ -332,6 +333,7 @@
                         (syntax-e #'variable-reference->module-source/submod)))
        (set-alternate-alias-id! (cur-path) (syntax-e #'lifted.0))
        #f]
+
       [(#%plain-app call-with-values (#%plain-lambda () e) print-values:id)
        #:when (equal? 'print-values (syntax->datum #'print-values))
        (parse-e #'e)]
@@ -382,7 +384,7 @@
        (cond
          [(set-empty? frees)
           (add-top-level! (-𝒾 lhs (cur-path)))
-          (-define-values (list lhs) rhs ℓ)]
+          (filter-out-junks (-define-values (list lhs) rhs ℓ))]
          [(set-empty? (set-remove frees lhs))
           (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
           (add-top-level! (-𝒾 lhs (cur-path)))
@@ -397,7 +399,7 @@
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
          (add-top-level! (-𝒾 i (cur-path))))
-       (-define-values lhs (parse-e #'e) (next-ℓ! #'d))]
+       (filter-out-junks (-define-values lhs (parse-e #'e) (next-ℓ! #'d)))]
       [(#%require spec ...) #f]
       [(~and d (define-syntaxes (k:id) ; constructor alias
                  (~and rhs
@@ -410,6 +412,15 @@
        (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-path)) (next-ℓ! #'d)) (next-ℓ! #'d))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
+
+  ;; Clueless HACK to get rid of junk definitions involving intermediate ids
+  (define/contract filter-out-junks
+    (-define-values? . -> . (or/c #f -define-values?))
+    (match-lambda
+      [(-define-values _ (-@ (-x (? -𝒾? 𝒾) _) _ _) _)
+       #:when (get-export-alias 𝒾 (λ () #f))
+       #f]
+      [d d]))
 
   (define/contract (parse-es es)
     ((and/c scv-syntax? (not/c identifier?)) . -> . (listof -e?))
@@ -704,7 +715,6 @@
 
   (define/contract (parse-ref id)
     (identifier? . -> . -x?)
-
     (define (lookup)
       (hash-ref (env) (syntax-e id)
                 (λ ()
