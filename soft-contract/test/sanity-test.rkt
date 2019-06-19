@@ -192,6 +192,9 @@
           "programs/safe/issues/struct-out-twice/m3.rkt"
           "programs/safe/issues/struct-out-twice/main.rkt")
         check-safe)
+  (test '("programs/safe/issues/struct-out-twice/data.rkt"
+          "programs/safe/issues/struct-out-twice/data-adaptor.rkt")
+        check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -230,6 +233,9 @@
           "programs/unsafe/issues/struct-out-twice/m2.rkt"
           "programs/unsafe/issues/struct-out-twice/m3.rkt"
           "programs/unsafe/issues/struct-out-twice/main.rkt")
+        check-fail)
+  (test '("programs/unsafe/issues/struct-out-twice/data.rkt"
+          "programs/unsafe/issues/struct-out-twice/data-adaptor.rkt")
         check-fail)
 
   ;; Slightly larger ones
