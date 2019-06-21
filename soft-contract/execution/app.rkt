@@ -44,8 +44,15 @@
      (λ (Vₕ)
        (define root (∪ W:root (V-root Vₕ)))
        (define Σ* (gc root (⧺ Σ ΔΣ)))
-       (ref-$! ($:Key:App Σ* ℓ Vₕ W)
-               (λ () (with-gc root Σ* (λ () (with-pre ΔΣ (app₁ Σ* ℓ Vₕ W)))))))
+       (define-values (r es) (parameterize ([db:depth (+ (db:depth))]) (ref-$! ($:Key:App Σ* ℓ Vₕ W)
+                                     (λ () (with-gc root Σ* (λ () (with-pre ΔΣ (app₁ Σ* ℓ Vₕ W))))))))
+       (log-scv-eval-debug "~n~a~a ⊢ₐ ~a ~a ⇓ ~a~n"
+                           (make-string (* 4 (db:depth)) #\space)
+                           (show-Σ Σ*)
+                           (show-V Vₕ)
+                           (show-W W)
+                           (show-R r))
+       (values r es))
      (unpack Vₕ^ Σ)))
 
   (: app/C : Σ ℓ V^ W → (Values R (℘ Err)))

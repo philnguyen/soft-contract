@@ -11,7 +11,8 @@
          with-each-path
          with-each-ans
          with-pre
-         for/ans)
+         for/ans
+         log-scv-eval-debug)
 
 (require (for-syntax racket/base
                      (only-in racket/list append-map)
@@ -152,3 +153,5 @@
        #'(for/fold ([r : R ⊥R] [es : (℘ Err) ∅]) (clauses ...)
            (define-values (rᵢ esᵢ) (let () body ...))
            (values (R⊔ r rᵢ) (∪ es esᵢ))))]))
+
+(define-logger scv-eval)

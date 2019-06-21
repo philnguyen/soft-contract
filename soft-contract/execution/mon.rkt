@@ -348,8 +348,15 @@
      (λ (C)
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
-       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
-               (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
+       (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
+                                                                                 (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs)))))))
+       (log-scv-eval-debug "~n~a~a ⊢ₘ ~a ▷ ~a ⇓ ~a~n"
+                           (make-string (* 4 (db:depth)) #\space)
+                           (show-Σ Σ₀*)
+                           (show-V^ Vs)
+                           (show-V C)
+                           (show-R r))
+       (values r es))
      Cs))
 
   (: fc₁ : Σ ℓ V V^ → (Values R (℘ Err)))

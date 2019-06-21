@@ -72,8 +72,14 @@
   (define (evl Σ E)
     (define root (E-root E))
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Exp Σ* E)
-            (λ () (with-gc root Σ* (λ () (do-evl Σ* E))))))
+    (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Exp Σ* E)
+                                  (λ () (with-gc root Σ* (λ () (do-evl Σ* E)))))))
+    (log-scv-eval-debug "~n~a~a ⊢ₑ ~a ⇓ ~a~n"
+                        (make-string (* 4 (db:depth)) #\space)
+                        (show-Σ Σ*)
+                        (show-e E)
+                        (show-R r))
+    (values r es))
 
   (: do-evl : Σ E → (Values R (℘ Err)))
   ;; Evaluate `E₀` under `Σ` without caching `E₀`
