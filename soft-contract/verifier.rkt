@@ -38,9 +38,7 @@
     (with-initialized-static-info
       (exec (if (list? x) (-prog (parse-files x)) x))))
 
-  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof (List -l
-                                                                           (List -l Integer Integer)
-                                                                           (List -l Integer Integer))))
+  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof Serialized-Blm))
   (define (verify-modules fns stxs)
     (with-initialized-static-info
       (define ms (parse-stxs fns stxs))
@@ -79,12 +77,10 @@
       (define hv (-module 'havoc (list (gen-havoc-expr (list (last ms))))))
       (exec (-prog `(,@ms ,hv)))))
 
-  (define serialize-Blm : (Blm → (List -l
-                                       (List -l Integer Integer)
-                                       (List -l Integer Integer)))
+  (define serialize-Blm : (Blm → Serialized-Blm)
     (let ([serialize-ℓ (λ ([ℓ : ℓ]) (list (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ)))])
       (match-lambda
-        [(Blm party site origin _ _)
-         (list party (serialize-ℓ site) (serialize-ℓ origin))])))
+        [(Blm party site origin ctc val)
+         (list party (serialize-ℓ site) (serialize-ℓ origin) (show-W ctc) (show-W val))])))
   )
 

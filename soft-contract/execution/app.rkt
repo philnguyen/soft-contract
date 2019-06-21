@@ -23,7 +23,7 @@
 (⟦G⟧ . ≜ . (Σ ℓ W V^ → (Values R (℘ Err))))
 
 (define-unit app@
-  (import meta-functions^ static-info^
+  (import meta-functions^ static-info^ ast-pretty-print^
           sto^ cache^ val^ pretty-print^
           prims^ prover^
           exec^ evl^ mon^ hv^ gc^)
@@ -183,7 +183,7 @@
        (with-split-Σ Σ (-st-p 𝒾) Wₓ
          (λ (Wₓ* ΔΣ₁) (with-pre ΔΣ₁ ((unchecked-app-st-ac 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*))))
          (λ (Wₓ* ΔΣ₂)
-           (define ℓₒ (ℓ-with-src +ℓ₀ (-𝒾-name 𝒾)))
+           (define ℓₒ (ℓ-with-src +ℓ₀ (show-o (-st-ac 𝒾 i))))
            (err (blm (ℓ-src ℓ) ℓ ℓₒ (list {set (-st-p 𝒾)}) Wₓ*))))]))
 
   (: unchecked-app-st-ac : -𝒾 Index → Σ ℓ V^ → (Values R (℘ Err)))
@@ -228,7 +228,7 @@
       [(list Vₓ V*)
        (with-split-Σ Σ (-st-p 𝒾) (list Vₓ)
          (λ (Wₓ* ΔΣ₁) (with-pre ΔΣ₁ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*) V*)))
-         (λ (Wₓ* ΔΣ₂) (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set (-st-p 𝒾)}) Wₓ*))))]))
+         (λ (Wₓ* ΔΣ₂) (err (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ (show-o (-st-mut 𝒾 i))) (list {set (-st-p 𝒾)}) Wₓ*))))]))
 
   (: unchecked-app-st-mut : -𝒾 Index → Σ ℓ V^ V^ → (Values R (℘ Err)))
   (define ((unchecked-app-st-mut 𝒾 i) Σ ℓ Vₓ V*)
@@ -430,7 +430,7 @@
 
   (: app-err : V → ⟦F⟧)
   (define ((app-err V) Σ ℓ Wₓ)
-    (err (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'procedure?}) (list {set V}))))
+    (err (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'Λ) (list {set 'procedure?}) (list {set V}))))
 
   (: app/rest : Σ ℓ V^ W V^ → (Values R (℘ Err)))
   (define (app/rest Σ ℓ Vₕ^ Wₓ Vᵣ)
