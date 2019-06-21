@@ -347,11 +347,6 @@
   (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
     (match-define (cons l+ l-) ctx:saved)
     (match-define (==>i (-var Doms ?Doms:rest) Rngs ?total) G)
-    (define Wₓ (unpack-W Wₓ* Σ₀-full))
-    (define Σ₀ (⧺ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full)
-                  (cons ⊥Ξ (caller->callee-props Σ₀-full
-                                                 (map Dom-name Doms)
-                                                 Wₓ*))))
 
     (: mon-doms : Σ -l -l (Listof Dom) W → R)
     (define (mon-doms Σ₀ l+ l- Doms₀ Wₓ₀)
@@ -393,14 +388,14 @@
            (R-of W (⧺ ΔΣ₁ ΔΣ₂ (alloc-lex Σ x V*))))]
         ;; Non-dependent domain
         [(? α? α)
-         (with-each-path ([(ΔΣ W) (mon Σ ctx (Σ@ α Σ₀) V)])
+         (with-each-path ([(ΔΣ W) (mon Σ ctx (Σ@ α Σ) V)])
            (match-define (list V*) W)
            (R-of W (⧺ ΔΣ (alloc-lex Σ x V*))))]))
 
     (define Dom-ref (match-lambda [(Dom x _ _) {set (γ:lex x)}]))
 
     ;; Maybe monitor the result from applying the inner function
-    (define (with-result [ΔΣ-acc : ΔΣ] [comp : (→ R)])
+    (define (with-result [Σ₀ : Σ] [ΔΣ-acc : ΔΣ] [comp : (→ R)])
       (define r
         (if Rngs
             (with-each-path ([(ΔΣₐ Wₐ) (comp)])
@@ -410,7 +405,7 @@
 
     (: maybe-check-termination : (→ R) → (→ R))
     (define ((maybe-check-termination comp))
-      (with-sct-guard Σ₀ ℓ (Guarded ctx:saved G αₕ) Wₓ*
+      (with-sct-guard Σ₀-full ℓ (Guarded ctx:saved G αₕ) Wₓ*
         (cond [(not ?total) comp]
               [else (λ ()
                       (parameterize ([current-MS
@@ -419,23 +414,28 @@
                                                       [#f         (hash)]))])
                         (comp)))])))
 
-    (with-guarded-arity Wₓ G ℓ
-      [Wₓ
-       #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
-       (with-each-path ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
-         (define args (map Dom-ref Doms))
-         (with-result ΔΣₓ (maybe-check-termination (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args)))))]
-      [Wₓ
-       #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
-       (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
-       (define-values (Vᵣ ΔΣᵣ) (alloc-rest (Dom-loc ?Doms:rest) Wᵣ))
-       (with-each-path ([(ΔΣ-init _) (mon-doms Σ₀ l- l+ Doms W₀)]
-                       [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) l- l+ ?Doms:rest Vᵣ)])
-         (define args-init (map Dom-ref Doms))
-         (define arg-rest (Dom-ref ?Doms:rest))
-         (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
-           (maybe-check-termination
-            (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))]))
+    (let* ([Wₓ (unpack-W Wₓ* Σ₀-full)]
+           [Σ₀ (⧺ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full)
+                  (cons ⊥Ξ (caller->callee-props Σ₀-full
+                                                 (map Dom-name Doms)
+                                                 Wₓ*)))])
+      (with-guarded-arity Wₓ G ℓ
+        [Wₓ
+         #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
+         (with-each-path ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
+           (define args (map Dom-ref Doms))
+           (with-result Σ₀ ΔΣₓ (maybe-check-termination (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args)))))]
+        [Wₓ
+         #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
+         (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
+         (define-values (Vᵣ ΔΣᵣ) (alloc-rest (Dom-loc ?Doms:rest) Wᵣ))
+         (with-each-path ([(ΔΣ-init _) (mon-doms Σ₀ l- l+ Doms W₀)]
+                          [(ΔΣ-rest _) (mon-dom (⧺ Σ₀ ΔΣ-init ΔΣᵣ) l- l+ ?Doms:rest Vᵣ)])
+           (define args-init (map Dom-ref Doms))
+           (define arg-rest (Dom-ref ?Doms:rest))
+           (with-result Σ₀ (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
+             (maybe-check-termination
+              (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))])))
 
   (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)

@@ -90,7 +90,8 @@
             (for*/fold ([Γ : Γ Γ₁]) ([Vs (in-list W)]
                                      [V (in-set Vs)]
                                      #:when (T? V)
-                                     #:unless (hash-has-key? Γ V))
+                                     #:unless (hash-has-key? Γ V)
+                                     #:unless (and (T:@? V) (-st-ac? (T:@-_0 V))))
               (hash-set Γ V ●)))))
 
   (: concat-graph : SCG SCG → SCG)
