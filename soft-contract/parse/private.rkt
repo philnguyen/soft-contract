@@ -117,7 +117,10 @@
              (log-scv-parser-debug "~a" (pretty (syntax->datum stx))))
            (log-scv-parser-debug "internal ast:")
            (for ([m (in-list ans)])
-             (log-scv-parser-debug "~a" (pretty m))))
+             (log-scv-parser-debug "~a" (pretty m)))
+           (log-scv-parser-debug "appendix:")
+           (for ([ℓ (in-range (count-ℓ))])
+             (log-scv-parser-debug "~a ↦ ~a" ℓ (ℓ->loc ℓ))))
          ans))
 
     (define (parse-stxs fns input-stxs)
