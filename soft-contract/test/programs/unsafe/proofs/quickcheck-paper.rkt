@@ -153,7 +153,7 @@
              ['() (proof:cons-ordered? z* z zs*)]
              [(cons z** zs**)
               (if (<= z z**)
-                  (proof:cons-ordered? z* z (cdr (insert z zs*)))
+                  (proof:cons-ordered? z z* (cdr (insert z zs*)))
                   (if (ordered? zs*) (proof:insert z zs*) 'contra))]))])))
 
 

@@ -309,6 +309,9 @@
   (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 10))
   #;(test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
 
+  (test   "safe/proofs/quickcheck-paper.rkt" check-safe)
+  (test "unsafe/proofs/quickcheck-paper.rkt" check-fail)
+
   (test   "safe/interp/main.rkt" check-safe)
   (test "unsafe/interp/main.rkt" check-fail)
   )
