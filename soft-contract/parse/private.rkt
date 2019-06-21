@@ -32,6 +32,8 @@
                      racket/contract
                      ))
 
+(define-logger scv-parser)
+
 (define-unit parser-helper@
   (import static-info^ ast-macros^ meta-functions^ prims^)
   (export parser-helper^)
@@ -108,7 +110,15 @@
        (define (stxs->modules stxs fns)
          ;; Re-order the modules for an appropriate initilization order,
          ;; learned from side-effects of `parse-module`
-         (sort (stx-map parse-module stxs fns) module-before? #:key -module-path)))
+         (define ans (sort (stx-map parse-module stxs fns) module-before? #:key -module-path))
+         (begin
+           (log-scv-parser-debug "fully expanded:")
+           (for ([stx (in-list stxs)])
+             (log-scv-parser-debug "~a" (pretty (syntax->datum stx))))
+           (log-scv-parser-debug "internal ast:")
+           (for ([m (in-list ans)])
+             (log-scv-parser-debug "~a" (pretty m))))
+         ans))
 
     (define (parse-stxs fns input-stxs)
       ;((listof syntax?) . -> . (listof -module?))

@@ -19,7 +19,7 @@
 (: pretty : Any → String)
 ;; Pretty print given object
 (define (pretty x)
-  (parameterize ([pretty-print-columns 80])
+  (parameterize ([pretty-print-columns 100])
     (string-trim (with-output-to-string (λ () (pretty-display x))))))
 
 ;; Return superscript and subscript for given number
