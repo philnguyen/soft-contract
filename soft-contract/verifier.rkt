@@ -70,7 +70,7 @@
                     [#:delay Positive-Real]
                     . ->* . (Values (℘ Err) $)))
   (define (havoc/profile ps #:delay [delay 0.00001])
-    (profile2 (havoc ps) #:delay delay #:order 'self))
+    (profile2 (havoc ps) #:delay delay #:order 'self #:use-errortrace? #t))
 
   (: havoc-last : (Listof Path-String) → (Values (℘ Err) $))
   (define (havoc-last ps)
