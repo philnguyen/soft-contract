@@ -240,16 +240,16 @@
                 (format "don't know what `~a` means" (syntax-e #'α))
                 (-sig)
                 #'α)])]
-      [l:lit #'(P:≡ (-b l))]
+      [l:lit #'(P:≡ l)]
       [((~literal not/c) c*)
        #`(Not/C #,(gen-ctc-α #'c*) #,(gen-stx-ℓ #'c*))]
       [(o:cmp r:number)
        (syntax-parse #'o
-         [(~literal >/c)  #'(P:> (-b r))]
-         [(~literal </c)  #'(P:< (-b r))]
-         [(~literal >=/c) #'(P:≥ (-b r))]
-         [(~literal <=/c) #'(P:≤ (-b r))]
-         [(~literal =/c)  #'(P:= (-b r))])]
+         [(~literal >/c)  #'(P:> r)]
+         [(~literal </c)  #'(P:< r)]
+         [(~literal >=/c) #'(P:≥ r)]
+         [(~literal <=/c) #'(P:≤ r)]
+         [(~literal =/c)  #'(P:= r)])]
       [((~literal -> )  c ...           d) (gen-==> #'(c ...) #f  #'d)]
       [((~literal ->*) (c ...) #:rest r d) (gen-==> #'(c ...) #'r #'d)]
       [((~literal case->) clauses ...)

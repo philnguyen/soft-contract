@@ -75,7 +75,7 @@
       ['hash-empty? {set (Empty-Hash)}]
       ['void? {set -void}]
       ;[(-st-p 𝒾) #:when (zero? (count-struct-fields 𝒾)) {set (St 𝒾 '() ∅)}]
-      [(P:≡ (? -b? b)) {set b}]
+      [(P:≡ b) {set (-b b)}]
       [_ #f]))
 
   (: refine : V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))
@@ -145,13 +145,13 @@
   (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
   (define (refine₂ V₁ V₂ P Σ)
     (match P
-      ['<  (refine-both (K:≤) -ff V₂ P:> V₁ P:< Σ)] ; V₁ < V₂ ⇔ ¬ (V₁ ≥ V₂) ⇔ ¬ (V₂ ≤ V₁)
-      ['<= (refine-both (K:≤) -tt V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both (K:≤) -ff V₁ P:> V₂ P:< Σ)] ; V₁ > V₂ ⇔ ¬ (V₁ ≤ V₂)
-      ['>= (refine-both (K:≤) -tt V₂ P:≤ V₁ P:≥ Σ)]
-      ['=  (refine-both (K:=) -tt V₁ P:= V₂ P:= Σ)]
+      ['<  (refine-both real? (K:≤) -ff V₂ P:> V₁ P:< Σ)] ; V₁ < V₂ ⇔ ¬ (V₁ ≥ V₂) ⇔ ¬ (V₂ ≤ V₁)
+      ['<= (refine-both real? (K:≤) -tt V₁ P:≤ V₂ P:≥ Σ)]
+      ['>  (refine-both real? (K:≤) -ff V₁ P:> V₂ P:< Σ)] ; V₁ > V₂ ⇔ ¬ (V₁ ≤ V₂)
+      ['>= (refine-both real? (K:≤) -tt V₂ P:≤ V₁ P:≥ Σ)]
+      ['=  (refine-both number? (K:=) -tt V₁ P:= V₂ P:= Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both (K:≡) -tt V₁ P:≡ V₂ P:≡ Σ)]
+       (refine-both base? (K:≡) -tt V₁ P:≡ V₂ P:≡ Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
@@ -163,9 +163,9 @@
       ['>  (refine '<=)]
       ['>= (refine '<)]
       ['=
-       (refine-both (K:=) -ff V₁ (compose P:¬ P:=) V₂ (compose P:¬ P:=) Σ)]
+       (refine-both number? (K:=) -ff V₁ (compose P:¬ P:=) V₂ (compose P:¬ P:=) Σ)]
       [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both (K:≡) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
+       (refine-both base? (K:≡) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
       [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: refine-V^ : V^ (U V V^) Σ → V^)
@@ -198,19 +198,19 @@
       (match-lambda**/symmetry
        [(P Q) #:when (equal? '✓ (P⊢P Σ P Q)) (list P)]
        [((or 'exact-integer? 'exact-nonnegative-integer?)
-         (P:≥ (-b (and (? (between/c 0 1)) (not 0)))))
+         (P:≥ (and (? (between/c 0 1)) (not 0))))
         (list 'exact-positive-integer?)]
        [((or 'exact-integer? 'exact-nonnegative-integer?)
-         (P:> (-b (and (? (between/c 0 1)) (not 1)))))
+         (P:> (and (? (between/c 0 1)) (not 1))))
         (list 'exact-positive-integer?)]
-       [('exact-integer? (P:≥ (-b (and (? (between/c -1 0)) (not -1)))))
+       [('exact-integer? (P:≥ (and (? (between/c -1 0)) (not -1))))
         (list 'exact-nonnegative-integer?)]
-       [('exact-integer? (P:> (-b (and (? (between/c -1 0)) (not  0)))))
+       [('exact-integer? (P:> (and (? (between/c -1 0)) (not 0))))
         (list 'exact-nonnegative-integer?)]
        [((or 'exact-integer? 'exact-nonnegative-integer?) 'zero?)
-        (list (P:≡ -zero))]
-       [('exact-nonnegative-integer? (or (P:¬ (or 'zero? (P:= (-b 0)) (P:≤ (-b 0))))
-                                         (P:> (-b 0))))
+        (list (P:≡ 0))]
+       [('exact-nonnegative-integer? (or (P:¬ (or 'zero? (P:= 0) (P:≤ 0)))
+                                         (P:> 0)))
         (list 'exact-positive-integer?)]
        [('list? (P:¬ 'null?)) (list 'list? -cons?)]
        [('list? (P:¬ -cons?)) (list 'null?)]
@@ -249,12 +249,12 @@
               [(? -●?) !!!]
               [_ '✗])]
            [(P:¬ Q) (neg (sat₁ Σ Q V₀))]
-           [(P:≥ T) (sat₂ Σ '>= V₀ T)]
-           [(P:> T) (sat₂ Σ '>  V₀ T)]
-           [(P:≤ T) (sat₂ Σ '<= V₀ T)]
-           [(P:< T) (sat₂ Σ '<  V₀ T)]
-           [(P:= T) (sat₂ Σ '=  V₀ T)]
-           [(P:≡ T) (sat₂ Σ 'equal? V₀ T)]
+           [(P:≥ b) (sat₂ Σ '>= V₀ (-b b))]
+           [(P:> b) (sat₂ Σ '>  V₀ (-b b))]
+           [(P:≤ b) (sat₂ Σ '<= V₀ (-b b))]
+           [(P:< b) (sat₂ Σ '<  V₀ (-b b))]
+           [(P:= b) (sat₂ Σ '=  V₀ (-b b))]
+           [(P:≡ b) (sat₂ Σ 'equal? V₀ (-b b))]
            [(P:arity-includes a)
             (match (arity V₀)
               [(? values V₀:a) (bool->Dec (arity-includes? V₀:a a))]
@@ -412,10 +412,10 @@
           ['exact-nonnegative-integer? (if (< x 0) '✗ #f)]
           ['exact-positive-integer? (if (< x 1) '✗ #f)]
           ['zero? (bool->Dec (= x 0))]
-          [(or (P:= (-b (? real? y)))
-               (P:≡ (-b (? real? y))))
+          [(or (P:= (? real? y))
+               (P:≡ (? real? y)))
            (bool->Dec (= x (assert y)))]
-          [(P:¬ (P:= (-b (== x)))) '✗]
+          [(P:¬ (P:= (== x))) '✗]
           [_ #f]))
       (set-ormap check-P Ps))
     (match* (V₁ V₂)
@@ -431,19 +431,19 @@
       [((-b (? real? x)) (-● Ps))
        (for/or : ?Dec ([P (in-set Ps)])
          (match P
-           [(or (P:≥ (-b (? real? y))) (P:> (-b (? real? y)))) #:when (and y (>= y x)) '✓]
-           [(P:< (-b (? real? y))) #:when (<= y x) '✗]
+           [(or (P:≥ y) (P:> y)) #:when (and y (>= y x)) '✓]
+           [(P:< y) #:when (<= y x) '✗]
            ['exact-nonnegative-integer? #:when (<= x 0) '✓]
            ['exact-positive-integer? #:when (<= x 1) '✓]
            [_ #f]))]
       [((-● Ps) (-b (? real? y)))
        (for/or : ?Dec ([P (in-set Ps)])
          (match P
-           [(P:< (-b (? real? x))) (and (<= x y) '✓)]
-           [(P:≤ (-b (? real? x))) (and (<= x y) '✓)]
-           [(P:> (-b (? real? x))) (and (>= x y) '✗)]
-           [(P:≥ (-b (? real? x))) (and (>  x y) '✗)]
-           [(P:= (-b (? real? x))) (bool->Dec (<= x y))]
+           [(P:< x) (and (<= x y) '✓)]
+           [(P:≤ x) (and (<= x y) '✓)]
+           [(P:> x) (and (>= x y) '✗)]
+           [(P:≥ x) (and (>  x y) '✗)]
+           [(P:= (? real? x)) (bool->Dec (<= x y))]
            ['exact-nonnegaive-integer? #:when (< y 0) '✗]
            ['exact-positive-integer? #:when (< y 1) '✗]
            [_ #f]))]
@@ -496,8 +496,8 @@
     (define go-V
       (match-lambda**
        [((? -prim? x) (? -prim? y)) (bool->Dec (equal? x y))]
-       [((-● Ps) (and T (or (? -b?) (? T?)))) (Ps⊢P Σ Ps (P:≡ T))]
-       [((and T (or (? -b?) (? T?))) (-● Ps)) (Ps⊢P Σ Ps (P:≡ T))]
+       [((-● Ps) (-b b)) (Ps⊢P Σ Ps (P:≡ b))]
+       [((-b b) (-● Ps)) (Ps⊢P Σ Ps (P:≡ b))]
        [((? -prim?) (not (or (? -●?) (? T?) (? -prim?)))) '✗]
        [((-● Ps) (-● Qs))
         (match* ((singleton-pred Ps) (singleton-pred Qs))
@@ -576,13 +576,13 @@
       [((-st-p 𝒾₁) (-st-p 𝒾₂)) (bool->Dec (𝒾₁ . substruct? . 𝒾₂))]
       [((? base-only?) (? -st-p?)) '✗]
       [((? -st-p?) (? base-only?)) '✗]
-      [((One-Of/C bs) (P:≡ (-b b)))
+      [((One-Of/C bs) (P:≡ b))
        (if (∋ bs b)
            (if (> (set-count bs) 1) #f '✓)
            '✗)]
-      [((P:≡ (-b b)) (One-Of/C bs)) (bool->Dec (∋ bs b))]
-      [((P:≡ (? -b?)) (or (? -st-p?) 'vector? 'set? 'hash?)) '✗]
-      [((or (? -st-p?) 'vector? 'set? 'hash?) (P:≡ (? -b?))) '✗]
+      [((P:≡ b) (One-Of/C bs)) (bool->Dec (∋ bs b))]
+      [((P:≡ _) (or (? -st-p?) 'vector? 'set? 'hash?)) '✗]
+      [((or (? -st-p?) 'vector? 'set? 'hash?) (P:≡ _)) '✗]
       ;; Negate
       [((P:¬ P) (P:¬ Q)) (case (simple-P⊢P Σ Q P)
                            [(✓) '✓]
@@ -593,44 +593,44 @@
                      [else #f])]
       ;; Special rules for numbers
       ; < and <
-      [((P:≤ (-b (? real? a))) (P:< (-b (? real? b))))
+      [((P:≤ a) (P:< b))
        (and (<  a b) '✓)]
-      [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
-        (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
+      [((or (P:< a) (P:≤ a))
+        (or (P:< b) (P:≤ b)))
        (and a b (<= a b) '✓)]
       ; > and >
-      [((P:≥ (-b (? real? a))) (P:> (-b (? real? b))))
+      [((P:≥ a) (P:> b))
        (and (>  a b) '✓)]
-      [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
-        (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
+      [((or (P:> a) (P:≥ a))
+        (or (P:> b) (P:≥ b)))
        (and a b (>= a b) '✓)]
       ; < and >
-      [((P:≤ (-b (? real? a))) (P:≥ (-b (? real? b))))
+      [((P:≤ a) (P:≥ b))
        (and (<  a b) '✗)]
-      [((or (P:< (-b (? real? a))) (P:≤ (-b (? real? a))))
-        (or (P:> (-b (? real? b))) (P:≥ (-b (? real? b)))))
+      [((or (P:< a) (P:≤ a))
+        (or (P:> b) (P:≥ b)))
        (and a b (<= a b) '✗)]
       ; > and <
-      [((P:≥ (-b (? real? a))) (P:≤ (-b (? real? b))))
+      [((P:≥ a) (P:≤ b))
        (and (>  a b) '✗)]
-      [((or (P:> (-b (? real? a))) (P:≥ (-b (? real? a))))
-        (or (P:< (-b (? real? b))) (P:≤ (-b (? real? b)))))
+      [((or (P:> a) (P:≥ a))
+        (or (P:< b) (P:≤ b)))
        (and a b (>= a b) '✗)]
       ; _ -> real?
       ;; `(P T)` subsuming `real?` causes problem when `(P T)` gets dropped
       ;; due to `T` going out of scope
       #;[((or (? P:<?) (? P:≤?) (? P:>?) (? P:≥?) (? P:=?)) (or 'real? 'number?)) '✓]
-      [((P:= (and b (-b (? real?)))) Q) (sat₁ Σ Q b)]
+      [((P:= b) Q) (sat₁ Σ Q (-b b))]
       ; equal?
-      [((P:= (-b (? real? x))) (P:= (-b (? real? y)))) (bool->Dec (= x y))]
-      [((P:< (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<= a b) '✗]
-      [((P:≤ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (<  a b) '✗]
-      [((P:> (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>= a b) '✗]
-      [((P:≥ (-b (? real? a))) (P:= (-b (? real? b)))) #:when (>  a b) '✗]
-      [((P:= (-b (? real? a))) (P:< (-b (? real? b)))) (bool->Dec (<  a b))]
-      [((P:= (-b (? real? a))) (P:≤ (-b (? real? b)))) (bool->Dec (<= a b))]
-      [((P:= (-b (? real? a))) (P:> (-b (? real? b)))) (bool->Dec (>  a b))]
-      [((P:= (-b (? real? a))) (P:≥ (-b (? real? b)))) (bool->Dec (>= a b))]
+      [((P:= x) (P:= y)) (bool->Dec (= x y))]
+      [((P:< a) (P:= (? real? b))) #:when (<= a b) '✗]
+      [((P:≤ a) (P:= (? real? b))) #:when (<  a b) '✗]
+      [((P:> a) (P:= (? real? b))) #:when (>= a b) '✗]
+      [((P:≥ a) (P:= (? real? b))) #:when (>  a b) '✗]
+      [((P:= (? real? a)) (P:< b)) (bool->Dec (<  a b))]
+      [((P:= (? real? a)) (P:≤ b)) (bool->Dec (<= a b))]
+      [((P:= (? real? a)) (P:> b)) (bool->Dec (>  a b))]
+      [((P:= (? real? a)) (P:≥ b)) (bool->Dec (>= a b))]
       ;; Regardless of terms
       [((P:≤ T) (P:> T)) '✗]
       [((P:< T) (P:≥ T)) '✗]
@@ -661,12 +661,12 @@
   (: canonicalize : V → (U V (℘ P)))
   (define canonicalize
     (match-lambda
-      ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ -zero)}]
-      ['exact-positive-integer? {set 'exact? 'integer? (P:> -zero)}]
+      ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ 0)}]
+      ['exact-positive-integer? {set 'exact? 'integer? (P:> 0)}]
       ['exact-integer? {set 'exact? 'integer?}]
-      ['positive? (P:> -zero)]
-      ['negative? (P:< -zero)]
-      ['zero? (P:= -zero)]
+      ['positive? (P:> 0)]
+      ['negative? (P:< 0)]
+      ['zero? (P:= 0)]
       [(P:¬ 'even?) 'odd?]
       [(P:¬ 'odd?) 'even?]
       [(and P₀ (P:St ac P*))
@@ -804,19 +804,19 @@
             (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f)))
                  (cons (list Vs₁:f Vs₂:f) (assert ΔΣ:f)))))
 
-  (: refine-both : K -b V (-b → P) V (-b → P) Σ → (Values V^ V^ ΔΣ))
-  (define (refine-both P b V₁ P₁ V₂ P₂ Σ)
-    (cond
-      [(and (T? V₁) (T? V₂))
+  (: refine-both (∀ (X) (Base → Boolean : X) K -b V (X → P) V (X → P) Σ → (Values V^ V^ ΔΣ)))
+  (define (refine-both ub? P b V₁ P₁ V₂ P₂ Σ)
+    (match* (V₁ V₂)
+      [((? T? V₁) (? T? V₂))
        (define T-prop (T:@ P (list V₁ V₂)))
-       (values {set V₁} {set V₂} (cons ⊥Ξ (hash T-prop {set b})))]
-      [(and (T? V₁) (-b? V₂))
-       (define-values (V₁* ΔΣ) (refine₁ V₁ (P₁ V₂) Σ))
+       (values {set V₁} {set V₂} ((inst cons ΔΞ ΔΓ) ⊥Ξ (hash T-prop {set b})))]
+      [((? T? V₁) (-b (? ub? u₂)))
+       (define-values (V₁* ΔΣ) (refine₁ V₁ (P₁ u₂) Σ))
        (values V₁* {set V₂} ΔΣ)]
-      [(and (T? V₂) (-b? V₁))
-       (define-values (V₂* ΔΣ) (refine₁ V₂ (P₂ V₁) Σ))
+      [((-b (? ub? u₁)) (? T? V₂))
+       (define-values (V₂* ΔΣ) (refine₁ V₂ (P₂ u₁) Σ))
        (values {set V₁} V₂* ΔΣ)]
-      [else (values {set V₁} {set V₂} ⊥ΔΣ)]))
+      [(_ _) (values {set V₁} {set V₂} ⊥ΔΣ)]))
 
   (: ?ΔΣ⊔ : (Option ΔΣ) ΔΣ → ΔΣ)
   (define (?ΔΣ⊔ ?ΔΣ ΔΣ)
@@ -941,4 +941,7 @@
                 ∅ eqs diseqs)])
           (append (set->list more-eqs) eqs)))
       (sat? all-eqs diseqs)))
+
+    (: base? : Base → Boolean : Base)
+    (define (base? _) #t)
   )

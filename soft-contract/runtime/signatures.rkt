@@ -76,7 +76,7 @@
                                       [ctc : W]
                                       [val : W]))
 (#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St -st-ac P))
-(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)) (P:vec-len Index))
+(#|Pos. Predicates|# Q . ::= . -o (P:> Real) (P:≥ Real) (P:< Real) (P:≤ Real) (P:= Number) (P:arity-includes Arity) (P:≡ Base) (P:vec-len Index))
 (#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K R))
 (#|Result         |# R .  ≜  . (Immutable-HashTable W (℘ ΔΣ)))
 (#|Decisions      |# Dec . ::= . '✓ '✗)

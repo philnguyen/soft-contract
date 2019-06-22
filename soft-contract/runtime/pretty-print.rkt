@@ -49,12 +49,12 @@
   (define show-P : (P → Sexp)
     (match-lambda
       [(? -o? o) (show-o o)]
-      [(P:> T) `(>/c ,(show-T T))]
-      [(P:≥ T) `(≥/c ,(show-T T))]
-      [(P:< T) `(</c ,(show-T T))]
-      [(P:≤ T) `(≤/c ,(show-T T))]
-      [(P:= T) `(=/c ,(show-T T))]
-      [(P:≡ T) `(≡/c ,(show-T T))]
+      [(P:> T) `(>/c ,T)]
+      [(P:≥ T) `(≥/c ,T)]
+      [(P:< T) `(</c ,T)]
+      [(P:≤ T) `(≤/c ,T)]
+      [(P:= T) `(=/c ,T)]
+      [(P:≡ T) `(≡/c ,(show-b T))]
       [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
       [(P:¬ Q) `(¬/c ,(show-P Q))]
       [(P:St ac P*) `(,(show-V ac) ↝ ,(show-P P*))]

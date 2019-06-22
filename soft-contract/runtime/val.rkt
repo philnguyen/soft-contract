@@ -236,7 +236,7 @@
   (define (b∈Ps? b Ps)
     (define b^ {set b})
     (for/and : Boolean ([P (in-set Ps)])
-      (and (meaningful-without-store? P) (eq? '✓ (sat ⊥Σ P b^)))))
+      (eq? '✓ (sat ⊥Σ P b^))))
 
   (: Ps⇒Ps? : (℘ P) (℘ P) → Boolean)
   (define (Ps⇒Ps? Ps Qs)
@@ -250,16 +250,7 @@
         ;; FIXME: ugly redundancy, but `(P:> T)` need store in general
         (and (memq Q '(real? number?))
              (or (P:>? P) (P:≥? P) (P:<? P) (P:≤? P) (P:=? P)))
-        (and (meaningful-without-store? P)
-             (meaningful-without-store? Q)
-             (eq? '✓ (P⊢P ⊥Σ P Q)))))
-
-  (define meaningful-without-store? : (P → Boolean)
-    (match-lambda
-      [(P:¬ Q) (meaningful-without-store? Q)]
-      [(P:St acs Q) (meaningful-without-store? Q)]
-      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:≡ T)) (-b? T)]
-      [(or (? P:arity-includes?) (? -o?)) #t]))
+        (eq? '✓ (P⊢P ⊥Σ P Q))))
 
   (: merge/compact (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X)))
   ;; "Merge" `x` into `xs`, compacting the set according to `⊕`

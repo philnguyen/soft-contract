@@ -146,8 +146,7 @@
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
       [(? -prim? p) (prim-root p)]
-      [(? P? P) (P-root P)]
-      [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?)) ∅]))
+      [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?) (? P?)) ∅]))
 
   (define Clo-root : (Clo → (℘ α))
     (match-lambda [(Clo fml E α) (E-H-root fml E α)]))
@@ -160,16 +159,6 @@
                       (λ ()
                         (set-filter (λ (α) (not (γ:lex? α))) (E-root E)))))
         (set-add tops α))))
-
-  (define P-root : (P → (℘ (U α T)))
-    (match-lambda
-      [(P:¬ Q) (P-root Q)]
-      [(P:St _ P) (P-root P)]
-      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:≡ T))
-       (cond [(T:@? T) (T-root T)]
-             [(α? T) {set T}]
-             [else ∅])]
-      [_ ∅]))
 
   (: V^-root : V^ → (℘ (U α T)))
   (define (V^-root Vs) (set-union-map V-root Vs))

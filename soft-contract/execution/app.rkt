@@ -121,12 +121,12 @@
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(? St/C?) #:when (C-flat? V Σ) (app-St/C V)]
                 [(-● Ps) (app-opq Ps)]
-                [(P:≡ T) (app-P 'equal? T)]
-                [(P:= T) (app-P '= T)]
-                [(P:> T) (app-P '< T)]
-                [(P:≥ T) (app-P '<= T)]
-                [(P:< T) (app-P '> T)]
-                [(P:≤ T) (app-P '>= T)]
+                [(P:≡ b) (app-P 'equal? (-b b))]
+                [(P:= b) (app-P '= (-b b))]
+                [(P:> b) (app-P '< (-b b))]
+                [(P:≥ b) (app-P '<= (-b b))]
+                [(P:< b) (app-P '> (-b b))]
+                [(P:≤ b) (app-P '>= (-b b))]
                 [V (app-err! V)]))
     (f Σ ℓ W))
 
@@ -539,8 +539,8 @@
       (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set 'procedure?}) Wₕ))
          ⊥R)))
 
-  (: app-P : Symbol (U T -b) → ⟦F⟧)
-  (define ((app-P o T) Σ ℓ Wₓ) ((app-prim o) Σ ℓ (cons {set T} Wₓ)))
+  (: app-P : Symbol -b → ⟦F⟧)
+  (define ((app-P o b) Σ ℓ Wₓ) ((app-prim o) Σ ℓ (cons {set b} Wₓ)))
 
   (: app-err! : V → ⟦F⟧)
   (define ((app-err! V) Σ ℓ Wₓ)

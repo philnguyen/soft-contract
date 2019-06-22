@@ -413,11 +413,11 @@
                        (R-of (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
          (λ (W ΔΣ) (R-of (list (car W) -FF) ΔΣ)))]
       [(X/C α) (fc Σ₀ ℓ (Σ@ α Σ₀) (unpack Vs Σ₀))]
-      [(? -b? b)
+      [(and b (-b ub))
        (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
          (λ (_ ΔΣ) (R-of b ΔΣ))
          (λ (W ΔΣ)
-           (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ b)) Σ₀))
+           (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ ub)) Σ₀))
            (R-of (list V* -FF) (⧺ ΔΣ ΔΣ*))))]
       [_
        (define ΔΣₓ (alloc-lex Σ₀ x-mon Vs))
