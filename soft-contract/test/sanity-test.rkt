@@ -93,7 +93,7 @@
   (test "safe/mochi/nth0.rkt" check-safe)
   (test "safe/mochi/r-file.rkt" check-safe)
   #;(test "safe/mochi/r-lock.rkt" check-safe)
-  #;(test "safe/mochi/repeat.rkt" check-safe)
+  (test "safe/mochi/repeat.rkt" check-safe)
   #;(test "safe/mochi/reverse.rkt" check-safe)
   #;(test "safe/mochi/sum.rkt" check-safe)
   #;(test "safe/mochi/zip.rkt" check-safe)
