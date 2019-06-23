@@ -213,7 +213,7 @@
         [((-● Ps) (-● Qs))
          (define Ps*
            (for/fold ([Ps : (℘ P) Ps]) ([Q (in-set Qs)])
-             (refine-Ps Ps Q ⊥Σ)))
+             (refine-Ps Ps Q)))
          {set (-● Ps*)}]
         [((? values V₁) #f) {set V₁}]
         [(#f (? values V₂)) {set V₂}]
@@ -242,15 +242,7 @@
   (define (Ps⇒Ps? Ps Qs)
     (for/and : Boolean ([Q (in-set Qs)])
       (for/or : Boolean ([P (in-set Ps)])
-        (P⊢P-without-store? P Q))))
-
-  (: P⊢P-without-store? : P P → Boolean)
-  (define (P⊢P-without-store? P Q)
-    (or (equal? P Q)
-        ;; FIXME: ugly redundancy, but `(P:> T)` need store in general
-        (and (memq Q '(real? number?))
-             (or (P:>? P) (P:≥? P) (P:<? P) (P:≤? P) (P:=? P)))
-        (eq? '✓ (P⊢P ⊥Σ P Q))))
+        (eq? '✓ (P⊢P P Q)))))
 
   (: merge/compact (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X)))
   ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
