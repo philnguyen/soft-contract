@@ -65,11 +65,16 @@
   (λ (xs ys)
     (if (null? xs)
         'trivial
-        (length-append (cdr xs) ys))))
+        ;; TODO:
+        ;; Below is just because SCV can't automatically recognize associativity of `+`
+        ;; when using congruence closure to prove equality
+        (let ([_ (equal? (+ (+ 1 (length (cdr xs))) (length ys))
+                         (+ 1 (+ (length (cdr xs)) (length ys))))])
+          (length-append (cdr xs) ys)))))
 
 (provide
  (contract-out
   [map-preserves-length prop:map-preserves-length]
   [append-assoc prop:append-assoc]
   [map-append prop:map-append]
-  #;[length-append (list? list? . -> . any/c)]))
+  [length-append prop:length-append]))

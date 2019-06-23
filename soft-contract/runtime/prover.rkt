@@ -508,6 +508,12 @@
        [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
          (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))
         (and (equal? 𝒾₁ 𝒾₂) (go-blob α₁ α₂))]
+       [((T:@ o (list T₁ (T:@ o (list T₂ T₃))))
+         (T:@ o (list (T:@ o (list T₁ T₂)) T₃)))
+        #:when (memq o '(+ *)) '✓]
+       [((T:@ o (list (T:@ o (list T₁ T₂)) T₃))
+         (T:@ o (list T₁ (T:@ o (list T₂ T₃)))))
+        #:when (memq o '(+ *)) '✓]
        [((? T? T₁) (? T? T₂)) (check-equal?/congruence (cdr Σ) T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
