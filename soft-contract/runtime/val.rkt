@@ -126,7 +126,7 @@
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
-        [(or (? Clo?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
+        [(or (? Clo?) (? -λ?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
         [(X/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
