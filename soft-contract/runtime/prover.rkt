@@ -268,7 +268,7 @@
                 [(? Not/C?) #t]
                 [(? One-Of/C?) #t]
                 [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
-                [(Clo xs _ _ _) (arity-includes? (shape xs) 1)]
+                [(or (Clo xs _ _ _) (-λ xs _ _)) (arity-includes? (shape (assert xs)) 1)]
                 [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
                 [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
                 [_ #f]))
