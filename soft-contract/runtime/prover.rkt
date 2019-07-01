@@ -489,6 +489,9 @@
   (define (simple-Ps⊢P Σ Ps Q)
     (cond [(∋ Ps Q) '✓]
           [(and (equal? Q -cons?) (∋ Ps (P:¬ 'null?)) (∋ Ps 'list?)) '✓]
+          [(and (memq Q '(exact-positive-integer? exact-nonnegative-integer?))
+                (∋ Ps 'positive?)
+                (∋ Ps 'byte?)) '✓]
           [(equal? Q 'none/c) '✗]
           [(equal? Q 'any/c) '✓]
           [else (for/or : ?Dec ([P (in-set Ps)]) (P⊢P Σ P Q))]))

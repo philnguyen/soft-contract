@@ -219,8 +219,9 @@
           {set (-● ∅)}
           ;; Track access to user-defined structs
           (Σ@ (γ:escaped-field 𝒾 i) Σ)))
-    (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
-    V*)
+    (cond [(set-empty? V) ∅]
+          [else (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
+                V*]))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧)
   (define ((app-st-mut 𝒾 i) Σ ℓ Wₓ)
