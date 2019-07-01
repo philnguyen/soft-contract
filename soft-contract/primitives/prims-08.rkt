@@ -48,7 +48,7 @@
                   ['() (values Vₗ ⊥ΔΣ)]
                   [(cons Vₗ* Wᵣ*)
                    (define-values (Vᵣ ΔΣᵣ) (loop Vₗ* Wᵣ* (+ 1 i)))
-                   (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) Vₗ Vᵣ))
+                   (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) (unpack Vₗ Σ) Vᵣ))
                    (values {set V*} (⧺ ΔΣᵣ ΔΣ*))]))]))
          (just Vₐ ΔΣₐ)))
     

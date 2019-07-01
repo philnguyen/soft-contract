@@ -358,7 +358,7 @@
        (define Σ₀* (gc root Σ₀))
        (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
                (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
-     Cs))
+     (unpack Cs Σ₀)))
 
   (: fc₁ : Σ ℓ V V^ → (Values R (℘ Err)))
   (define (fc₁ Σ₀ ℓ C Vs)
