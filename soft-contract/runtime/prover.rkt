@@ -614,6 +614,7 @@
       ['positive? (P:> -zero)]
       ['negative? (P:< -zero)]
       ['zero? (P:= -zero)]
+      ['index? {set 'fixnum? (P:≥ -zero)}]
       [(P:¬ 'even?) 'odd?]
       [(P:¬ 'odd?) 'even?]
       [(and P₀ (P:St acs P*))

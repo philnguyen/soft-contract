@@ -196,6 +196,7 @@
           "programs/safe/issues/struct-out-twice/data-adaptor.rkt")
         check-safe)
   (test "safe/issues/literals-as-contracts.rkt" check-safe)
+  (test "safe/issues/index-huh.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -239,6 +240,7 @@
           "programs/unsafe/issues/struct-out-twice/data-adaptor.rkt")
         check-fail)
   (test "unsafe/issues/literals-as-contracts.rkt" check-fail)
+  (test "unsafe/issues/index-huh.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
