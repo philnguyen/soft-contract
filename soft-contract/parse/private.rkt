@@ -108,13 +108,14 @@
              (proc stx))))
 
        (define (stxs->modules stxs fns)
+         (begin
+           (log-scv-parser-debug "fully expanded:")
+           (for ([stx (in-list stxs)])
+             (log-scv-parser-debug "~a" (pretty (syntax->datum stx)))))
          ;; Re-order the modules for an appropriate initilization order,
          ;; learned from side-effects of `parse-module`
          (define ans (sort (stx-map parse-module stxs fns) module-before? #:key -module-path))
          (begin
-           (log-scv-parser-debug "fully expanded:")
-           (for ([stx (in-list stxs)])
-             (log-scv-parser-debug "~a" (pretty (syntax->datum stx))))
            (log-scv-parser-debug "internal ast:")
            (for ([m (in-list ans)])
              (log-scv-parser-debug "~a" (pretty m)))
@@ -173,10 +174,10 @@
            (syntax-parse stx
              [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
               (with-sub id
-                (for-each on-module-level-form! (syntax->list #'(forms ...))))]
+                (for-each go! (syntax->list #'(forms ...))))]
              [((~literal begin) form ...)
               (for-each go! (syntax->list #'(form ...)))]
-             [_ (void)]))))
+             [_ (on-module-level-form! stx)]))))
     (define/contract (figure-out-aliases! stx)
       (scv-syntax? . -> . void?)
       (for-each-module-level-form!
@@ -188,7 +189,7 @@
           (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) p))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) p))
           (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)]
-         [s (figure-out-aliases! #'s)])
+         [_ (void)])
        stx))
 
     (define/contract (figure-out-alternate-aliases! stx)
@@ -196,7 +197,6 @@
 
       (define extractor->wrapper (make-hash))
       (define wrapper->name (make-hash))
-
       (for-each-module-level-form!
        (syntax-parser
          #:literals (define-values #%plain-app quote)
@@ -525,7 +525,7 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) (src->path f.src))
-          (λ () (raise (exn:missing (format "missing `~a` for `~a`" (src-base f.src) (syntax-e #'f))
+          (λ () (raise (exn:missing (format "missing `~a` for `~a` from `~a`" (src-base f.src) (syntax-e #'f) (cur-mod))
                                     (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
        (set-module-before! (src-base f.src) (cur-mod))
        (define f-ref (-x f-resolved (next-ℓ! #'f (cur-path))))
