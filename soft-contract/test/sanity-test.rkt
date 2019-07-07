@@ -197,6 +197,9 @@
         check-safe)
   (test "safe/issues/literals-as-contracts.rkt" check-safe)
   (test "safe/issues/index-huh.rkt" check-safe)
+  (test '("programs/safe/issues/re-provide/posn.rkt"
+          "programs/safe/issues/re-provide/main.rkt")
+        check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -241,6 +244,9 @@
         check-fail)
   (test "unsafe/issues/literals-as-contracts.rkt" check-fail)
   (test "unsafe/issues/index-huh.rkt" check-fail)
+  (test '("programs/unsafe/issues/re-provide/posn.rkt"
+          "programs/unsafe/issues/re-provide/main.rkt")
+        check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
