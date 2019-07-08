@@ -8,6 +8,7 @@
          racket/set
          unreachable
          set-extras
+         (submod (lib "typed-racket/private/type-contract.rkt") predicates)
          "../utils/debug.rkt"
          "../utils/list.rkt"
          "../utils/patterns.rkt"
@@ -102,4 +103,9 @@
   ;;;;; MISC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (def-pred index?)
+  (def-pred nonnegative?)
+  (def-pred nonpositive?)
+  (def-pred extflzero?)
+  (def-pred extflnonnegative?)
+  (def-pred extflnonpositive?)
   )

@@ -23,6 +23,8 @@
    [integer? ⇒ rational?]
    [real? ⇒ number?]
    [float-complex? ⇒ number?]
+   [nonnegative? ⇒ real?]
+   [nonpositive? ⇒ real?]
    
    [not ⇒ boolean?]
    [exact-integer? ⇒ integer?]
