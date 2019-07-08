@@ -10,4 +10,6 @@
          (prefix-in -: (only-in 'require/contracts foo?))
          (except-in 'require/contracts foo?))
 
-(provide (struct-out foo))
+(define foo? -:foo?)
+(provide (struct-out foo)
+         foo?)
