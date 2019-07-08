@@ -319,7 +319,7 @@
        #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
        (with-each-ans ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
          (define args (map Dom-ref Doms))
-         (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args))))]
+         (with-result ΔΣₓ (λ () (app (⧺ Σ₀ ΔΣₓ) (ℓ-with-src ℓ l+) (Σ@ αₕ Σ₀) args))))]
       [Wₓ
        #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
        (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
@@ -329,7 +329,7 @@
          (define args-init (map Dom-ref Doms))
          (define arg-rest (Dom-ref ?Doms:rest))
          (with-result (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
-           (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest))))]))
+           (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) (ℓ-with-src ℓ l+) (Σ@ αₕ Σ₀) args-init arg-rest))))]))
 
   (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)

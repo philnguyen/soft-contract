@@ -53,11 +53,15 @@
 
   (: evl-spec : Σ -provide-spec → (Values (Option ΔΣ) (℘ Err)))
   (define (evl-spec Σ spec)
-    (define (in+out [id : -𝒾])
-      (match-define (and 𝒾 (-𝒾 x l)) id)
-      (match (current-module)
-        [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
-        [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))]))
+    (define (in+out [id : (U -𝒾 -o)])
+      (match id
+        [(and 𝒾 (-𝒾 x l))
+         (match (current-module)
+           [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
+           [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))])]
+        [(? -o? o)
+         (define x #|HACK|# (assert (show-e o) symbol?))
+         (values (γ:imm o) (γ:wrp (-𝒾 x (current-module))))]))
     (match spec
       [(-p/c-item x c ℓ)
        (define-values (α α*) (in+out x))
@@ -66,7 +70,8 @@
            (values (⧺ ΔΣ ΔΣ* (alloc α* (car (collapse-W^ Ws)))) ∅)))]
       [(? -𝒾? x)
        (define-values (α α*) (in+out x))
-       (values (alloc α* (lookup α Σ)) ∅)]))
+       (values (alloc α* (lookup α Σ)) ∅)]
+      [(? -o? o) (values ⊥ΔΣ ∅)]))
 
   (: evl : Σ E → (Values R (℘ Err)))
   (define (evl Σ E)

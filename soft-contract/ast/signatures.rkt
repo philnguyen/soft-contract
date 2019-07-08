@@ -64,8 +64,9 @@
 
 (-submodule-form . ::= . (-module [path : -l] [body : (Listof -module-level-form)]))
 
-(-provide-spec . ::= . (-p/c-item [id : -𝒾] [spec : -e] [loc : ℓ])
-                       -𝒾)
+(-provide-spec . ::= . (-p/c-item [id : (U -𝒾 -o)] [spec : -e] [loc : ℓ])
+                       -𝒾
+                       -o)
 
 (-require-spec . ::= . -l #|TODO|#)
 

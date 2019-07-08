@@ -765,7 +765,9 @@
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 
-  (define (parse-id id) (-x-_0 (parse-ref id)))
+  (define (parse-id id)
+    (cond [(parse-prim id) => values]
+          [else (-x-_0 (parse-ref id))]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)
