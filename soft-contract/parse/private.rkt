@@ -164,9 +164,13 @@
     (match p ; hacks
       [(or '#%kernel '#%runtime) 'Λ]
       ['#%unsafe 'unsafe]
-      [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
+      ['|expanded module| (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
-      [(cons p q) (cons (cur-mod) q)]))
+      [(? list? l) (map (match-lambda
+                          ['|expanded module| (cur-mod)]
+                          [(and x (or (? path-for-some-system?) (? path-string?))) (path->string (simplify-path x))]
+                          [x x])
+                        l)]))
 
   (splicing-local
       ((define (for-each-module-level-form! on-module-level-form! stx)
@@ -257,9 +261,12 @@
             ?res)))]))
 
   ;; Convert syntax to `module-level-form`. May fail for unsupported forms.
-  (define/contract parse-module-level-form
+  (define/contract (parse-module-level-form stx)
     (scv-syntax? . -> . (or/c #f -module-level-form?))
-    (syntax-parser
+    #;(begin
+      (printf "~nparse-module-level-form~n")
+      (pretty-print (syntax->datum stx)))
+    (syntax-parse stx
       #:literals (module module* #%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                   call-with-values)
       ;; inline parsing of `submodule-form`s
@@ -423,6 +430,8 @@
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-path)))
        (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-path)) (next-ℓ! #'d)) (next-ℓ! #'d))]
+      [d:scv-struct-info-alias
+       (-define-values (list (attribute d.lhs)) (parse-ref (attribute d.rhs)) (next-ℓ! #'d))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 

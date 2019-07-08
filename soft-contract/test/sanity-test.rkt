@@ -200,6 +200,10 @@
   (test '("programs/safe/issues/re-provide/posn.rkt"
           "programs/safe/issues/re-provide/main.rkt")
         check-safe)
+  (test '("programs/safe/issues/re-provide-struct-twice/data.rkt"
+          "programs/safe/issues/re-provide-struct-twice/data-adaptor.rkt"
+          "programs/safe/issues/re-provide-struct-twice/const.rkt")
+        check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -246,6 +250,10 @@
   (test "unsafe/issues/index-huh.rkt" check-fail)
   (test '("programs/unsafe/issues/re-provide/posn.rkt"
           "programs/unsafe/issues/re-provide/main.rkt")
+        check-fail)
+  (test '("programs/unsafe/issues/re-provide-struct-twice/data.rkt"
+          "programs/unsafe/issues/re-provide-struct-twice/data-adaptor.rkt"
+          "programs/unsafe/issues/re-provide-struct-twice/const.rkt")
         check-fail)
 
   ;; Slightly larger ones
