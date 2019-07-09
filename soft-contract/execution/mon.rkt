@@ -69,7 +69,7 @@
   (define (mon₁ C)
     (cond [(Fn/C? C) (mon-Fn/C C)]
           [(St/C? C) (mon-St/C C)]
-          [(X/C? C) (mon-X/C (X/C-_0 C))]
+          [(Rec/C? C) (mon-Rec/C (Rec/C-_0 C))]
           [(And/C? C) (mon-And/C C)]
           [(Or/C? C) (mon-Or/C C)]
           [(Not/C? C) (mon-Not/C C)]
@@ -164,9 +164,9 @@
            [_ #f])]
         [_ #f])))
 
-  (: mon-X/C : α → ⟦C⟧)
+  (: mon-Rec/C : α → ⟦C⟧)
   ;; Need explicit contract reference to explicitly hint execution of loop
-  (define ((mon-X/C α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
+  (define ((mon-Rec/C α) Σ ctx V^) (mon Σ ctx (unpack α Σ) (unpack V^ Σ)))
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
@@ -419,7 +419,7 @@
                        (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
                        (just (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
-      [(X/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
+      [(Rec/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
       [(? -b? b)
        (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
          (λ (_ ΔΣ) (just b ΔΣ))

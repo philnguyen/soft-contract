@@ -46,7 +46,7 @@
       [(-λ _ e) (go! e)] ; don't count arity check here
       [(-case-λ clauses) (for-each go! clauses)]
 
-      [(-x _ _) (up! #;'undefined)]
+      [(or (? -x?) (? -rec/c?)) (up! #;'undefined)]
       [(-@ f xs _)
        (up! 'procedure? 'arity 'values) (go! f)
        (for ([x xs]) (up! 'values) (go! x))
@@ -68,7 +68,7 @@
       [(-set! _ e) (up! 'values) (go! e)]
 
       ;; Switch to `c.go!` mode for contracts
-      [(and c (or (? -μ/c?) (? -->?)) (? -->i?) (? -case->?) (? -struct/c?))
+      [(and c (or (? -->?)) (? -->i?) (? -case->?) (? -struct/c?))
        (c.go! c)]
 
       [(-module _ body) (for-each go! body)]
@@ -82,7 +82,7 @@
   (define (c.go! c)
     (up! 'values 'contract?)
     (match c
-      [(-μ/c _ c*) (c.go! c*)]
+      [(? -rec/c?) #|TODO|# (void)]
       [(--> dom rng _)
        (match dom
          [(-var cs c) (for-each c.go! cs) (c.go! c)]

@@ -88,10 +88,9 @@
             (-error String ℓ)
             
             ;; contract stuff
-            (-μ/c Symbol -e)
+            (-rec/c -x)
             (-->i [doms : (-var -dom)] [rng : (Option (Listof -dom))])
             (case--> [cases : (Listof -->i)])
-            (-x/c.tmp Symbol) ; hack
             (-∀/c (Listof Symbol) -e ℓ)
             )
 
@@ -233,15 +232,12 @@
 (define-signature meta-functions^
   ([fv : (-e → (℘ Symbol))]
    [fv-count : (-e Symbol → Natural)]
-   [free-x/c : (-e → (℘ Symbol))]
    [e/map : (Subst -e → -e)]
    [e/ : (Symbol -e -e → -e)]
    [formals->names : ([-formals] [#:eq? Boolean] . ->* . (℘ Symbol))]
    [first-forward-ref : ((Listof -dom) → (Option Symbol))]
    [+x! : ((U Symbol Integer) * → Symbol)]
-   [+x!/memo : ((U Symbol Integer) * → Symbol)]
-   [optimize-contracts : ((℘ ℓ) -module → -module)]
-   [optimize-uses : ((℘ ℓ) -module → -module)]))
+   [+x!/memo : ((U Symbol Integer) * → Symbol)]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

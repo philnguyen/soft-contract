@@ -322,7 +322,7 @@
                  [(Guarded _ (? Set/C?) _) #f]
                  [_ '✗])]
               [(contract?)
-               (check-among Fn/C? And/C? Or/C? Not/C? X/C?
+               (check-among Fn/C? And/C? Or/C? Not/C? Rec/C?
                             Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
                             ∀/C? Seal/C? -b?)]
               [(flat-contract?) (check-among -b? proper-flat-contract?)]

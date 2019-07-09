@@ -183,12 +183,16 @@
              (foldl ΔΣ⊔ (car muts) (cdr muts))))
          (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
-      [(-μ/c x E)
-       (define α (α:dyn (β:x/c x) H₀))
-       (define C:rec {set (X/C α)})
-       (define ΔΣ₀ (alloc (γ:lex x) C:rec))
-       (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse +ℓ₀) (⧺ Σ ΔΣ₀) E)]
-         (just C:rec (⧺ ΔΣ₀ ΔΣ₁ (alloc α C))))]
+      [(-rec/c (-x x ℓ))
+       (match x
+         [(-𝒾 _ l)
+          (just (Rec/C (if (equal? l (ℓ-src ℓ)) (γ:top x) (γ:wrp x))))]
+         [(? symbol?)
+          (match (unpack (γ:lex x) Σ)
+            [{singleton-set (and α (α:dyn (? β:mut?) _))} (just (Rec/C α))]
+            [Vs
+             (define α (α:dyn (β:rec/c ℓ) H₀))
+             (just (Rec/C α) (alloc α Vs))])])]
       [(-->i (-var doms ?doms:rst) rngs)
        (: mk-Dom : -dom (U Clo V^) → (Values Dom ΔΣ))
        (define (mk-Dom dom C)

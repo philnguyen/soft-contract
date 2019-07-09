@@ -163,7 +163,7 @@
             (andmap (compose1 effect-free? Binding-rhs) bnds))]
       [(-set! x e _) #f]
       [(-if e e₁ e₂ _) (and (effect-free? e) (effect-free? e₁) (effect-free? e₂))]
-      [(-μ/c _ e) (effect-free? e)]
+      [(? -rec/c?) #t]
       [(-->i (-var cs c) ds)
        (define dom-effect-free? (compose1 effect-free? -dom-body))
        (and (andmap dom-effect-free? cs)

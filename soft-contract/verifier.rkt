@@ -53,17 +53,6 @@
       (define ms (parse-files ps))
       (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms))))))))
 
-  (: optimize : -module (℘ Err) → -module)
-  (define (optimize m errs)
-    ;; Collect potential sites and contract sources of violation
-    (define-values (origins sites)
-      (for/fold ([origins : (℘ ℓ) ∅eq] [sites : (℘ ℓ) ∅eq])
-                ([err (in-set errs)] #:when (Blm? err))
-        (values (set-add origins (Blm-origin err))
-                (set-add sites   (Blm-site err)))))
-    ;; Split out optimized module
-    (optimize-uses sites (optimize-contracts origins m)))
-
   (: havoc/profile ([(Listof Path-String)]
                     [#:delay Positive-Real]
                     . ->* . (Values (℘ Err) $)))

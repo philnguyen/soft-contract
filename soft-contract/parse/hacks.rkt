@@ -282,7 +282,7 @@
                     [((~or #:chaperone #:flat)) #t]
                     [_
                      (raise-syntax-error 'recursive-contract "must be #:chaperone or #:flat" #'t)])
-           #:attr ref (syntax-e #'x)))
+           #:attr ref #'x))
 
 (define-syntax-class scv-struct/c
   #:description "scv hacked struct/c"

@@ -41,7 +41,7 @@
                                (Or/C α α ℓ)
                                (Not/C α ℓ)
                                (One-Of/C (℘ Base))
-                               (X/C α)
+                               (Rec/C α)
                                Prox/C
                                (Seal/C α -l)
                                P)
@@ -118,7 +118,7 @@
                                (β:or/c:l ℓ)
                                (β:or/c:r ℓ)
                                (β:not/c ℓ)
-                               (β:x/c Symbol)
+                               (β:rec/c ℓ)
                                (β:vect/c-elems ℓ Index)
                                (β:vectof ℓ)
                                (β:hash/c:key ℓ)

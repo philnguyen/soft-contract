@@ -16,7 +16,6 @@
 (define-signature verifier^
   ([run : (Runnable → (Values (℘ Err) $))]
    [havoc : ((Listof Path-String) → (Values (℘ Err) $))]
-   [optimize : (-module (℘ Err) → -module)]
    [havoc-last : ((Listof Path-String) → (Values (℘ Err) $))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Err) $))]

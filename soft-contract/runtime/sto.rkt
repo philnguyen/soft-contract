@@ -84,7 +84,7 @@
          (hash-ref!
           cache-listof α
           (λ ()
-            (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (X/C α)})
+            (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (Rec/C α)})
                                             (ℓ-with-id ℓ 'imm:pair)
                                             -𝒾-cons)))
             {set (Or/C γ:null? (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or))}))])))

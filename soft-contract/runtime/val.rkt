@@ -127,7 +127,7 @@
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
         [(or (? Clo?) (? -λ?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
-        [(X/C α) (go-α α)]
+        [(Rec/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
         [(? P?) #t]

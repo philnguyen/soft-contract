@@ -110,7 +110,7 @@
       [(-error msg _) `(error ,msg)]
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
-      [(-μ/c x c) `(μ/c (,x) ,(show-e c))]
+      [(-rec/c (-x x _)) `(recursive-contract ,(if (symbol? x) x (-𝒾-name x)))]
       [(-->i (-var cs c) d)
        `(->i ,@(map show-dom cs)
              ,@(if c `(#:rest ,(show-dom c)) '())
@@ -119,7 +119,6 @@
                 [(list d) (show-dom d)]
                 [(? values ds) `(values ,@(map show-dom ds))]))]
       [(case--> cases) `(case-> ,@(map show-e cases))]
-      [(-x/c.tmp x) x]
       [(-∀/c xs c _) `(parametric->/c ,xs ,(show-e c))]))
 
   (: show-dom : -dom → Sexp)

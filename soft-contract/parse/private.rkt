@@ -395,26 +395,6 @@
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
        #f]
-      ; FIXME: separate case hack to "close" recursive contract
-      [(~and d (define-values (x:identifier) e))
-       (define lhs (syntax-e #'x))
-       (define rhs (parse-e #'e))
-       (define frees (free-x/c rhs))
-       (define ℓ (syntax-ℓ #'d))
-       (cond
-         [(set-empty? frees)
-          (add-top-level! (-𝒾 lhs (cur-path)))
-          (filter-out-junks (-define-values (list lhs) rhs ℓ))]
-         [(set-empty? (set-remove frees lhs))
-          (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
-          (add-top-level! (-𝒾 lhs (cur-path)))
-          (-define-values (list lhs) (-μ/c x (e/ lhs (-x x (syntax-ℓ #'e)) rhs)) ℓ)]
-         [else
-          (raise-syntax-error
-           'recursive-contract
-           "arbitrary recursive contract reference not supported for now."
-           #'(define-values (x) e)
-           #'e)])]
       [(~and d (define-values (x:identifier ...) e))
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
@@ -610,7 +590,7 @@
        (-cons/c (parse-e #'c) (parse-e #'d) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:one-of/c) c ...)
        (-@ 'one-of/c (parse-es #'(c ...)) (next-ℓ! stx))]
-      [c:scv-x/c (-x/c.tmp (attribute c.ref))]
+      [c:scv-x/c (-rec/c (parse-ref (attribute c.ref)))]
 
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))] 

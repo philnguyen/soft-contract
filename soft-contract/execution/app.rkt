@@ -84,7 +84,7 @@
                 [(And/C α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-And/C α₁ α₂ ℓ)]
                 [(Or/C  α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-Or/C  α₁ α₂ ℓ)]
                 [(Not/C α ℓ) (app-Not/C α ℓ)]
-                [(X/C α) (app-X/C α)]
+                [(Rec/C α) (app-Rec/C α)]
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(? St/C?) #:when (C-flat? V Σ) (app-St/C V)]
                 [(-● Ps) (app-opq Ps)]
@@ -380,8 +380,8 @@
            (λ (_ ΔΣ*) (just -ff (⧺ ΔΣ ΔΣ*)))
            (λ (_ ΔΣ*) (just -tt (⧺ ΔΣ ΔΣ*)))))]))
 
-  (: app-X/C : α → ⟦F⟧)
-  (define ((app-X/C α) Σ ℓ Wₓ) (app/C Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
+  (: app-Rec/C : α → ⟦F⟧)
+  (define ((app-Rec/C α) Σ ℓ Wₓ) (app/C Σ ℓ (unpack α Σ) (unpack-W Wₓ Σ)))
 
   (: app-One-Of/C : (℘ Base) → ⟦F⟧)
   (define ((app-One-Of/C bs) Σ ℓ Wₓ)
