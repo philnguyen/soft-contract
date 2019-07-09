@@ -194,7 +194,11 @@
     (define C₂ (Σ@ α₂ Σ))
     (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
           [(C^-flat? C₂ Σ) (chk C₂ C₁)]
-          [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
+          [else (error 'or/c
+                       "No more than 1 higher-order disjunct for now. Got ~a and ~a at ~a"
+                       (show-V^ C₁)
+                       (show-V^ C₂)
+                       (show-full-ℓ ℓ))]))
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) Σ ctx V)
