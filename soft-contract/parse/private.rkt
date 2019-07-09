@@ -621,7 +621,7 @@
           (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () #f)))
           (cond [𝒾* (-x 𝒾* (next-ℓ! stx (cur-path)))]
                 [(equal? (src-base src) (cur-mod)) (-b '|SCV-generated stub|)]
-                [else (raise (exn:missing (format "missing `~a` for `~a`" (src-base src) (syntax-e #'id0))
+                [else (raise (exn:missing (format "missing `~a` for `~a` from `~a`" (src-base src) (syntax-e #'id0) (cur-mod))
                                           (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
@@ -737,7 +737,7 @@
        #:when (not (equal? src 'Λ))
        (define src:base (src-base src))
        (unless (∋ (modules-to-parse) src:base)
-         (raise (exn:missing (format "missing `~a` for `~a`" src:base (syntax-e id))
+         (raise (exn:missing (format "missing `~a` for `~a` from `~a`" src:base (syntax-e id) (cur-mod))
                              (current-continuation-marks) src:base (syntax-e id))))
        (unless (equal? src:base (cur-mod))
          (set-module-before! src (cur-mod)))
