@@ -22,7 +22,7 @@
          )
 
 (define-unit evl@
-  (import meta-functions^ static-info^
+  (import meta-functions^ static-info^ ast-pretty-print^
           sto^ cache^ val^
           exec^ app^ mon^ gc^)
   (export evl^)
@@ -52,11 +52,15 @@
 
   (: evl-spec : Σ -provide-spec → (Option ΔΣ))
   (define (evl-spec Σ spec)
-    (define (in+out [id : -𝒾])
-      (match-define (and 𝒾 (-𝒾 x l)) id)
-      (match (current-module)
-        [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
-        [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))]))
+    (define (in+out [id : (U -𝒾 -o)])
+      (match id
+        [(and 𝒾 (-𝒾 x l))
+         (match (current-module)
+           [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
+           [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))])]
+        [(? -o? o)
+         (define x #|HACK|# (assert (show-o o) symbol?))
+         (values (γ:imm o) (γ:wrp (-𝒾 x (current-module))))]))
     (match spec
       [(-p/c-item x c ℓ)
        (define-values (α α*) (in+out x))
@@ -65,7 +69,8 @@
            (⧺ ΔΣ ΔΣ* (alloc α* (car (collapse-W^ (⧺ Σ ΔΣ ΔΣ*) Ws))))))]
       [(? -𝒾? x)
        (define-values (α α*) (in+out x))
-       (alloc α* (unpack (Σ@ α Σ) Σ))]))
+       (alloc α* (unpack (Σ@ α Σ) Σ))]
+      [(? -o? o) ⊥ΔΣ]))
 
   (: evl : Σ E → R)
   (define (evl Σ E)
@@ -158,12 +163,16 @@
              (⧺ ΔΣ (mut α* rhs^* Σ))))
          (R-of -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err! (Err:Raised s ℓ)) ⊥R]
-      [(-μ/c x E)
-       (define α (α:dyn (β:x/c x) H₀))
-       (define C:rec {set (X/C α)})
-       (define ΔΣ₀ (alloc-lex Σ x C:rec))
-       (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse +ℓ₀) (⧺ Σ ΔΣ₀) E)]
-         (R-of C:rec (⧺ ΔΣ₀ ΔΣ₁ (alloc α C))))]
+      [(-rec/c (-x x ℓ))
+       (match x
+         [(-𝒾 _ l)
+          (R-of {set (Rec/C (if (equal? l (ℓ-src ℓ)) (γ:top x) (γ:wrp x)))})]
+         [(? symbol?)
+          (match (resolve x Σ)
+            [(and α (α:dyn (? β:mut?) _)) (R-of {set (Rec/C α)})]
+            [(? set? Vs)
+             (define α (α:dyn (β:rec/c ℓ) H₀))
+             (R-of {set (Rec/C α)} (alloc α Vs))])])]
       [(-->i (-var doms ?doms:rst) rngs total?)
        (: mk-Dom : ΔΣ -dom (U Clo D) → (Values Dom ΔΣ))
        (define (mk-Dom Σ dom C)

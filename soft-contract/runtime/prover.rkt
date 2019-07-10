@@ -333,7 +333,7 @@
                [(Guarded _ (? Set/C?) _) #f]
                [_ '✗])]
             [(contract?)
-             (check-among Fn/C? And/C? Or/C? Not/C? X/C?
+             (check-among Fn/C? And/C? Or/C? Not/C? Rec/C?
                           Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
                           ∀/C? Seal/C? -b?)]
             [(flat-contract?) (check-among -b? proper-flat-contract?)]
@@ -533,6 +533,9 @@
   (define (simple-Ps⊢P Ps Q)
     (cond [(∋ Ps Q) '✓]
           [(and (equal? Q -cons?) (∋ Ps (P:¬ 'null?)) (∋ Ps 'list?)) '✓]
+          [(and (memq Q '(exact-positive-integer? exact-nonnegative-integer?))
+                (∋ Ps 'positive?)
+                (∋ Ps 'byte?)) '✓]
           [(equal? Q 'none/c) '✗]
           [(equal? Q 'any/c) '✓]
           [else (for/or : ?Dec ([P (in-set Ps)]) (P⊢P P Q))]))
@@ -655,6 +658,7 @@
       ['positive? (P:> 0)]
       ['negative? (P:< 0)]
       ['zero? (P:= 0)]
+      ['index? {set 'fixnum? (P:≥ 0)}]
       [(P:¬ 'even?) 'odd?]
       [(P:¬ 'odd?) 'even?]
       [(and P₀ (P:St ac P*))

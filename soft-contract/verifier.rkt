@@ -38,9 +38,7 @@
     (with-initialized-static-info
       (exec (if (list? x) (-prog (parse-files x)) x))))
 
-  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof (List -l
-                                                                           (List -l Integer Integer)
-                                                                           (List -l Integer Integer))))
+  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof Serialized-Blm))
   (define (verify-modules fns stxs)
     (with-initialized-static-info
       (define ms (parse-stxs fns stxs))
@@ -55,22 +53,11 @@
       (define ms (parse-files ps))
       (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms))))))))
 
-  (: optimize : -module (℘ Err) → -module)
-  (define (optimize m errs)
-    ;; Collect potential sites and contract sources of violation
-    (define-values (origins sites)
-      (for/fold ([origins : (℘ ℓ) ∅eq] [sites : (℘ ℓ) ∅eq])
-                ([err (in-set errs)] #:when (Blm? err))
-        (values (set-add origins (Blm-origin err))
-                (set-add sites   (Blm-site err)))))
-    ;; Split out optimized module
-    (optimize-uses sites (optimize-contracts origins m)))
-
   (: havoc/profile ([(Listof Path-String)]
                     [#:delay Positive-Real]
                     . ->* . (Values (℘ Err) $)))
   (define (havoc/profile ps #:delay [delay 0.00001])
-    (profile2 (havoc ps) #:delay delay #:order 'self))
+    (profile2 (havoc ps) #:delay delay #:order 'self #:use-errortrace? #t))
 
   (: havoc-last : (Listof Path-String) → (Values (℘ Err) $))
   (define (havoc-last ps)
@@ -79,12 +66,10 @@
       (define hv (-module 'havoc (list (gen-havoc-expr (list (last ms))))))
       (exec (-prog `(,@ms ,hv)))))
 
-  (define serialize-Blm : (Blm → (List -l
-                                       (List -l Integer Integer)
-                                       (List -l Integer Integer)))
+  (define serialize-Blm : (Blm → Serialized-Blm)
     (let ([serialize-ℓ (λ ([ℓ : ℓ]) (list (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ)))])
       (match-lambda
-        [(Blm party site origin _ _)
-         (list party (serialize-ℓ site) (serialize-ℓ origin))])))
+        [(Blm party site origin ctc val)
+         (list party (serialize-ℓ site) (serialize-ℓ origin) (show-W ctc) (show-W val))])))
   )
 

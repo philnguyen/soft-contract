@@ -32,6 +32,8 @@
                      racket/contract
                      ))
 
+(define-logger scv-parser)
+
 (define-unit parser-helper@
   (import static-info^ ast-macros^ meta-functions^ prims^)
   (export parser-helper^)
@@ -106,9 +108,21 @@
              (proc stx))))
 
        (define (stxs->modules stxs fns)
+         (begin
+           (log-scv-parser-debug "fully expanded:")
+           (for ([stx (in-list stxs)])
+             (log-scv-parser-debug "~a" (pretty (syntax->datum stx)))))
          ;; Re-order the modules for an appropriate initilization order,
          ;; learned from side-effects of `parse-module`
-         (sort (stx-map parse-module stxs fns) module-before? #:key -module-path)))
+         (define ans (sort (stx-map parse-module stxs fns) module-before? #:key -module-path))
+         (begin
+           (log-scv-parser-debug "internal ast:")
+           (for ([m (in-list ans)])
+             (log-scv-parser-debug "~a" (pretty m)))
+           (log-scv-parser-debug "appendix:")
+           (for ([ℓ (in-range (count-ℓ))])
+             (log-scv-parser-debug "~a ↦ ~a" ℓ (ℓ->loc ℓ))))
+         ans))
 
     (define (parse-stxs fns input-stxs)
       ;((listof syntax?) . -> . (listof -module?))
@@ -150,9 +164,13 @@
     (match p ; hacks
       [(or '#%kernel '#%runtime) 'Λ]
       ['#%unsafe 'unsafe]
-      [(and (? symbol?) (app symbol->string "expanded module")) (cur-mod)]
+      ['|expanded module| (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
-      [(cons p q) (cons (cur-mod) q)]))
+      [(? list? l) (map (match-lambda
+                          ['|expanded module| (cur-mod)]
+                          [(and x (or (? path-for-some-system?) (? path-string?))) (path->string (simplify-path x))]
+                          [x x])
+                        l)]))
 
   (splicing-local
       ((define (for-each-module-level-form! on-module-level-form! stx)
@@ -160,10 +178,10 @@
            (syntax-parse stx
              [((~literal module) id path ((~literal #%plain-module-begin) forms ...))
               (with-sub id
-                (for-each on-module-level-form! (syntax->list #'(forms ...))))]
+                (for-each go! (syntax->list #'(forms ...))))]
              [((~literal begin) form ...)
               (for-each go! (syntax->list #'(form ...)))]
-             [_ (void)]))))
+             [_ (on-module-level-form! stx)]))))
     (define/contract (figure-out-aliases! stx)
       (scv-syntax? . -> . void?)
       (for-each-module-level-form!
@@ -175,7 +193,7 @@
           (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) p))
           (define 𝒾ₑₓ (-𝒾 (syntax-e #'ex) p))
           (set-export-alias! 𝒾ₑₓ 𝒾ᵢₙ)]
-         [s (figure-out-aliases! #'s)])
+         [_ (void)])
        stx))
 
     (define/contract (figure-out-alternate-aliases! stx)
@@ -183,7 +201,6 @@
 
       (define extractor->wrapper (make-hash))
       (define wrapper->name (make-hash))
-
       (for-each-module-level-form!
        (syntax-parser
          #:literals (define-values #%plain-app quote)
@@ -237,6 +254,7 @@
            (append body provides)))
 
        (with-sub id
+         (log-scv-parser-debug "parsing (sub-)module ~a" (cur-path))
          (-module
           (cur-path)
           (for*/list ([formᵢ (in-list form-list)] #:when (care-about? formᵢ)
@@ -244,9 +262,12 @@
             ?res)))]))
 
   ;; Convert syntax to `module-level-form`. May fail for unsupported forms.
-  (define/contract parse-module-level-form
+  (define/contract (parse-module-level-form stx)
     (scv-syntax? . -> . (or/c #f -module-level-form?))
-    (syntax-parser
+    #;(begin
+      (printf "~nparse-module-level-form~n")
+      (pretty-print (syntax->datum stx)))
+    (syntax-parse stx
       #:literals (module module* #%provide begin-for-syntax #%declare #%plain-lambda #%plain-app
                   call-with-values)
       ;; inline parsing of `submodule-form`s
@@ -375,26 +396,6 @@
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
        #f]
-      ; FIXME: separate case hack to "close" recursive contract
-      [(~and d (define-values (x:identifier) e))
-       (define lhs (syntax-e #'x))
-       (define rhs (parse-e #'e))
-       (define frees (free-x/c rhs))
-       (define ℓ (next-ℓ! #'d))
-       (cond
-         [(set-empty? frees)
-          (add-top-level! (-𝒾 lhs (cur-path)))
-          (filter-out-junks (-define-values (list lhs) rhs ℓ))]
-         [(set-empty? (set-remove frees lhs))
-          (define x (+x! (format-symbol "~a_~a" 'rec lhs)))
-          (add-top-level! (-𝒾 lhs (cur-path)))
-          (-define-values (list lhs) (-μ/c x (e/ lhs (-x x (next-ℓ! #'e)) rhs)) ℓ)]
-         [else
-          (raise-syntax-error
-           'recursive-contract
-           "arbitrary recursive contract reference not supported for now."
-           #'(define-values (x) e)
-           #'e)])]
       [(~and d (define-values (x:identifier ...) e))
        (define lhs (syntax->datum #'(x ...)))
        (for ([i lhs])
@@ -410,6 +411,8 @@
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-path)))
        (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-path)) (next-ℓ! #'d)) (next-ℓ! #'d))]
+      [d:scv-struct-info-alias
+       (-define-values (list (attribute d.lhs)) (parse-ref (attribute d.rhs)) (next-ℓ! #'d))]
       [(define-syntaxes _ ...) #f]
       [form (parse-e #'form)]))
 
@@ -517,7 +520,7 @@
        (match-define (cons f-resolved wrap?)
          (get-alternate-alias
           (-𝒾 (syntax-e #'f) (src->path f.src))
-          (λ () (raise (exn:missing (format "missing `~a` for `~a`" (src-base f.src) (syntax-e #'f))
+          (λ () (raise (exn:missing (format "missing `~a` for `~a` from `~a`" (src-base f.src) (syntax-e #'f) (cur-mod))
                                     (current-continuation-marks) (src-base f.src) (syntax-e #'f))))))
        (set-module-before! (src-base f.src) (cur-mod))
        (define f-ref (-x f-resolved (next-ℓ! #'f (cur-path))))
@@ -588,7 +591,7 @@
        (-cons/c (parse-e #'c) (parse-e #'d) (next-ℓ! stx))]
       [(#%plain-app (~literal fake:one-of/c) c ...)
        (-@ 'one-of/c (parse-es #'(c ...)) (next-ℓ! stx))]
-      [c:scv-x/c (-x/c.tmp (attribute c.ref))]
+      [c:scv-x/c (-rec/c (parse-ref (attribute c.ref)))]
 
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))] 
@@ -619,7 +622,7 @@
           (define 𝒾* (get-export-alias 𝒾ₑₓ (λ () #f)))
           (cond [𝒾* (-x 𝒾* (next-ℓ! stx (cur-path)))]
                 [(equal? (src-base src) (cur-mod)) (-b '|SCV-generated stub|)]
-                [else (raise (exn:missing (format "missing `~a` for `~a`" (src-base src) (syntax-e #'id0))
+                [else (raise (exn:missing (format "missing `~a` for `~a` from `~a`" (src-base src) (syntax-e #'id0) (cur-mod))
                                           (current-continuation-marks) (src-base src) (syntax-e #'id0)))])]
          [_
           (-begin/simp (parse-es #'(e ...)))])]
@@ -735,7 +738,7 @@
        #:when (not (equal? src 'Λ))
        (define src:base (src-base src))
        (unless (∋ (modules-to-parse) src:base)
-         (raise (exn:missing (format "missing `~a` for `~a`" src:base (syntax-e id))
+         (raise (exn:missing (format "missing `~a` for `~a` from `~a`" src:base (syntax-e id) (cur-mod))
                              (current-continuation-marks) src:base (syntax-e id))))
        (unless (equal? src:base (cur-mod))
          (set-module-before! src (cur-mod)))
@@ -743,7 +746,9 @@
       [_
        (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
 
-  (define (parse-id id) (-x-_0 (parse-ref id)))
+  (define (parse-id id)
+    (cond [(parse-prim id) => values]
+          [else (-x-_0 (parse-ref id))]))
 
   (define/contract parse-quote
     (scv-syntax? . -> . -e?)

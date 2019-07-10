@@ -59,7 +59,8 @@
            (match spec
              [(-p/c-item (-𝒾 x _) _ _)
               (hash-set! decs x #t)]
-             [(-𝒾 x _) (hash-set! decs x #t)]))]
+             [(-𝒾 x _) (hash-set! decs x #t)]
+             [(or (? -o?) (-p/c-item (? -o?) _ _)) (void)]))]
         [(-define-values (list x) (? -st-ac? e) _)
          (hash-set! acc-defs x e)]
         [(-define-values (list x) (? -st-mut? e) _)

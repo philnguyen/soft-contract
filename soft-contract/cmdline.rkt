@@ -16,7 +16,6 @@
 
 (Mode . ::= . 'light 'havoc 'expand 'havoc-last 'havoc/profile)
 (define mode : Mode 'havoc)
-(define opt? ((inst make-parameter Boolean) #f))
 
 (define fnames
   (cast
@@ -39,9 +38,6 @@
     [("-d" "--profile")
      "Havoc with profiling"
      (set! mode 'havoc/profile)]
-    [("-o" "--optimize")
-     "Dump optimized programs after verification"
-     (opt? #t)]
     [("-s" "--max-steps") n
      "Set maximum steps to explore"
      (db:max-steps (assert (string->number (assert n string?)) index?))]
@@ -53,11 +49,10 @@
 (: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → (℘ Err))
+  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → Void)
   (define (run-with f files)
     (define-values (blms _) (f files))
-    (print-blames blms)
-    blms)
+    (print-blames blms))
 
   (: go : (Listof Path-String) → Any)
   (define (go fnames)
@@ -74,19 +69,8 @@
            (pretty-write (show-module m))
            (printf "~n"))]
         [(light) (run-with run fnames)]
-        [(havoc) (define blms (run-with havoc fnames))
-                 (when (opt?)
-                   (printf "~nOptimized modules:~n")
-                   (for ([m (in-list (parse-files fnames))])
-                     (pretty-write (show-module (optimize m blms)))
-                     (printf "~n")))]
-        [(havoc/profile)
-         (define blms (run-with havoc/profile fnames))
-         (when (opt?)
-           (printf "~nOptimized modules:~n")
-           (for ([m (in-list (parse-files fnames))])
-             (pretty-write (show-module (optimize m blms)))
-             (printf "~n")))]
+        [(havoc) (run-with havoc fnames)]
+        [(havoc/profile) (run-with havoc/profile fnames)]
         [(havoc-last) (run-with havoc-last fnames)])))
 
   (go (map canonicalize-path fnames)))

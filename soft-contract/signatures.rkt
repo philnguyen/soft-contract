@@ -11,16 +11,15 @@
 
 (Runnable . ::= . -prog -e [#:reuse (Listof Path-String)])
 
+(Serialized-Blm . ≜ . (List -l (List -l Integer Integer) (List -l Integer Integer) Sexp Sexp))
+
 (define-signature verifier^
   ([run : (Runnable → (Values (℘ Err) $))]
    [havoc : ((Listof Path-String) → (Values (℘ Err) $))]
-   [optimize : (-module (℘ Err) → -module)]
    [havoc-last : ((Listof Path-String) → (Values (℘ Err) $))]
    [havoc/profile
     : ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ Err) $))]
-   [verify-modules : ((Listof Path-String) (Listof Syntax) → (Listof (List -l
-                                                                           (List -l Integer Integer)
-                                                                           (List -l Integer Integer))))]
+   [verify-modules : ((Listof Path-String) (Listof Syntax) → (Listof Serialized-Blm))]
    #;[viz : (Runnable → Σ)]))
 
 (define-signature parser^ ; TODO

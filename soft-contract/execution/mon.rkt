@@ -63,7 +63,7 @@
   (define (mon₁ C)
     (cond [(Fn/C? C) (mon-Fn/C C)]
           [(St/C? C) (mon-St/C C)]
-          [(X/C? C) (mon-X/C (X/C-_0 C))]
+          [(Rec/C? C) (mon-Rec/C (Rec/C-_0 C))]
           [(And/C? C) (mon-And/C C)]
           [(Or/C? C) (mon-Or/C C)]
           [(Not/C? C) (mon-Not/C C)]
@@ -155,9 +155,9 @@
            [_ #f])]
         [_ #f])))
 
-  (: mon-X/C : α → ⟦C⟧)
+  (: mon-Rec/C : α → ⟦C⟧)
   ;; Need explicit contract reference to explicitly hint execution of loop
-  (define ((mon-X/C α) Σ ctx V^) (mon Σ ctx (Σ@ α Σ) (unpack V^ Σ)))
+  (define ((mon-Rec/C α) Σ ctx V^) (mon Σ ctx (Σ@ α Σ) (unpack V^ Σ)))
 
   (: mon-And/C : And/C → ⟦C⟧)
   (define ((mon-And/C C) Σ ctx V^)
@@ -186,7 +186,11 @@
     (define C₂ (Σ@ α₂ Σ))
     (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
           [(C^-flat? C₂ Σ) (chk C₂ C₁)]
-          [else (error 'or/c "No more than 1 higher-order disjunct for now")]))
+          [else (error 'or/c
+                       "No more than 1 higher-order disjunct for now. Got ~a and ~a at ~a"
+                       (show-D C₁)
+                       (show-D C₂)
+                       (show-full-ℓ ℓ))]))
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) Σ ctx V)
@@ -422,7 +426,7 @@
                        (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
                        (R-of (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
          (λ (W ΔΣ) (R-of (list (car W) -FF) ΔΣ)))]
-      [(X/C α) (fc Σ₀ ℓ (Σ@ α Σ₀) (unpack Vs Σ₀))]
+      [(Rec/C α) (fc Σ₀ ℓ (Σ@ α Σ₀) (unpack Vs Σ₀))]
       [(and b (-b ub))
        (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
          (λ (_ ΔΣ) (R-of {set b} ΔΣ))

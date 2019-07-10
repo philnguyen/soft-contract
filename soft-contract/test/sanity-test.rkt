@@ -216,6 +216,17 @@
   (test '("programs/safe/issues/struct-out-twice/data.rkt"
           "programs/safe/issues/struct-out-twice/data-adaptor.rkt")
         check-safe)
+  (test "safe/issues/literals-as-contracts.rkt" check-safe)
+  (test "safe/issues/index-huh.rkt" check-safe)
+  (test '("programs/safe/issues/re-provide/posn.rkt"
+          "programs/safe/issues/re-provide/main.rkt")
+        check-safe)
+  (test '("programs/safe/issues/re-provide-struct-twice/data.rkt"
+          "programs/safe/issues/re-provide-struct-twice/data-adaptor.rkt"
+          "programs/safe/issues/re-provide-struct-twice/const.rkt")
+        check-safe)
+  (test "safe/issues/sqrt.rkt" check-safe)
+  (test "safe/issues/file2list.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -259,10 +270,21 @@
   (test '("programs/unsafe/issues/struct-out-twice/data.rkt"
           "programs/unsafe/issues/struct-out-twice/data-adaptor.rkt")
         check-fail)
+  (test "unsafe/issues/literals-as-contracts.rkt" check-fail)
+  (test "unsafe/issues/index-huh.rkt" check-fail)
+  (test '("programs/unsafe/issues/re-provide/posn.rkt"
+          "programs/unsafe/issues/re-provide/main.rkt")
+        check-fail)
+  (test '("programs/unsafe/issues/re-provide-struct-twice/data.rkt"
+          "programs/unsafe/issues/re-provide-struct-twice/data-adaptor.rkt"
+          "programs/unsafe/issues/re-provide-struct-twice/const.rkt")
+        check-fail)
+  (test "unsafe/issues/sqrt.rkt" check-fail)
+  (test "unsafe/issues/file2list.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
-  (test "safe/real/fector.rkt" (check 'Ok-pos 0 1))
+  (test "safe/real/fector.rkt" (check 'Ok-pos 0 2))
 
   (test   "safe/real/leftist-tree.rkt" check-safe)
   (test "unsafe/real/leftist-tree.rkt" check-fail)
@@ -301,7 +323,20 @@
           "gradual-typing-benchmarks/kcfa/denotable.rkt")
         check-safe)
   
-  (test   "safe/games" check-safe)
+  (test "safe/games/snake.rkt" check-safe)
+  (test "safe/games/tetris.rkt" check-safe)
+  (test "safe/games/zombie.rkt" check-safe)
+  (test '("programs/safe/games/snake-files/data.rkt"
+          "programs/safe/games/snake-files/data-adaptor.rkt"
+          "programs/safe/games/snake-files/const.rkt"
+          "programs/safe/games/snake-files/collide.rkt"
+          "programs/safe/games/snake-files/cut-tail.rkt"
+          "programs/safe/games/snake-files/motion-help.rkt"
+          "programs/safe/games/snake-files/motion.rkt"
+          "programs/safe/games/snake-files/handlers.rkt"
+          "programs/safe/games/snake-files/main.rkt"
+          )
+          (check 'Ok-pos 1 1))
   (test "unsafe/games" check-fail)
 
   ;; big ones

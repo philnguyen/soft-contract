@@ -18,7 +18,7 @@
          )
 
 (define-unit hv@
-  (import static-info^ meta-functions^
+  (import static-info^ meta-functions^ ast-pretty-print^
           sto^ cache^ val^
           exec^ app^ gc^)
   (export hv^)
@@ -62,8 +62,12 @@
                                 [path (in-value (-module-path m))]
                                 [form (in-list (-module-body m))] #:when (-provide? form)
                                 [spec (in-list (-provide-specs form))] #:when (-p/c-item? spec))
-        (match-define (-p/c-item (-𝒾 x _) _ _) spec)
-        (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))))
+        (match spec
+          [(-p/c-item (-𝒾 x _) _ _)
+           (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))]
+          [(-p/c-item (? -o? o) _ _)
+           (define x #|HACK|# (assert (show-e o) symbol?))
+           (-x (-𝒾 x path) (loc->ℓ (loc 'top-level-havoc 0 0 (list x))))])))
     (-@ (-•) refs (loc->ℓ (loc 'havoc-expr 0 0 '()))))
 
   (: do-hv : Σ γ:hv V → ΔΣ)

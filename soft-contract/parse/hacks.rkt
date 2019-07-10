@@ -15,7 +15,8 @@
          (prefix-in r5: r5rs))
 
 (define-literal-set lits
-  (let-values #%plain-lambda #%plain-app begin quote if #%variable-reference values list call-with-values))
+  (let-values #%plain-lambda #%plain-app begin quote if #%variable-reference values list call-with-values
+   define-syntaxes quote-syntax lambda))
 
 (define (first-prefix ids s)
   (define s:str (symbol->string s))
@@ -29,6 +30,7 @@
                       open-output-file
                       file->list
                       file->value
+                      file->lines
                       with-input-from-file
                       with-output-to-file
                       string-join
@@ -281,7 +283,7 @@
                     [((~or #:chaperone #:flat)) #t]
                     [_
                      (raise-syntax-error 'recursive-contract "must be #:chaperone or #:flat" #'t)])
-           #:attr ref (syntax-e #'x)))
+           #:attr ref #'x))
 
 (define-syntax-class scv-struct/c
   #:description "scv hacked struct/c"
@@ -310,6 +312,31 @@
   #:attributes (struct-id)
   (pattern (#%plain-app (~literal fake:dynamic-id-struct-out) (quote s:id))
            #:attr struct-id #'s))
+
+(define-syntax-class scv-struct-info-alias
+  #:description "struct info alias pattern"
+  #:literal-sets (lits)
+  #:attributes (lhs rhs)
+  ;; FIXME for some reason, matching against literals `#%plain-app` and `#%plain-lambda` won't work
+  (pattern (define-syntaxes
+             (x:id)
+             (_#%plain-app1
+              f:id
+              (_#%plain-lambda1 ()
+                (_#%plain-app2
+                 _list1
+                 (quote-syntax _:id)
+                 (quote-syntax z:id)
+                 (quote-syntax _:id)
+                 (_#%plain-app3 _list2 _ ...)
+                 (_#%plain-app4 _list3 _ ...)
+                 _))
+              (_#%plain-lambda2 () (quote-syntax v:id))
+              (_#%plain-lambda3 () (quote-syntax _:id))))
+           #:when (equal? (syntax-e #'f) 'make-applicable-contract-out-redirect-struct-info)
+           #:when (equal? (syntax-e #'x) (syntax-e #'z))
+           #:attr lhs (syntax-e #'x)
+           #:attr rhs #'v))
 
 (define range-expr
   (syntax-parser

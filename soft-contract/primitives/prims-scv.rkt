@@ -8,6 +8,7 @@
          racket/set
          unreachable
          set-extras
+         (submod (lib "typed-racket/private/type-contract.rkt") predicates)
          "../utils/debug.rkt"
          "../utils/list.rkt"
          "../utils/patterns.rkt"
@@ -100,4 +101,15 @@
     #:init ()
     #:rest [_ (listof any/c)]
     (R-of (list {set -car} {set -cdr} {set 'values} {set -one} {set -cons?} {set -ff} {set -ff})))
+
+
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  ;;;;; MISC
+  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (def-pred index?)
+  (def-pred nonnegative?)
+  (def-pred nonpositive?)
+  (def-pred extflzero?)
+  (def-pred extflnonnegative?)
+  (def-pred extflnonpositive?)
   )

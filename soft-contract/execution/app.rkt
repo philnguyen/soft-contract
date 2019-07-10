@@ -24,7 +24,7 @@
 (⟦G⟧ . ≜ . (Σ ℓ W V^ → R))
 
 (define-unit app@
-  (import meta-functions^ static-info^
+  (import meta-functions^ static-info^ ast-pretty-print^
           sto^ cache^ val^
           prims^ prover^
           exec^ evl^ mon^ hv^ gc^ termination^)
@@ -116,7 +116,7 @@
                 [(And/C α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-And/C α₁ α₂ ℓ)]
                 [(Or/C  α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-Or/C  α₁ α₂ ℓ)]
                 [(Not/C α ℓ) (app-Not/C α ℓ)]
-                [(X/C α) (app-X/C α)]
+                [(Rec/C α) (app-Rec/C α)]
                 [(One-Of/C bs) (app-One-Of/C bs)]
                 [(? St/C?) #:when (C-flat? V Σ) (app-St/C V)]
                 [(-● Ps) (app-opq Ps)]
@@ -266,13 +266,15 @@
 
   (: app-st-ac : -𝒾 Index → ⟦F⟧)
   (define ((app-st-ac 𝒾 i) Σ ℓ Wₓ)
-    (with-guarded-arity Wₓ (-st-ac 𝒾 i) ℓ
+    (define ac (-st-ac 𝒾 i))
+    (define p (-st-p 𝒾))
+    (with-guarded-arity Wₓ ac ℓ
       [(list Vₓ)
-       (with-split-Σ Σ (-st-p 𝒾) Wₓ
+       (with-split-Σ Σ p Wₓ
          (λ (Wₓ* ΔΣ₁) (ΔΣ⧺R ΔΣ₁ ((unchecked-app-st-ac 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*))))
          (λ (Wₓ* ΔΣ₂)
-           (define ℓₒ (ℓ-with-src +ℓ₀ (-𝒾-name 𝒾)))
-           (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set (-st-p 𝒾)}) Wₓ*))
+           (define ℓₒ (ℓ-with-src +ℓ₀ (show-o ac)))
+           (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list p) Wₓ*))
            ⊥R))]))
 
   (: unchecked-app-st-ac : -𝒾 Index → Σ ℓ D → R)
@@ -305,8 +307,9 @@
           {set (-● ∅)}
           ;; Track access to user-defined structs
           (Σ@ (γ:escaped-field 𝒾 i) Σ)))
-    (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
-    (assert V* set?))
+    (cond [(set-empty? V) ∅]
+          [else (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
+                (assert V* set?)]))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧)
   (define ((app-st-mut 𝒾 i) Σ ℓ Wₓ)
@@ -314,7 +317,7 @@
       [(list Vₓ V*)
        (with-split-Σ Σ (-st-p 𝒾) (list Vₓ)
          (λ (Wₓ* ΔΣ₁) (ΔΣ⧺R ΔΣ₁ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*) V*)))
-         (λ (Wₓ* ΔΣ₂) (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set (-st-p 𝒾)}) Wₓ*))
+         (λ (Wₓ* ΔΣ₂) (err! (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ (show-o (-st-mut 𝒾 i))) (list {set (-st-p 𝒾)}) Wₓ*))
             ⊥R))]))
 
   (: unchecked-app-st-mut : -𝒾 Index → Σ ℓ D D → R)
@@ -422,7 +425,7 @@
          #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
          (with-each-path ([(ΔΣₓ _) (mon-doms Σ₀ l- l+ Doms Wₓ)])
            (define args (map Dom-ref Doms))
-           (with-result Σ₀ ΔΣₓ (maybe-check-termination (λ () (app (⧺ Σ₀ ΔΣₓ) ℓ (Σ@ αₕ Σ₀) args)))))]
+           (with-result Σ₀ ΔΣₓ (maybe-check-termination (λ () (app (⧺ Σ₀ ΔΣₓ) (ℓ-with-src ℓ l+) (Σ@ αₕ Σ₀) args)))))]
         [Wₓ
          #:when (and ?Doms:rest (>= (length Wₓ) (length Doms)))
          (define-values (W₀ Wᵣ) (split-at Wₓ (length Doms)))
@@ -433,7 +436,7 @@
            (define arg-rest (Dom-ref ?Doms:rest))
            (with-result Σ₀ (⧺ ΔΣ-init ΔΣᵣ ΔΣ-rest)
              (maybe-check-termination
-              (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) ℓ (Σ@ αₕ Σ₀) args-init arg-rest)))))])))
+              (λ () (app/rest (⧺ Σ₀ ΔΣ-init ΔΣᵣ ΔΣ-rest) (ℓ-with-src ℓ l+) (Σ@ αₕ Σ₀) args-init arg-rest)))))])))
 
   (: app-∀/C : (Pairof -l -l) ∀/C α → ⟦F⟧)
   (define ((app-∀/C ctx G α) Σ₀ ℓ Wₓ)
@@ -480,8 +483,8 @@
            (λ (_ ΔΣ*) (R-of -ff (⧺ ΔΣ ΔΣ*)))
            (λ (_ ΔΣ*) (R-of -tt (⧺ ΔΣ ΔΣ*)))))]))
 
-  (: app-X/C : α → ⟦F⟧)
-  (define ((app-X/C α) Σ ℓ Wₓ) (app/C Σ ℓ (Σ@ α Σ) (unpack-W Wₓ Σ)))
+  (: app-Rec/C : α → ⟦F⟧)
+  (define ((app-Rec/C α) Σ ℓ Wₓ) (app/C Σ ℓ (Σ@ α Σ) (unpack-W Wₓ Σ)))
 
   (: app-One-Of/C : (℘ Base) → ⟦F⟧)
   (define ((app-One-Of/C bs) Σ ℓ Wₓ)
@@ -526,16 +529,14 @@
           (λ _
             (define (run-opq)
               (leak Σ (γ:hv #f) ((inst foldl V^ V^) ∪ ∅ (unpack-W Wₓ* Σ))))
-            (cond
-              [(not (transparent-module? (ℓ-src ℓ))) (run-opq)]
-              [(current-MS) => (match-lambda
-                                 [(MS l+ ℓₒ _)
-                                  (err! (Err:Term l+ ℓ ℓₒ (-● Ps) Wₓ*))
-                                  (run-opq)])]
-              [else (run-opq)]))
+            (match (current-MS)
+              [(MS l+ ℓₒ _)
+               (err! (Err:Term l+ ℓ ℓₒ (-● Ps) Wₓ*))
+               (run-opq)]
+              [#f (run-opq)]))
           (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set P-arity}) Wₕ))
              ⊥R)))
-      (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set 'procedure?}) Wₕ))
+      (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list 'procedure?) Wₕ))
          ⊥R)))
 
   (: app-P : Symbol -b → ⟦F⟧)
@@ -543,7 +544,7 @@
 
   (: app-err! : V → ⟦F⟧)
   (define ((app-err! V) Σ ℓ Wₓ)
-    (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'procedure?}) (list {set V})))
+    (err! (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'Λ) (list 'procedure?) (list {set V})))
     ⊥R)
 
   (: app/rest : Σ ℓ D W D → R)

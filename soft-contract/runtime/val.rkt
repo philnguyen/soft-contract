@@ -69,8 +69,8 @@
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
-        [(or (? Clo?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
-        [(X/C α) (go-α α)]
+        [(or (? Clo?) (? -λ?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
+        [(Rec/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
         [(? P?) #t]
@@ -172,7 +172,7 @@
   (: ListOf : γ:imm:listof → V)
   (define (ListOf α)
     (match-define (γ:imm:listof x Cₑ ℓ) α)
-    (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (X/C α)})
+    (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (Rec/C α)})
                                     (ℓ-with-id ℓ 'imm:pair)
                                     -𝒾-cons)))
     (Or/C (γ:imm 'null?) (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or)))

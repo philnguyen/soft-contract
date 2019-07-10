@@ -10,7 +10,8 @@
          with-collapsed with-collapsed/R
          with-collapsing with-collapsing/R
          with-each-path
-         for/ans)
+         for/ans
+         log-scv-eval-debug)
 
 (require (for-syntax racket/base
                      (only-in racket/list append-map)
@@ -129,3 +130,5 @@
      (with-syntax ([R⊔ (format-id #'for/ans "R⊔")])
        #'(for/fold ([r : R ⊥R]) (clauses ...)
            (R⊔ r (let () body ...))))]))
+
+(define-logger scv-eval)

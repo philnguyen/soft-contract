@@ -128,7 +128,7 @@
       [(And/C α₁ α₂ _) {set α₁ α₂}]
       [(Or/C α₁ α₂ _) {set α₁ α₂}]
       [(Not/C α _) {set α}]
-      [(X/C α) {set α}]
+      [(Rec/C α) {set α}]
       [(Seal/C α _) {set α}]
       [(? St/C? C)
        (define-values (αₕ _ 𝒾) (St/C-fields C))
@@ -181,7 +181,13 @@
 
   (splicing-local
       ((define E-root-cache : (Mutable-HashTable E (℘ γ)) (make-hasheq))
-       (define prim-root-cache : (Mutable-HashTable -prim (℘ γ)) (make-hash)))
+       (define prim-root-cache : (Mutable-HashTable -prim (℘ γ)) (make-hash))
+       (define x-root : (-x → (℘ γ))
+         (match-lambda
+           [(-x x ℓ)
+            (cond [(symbol? x) {set (γ:lex x)}]
+                  [(equal? (ℓ-src ℓ) (-𝒾-src x)) {set (γ:top x)}]
+                  [else {set #|want both due to Racket's internal opt.|# (γ:top x) (γ:wrp x)}])])))
 
     (: E-root : E → (℘ γ))
     ;; Compute free variables for expression. Return set of variable names.
@@ -192,10 +198,7 @@
          (match E
            [(? -prim? p) (prim-root p)]
            [(? -•?) {set (γ:hv #f)}]
-           [(-x x ℓ)
-            (cond [(symbol? x) {set (γ:lex x)}]
-                  [(equal? (ℓ-src ℓ) (-𝒾-src x)) {set (γ:top x)}]
-                  [else {set #|want both due to Racket's internal opt.|# (γ:top x) (γ:wrp x)}])]
+           [(? -x? x) (x-root x)]
            [(-λ xs e _) (set-subtract (E-root e) (map/set γ:lex (formals->names xs #:eq? #f)))]
            [(-case-λ cases _) (apply ∪ ∅ (map E-root cases))]
            [(-@ f xs _) (apply ∪ (E-root f) (map E-root xs))]
@@ -214,7 +217,7 @@
             (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
            [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
            [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
-           [(-μ/c x e) (set-remove (E-root e) (γ:lex x))]
+           [(-rec/c x) (x-root x)]
            [(-->i (-var cs c) d _)
             (define dom-E-root : (-dom → (℘ γ))
               (match-lambda

@@ -16,11 +16,15 @@
    ;; numbers
    [zero? ⇒ byte?]
    [byte? ⇒ fixnum?]
+   [index? ⇒ fixnum?]
+   [index? ⇒ exact-nonnegative-integer?]
    [byte? ⇒ exact-nonnegative-integer?]
    [fixnum? ⇒ exact-integer?]
    [integer? ⇒ rational?]
    [real? ⇒ number?]
    [float-complex? ⇒ number?]
+   [nonnegative? ⇒ real?]
+   [nonpositive? ⇒ real?]
    
    [not ⇒ boolean?]
    [exact-integer? ⇒ integer?]

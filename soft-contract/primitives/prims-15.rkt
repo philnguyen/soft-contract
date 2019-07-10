@@ -32,6 +32,7 @@
 
   ;; 15.2.6 More File and Directory Utilities
   (def file->list (path-string? . -> . list?))
+  (def file->lines (path-string? . -> . (listof string?)))
   (def file->value (path-string? . -> . any/c))
 
 
