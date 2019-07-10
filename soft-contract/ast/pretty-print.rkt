@@ -108,7 +108,6 @@
       [(-begin es) `(begin ,@(show-es es))]
       [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
       [(-error msg _) `(error ,msg)]
-      #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-rec/c (-x x _)) `(recursive-contract ,(if (symbol? x) x (-𝒾-name x)))]
       [(-->i (-var cs c) d t?)
