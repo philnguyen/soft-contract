@@ -30,6 +30,7 @@
                       open-output-file
                       file->list
                       file->value
+                      file->lines
                       with-input-from-file
                       with-output-to-file
                       string-join
