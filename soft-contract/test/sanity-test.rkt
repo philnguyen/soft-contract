@@ -205,6 +205,7 @@
           "programs/safe/issues/re-provide-struct-twice/const.rkt")
         check-safe)
   (test "safe/issues/sqrt.rkt" check-safe)
+  (test "safe/issues/file2list.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -257,6 +258,7 @@
           "programs/unsafe/issues/re-provide-struct-twice/const.rkt")
         check-fail)
   (test "unsafe/issues/sqrt.rkt" check-fail)
+  (test "unsafe/issues/file2list.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

@@ -49,11 +49,10 @@
 (: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → (℘ Err))
+  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → Void)
   (define (run-with f files)
     (define-values (blms _) (f files))
-    (print-blames blms)
-    blms)
+    (print-blames blms))
 
   (: go : (Listof Path-String) → Any)
   (define (go fnames)
