@@ -43,8 +43,7 @@
       [(? Prox/C? C) (show-Prox/C C)]
       [(Seal/C α _) `(seal/c ,(show-α α))]
       [(Sealed α) (format-symbol "sealed@~a" (assert (show-α α) symbol?))]
-      [(? P? P) (show-P P)]
-      [(? T? T) (show-T T)]))
+      [(? P? P) (show-P P)]))
 
   (define show-P : (P → Sexp)
     (match-lambda
@@ -101,17 +100,19 @@
     (string->symbol (string-join (set-map V^ (compose1 sexp->string show-V))
                                  "|" #:before-first "{" #:after-last "}")))
 
+  (define (show-D [D : D]) (if (set? D) (show-V^ D) (show-T D)))
+
   (: show-W : W → (Listof Sexp))
-  (define (show-W W) (map show-V^ W))
+  (define (show-W W) (map show-D W))
 
   (define show-Dom : (Dom → (Listof Sexp))
     (match-lambda
       [(Dom x (Clo (-var xs #f) _ _) _) `(,x ,xs …)]
       [(Dom x (? α? α)               _)  `(,x ,(show-α α))]))
 
-  (define show-T : ((U T -b) → Sexp)
+  (define show-T : ((U T -prim) → Sexp)
     (match-lambda
-      [(-b b) (show-b b)]
+      [(? -prim? v) (show-e v)]
       [(T:@ o Ts) `(,(show-K o) ,@(map show-T Ts))]
       [(? α? α) (show-α α)]))
 
@@ -221,6 +222,7 @@
              #:after-last "]"))]
           [(hash? S) (show-Γ S)]
           [(set? S) (show-V^ S)]
+          [(or (-prim? S) (T? S)) (show-T S)]
           [else (show-α S)]))
 
   (: show-R : R → (Listof Sexp))
@@ -248,9 +250,9 @@
       [($:Key:Exp Σ _ E)
        `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
       [($:Key:Mon Σ _ Ctx V V^)
-       `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+       `(Mon ,(show-V V) ,(show-D V^) @ ,@(show-Σ Σ))]
       [($:Key:Fc Σ _ ℓ V V^)
-       `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+       `(Fc ,(show-V V) ,(show-D V^) @ ,@(show-Σ Σ))]
       [($:Key:App Σ _ ℓ V W)
        `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
       [($:Key:Hv Σ _ α)
@@ -273,7 +275,7 @@
   (: show-rn : Renamings → (Listof Sexp))
   (define (show-rn rn)
     (for/list : (Listof Sexp) ([(T T*) (in-hash rn)])
-      `(,(show-V T) ↦ ,(if T* (show-V T*) '⊘))))
+      `(,(show-T T) ↦ ,(if T* (show-T T*) '⊘))))
 
   (: print-blame : Err String → Void)
   (define (print-blame blm idx)
@@ -284,12 +286,12 @@
        (printf "    - Contract from: ~a ~n" (show-full-ℓ ℓ:origin))
        (printf "    - Expected: ~a~n"
                (match Cs
-                 [(list C) (show-V^ C)]
+                 [(list C) (show-D C)]
                  ['() "no value"]
                  [_ (format "~a values: ~a" (length Cs) (show-W Cs))]))
        (printf "    - Given: ~a~n"
                (match Vs
-                 [(list V) (show-V^ V)]
+                 [(list V) (show-D V)]
                  ['() "(values)"]
                  [_ (format "~a values: ~a" (length Vs) (show-W Vs))]))]
       [(Err:Raised s ℓ)
@@ -301,7 +303,7 @@
       [(Err:Values n E W ℓ)
        (printf "~a Expected ~a values, given ~a:~n" idx n (length W))
        (for ([Vs (in-list W)])
-         (printf "    - ~a~n" (show-V^ Vs)))
+         (printf "    - ~a~n" (show-D Vs)))
        (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Arity f xs ℓ)
        (printf "~a Function applied with wrong arity~n" idx)
@@ -313,14 +315,14 @@
            (begin
              (printf "    - Given ~a arguments:~n" (length xs))
              (for ([Vs (in-list xs)])
-               (printf "        + ~a~n" (show-V^ Vs)))))
+               (printf "        + ~a~n" (show-D Vs)))))
        (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
       [(Err:Varargs W₀ Vᵣ ℓ)
        (printf "~a Invalid number of rest args~n" idx)
        (printf "    - ~a inits:~n" (length W₀))
        (for ([V (in-list W₀)])
-         (printf "        * ~a~n" (show-V^ V)))
-       (printf "    - rest: ~a~n" (show-V^ Vᵣ))
+         (printf "        * ~a~n" (show-D V)))
+       (printf "    - rest: ~a~n" (show-D Vᵣ))
        (printf "    - Application at ~a~n" (show-full-ℓ ℓ))]
       [(Err:Sealed x ℓ)
        (printf "~a Attempt to inspect value sealed in ~a~n" idx x)
@@ -332,7 +334,7 @@
        (printf "    - Function: ~a~n" (show-V fun))
        (printf "    - Arguments:~n")
        (for ([arg (in-list args)])
-         (printf "        * ~a~n" (show-V^ arg)))]))
+         (printf "        * ~a~n" (show-D arg)))]))
 
   (: print-blames : (℘ Err) → Void)
   (define (print-blames blames)

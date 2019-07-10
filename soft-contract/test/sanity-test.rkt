@@ -305,8 +305,8 @@
   (test "unsafe/games" check-fail)
 
   ;; big ones
-  (test "safe/real/nucleic2-modular-fixed.rkt" (check 'Ok-pos 0 8))
-  (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 10))
+  (test "safe/real/nucleic2-modular-fixed.rkt" (check 'Ok-pos 0 11))
+  (test "safe/real/nucleic2-modular.rkt" (check 'Ok-pos 0 13))
   #;(test "safe/real/slatex.rkt" (check 'Ok-pos 0 22))
 
   (test   "safe/proofs/quickcheck-paper.rkt" check-safe)

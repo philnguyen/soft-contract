@@ -194,7 +194,7 @@
           body))
     (hack:make-available (-o) r:err! r:blm)
     (cons
-     #`(define (blm [ctc : V] [val : V^])
+     #`(define (blm [ctc : V] [val : D])
          (define ℓₒ (loc->ℓ (loc '#,(-o) 0 0 '())))
          (r:err! (r:blm (ℓ-src #,(-ℓ)) #,(-ℓ) ℓₒ (list {set ctc}) (list val)))
          ⊥R)

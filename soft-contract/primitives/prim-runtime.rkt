@@ -47,7 +47,7 @@
   (define W->bs
     (match-lambda
       ['() '()]
-      [(cons {singleton-set (-b b)} W)
+      [(cons (-b b) W)
        (match (W->bs W)
          [(? values bs) (cons b bs)]
          [#f #f])]
@@ -87,8 +87,8 @@
     (define (args:behavioral? [args : W^])
       (define Vs*
         (for*/set: : V^ ([W (in-set args)]
-                         [Vs (in-list W)]
-                         [V (in-set Vs)] #:when (behavioral? V Σ₀))
+                         [D (in-list W)]
+                         [V (in-set (unpack D Σ₀))] #:when (behavioral? V Σ₀))
           V))
       (and (not (set-empty? Vs*)) Vs*))
 
@@ -98,23 +98,27 @@
           (ΔΣ⧺R ΔΣ (mon* (⧺ Σ ΔΣ) ctx (map {inst set V} ?range-wraps) Wₐ))
           (R-of Wₐ ΔΣ)))
 
-    (with-collapsing/R [(ΔΣ₀ args*)
-                        (if doms:rest
-                            (let-values ([(args:init args:rest)
-                                          (split-at args (length doms:init))])
-                              (with-collapsing/R [(ΔΣ₀ args:init*)
-                                                  (mon* Σ₀ ctx* (map (inst set V) doms:init) args:init)]
-                                (with-collapsing/R [(ΔΣ₁ args:rest*)
-                                                    (mon* (⧺ Σ₀ ΔΣ₀) ctx* (make-list (length args:rest) {set doms:rest}) args:rest)]
-                                  (R-of (append (collapse-W^ args:init*) (collapse-W^ args:rest*)) (⧺ ΔΣ₀ ΔΣ₁)))))
-                            (mon* Σ₀ ctx* (map (inst set V) doms:init) args))]
+    (with-collapsing/R Σ₀ [(ΔΣ₀ args*)
+                           (if doms:rest
+                               (let-values ([(args:init args:rest)
+                                             (split-at args (length doms:init))])
+                                 (with-collapsing/R Σ₀ [(ΔΣ₀ args:init*)
+                                                        (mon* Σ₀ ctx* (map (inst set V) doms:init) args:init)]
+                                   (define Σ₁ (⧺ Σ₀ ΔΣ₀))
+                                   (with-collapsing/R Σ₁ [(ΔΣ₁ args:rest*)
+                                                          (mon* Σ₁ ctx* (make-list (length args:rest) {set doms:rest}) args:rest)]
+                                     (define Σ* (⧺ Σ₁ ΔΣ₁))
+                                     (R-of (append (collapse-W^ Σ* args:init*) (collapse-W^ Σ* args:rest*)) (⧺ ΔΣ₀ ΔΣ₁)))))
+                               (mon* Σ₀ ctx* (map (inst set V) doms:init) args))]
       (cond [(no-return?) ⊥R]
-            [(simple-pred?) (ΔΣ⧺R ΔΣ₀ (implement-predicate (⧺ Σ₀ ΔΣ₀) o (collapse-W^ args*)))]
+            [(simple-pred?)
+             (define Σ₁ (⧺ Σ₀ ΔΣ₀))
+             (ΔΣ⧺R ΔΣ₀ (implement-predicate Σ₁ o (collapse-W^ Σ₁ args*)))]
             [(args:behavioral? args*)
              =>
              (λ (Vs)
                (define Σ₁ (⧺ Σ₀ ΔΣ₀))
-               (with-collapsing/R [(ΔΣ₁ _) (leak Σ₁ (γ:hv #f) Vs)]
+               (with-collapsing/R Σ₁ [(ΔΣ₁ _) (leak Σ₁ (γ:hv #f) Vs)]
                  (ΔΣ⧺R (⧺ ΔΣ₀ ΔΣ₁) (mk-rng (⧺ Σ₁ ΔΣ₁)))))]
             [else (ΔΣ⧺R ΔΣ₀ (mk-rng (⧺ Σ₀ ΔΣ₀)))])))
 
@@ -219,7 +223,7 @@
   (: make-listof : V ℓ → V)
   (define (make-listof Cₕ ℓ)
     (define x (format-symbol "gen-listof-~a" ℓ))
-    (γ:imm:listof x Cₕ ℓ))
+    (ListOf (γ:imm:listof x Cₕ ℓ)))
 
   (: make-static-listof : Symbol (→ (Values V ℓ)) → V)
   (define make-static-listof
@@ -230,9 +234,9 @@
   (: refine-ranges : Σ (Listof (List (Listof V) (Option V) (Listof V))) W W → (Values W ΔΣ))
   (define (refine-ranges Σ cases args rng)
 
-    (: obvious? : V V^ → Boolean)
+    (: obvious? : V D → Boolean)
     ;; Fast local check if `Vs` definitely satisfies `P`
-    (define (obvious? P Vs)
+    (define (obvious? P D)
       (define go : (V → ?Dec)
         (match-lambda
           [(Not/C (γ:imm P) _)
@@ -240,7 +244,7 @@
              [(✓) '✗]
              [(✗) '✓]
              [else #f])]
-          [(? P? P) (sat Σ P Vs)]
+          [(? P? P) (sat Σ P D)]
           [_ #f]))
       (eq? (go P) '✓))
 

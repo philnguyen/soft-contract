@@ -39,7 +39,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import val^ cache^
+  (import val^ cache^ sto^
           prim-runtime^ prover^
           exec^ app^)
   (export)
@@ -74,7 +74,7 @@
   ;[keyword-apply #|FIXME uses|#]
   (def (procedure-arity Σ ℓ W)
     #:init ([Vₕ procedure?])
-    (R-of (for/set : V^ ([V (in-set Vₕ)])
+    (R-of (for/set : V^ ([V (in-set (unpack Vₕ Σ))])
             (cond [(arity V) => -b] [else (-● ∅)]))))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses

@@ -5,7 +5,8 @@
 (require typed/racket/unit
          racket/match
          racket/set
-         (only-in racket/list make-list split-at)
+         racket/splicing
+         (only-in racket/function curry)
          set-extras
          unreachable
          "../utils/main.rkt"
@@ -19,20 +20,15 @@
           sto^ pretty-print^ prover^)
   (export val^)
 
-  (: collapse-W^ : W^ → W)
-  (define (collapse-W^ Ws) (set-fold W⊔ (set-first Ws) (set-rest Ws)))
-  
-  (: collapse-W^-by-arities : W^ → (Immutable-HashTable Index W))
-  (define (collapse-W^-by-arities Ws)
-    (for/fold ([acc : (Immutable-HashTable Index W) (hasheq)])
-              ([Wᵢ (in-set Ws)])
-      (define n (length Wᵢ))
-      (hash-update acc n
-                   (λ ([W₀ : W]) (W⊔ W₀ Wᵢ))
-                   (λ () (make-list n ∅)))))
-
-  (: W⊔ : W W → W)
-  (define (W⊔ W₁ W₂) (map V⊔ W₁ W₂))
+  (splicing-local
+      ((define (D⊔ [Σ : Σ] [D₁ : D] [D₂ : D])
+         (cond [(and (set? D₁) (set? D₂)) (V⊔ D₁ D₂)]
+               [(equal? D₁ D₂) D₁]
+               [else (V⊔ (unpack D₁ Σ) (unpack D₂ Σ))]))
+       (: W⊔ : Σ W W → W)
+       (define (W⊔ Σ W₁ W₂) (map (curry D⊔ Σ) W₁ W₂)))
+    (: collapse-W^ : Σ W^ → W)
+    (define (collapse-W^ Σ Ws) (set-fold (curry W⊔ Σ) (set-first Ws) (set-rest Ws))))
 
   (define Ctx-with-site : (Ctx ℓ → Ctx)
     (match-lambda** [((Ctx l+ l- ℓₒ _) ℓ) (Ctx l+ l- ℓₒ ℓ)]))
@@ -47,11 +43,17 @@
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? C Σ)
     (define-set seen : α #:mutable? #t)
+    (: go-T : (U T -prim α) → Boolean)
+    (define (go-T T)
+      (cond [(-prim? T) #t]
+            [(T? T) (go-V^ (unpack T Σ))]
+            [else (go-α T)]))
+
     (: go-α : α → Boolean)
     (define (go-α α)
       (cond [(seen-has? α) #t]
             [else (seen-add! α)
-                  (S-andmap go-V^ go-α (Σ@/raw α Σ))]))
+                  (S-andmap go-V^ go-T (Σ@/raw α Σ))]))
 
     (: go-V^ : V^ → Boolean)
     (define (go-V^ [Vs : V^]) (set-andmap go-V Vs))
@@ -134,16 +136,16 @@
 
   (: T-refers-to? : T (℘ Symbol) → Boolean)
   (define (T-refers-to? T₀ xs)
-    (let go : Boolean ([T : (U -b T) T₀])
+    (let go : Boolean ([T : (U -prim T) T₀])
       (match T
         [(γ:lex x) (∋ xs x)]
         [(T:@ _ Ts) (ormap go Ts)]
         [_ #f])))
 
-  (define T:@/simp : (K (Listof (U T -b)) → (U -b T))
+  (define T:@/simp : (K (Listof (U T -prim)) → (U -prim T))
     (match-lambda**
      [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (list-ref Ts i)]
-     [((-st-mk 𝒾) (list (T:@ (-st-ac 𝒾s #{ks : (Listof Index)}) (list #{Ts : (Listof (U -b T))})) ...))
+     [((-st-mk 𝒾) (list (T:@ (-st-ac 𝒾s #{ks : (Listof Index)}) (list #{Ts : (Listof (U -prim T))})) ...))
       #:when (and (pair? Ts)
                   (counting-up? ks)
                   (all-same? 𝒾 𝒾s)
@@ -164,8 +166,16 @@
   ;; This is a temporary HACK that should eventually be obsolete by refactoring
   (define prop? : (T S* → Boolean)
     (match-lambda**
-     [((T:@ (or (? K:≡?) (? K:≤?) (? K:=?) (? γ:top?)) _) {singleton-set (? -b?)}) #t]
+     [((T:@ (or (? K:≡?) (? K:≤?) (? K:=?) (? γ:top?)) _) (or (? -b?) {singleton-set (? -b?)})) #t]
      [(_ _) #f]))
+
+  (: ListOf : γ:imm:listof → V)
+  (define (ListOf α)
+    (match-define (γ:imm:listof x Cₑ ℓ) α)
+    (define Cₚ (St/C (γ:imm:blob:st (vector-immutable {set Cₑ} {set (X/C α)})
+                                    (ℓ-with-id ℓ 'imm:pair)
+                                    -𝒾-cons)))
+    (Or/C (γ:imm 'null?) (γ:imm Cₚ) (ℓ-with-id ℓ 'imm:or)))
 
   (: ac-Ps : -st-ac (℘ P) → (℘ P))
   (define (ac-Ps ac Ps)
@@ -218,10 +228,7 @@
         [((? values V₁) #f) {set V₁}]
         [(#f (? values V₂)) {set V₂}]
         [(#f #f) ∅]))
-    (define Vs* (∪ (∩ Vs₁ Vs₂)
-                   (set-filter T? Vs₁)
-                   (set-filter T? Vs₂)
-                   ●*))
+    (define Vs* (∪ (∩ Vs₁ Vs₂) ●*))
     (and (not (set-empty? Vs*)) Vs*))
 
   (define opposite? : (P P → Boolean)

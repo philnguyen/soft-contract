@@ -79,7 +79,7 @@
   (def (set/c Σ ℓ W)
     #:init ([V contract? #|TODO chaperone-contract?|#])
     (define α (α:dyn (β:set:elem ℓ) H₀))
-    (R-of (Set/C α ℓ) (alloc α V)))
+    (R-of {set (Set/C α ℓ)} (alloc α V)))
 
 ;;;;; 4.16.3 Generic Set Interface
 
@@ -105,12 +105,13 @@
         [(Set-Of α) (R-of (Σ@ α Σ))]
         [(Guarded (cons l+ l-) (Set/C αₑ ℓₕ) α)
          (define ctx (Ctx l+ l- ℓₕ ℓ))
-         (with-collapsing/R [(ΔΣ Ws) (app Σ ℓₕ {set 'set-first} (list (Σ@ α Σ)))]
-           (ΔΣ⧺R ΔΣ (mon (⧺ Σ ΔΣ) ctx (Σ@ αₑ Σ) (car (collapse-W^ Ws)))))]
-        [(? -●?) (R-of (-● ∅))]
+         (with-collapsing/R Σ [(ΔΣ Ws) (app Σ ℓₕ {set 'set-first} (list (Σ@ α Σ)))]
+           (define Σ* (⧺ Σ ΔΣ))
+           (ΔΣ⧺R ΔΣ (mon Σ* ctx (Σ@ αₑ Σ) (car (collapse-W^ Σ* Ws)))))]
+        [(? -●?) (R-of {set (-● ∅)})]
         [(? α? α) (fold-ans ac₁ (Σ@ α Σ))]
         [_ !!!]))
-    (fold-ans/collapsing ac₁ Vs))
+    (fold-ans/collapsing Σ ac₁ (unpack Vs Σ)))
   (def set-rest (∀/c (α) ((set/c α) . -> . (set/c α))))
   (def set->stream (generic-set? . -> . stream?))
   (def set-copy (generic-set? . -> . generic-set?))

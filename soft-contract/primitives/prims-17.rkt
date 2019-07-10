@@ -56,6 +56,7 @@
   (def (unsafe-struct-ref Σ ℓ W)
     #:init ([Vᵥ any/c] [Vᵢ integer?])
     ((inst fold-ans/collapsing V)
+     Σ
      (match-lambda
        [(St (and α (α:dyn (β:st-elems _ 𝒾) _)) Ps)
         (define Vₐ
@@ -67,21 +68,21 @@
         (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
         (define S (Σ@/blob αₕ Σ))
         (define Vᵥ* (Σ@ αᵥ Σ))
-        (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
+        (with-collapsing/R Σ [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
           (define Σ₀ (⧺ Σ ΔΣ₀))
-          (define Vₐ (car (collapse-W^ Ws)))
+          (define Vₐ (car (collapse-W^ Σ₀ Ws)))
           (define ctx (Ctx l+ l- ℓₕ ℓ))
           (for/fold ([r : R ⊥R]) ([(Cᵢ i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
             (define rᵢ (mon Σ₀ ctx Cᵢ Vₐ))
             (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ))))]
        [(-● Ps)
         (match Vᵢ
-          [{singleton-set (-b (? index? i))}
+          [(-b (? index? i))
            (R-of (or (for/or : (Option V^) ([P (in-set Ps)] #:when (-st-p? P))
                        (match-define (-st-p 𝒾) P)
                        (st-ac-● 𝒾 i Ps Σ))
-                     (-● ∅)))]
-          [_ (R-of (-● ∅))])]
+                     {set (-● ∅)}))]
+          [_ (R-of {set (-● ∅)})])]
        [_ ⊥R])
      (unpack Vᵥ Σ)))
 

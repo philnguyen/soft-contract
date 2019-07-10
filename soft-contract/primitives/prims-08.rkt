@@ -42,13 +42,13 @@
          (define-values (Vₐ ΔΣₐ)
            (match W-fields
              ['() (values V₀ ⊥ΔΣ)]
-             [(cons Vₗ Wᵣ)
-              (let loop : (Values V^ ΔΣ) ([Vₗ : V^ Vₗ] [Wᵣ : W Wᵣ] [i : Natural 0])
+             [(cons Dₗ Wᵣ)
+              (let loop : (Values D ΔΣ) ([Dₗ : D Dₗ] [Wᵣ : W Wᵣ] [i : Natural 0])
                 (match Wᵣ
-                  ['() (values Vₗ ⊥ΔΣ)]
-                  [(cons Vₗ* Wᵣ*)
-                   (define-values (Vᵣ ΔΣᵣ) (loop Vₗ* Wᵣ* (+ 1 i)))
-                   (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) Vₗ Vᵣ))
+                  ['() (values Dₗ ⊥ΔΣ)]
+                  [(cons Dₗ* Wᵣ*)
+                   (define-values (Vᵣ ΔΣᵣ) (loop Dₗ* Wᵣ* (+ 1 i)))
+                   (define-values (V* ΔΣ*) (comb (ℓ-with-id ℓ i) (unpack Dₗ Σ) (unpack Vᵣ Σ)))
                    (values {set V*} (⧺ ΔΣᵣ ΔΣ*))]))]))
          (R-of Vₐ ΔΣₐ)))
     
@@ -76,7 +76,7 @@
     #:init ([V flat-contract?])
     (define α (α:dyn (β:not/c ℓ) H₀))
     (define ℓ* (ℓ-with-id ℓ 'not/c))
-    (R-of (Not/C α ℓ) (alloc α V)))
+    (R-of {set (Not/C α ℓ)} (alloc α V)))
   (def* (=/c </c >/c <=/c >=/c) ; TODO
     (real? . -> . flat-contract?))
   (def between/c (real? real? . -> . flat-contract?))
@@ -92,23 +92,23 @@
     #:rest [W (listof any/c)]
     (define vals
       (map (match-lambda
-             [(singleton-set (-b b)) b]
+             [(-b b) b]
              [V^ (error 'one-of/c "only support simple values, got ~a" V^)])
            W))
-    (R-of (One-Of/C (list->set vals)) ⊥ΔΣ))
+    (R-of {set (One-Of/C (list->set vals))} ⊥ΔΣ))
   #;[symbols
      (() #:rest (listof symbol?) . ->* . flat-contract?)]
   (def (vectorof Σ ℓ W) ; FIXME uses
     #:init ([V contract?])
     (define α (α:dyn (β:vectof ℓ) H₀))
-    (R-of (Vectof/C α ℓ) (alloc α V)))
+    (R-of {set (Vectof/C α ℓ)} (alloc α V)))
   (def vector-immutableof (contract? . -> . contract?))
   (def (vector/c Σ ℓ W)
     #:init ()
     #:rest [W (listof contract?)]
-    (define S (list->vector W))
+    (define S (list->vector (unpack-W W Σ)))
     (define α (α:dyn (β:vect/c-elems ℓ (vector-length S)) H₀))
-    (R-of (Vect/C α) (alloc α S)))
+    (R-of {set (Vect/C α)} (alloc α S)))
   #;[vector-immutable/c
      (() #:rest (listof contract?) . ->* . contract?)]
   (def box/c ; FIXME uses
@@ -139,7 +139,7 @@
     #:init ([Vₖ contract?] [Vᵥ contract?])
     (define αₖ (α:dyn (β:hash/c:key ℓ) H₀))
     (define αᵥ (α:dyn (β:hash/c:val ℓ) H₀))
-    (R-of (Hash/C αₖ αᵥ ℓ) (⧺ (alloc αₖ Vₖ) (alloc αᵥ Vᵥ))))
+    (R-of {set (Hash/C αₖ αᵥ ℓ)} (⧺ (alloc αₖ Vₖ) (alloc αᵥ Vᵥ))))
   (def channel/c (contract? . -> . contract?))
   (def continuation-mark-key/c (contract? . -> . contract?))
   ;;[evt/c (() #:rest (listof chaperone-contract?) . ->* . chaperone-contract?)]

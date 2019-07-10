@@ -6,6 +6,7 @@
          racket/match
          racket/set
          racket/list
+         (only-in racket/function curry)
          set-extras
          unreachable
          "../utils/map.rkt"
@@ -26,12 +27,15 @@
 
   (define ⊥A : (Pairof R (℘ Err)) (cons ⊥R ∅))
 
-  (: R-of ([(U V V^ W)] [ΔΣ] . ->* . R))
-  (define (R-of V [ΔΣ ⊥ΔΣ])
-    (define (with [A : W]) (hash A {set ΔΣ}))
-    (cond [(list? V) (with V)]
-          [(set? V) (if (set-empty? V) ⊥R (with (list V)))]
-          [else (with (list {set V}))]))
+  (: R-of ([(U D W)] [(U ΔΣ (℘ ΔΣ))] . ->* . R))
+  (define (R-of x [ΔΣ ⊥ΔΣ])
+    (define (with [A : W])
+      (cond [(not (set? ΔΣ)) (hash A {set ΔΣ})]
+            [(set-empty? ΔΣ) ⊥R]
+            [else (hash A ΔΣ)]))
+    (cond [(list? x) (with x)]
+          [(and (set? x) (set-empty? x)) ⊥R]
+          [else (with (list x))]))
 
   (: ΔΣ⧺R : ΔΣ R → R)
   (define (ΔΣ⧺R ΔΣ R)
@@ -43,55 +47,51 @@
     (cond [(and (hash-empty? (car ΔΣ)) (hash-empty? (cdr ΔΣ))) R]
           [else (map-R:ΔΣ (λ (ΔΣ₀) (⧺ ΔΣ₀ ΔΣ)) R)])) 
 
-  (: collapse-R/ΔΣ : R → (Option ΔΣ))
-  (define (collapse-R/ΔΣ R)
+  (: collapse-R/ΔΣ : Σ R → (Option ΔΣ))
+  (define (collapse-R/ΔΣ Σ R)
     (match (hash-values R)
       ['() #f]
-      [(cons ΔΣs₀ ΔΣs*) (foldl ΔΣ⊔ (collapse-ΔΣs ΔΣs₀) (map collapse-ΔΣs ΔΣs*))]))
+      [(cons ΔΣs₀ ΔΣs*) (foldl (curry ΔΣ⊔ Σ) (collapse-ΔΣs Σ ΔΣs₀) (map (curry collapse-ΔΣs Σ) ΔΣs*))]))
 
-  (: collapse-R : R → (Option (Pairof W^ ΔΣ)))
-  ;; FIXME fix return type to `W`
-  (define (collapse-R R)
-    ;; FIXME rewrite the mess below with vectors
-    (define erase?
-      (let ([m (for*/fold ([m : (HashTable Integer (HashTable Integer V^)) (hasheq)])
-                          ([W (in-hash-keys R)]
-                           [n (in-value (length W))]
-                           [(Vᵢ i) (in-indexed W)])
-                 ((inst hash-update Integer (HashTable Integer V^))
-                  m n
-                  (λ ([m* : (HashTable Integer V^)])
-                    (hash-update m* i (λ ([Vs₀ : V^]) (∪ Vs₀ Vᵢ)) mk-∅))
-                  (λ () (hasheq))))])
-        (for/hasheq : (HashTable Integer (HashTable Integer Boolean)) ([(n m*) (in-hash m)])
-          (values n (for/hasheq : (HashTable Integer Boolean) ([(i Vᵢ) (in-hash m*)])
-                      (values i (> (set-count Vᵢ) 1)))))))
+  (: collapse-R : Σ R → (Option (Pairof W^ ΔΣ)))
+  ;; Collapse result into:
+  ;; - Answers grouped by arities
+  ;; - Collapsed store-delta
+  (define (collapse-R Σ R)
+    (define retain?
+      (for*/fold ([m : (HashTable Integer (HashTable Integer (Option (U T -prim)))) (hasheq)])
+                 ([W (in-hash-keys R)]
+                  [n (in-value (length W))]
+                  [(Vᵢ i) (in-indexed W)])
+        ((inst hash-update Integer (HashTable Integer (Option (U T -prim))))
+         m n
+         (λ (m*)
+           (cond [(set? Vᵢ) (hash-set m* i #f)]
+                 [(not (hash-has-key? m* i)) (hash-set m* i Vᵢ)]
+                 [(equal? (hash-ref m* i) Vᵢ) m*]
+                 [else (hash-set m* i #f)]))
+         hasheq)))
 
     (define (Ws^) : W^
       (define m
-        (for*/fold ([m : (HashTable Integer (HashTable Integer V^)) (hasheq)])
+        (for*/fold ([m : (HashTable Integer (HashTable Integer D)) (hasheq)])
                    ([(W ΔΣs) (in-hash R)]
                     [n (in-value (length W))]
-                    [ΔΣ* (in-value (collapse-ΔΣs ΔΣs))]
+                    [ΔΣ* (in-value (collapse-ΔΣs Σ ΔΣs))]
                     [ΔΓ* (in-value (cdr ΔΣ*))]
-                    [(Vᵢ i) (in-indexed W)])
-          (: span₁ : V V^ → V^)
-          (define (span₁ V acc)
-            (cond [(not (T? V)) (V⊔₁ V acc)]
-                  [(hash-has-key? ΔΓ* V)
-                   (set-fold span₁ acc (assert (hash-ref ΔΓ* V) set?))]
-                  [else (set-add acc V)]))
-          (define (span [Vs : V^]) (set-fold span₁ ∅ Vs))
-          ((inst hash-update Integer (HashTable Integer V^))
+                    [(Dᵢ i) (in-indexed W)])
+          (define Σ* (⧺ Σ ΔΣ*))
+          ((inst hash-update Integer (HashTable Integer D))
            m n
-           (λ ([m* : (HashTable Integer V^)])
-             (hash-update
-              m* i
-              (λ ([V₀ : V^])
-                (define Vᵢ* (if (hash-ref (hash-ref erase? n) i) (span Vᵢ) Vᵢ))
-                (if (set-empty? V₀) Vᵢ* (V⊔ V₀ Vᵢ*)))
-              mk-∅))
-           (λ () (hasheq)))))
+           (λ (m*)
+             (cond
+               [(hash-ref (hash-ref retain? n) i)
+                (assert (and (not (set? Dᵢ))
+                             (equal? Dᵢ (hash-ref (hash-ref retain? n) i))))
+                (hash-set m* i Dᵢ)]
+               [else
+                (hash-update m* i (λ ([D₀ : D]) (V⊔ (assert D₀ set?) (unpack Dᵢ Σ*))) mk-∅)]))
+           hasheq)))
       (define Ws
         (for/set: : W^ ([(n m*) (in-hash m)])
           (for/list : W ([i (in-range (hash-count m*))])
@@ -100,8 +100,8 @@
       (if (hash-has-key? R '()) (set-add Ws '()) Ws))
 
     (and (not (hash-empty? R))
-         (let ([ΔΣ* (match-let ([(cons ΔΣ₀^ ΔΣ^*) (map collapse-ΔΣs (hash-values R))])
-                      (foldl ΔΣ⊔ ΔΣ₀^ ΔΣ^*))])
+         (let ([ΔΣ* (match-let ([(cons ΔΣ₀^ ΔΣ^*) (map (curry collapse-ΔΣs Σ) (hash-values R))])
+                      (foldl (curry ΔΣ⊔ Σ) ΔΣ₀^ ΔΣ^*))])
            (cons (Ws^) ΔΣ*))))
 
   (: R⊔ : R R → R)
@@ -122,7 +122,7 @@
       ;; Partition further by some heuristic notion of "path invariant" before collapsing
       (define ΔΣs**
         (for/union : (℘ ΔΣ) ([ΔΣs (in-hash-values ΔΣs*)])
-                   (precise-collapse-ΔΣs Σ ΔΣs)))
+          (precise-collapse-ΔΣs Σ ΔΣs)))
       (values W ΔΣs**)))
 
   (: precise-collapse-ΔΣs : Σ (℘ ΔΣ) → (℘ ΔΣ))
@@ -139,22 +139,18 @@
       (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
       (cons ΔΞ₀
             (for/fold ([acc : ΔΓ ΔΓ₀])
-                      ([T (in-hash-keys ΔΓ₀)] #:unless (∋ shared-dom T))
-              (hash-set acc T (unpack T Σ*)))))
+                      ([(T D) (in-hash ΔΓ₀)] #:unless (∋ shared-dom T))
+              (hash-set acc T (if (or (-prim? D) (set? D)) D (unpack T Σ*))))))
     (define partitions
       (ΔΣs
        . partition-by .
        (λ ([ΔΣ : ΔΣ])
          (for*/hash : (HashTable T Base) ([(T D) (in-hash (cdr ΔΣ))]
                                           #:when (∋ shared-dom T)
-                                          #:when (prop? T D)
-                                          #:when (set? D)
-                                          #:when (= 1 (set-count D))
-                                          [V (in-value (set-first D))]
-                                          #:when (-b? V))
-           (values T (-b-unboxed V))))))
+                                          #:when (prop? T D))
+           (values T (-b-unboxed (assert (if (set? D) (set-first D) D) -b?)))))))
     (for/set: : (℘ ΔΣ) ([ΔΣs : (℘ ΔΣ) (in-hash-values partitions)])
-      (collapse-ΔΣs (map/set restrict ΔΣs))))
+      (collapse-ΔΣs Σ (map/set restrict ΔΣs))))
 
   (: partition-by (∀ (X Y) (℘ X) (X → Y) → (Immutable-HashTable Y (℘ X))))
   (define (partition-by xs f)

@@ -23,7 +23,7 @@
          "signatures.rkt"
          )
 
-(define-type S (U T -b))
+(define-type S (U T -prim))
 
 (define-unit prover@
   (import static-info^ meta-functions^
@@ -31,11 +31,11 @@
           prims^)
   (export prover^)
 
-  (: sat : Σ V V^ * → ?Dec)
-  (define (sat Σ P . Vs)
-    (match Vs
-      [(list V) (sat^₁ (λ (V) (sat₁ Σ P V)) V)]
-      [(list V₁ V₂) (sat^₂ (λ (V₁ V₂) (sat₂ Σ P V₁ V₂)) V₁ V₂)]
+  (: sat : Σ V D * → ?Dec)
+  (define (sat Σ P . Ds)
+    (match Ds
+      [(list D) (sat^₁ (λ (V) (sat₁ Σ P V)) D)]
+      [(list D₁ D₂) (sat^₂ (λ (V₁ V₂) (sat₂ Σ P V₁ V₂)) D₁ D₂)]
       [_ #f]))
 
   (: Γ-sat? : Γ → Boolean)
@@ -46,16 +46,18 @@
     (define-values (eqs diseqs) (Γ->eqs/diseqs Γ))
     (sat/extra? eqs diseqs))
 
-  (: maybe=? : Σ Integer V^ → Boolean)
+  (: maybe=? : Σ Integer D → Boolean)
   ;; Check if value `V` can possibly be integer `i`
-  (define (maybe=? Σ i Vs)
-    (set-ormap (λ ([V : V]) (and (memq (sat₂ Σ 'equal? (-b i) V) '(✓ #f)) #t)) Vs))
+  (define (maybe=? Σ i D)
+    (if (set? D)
+        (set-ormap (λ ([V : V]) (and (memq (sat₂ Σ 'equal? (-b i) V) '(✓ #f)) #t)) D)
+        (and (memq (sat₂ Σ 'equal? (-b i) D) '(✓ #f)) #t)))
 
   (: check-plaus : Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
   (define (check-plaus Σ P W)
     (match W
-      [(list V    ) (collect₁ Σ P V)]
-      [(list V₁ V₂) (collect₂ Σ P V₁ V₂)]
+      [(list V    ) (distribute₁ Σ P V)]
+      [(list V₁ V₂) (distribute₂ Σ P V₁ V₂)]
       [_ (let ([r (cons W ⊥ΔΣ)])
            (values r r))]))
 
@@ -78,60 +80,32 @@
       [(P:≡ b) {set (-b b)}]
       [_ #f]))
 
-  (: refine : V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))
-  (define (refine Vs P* Σ)
+  (: refine : D (U V (℘ P)) Σ → (Values D ΔΣ))
+  (define (refine D₀ P* Σ)
+    (: step : D V → (Values D ΔΣ))
+    (define (step D P)
+      (cond [(set? D) (values (refine-V^ D P Σ) ⊥ΔΣ)]
+            [(-prim? D) (values D ⊥ΔΣ)]
+            [else (values D (refine-T D P Σ))]))
+
     (if (set? P*)
         ;; refine by conjunction of predicates
-        (for*/fold ([Vs : V^ Vs] [ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
-          (define-values (Vs* ΔΣ*) (refine Vs P Σ))
-          (values Vs* (⧺ ΔΣ ΔΣ*)))
-        (let-values ([(acc ΔΣ*)
-                      (for*/fold ([acc : V^ ∅] [ΔΣ : (Option ΔΣ) #f])
-                                 ([V (in-set Vs)]
-                                  [P (if (α? P*) (in-set (unpack P* Σ)) (in-value P*))])
-                        (case (sat₁ Σ P V)
-                          [(✓) (values (set-add acc V) (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
-                          [(✗) (values acc (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
-                          [else (define-values (V* ΔΣ*) (refine₁ V P Σ))
-                                (values (∪ acc V*) (?ΔΣ⊔ ΔΣ ΔΣ*))]))])
-          (values acc (assert ΔΣ*)))))
+        (for*/fold ([D : D D₀] [ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
+          (define-values (D* ΔΣ*) (step D P))
+          (values D* (⧺ ΔΣ ΔΣ*)))
+        (step D₀ P*)))
 
-  (: refine-not : V^ V Σ → (Values V^ ΔΣ))
-  (define (refine-not Vs P Σ)
-    (define-values (acc ΔΣ*)
-      (for*/fold ([acc : V^ ∅] [ΔΣ : (Option ΔΣ) #f])
-                 ([V (in-set Vs)]
-                  [P (if (α? P) (in-set (unpack P Σ)) (in-value P))])
-        (case (sat₁ Σ P V)
-          [(✓) (values acc (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
-          [(✗) (values (set-add acc V) (?ΔΣ⊔ ΔΣ ⊥ΔΣ))]
-          [else (define-values (V* ΔΣ*) (refine-not₁ V P Σ))
-                (values (∪ acc V*) (?ΔΣ⊔ ΔΣ ΔΣ*))])))
-    (values acc (assert ΔΣ*)))
+  (: refine-not : D V Σ → (Values D ΔΣ))
+  (define (refine-not D P Σ)
+    (cond [(set? D) (values (refine-not-V^ D P Σ) ⊥ΔΣ)]
+          [(-prim? D) (values D ⊥ΔΣ)]
+          [else (values D (refine-not-T D P Σ))]))
 
-  (: refine₁ : V V Σ → (Values V^ ΔΣ))
+  (: refine₁ : D¹ V Σ → (Values D ΔΣ))
   (define (refine₁ V P Σ)
-    (match V
-      [(or (? -●?) (? St?)) (values (refine-V V P Σ) ⊥ΔΣ)]
-      [(? T? T) (values {set T} (refine-T T P Σ))]
-      [_ (values {set V} ⊥ΔΣ)]))
-
-  (: refine-T : T V Σ → ΔΣ)
-  (define (refine-T T₀ P₀ Σ)
-    (match-define (cons Ξ Γ) Σ)
-    (if (P? P₀)
-        (let go ([T : T T₀] [P : P P₀])
-          (match T
-            [(T:@ (? -st-ac? ac) (list T*)) (go (assert T* T?) (P:St ac P))]
-            [_ (cons ⊥Ξ (hash T (refine-V^ (unpack T Σ) P Σ)))]))
-        ⊥ΔΣ))
-
-  (: refine-not₁ : V V Σ → (Values V^ ΔΣ))
-  (define (refine-not₁ V P Σ)
-    (define (default) (values {set V} ⊥ΔΣ))
-    (cond [(not (P? P)) (default)]
-          [(?negate P) => (λ (P*) (refine₁ V P* Σ))]
-          [else (default)]))
+    (cond [(or (-●? V) (St? V)) (values (refine-V V P Σ) ⊥ΔΣ)]
+          [(T? V) (values V (refine-T V P Σ))]
+          [else (values {set V} ⊥ΔΣ)]))
 
   (define ?negate : (P → (Option P))
     (match-lambda
@@ -142,52 +116,58 @@
       [(? Q? Q) (P:¬ Q)]
       [_ #f]))
 
-  (: refine₂ : V V V Σ → (Values V^ V^ ΔΣ))
-  (define (refine₂ V₁ V₂ P Σ)
-    (match P
-      ['<  (refine-both real? (K:≤) -ff V₂ P:> V₁ P:< Σ)] ; V₁ < V₂ ⇔ ¬ (V₁ ≥ V₂) ⇔ ¬ (V₂ ≤ V₁)
-      ['<= (refine-both real? (K:≤) -tt V₁ P:≤ V₂ P:≥ Σ)]
-      ['>  (refine-both real? (K:≤) -ff V₁ P:> V₂ P:< Σ)] ; V₁ > V₂ ⇔ ¬ (V₁ ≤ V₂)
-      ['>= (refine-both real? (K:≤) -tt V₂ P:≤ V₁ P:≥ Σ)]
-      ['=  (refine-both number? (K:=) -tt V₁ P:= V₂ P:= Σ)]
-      [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both base? (K:≡) -tt V₁ P:≡ V₂ P:≡ Σ)]
-      [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
+  (:* refine-V-V refine-not-V-V : V V V Σ → (Values V^ V^))
+  ;; TODO
+  (define (refine-V-V V₁ V₂ P Σ) (values {set V₁} {set V₂}))
+  (define (refine-not-V-V V₁ V₂ P Σ) (values {set V₂} {set V₂}))
 
-  (: refine-not₂ : V V V Σ → (Values V^ V^ ΔΣ))
-  (define (refine-not₂ V₁ V₂ P Σ)
-    (define (refine [P* : Q]) (refine₂ V₁ V₂ P* Σ))
-    (match P
-      ['<  (refine '>=)]
-      ['<= (refine '>)]
-      ['>  (refine '<=)]
-      ['>= (refine '<)]
-      ['=
-       (refine-both number? (K:=) -ff V₁ (compose P:¬ P:=) V₂ (compose P:¬ P:=) Σ)]
-      [(or 'equal? 'eq? 'eqv? 'char=? 'string=?)
-       (refine-both base? (K:≡) -ff V₁ (compose P:¬ P:≡) V₂ (compose P:¬ P:≡) Σ)]
-      [_ (values {set V₁} {set V₂} ⊥ΔΣ)]))
+  (:* refine-V-T refine-not-V-T : V S V Σ → (Values V^ ΔΣ))
+  ;; TODO
+  (define (refine-V-T V T P Σ) (values {set V} (if (-b? V) (refine-T-T V T P Σ) ⊥ΔΣ)))
+  (define (refine-not-V-T V T P Σ) (values {set V} (if (-b? V) (refine-not-T-T V T P Σ) ⊥ΔΣ)))
 
-  (: refine-V^ : V^ (U V V^) Σ → V^)
-  (define (refine-V^ Vs P* Σ)
-    (define (go [P : V] [Vs : V^])
-      (for/fold ([acc : V^ ∅]) ([V (in-set Vs)])
-        (case (sat₁ Σ P V)
-          [(✓) (set-add acc V)]
-          [(✗) acc]
-          [else (∪ acc (refine-V V P Σ))])))
-    (if (set? P*) (set-fold go Vs P*) (go P* Vs)))
+  (:* refine-T-V refine-not-T-V : S V V Σ → (Values ΔΣ V^))
+  ;; TODO
+  (define (refine-T-V T V P Σ) (values (if (-b? V) (refine-T-T T V P Σ) ⊥ΔΣ) {set V}))
+  (define (refine-not-T-V T V P Σ) (values (if (-b? V) (refine-not-T-T T V P Σ) ⊥ΔΣ) {set V}))
 
-  (: refine-V : V V Σ → V^)
-  (define (refine-V V P Σ)
-    (match V
-      [(-● Ps)
-       ;; TODO reduce hack. This comes from `one-of/c` not recognized as a refinement
-       (match P
-         [(One-Of/C bs) (refine-V^ (map/set -b bs) Ps Σ)]
-         [_ (reify (refine-Ps Ps P))])]
-      [(St α Ps) {set (St α (refine-Ps Ps P))}]
-      [_ {set V}]))
+  (:* refine-T-T refine-not-T-T : S S V Σ → ΔΣ)
+  (splicing-local
+      ((: refine-both (∀ (X) (Base → Boolean : X) K -b S (X → P) S (X → P) Σ → ΔΣ))
+       (define (refine-both ub? P b V₁ P₁ V₂ P₂ Σ)
+         (match* (V₁ V₂)
+           [((? T? V₁) (? T? V₂))
+            (define T-prop (T:@ P (list V₁ V₂)))
+            ((inst cons ΔΞ ΔΓ) ⊥Ξ (hash T-prop b))]
+           [((? T? V₁) (-b (? ub? u₂)))
+            (refine-T V₁ (P₁ u₂) Σ)]
+           [((-b (? ub? u₁)) (? T? V₂))
+            (refine-T V₂ (P₂ u₁) Σ)]
+           [(_ _) ⊥ΔΣ])))
+    (define (refine-T-T T₁ T₂ P Σ)
+      (case P
+        [(< ) (refine-both real? (K:≤) -ff T₂ P:> T₁ P:< Σ)] ; V₁ < V₂ ⇔ ¬ (V₁ ≥ V₂) ⇔ ¬ (V₂ ≤ V₁)
+        [(<=) (refine-both real? (K:≤) -tt T₁ P:≤ T₂ P:≥ Σ)]
+        [(> ) (refine-both real? (K:≤) -ff T₁ P:> T₂ P:< Σ)] ; V₁ > V₂ ⇔ ¬ (V₁ ≤ V₂)
+        [(>=) (refine-both real? (K:≤) -tt T₂ P:≤ T₁ P:≥ Σ)]
+        [(= ) (refine-both number? (K:=) -tt T₁ P:= T₂ P:= Σ)]
+        [(equal? eq? eqv? char=? string=?)
+         (refine-both base? (K:≡) -tt T₁ P:≡ T₂ P:≡ Σ)]
+        [else ⊥ΔΣ]))
+    (define (refine-not-T-T T₁ T₂ P Σ)
+      (define (go [P : Symbol]) (refine-T-T T₁ T₂ P Σ))
+      (case P
+        [(< ) (go '>=)]
+        [(<=) (go '> )]
+        [(> ) (go '<=)]
+        [(>=) (go '< )]
+        [(=)
+         (define P:≠ (compose P:¬ P:=))
+         (refine-both number? (K:=) -ff T₁ P:≠ T₂ P:≠ Σ)]
+        [(equal? eq? eqv? char=? string=?)
+         (define P:≢ (compose P:¬ P:≡))
+         (refine-both base? (K:≡) -ff T₁ P:≢ T₂ P:≢ Σ)]
+        [else ⊥ΔΣ])))
 
   (: refine-Ps : (℘ P) V → (℘ P))
   ;; Strengthen refinement set with new predicate
@@ -226,163 +206,166 @@
           [(_ _) #f])]))
     (if (P? P₀) (merge/compact P+ P₀ Ps₀) Ps₀))
 
-  (: sat₁ : Σ V V → ?Dec)
+  (: sat₁ : Σ V D¹ → ?Dec)
   (define (sat₁ Σ P V₀)
-    (match V₀
-      [(-● Ps) (Ps⊢P Ps P)]
-      [(? α? α) (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack α Σ))]
-      [(and T (T:@ k _)) (or (and (symbol? k) (P⊢P (get-conservative-range k) P))
-                             (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack T Σ)))]
-      [_ (match P
-           [(-st-p 𝒾)
-            (match V₀
-              [(or (St (α:dyn (β:st-elems _ 𝒾*) _) _)
-                   (Guarded _ (? St/C? (app St/C-tag 𝒾*)) _))
-               (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
-              [_ '✗])]
-           [(One-Of/C bs) (bool->Dec (and (-b? V₀) (∋ bs (-b-unboxed V₀))))]
-           [(P:St (-st-ac 𝒾 i) P*)
-            (match V₀
-              [(St α Ps)
-               (or (Ps⊢P Ps P)
-                   (sat^₁ (λ (Vᵢ) (sat₁ Σ P* Vᵢ)) (vector-ref (Σ@/blob α Σ) i)))]
-              [(? -●?) !!!]
-              [_ '✗])]
-           [(P:¬ Q) (neg (sat₁ Σ Q V₀))]
-           [(P:≥ b) (sat₂ Σ '>= V₀ (-b b))]
-           [(P:> b) (sat₂ Σ '>  V₀ (-b b))]
-           [(P:≤ b) (sat₂ Σ '<= V₀ (-b b))]
-           [(P:< b) (sat₂ Σ '<  V₀ (-b b))]
-           [(P:= b) (sat₂ Σ '=  V₀ (-b b))]
-           [(P:≡ b) (sat₂ Σ 'equal? V₀ (-b b))]
-           [(P:arity-includes a)
-            (match (arity V₀)
-              [(? values V₀:a) (bool->Dec (arity-includes? V₀:a a))]
-              [#f '✗])]
-           [(P:vec-len n)
-            (match V₀
-              [(Vect (α:dyn (β:vect-elems _ m) _)) (bool->Dec (= n m))]
-              [(Vect-Of _ Vₙ) (sat^₂ (λ (V₁ V₂) (sat₂ Σ '= V₁ V₂)) {set (-b n)} Vₙ)]
-              [(Guarded _ G _)
-               (match G
-                 [(? Vect/C?) (define-values (_₁ _₂ m) (Vect/C-fields G))
-                              (bool->Dec (= n m))]
-                 [(Vectof/C _ _) #f]
-                 [_ '✗])]
-              [_ '✗])]
-           [(? symbol?)
-            (define-simple-macro (with-base-predicates ([g:id ... o?] ...)
-                                   c ...)
-              (case P
-                [(o?) (bool->Dec (and (-b? V₀) (let ([V* (-b-unboxed V₀)])
-                                                 (and (g V*) ... (o? V*)))))]
-                ...
-                c ...))
-            (: check-among : (V → Boolean) * → ?Dec)
-            (define (check-among . ps)
-              (or (for/or : (Option '✓) ([p (in-list ps)] #:when (p V₀)) '✓) '✗))
-            (: with-guard : (V → Boolean) * → (V → Boolean))
-            (define (with-guard . ps)
-              (match-lambda [(Guarded _ G _)
-                             (for/or : Boolean ([p? (in-list ps)]) (p? G))]
-                            [_ #f]))
-            (: proper-flat-contract? : V → Boolean)
-            (define proper-flat-contract?
-              (match-lambda
-                [(-st-mk 𝒾) (= 1 (count-struct-fields 𝒾))]
-                [(or (? -st-p?) (? -st-ac?)) #t]
-                [(? symbol? o) (arity-includes? (prim-arity o) 1)]
-                [(? Not/C?) #t]
-                [(? One-Of/C?) #t]
-                [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
-                [(Clo xs _ _) (arity-includes? (shape xs) 1)]
-                [(-λ xs _ _) (arity-includes? (shape xs) 1)]
-                [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
-                [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
-                [_ #f]))
-            ;; Order matters. More specific ones come first.
-            (with-base-predicates ([not]
-                                   [byte?]
-                                   [fixnum?]
-                                   [exact-positive-integer?]
-                                   [exact-nonnegative-integer?]
-                                   [exact-integer? even?]
-                                   [exact-integer? odd?]
-                                   [exact-integer?]
-                                   [real? positive?]
-                                   [real? negative?]
-                                   [number? zero?]
-                                   [number? exact?]
-                                   [number? inexact?]
-                                   [integer?]
-                                   [inexact-real?]
-                                   [real?]
-                                   [number?]
-                                   [null?]
-                                   [boolean?]
-                                   [non-empty-string?]
-                                   [path-string?]
-                                   [string?]
-                                   [char?]
-                                   [symbol?]
-                                   [void?]
-                                   [eof-object?]
-                                   [regexp?]
-                                   [pregexp?]
-                                   [byte-regexp?]
-                                   [byte-pregexp?])
-              ;; Manual cases
-              [(values) (bool->Dec (or (not (-b? V₀)) (not (not (-b-unboxed V₀)))))]
-              [(procedure?) ; FIXME make sure `and/c` and friends are flat
-               (check-among -o? Fn? (with-guard Fn/C?) proper-flat-contract?)]
-              [(vector?)
-               (check-among Vect? Vect-Of? (with-guard Vect/C? Vectof/C?))]
-              [(hash-empty?)
-               (match V₀
-                 [(Empty-Hash) '✓]
-                 [(Guarded _ (? Hash/C?) _) #f]
-                 [_ '✗])]
-              [(hash?) (check-among Empty-Hash? Hash-Of? (with-guard Hash/C?))]
-              [(set? generic-set?) (check-among Empty-Set? Set-Of? (with-guard Set/C?))]
-              [(set-empty?)
-               (match V₀
-                 [(Empty-Set) '✓]
-                 [(Guarded _ (? Set/C?) _) #f]
-                 [_ '✗])]
-              [(contract?)
-               (check-among Fn/C? And/C? Or/C? Not/C? X/C?
-                            Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
-                            ∀/C? Seal/C? -b?)]
-              [(flat-contract?) (check-among -b? proper-flat-contract?)]
-              ;; Take more conservative view of sealed value than standard Racket.
-              ;; `sealed` is the lack of type information.
-              ;; Can't assume a sealed value is `any/c`,
-              ;; even when it's the top of the only type hierarchy there is.
-              ;; This prevents sealed values from being inspected even by
-              ;; "total" predicates and ensures that codes with and without
-              ;; parametric contracts behave the same.
-              [(any/c) (if (Sealed? V₀) #f '✓)]
-              [(none/c) '✗]
-              [(immutable?)
-               (define go : (V → ?Dec)
-                 (match-lambda
-                   [(-b b) (bool->Dec (immutable? b))]
-                   [(or (? Empty-Hash?) (? Hash-Of?) (? Empty-Set?) (? Set-Of?)) '✓]
-                   [(Guarded _ (or (? Hash/C?) (? Set/C?)) α) (go-α α)]
-                   [(or (? Vect?) (? Vect-Of?) (Guarded _ (or (? Vect/C?) (? Vectof/C?)) _)) '✗]
-                   [(-● Ps) (Ps⊢P Ps 'immutable?)]
-                   [_ #f]))
-               (: go-α : α → ?Dec)
-               (define (go-α α) (sat^₁ go (unpack (Σ@ α Σ) Σ)))
-               (go V₀)]
-              [(list?) (check-proper-list Σ V₀)]
-              [(port? input-port? output-port?) '✗] ; ports can't reach here
-              [else (and (bool-excludes? (get-conservative-range P)) '✓)])]
-           [_ #f])]))
+    (cond
+      [(-●? V₀) (Ps⊢P (-●-_0 V₀) P)]
+      [(T:@? V₀)
+       (define k (T:@-_0 V₀))
+       (or (and (symbol? k) (P⊢P (get-conservative-range k) P))
+           (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack V₀ Σ)))]
+      [(γ? V₀) (sat^₁ (λ (V) (sat₁ Σ P V)) (unpack V₀ Σ))]
+      [else
+       (match P
+         [(-st-p 𝒾)
+          (match V₀
+            [(or (St (α:dyn (β:st-elems _ 𝒾*) _) _)
+                 (Guarded _ (? St/C? (app St/C-tag 𝒾*)) _))
+             (bool->Dec (and 𝒾* (𝒾* . substruct? . 𝒾)))]
+            [_ '✗])]
+         [(One-Of/C bs) (bool->Dec (and (-b? V₀) (∋ bs (-b-unboxed V₀))))]
+         [(P:St (-st-ac 𝒾 i) P*)
+          (match V₀
+            [(St α Ps)
+             (or (Ps⊢P Ps P)
+                 (sat^₁ (λ (Vᵢ) (sat₁ Σ P* Vᵢ)) (vector-ref (Σ@/blob α Σ) i)))]
+            [(? -●?) !!!]
+            [_ '✗])]
+         [(P:¬ Q) (neg (sat₁ Σ Q V₀))]
+         [(P:≥ b) (sat₂ Σ '>= V₀ (-b b))]
+         [(P:> b) (sat₂ Σ '>  V₀ (-b b))]
+         [(P:≤ b) (sat₂ Σ '<= V₀ (-b b))]
+         [(P:< b) (sat₂ Σ '<  V₀ (-b b))]
+         [(P:= b) (sat₂ Σ '=  V₀ (-b b))]
+         [(P:≡ b) (sat₂ Σ 'equal? V₀ (-b b))]
+         [(P:arity-includes a)
+          (match (arity V₀)
+            [(? values V₀:a) (bool->Dec (arity-includes? V₀:a a))]
+            [#f '✗])]
+         [(P:vec-len n)
+          (match V₀
+            [(Vect (α:dyn (β:vect-elems _ m) _)) (bool->Dec (= n m))]
+            [(Vect-Of _ Vₙ) (sat^₂ (λ (V₁ V₂) (sat₂ Σ '= V₁ V₂)) {set (-b n)} Vₙ)]
+            [(Guarded _ G _)
+             (match G
+               [(? Vect/C?) (define-values (_₁ _₂ m) (Vect/C-fields G))
+                            (bool->Dec (= n m))]
+               [(Vectof/C _ _) #f]
+               [_ '✗])]
+            [_ '✗])]
+         [(? symbol?)
+          (define-simple-macro (with-base-predicates ([g:id ... o?] ...)
+                                 c ...)
+            (case P
+              [(o?) (bool->Dec (and (-b? V₀) (let ([V* (-b-unboxed V₀)])
+                                               (and (g V*) ... (o? V*)))))]
+              ...
+              c ...))
+          (: check-among : (V → Boolean) * → ?Dec)
+          (define (check-among . ps)
+            (or (for/or : (Option '✓) ([p (in-list ps)] #:when (p V₀)) '✓) '✗))
+          (: with-guard : (V → Boolean) * → (V → Boolean))
+          (define (with-guard . ps)
+            (match-lambda [(Guarded _ G _)
+                           (for/or : Boolean ([p? (in-list ps)]) (p? G))]
+                          [_ #f]))
+          (: proper-flat-contract? : V → Boolean)
+          (define proper-flat-contract?
+            (match-lambda
+              [(-st-mk 𝒾) (= 1 (count-struct-fields 𝒾))]
+              [(or (? -st-p?) (? -st-ac?)) #t]
+              [(? symbol? o) (arity-includes? (prim-arity o) 1)]
+              [(? Not/C?) #t]
+              [(? One-Of/C?) #t]
+              [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
+              [(Clo xs _ _) (arity-includes? (shape xs) 1)]
+              [(-λ xs _ _) (arity-includes? (shape xs) 1)]
+              [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
+              [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
+              [_ #f]))
+          ;; Order matters. More specific ones come first.
+          (with-base-predicates ([not]
+                                 [byte?]
+                                 [fixnum?]
+                                 [exact-positive-integer?]
+                                 [exact-nonnegative-integer?]
+                                 [exact-integer? even?]
+                                 [exact-integer? odd?]
+                                 [exact-integer?]
+                                 [real? positive?]
+                                 [real? negative?]
+                                 [number? zero?]
+                                 [number? exact?]
+                                 [number? inexact?]
+                                 [integer?]
+                                 [inexact-real?]
+                                 [real?]
+                                 [number?]
+                                 [null?]
+                                 [boolean?]
+                                 [non-empty-string?]
+                                 [path-string?]
+                                 [string?]
+                                 [char?]
+                                 [symbol?]
+                                 [void?]
+                                 [eof-object?]
+                                 [regexp?]
+                                 [pregexp?]
+                                 [byte-regexp?]
+                                 [byte-pregexp?])
+            ;; Manual cases
+            [(values) (bool->Dec (or (not (-b? V₀)) (not (not (-b-unboxed V₀)))))]
+            [(procedure?) ; FIXME make sure `and/c` and friends are flat
+             (check-among -o? Fn? (with-guard Fn/C?) proper-flat-contract?)]
+            [(vector?)
+             (check-among Vect? Vect-Of? (with-guard Vect/C? Vectof/C?))]
+            [(hash-empty?)
+             (match V₀
+               [(Empty-Hash) '✓]
+               [(Guarded _ (? Hash/C?) _) #f]
+               [_ '✗])]
+            [(hash?) (check-among Empty-Hash? Hash-Of? (with-guard Hash/C?))]
+            [(set? generic-set?) (check-among Empty-Set? Set-Of? (with-guard Set/C?))]
+            [(set-empty?)
+             (match V₀
+               [(Empty-Set) '✓]
+               [(Guarded _ (? Set/C?) _) #f]
+               [_ '✗])]
+            [(contract?)
+             (check-among Fn/C? And/C? Or/C? Not/C? X/C?
+                          Vectof/C? Vect/C? St/C? Hash/C? Set/C? proper-flat-contract?
+                          ∀/C? Seal/C? -b?)]
+            [(flat-contract?) (check-among -b? proper-flat-contract?)]
+            ;; Take more conservative view of sealed value than standard Racket.
+            ;; `sealed` is the lack of type information.
+            ;; Can't assume a sealed value is `any/c`,
+            ;; even when it's the top of the only type hierarchy there is.
+            ;; This prevents sealed values from being inspected even by
+            ;; "total" predicates and ensures that codes with and without
+            ;; parametric contracts behave the same.
+            [(any/c) (if (Sealed? V₀) #f '✓)]
+            [(none/c) '✗]
+            [(immutable?)
+             (define go : (D¹ → ?Dec)
+               (match-lambda
+                 [(-b b) (bool->Dec (immutable? b))]
+                 [(or (? Empty-Hash?) (? Hash-Of?) (? Empty-Set?) (? Set-Of?)) '✓]
+                 [(Guarded _ (or (? Hash/C?) (? Set/C?)) α) (go-α α)]
+                 [(or (? Vect?) (? Vect-Of?) (Guarded _ (or (? Vect/C?) (? Vectof/C?)) _)) '✗]
+                 [(-● Ps) (Ps⊢P Ps 'immutable?)]
+                 [_ #f]))
+             (: go-α : α → ?Dec)
+             (define (go-α α) (sat^₁ go (unpack (Σ@ α Σ) Σ)))
+             (go V₀)]
+            [(list?) (check-proper-list Σ V₀)]
+            [(port? input-port? output-port?) '✗] ; ports can't reach here
+            [else (and (bool-excludes? (get-conservative-range P)) '✓)])]
+         [_ #f])]))
 
-  (: sat₂ : Σ V V V → ?Dec)
+  (: sat₂ : Σ V D¹ D¹ → ?Dec)
   (define (sat₂ Σ P V₁ V₂)
-    (define (go [V₁ : V] [V₂ : V]) : ?Dec
+    (define (go [V₁ : D¹] [V₂ : D¹]) : ?Dec
       (case P
         [(equal? eq? char=? string=?) (check-equal? Σ V₁ V₂)]
         [(=) (check-= Σ V₁ V₂)]
@@ -396,14 +379,14 @@
            [(_ _) #f])]
         [else #f]))
     (cond [(go V₁ V₂) => values]
-          [(and (T? V₁) (-b? V₂)) (sat^₂ go (unpack V₁ Σ) {set V₂})]
-          [(and (-b? V₁) (T? V₂)) (sat^₂ go {set V₁} (unpack V₂ Σ))]
-          [(and (T? V₁) (T? V₂)) (or (sat^₂ go (unpack V₁ Σ) {set V₂})
-                                     (sat^₂ go {set V₁} (unpack V₂ Σ))
+          [(and (T? V₁) (-b? V₂)) (sat^₂ go (unpack V₁ Σ) V₂)]
+          [(and (-b? V₁) (T? V₂)) (sat^₂ go V₁ (unpack V₂ Σ))]
+          [(and (T? V₁) (T? V₂)) (or (sat^₂ go (unpack V₁ Σ) V₂)
+                                     (sat^₂ go V₁ (unpack V₂ Σ))
                                      (sat^₂ go (unpack V₁ Σ) (unpack V₂ Σ)))]
           [else #f]))
 
-  (: check-= : Σ V V → ?Dec)
+  (: check-= : Σ D¹ D¹ → ?Dec)
   (define (check-= Σ V₁ V₂)
     (: check-Ps-= : (℘ P) Real → ?Dec)
     (define (check-Ps-= Ps x)
@@ -424,7 +407,7 @@
       [((-b (? real? x)) (-● Ps)) (check-Ps-= Ps x)]
       [(_ _) (check-equal? Σ V₁ V₂)]))
 
-  (: check-≤ : Σ V V → ?Dec)
+  (: check-≤ : Σ D¹ D¹ → ?Dec)
   (define (check-≤ Σ V₁ V₂)
     (match* (V₁ V₂)
       [((-b (? real? x)) (-b (? real? y))) (bool->Dec (<= x y))]
@@ -458,16 +441,15 @@
       [(T (T:@ '+ (list (-b (? (</c 0))) T))) '✗]
       [((and T₁ (or (? -b?) (? T?))) (and T₂ (or (? -b?) (? T?))))
        (match (hash-ref (cdr Σ) (T:@ (K:≤) (list T₁ T₂)) #f)
-         [{singleton-set (-b b)} (if b '✓ '✗)]
+         [(-b b) (if b '✓ '✗)]
          [_
           (match (hash-ref (cdr Σ) (T:@ (K:≤) (list T₂ T₁)) #f)
-            [{singleton-set (-b #f)} '✓]
+            [(-b #f) '✓]
             [_ #f])])]
       [(_ _) #f]))
 
-  (: check-equal? : Σ V V → ?Dec)
+  (: check-equal? : Σ D¹ D¹ → ?Dec)
   (define (check-equal? Σ V₁ V₂)
-
     (: singleton-pred : (℘ P) → (Option P))
     (define (singleton-pred Ps)
       (for/or : (Option P) ([P (in-set Ps)] #:when (?concretize P))
@@ -492,7 +474,7 @@
                  [(✗) '✗]
                  [(#f) #f]))]))
 
-    (: go-V : V V → ?Dec)
+    (: go-V : D¹ D¹ → ?Dec)
     (define go-V
       (match-lambda**
        [((? -prim? x) (? -prim? y)) (bool->Dec (equal? x y))]
@@ -515,13 +497,13 @@
          (T:@ o (list T₁ (T:@ o (list T₂ T₃)))))
         #:when (memq o '(+ *)) '✓]
        [((? T? T₁) (? T? T₂)) (check-equal?/congruence (cdr Σ) T₁ T₂)]
-       [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
-       [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
+       [((? T? T) (? V? V)) (go-V^ (unpack T Σ) {set V})]
+       [((? V? V) (? T? T)) (go-V^ {set V} (unpack T Σ))]
        [(_ _) #f]))
 
     (go-V V₁ V₂))
 
-  (: check-equal?/congruence : Γ (U T -b) (U T -b) → ?Dec)
+  (: check-equal?/congruence : Γ S S → ?Dec)
   (define (check-equal?/congruence Γ T₁ T₂)
     (define-values (eqs diseqs) (Γ->eqs/diseqs Γ))
     (cond [(not (sat/extra? eqs (cons (cons T₁ T₂) diseqs))) '✓]
@@ -534,12 +516,12 @@
                [diseqs : (Listof (Pairof S S)) (list (cons -tt -ff))])
               ([(T D) (in-hash Γ)])
       (match* (T D)
-        [((T:@ (K:≡) (list T₁ T₂)) {singleton-set (-b b)})
+        [((T:@ (K:≡) (list T₁ T₂)) (-b b))
          (if b
              (values (cons (cons T₁ T₂) eqs) diseqs)
              (values eqs (cons (cons T₁ T₂) diseqs)))]
-        [(_ {singleton-set (and T* (or (? -b?) (? T?)))})
-         (values (cons (cons T T*) eqs) diseqs)]
+        [(_ (or (? -b? T*) (? T? T*) {singleton-set (? -b? T*)}))
+         (values (cons (cons T (assert T*)) eqs) diseqs)]
         [(_ _) (values eqs diseqs)])))
 
   (:* Ps⊢P simple-Ps⊢P : (℘ P) V → ?Dec)
@@ -747,86 +729,175 @@
       ((define (ensure-?Dec [d : (U #t ?Dec)]) : ?Dec
          (case d
            [(#t) !!!]
-           [else d])))
-    (: sat^₁ : (V → ?Dec) V^ → ?Dec)
-    (define (sat^₁ check V)
+           [else d]))
+       (define (in-D [D : D]) (if (set? D) (in-set D) (in-value D))))
+    (: sat^₁ : (D¹ → ?Dec) D → ?Dec)
+    (define (sat^₁ check D)
       (ensure-?Dec
-       (for/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-set V)] #:when d)
+       (for/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-D D)] #:when d)
          (join-Dec d (check Vᵢ)))))
-    (: sat^₂ : (V V → ?Dec) V^ V^ → ?Dec)
-    (define (sat^₂ check V₁ V₂)
+    (: sat^₂ : (D¹ D¹ → ?Dec) D D → ?Dec)
+    (define (sat^₂ check D₁ D₂)
       (ensure-?Dec
-       (for*/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-set V₁)] [Vⱼ (in-set V₂)] #:when d)
+       (for*/fold ([d : (U #t ?Dec) #t]) ([Vᵢ (in-D D₁)] [Vⱼ (in-D D₂)] #:when d)
          (join-Dec d (check Vᵢ Vⱼ))))))
 
-  (: collect₁ : Σ V V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
-  (define (collect₁ Σ P Vs)
-    (define-values (Vs:t Vs:f ΔΣ:t ΔΣ:f)
-      (for/fold ([Vs:t : V^ ∅]
-                 [Vs:f : V^ ∅]
-                 [ΔΣ:t : (Option ΔΣ) #f]
-                 [ΔΣ:f : (Option ΔΣ) #f])
-                ([V (in-set Vs)])
+  (splicing-local
+      ((: distribute₁-V^ : Σ V V^ → (Values (Option V^) (Option V^)))
+       (define (distribute₁-V^ Σ P Vs)
+         (define-values (Vs:t Vs:f)
+           (for/fold ([Vs:t : V^ ∅] [Vs:f : V^ ∅]) ([V (in-set Vs)])
+             (case (sat₁ Σ P V)
+               [(✓) (values (∪ Vs:t (refine-V V P Σ)) Vs:f)]
+               [(✗) (values Vs:t (∪ Vs:f (refine-not-V V P Σ)))]
+               [else (values (∪ Vs:t (refine-V V P Σ)) (∪ Vs:f (refine-not-V V P Σ)))])))
+         (values (and (not (set-empty? Vs:t)) Vs:t)
+                 (and (not (set-empty? Vs:f)) Vs:f)))
+
+       (: distribute₁-T : Σ V S → (Values (Option ΔΣ) (Option ΔΣ)))
+       (define (distribute₁-T Σ P T)
+         (define (t) (refine-T T P Σ))
+         (define (f) (refine-not-T T P Σ))
+         (case (sat₁ Σ P T)
+           [(✓) (values (t) #f)]
+           [(✗) (values #f (f))]
+           [else (values (t) (f))])))
+    (: distribute₁ : Σ V D → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+    ;; Distribute values into whether or not it satisfies predicate, or both
+    (define (distribute₁ Σ P D)
+      (if (set? D)
+          (let-values ([(?V^₁ ?V^₂) (distribute₁-V^ Σ P D)]
+                       [(inj) (λ ([?V^ : (Option V^)]) (and ?V^ (cons (list ?V^) ⊥ΔΣ)))])
+            (values (inj ?V^₁) (inj ?V^₂)))
+          (let-values ([(?ΔΣ₁ ?ΔΣ₂) (distribute₁-T Σ P D)]
+                       [(inj) (λ ([?ΔΣ : (Option ΔΣ)]) (and ?ΔΣ (cons (list D) ?ΔΣ)))])
+            (values (inj ?ΔΣ₁) (inj ?ΔΣ₂))))))
+
+  (splicing-local
+      ((: distribute₂-V^-V^ : Σ V V^ V^ → (Values (Option W) (Option W)))
+       (define (distribute₂-V^-V^ Σ P Vs₁ Vs₂)
+         (define-values (Vs₁:t Vs₂:t Vs₁:f Vs₂:f)
+           (for*/fold ([Vs₁:t : V^ ∅] [Vs₂:t : V^ ∅] [Vs₁:f : V^ ∅] [Vs₂:f : V^ ∅])
+                      ([V₁ (in-set Vs₁)] [V₂ (in-set Vs₂)])
+             (case (sat₂ Σ P V₁ V₂)
+               [(✓) (values (set-add Vs₁:t V₁) (set-add Vs₂:t V₂) Vs₁:f Vs₂:f)]
+               [(✗) (values Vs₁:t Vs₂:t (set-add Vs₁:f V₁) (set-add Vs₂:f V₂))]
+               [else (define-values (V₁:t V₂:t) (refine-V-V V₁ V₂ P Σ))
+                     (define-values (V₁:f V₂:f) (refine-not-V-V V₁ V₂ P Σ))
+                     (values (∪ Vs₁:t V₁:t) (∪ Vs₂:t V₂:t)
+                             (∪ Vs₁:f V₁:f) (∪ Vs₂:f V₂:f))])))
+         (values (and (not (or (set-empty? Vs₁:t) (set-empty? Vs₂:t))) (list Vs₁:t Vs₂:t))
+                 (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f))) (list Vs₁:f Vs₂:f))))
+
+       (: distribute₂-V^-T : Σ V V^ S → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+       (define (distribute₂-V^-T Σ P Vs T)
+         (define-values (Vs:t Vs:f ΔΣ:t ΔΣ:f)
+           (for/fold ([Vs₁:t : V^ ∅]
+                      [Vs₁:f : V^ ∅]
+                      [ΔΣ:t : (Option ΔΣ) #f]
+                      [ΔΣ:f : (Option ΔΣ) #f])
+                     ([V₁ (in-set Vs)])
+             (case (sat₂ Σ P V₁ T)
+               [(✓) (values (set-add Vs₁:t V₁) Vs₁:f (?ΔΣ⊔ Σ ΔΣ:t ⊥ΔΣ) ΔΣ:f)]
+               [(✗) (values Vs₁:t (set-add Vs₁:f V₁) ΔΣ:t (?ΔΣ⊔ Σ ΔΣ:f ⊥ΔΣ))]
+               [else (define-values (V₁:t ΔΣ:t*) (refine-V-T V₁ T P Σ))
+                     (define-values (V₁:f ΔΣ:f*) (refine-not-V-T V₁ T P Σ))
+                     (values (∪ Vs₁:t V₁:t) (∪ Vs₁:f V₁:f) (?ΔΣ⊔ Σ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ Σ ΔΣ:f ΔΣ:f*))])))
+         (values (and (not (set-empty? Vs:t)) ΔΣ:t (cons (list Vs:t T) ΔΣ:t))
+                 (and (not (set-empty? Vs:f)) ΔΣ:f (cons (list Vs:f T) ΔΣ:f))))
+
+       (: distribute₂-T-V^ : Σ V S V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+       (define (distribute₂-T-V^ Σ P T Vs)
+         (define-values (ΔΣ:t ΔΣ:f Vs:t Vs:f)
+           (for/fold ([ΔΣ:t : (Option ΔΣ) #f]
+                      [ΔΣ:f : (Option ΔΣ) #f]
+                      [Vs₂:t : V^ ∅]
+                      [Vs₂:f : V^ ∅])
+                     ([V₂ (in-set Vs)])
+             (case (sat₂ Σ P T V₂)
+               [(✓) (values (?ΔΣ⊔ Σ ΔΣ:t ⊥ΔΣ) ΔΣ:f (set-add Vs₂:t V₂) Vs₂:f)]
+               [(✗) (values ΔΣ:t (?ΔΣ⊔ Σ ΔΣ:f ⊥ΔΣ) Vs₂:f (set-add Vs₂:f V₂))]
+               [else (define-values (ΔΣ:t* V₂:t) (refine-T-V T V₂ P Σ))
+                     (define-values (ΔΣ:f* V₂:f) (refine-not-T-V T V₂ P Σ))
+                     (values (?ΔΣ⊔ Σ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ Σ ΔΣ:f ΔΣ:f*)
+                             (∪ Vs₂:t V₂:t) (∪ Vs₂:f V₂:f))])))
+         (values (and ΔΣ:t (not (set-empty? Vs:t)) (cons (list T Vs:t) ΔΣ:t))
+                 (and ΔΣ:f (not (set-empty? Vs:f)) (cons (list T Vs:f) ΔΣ:f))))
+
+       (: distribute₂-T-T : Σ V S S → (Values (Option ΔΣ) (Option ΔΣ)))
+       (define (distribute₂-T-T Σ P T₁ T₂)
+         (define (t) (refine-T-T T₁ T₂ P Σ))
+         (define (f) (refine-not-T-T T₁ T₂ P Σ))
+         (case (sat₂ Σ P T₁ T₂)
+           [(✓) (values (t) #f)]
+           [(✗) (values #f (f))]
+           [else (values (t) (f))])))
+    (: distribute₂ : Σ V D D → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+    ;; Distribute value whether or not they satisfy predicate, or both
+    (define (distribute₂ Σ P D₁ D₂)
+      (cond
+        [(and (set? D₁) (set? D₂))
+         (define-values (?W₁ ?W₂) (distribute₂-V^-V^ Σ P D₁ D₂))
+         (define (inj [?W : (Option W)]) (and ?W (cons ?W ⊥ΔΣ)))
+         (values (inj ?W₁) (inj ?W₂))]
+        [(set? D₁) (distribute₂-V^-T Σ P D₁ D₂)]
+        [(set? D₂) (distribute₂-T-V^ Σ P D₁ D₂)]
+        [else
+         (define-values (ΔΣ:t ΔΣ:f) (distribute₂-T-T Σ P D₁ D₂))
+         (define (inj [?ΔΣ : (Option ΔΣ)]) (and ?ΔΣ (cons (list D₁ D₂) ?ΔΣ)))
+         (values (inj ΔΣ:t) (inj ΔΣ:f))])))
+
+  (: refine-V^ : V^ (U V V^) Σ → V^)
+  ;; Refine abstract value `Vs` with predicate(s) `P*`
+  (define (refine-V^ Vs P* Σ)
+    (define (go [P : V] [Vs : V^])
+      (for/fold ([acc : V^ ∅]) ([V (in-set Vs)])
         (case (sat₁ Σ P V)
-          [(✓)
-           (define-values (V* ΔΣ:t*) (refine₁ V P Σ))
-           (values (∪ Vs:t V*) Vs:f (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
-          [(✗)
-           (define-values (V* ΔΣ:f*) (refine-not₁ V P Σ))
-           (values Vs:t (∪ Vs:f V*) (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))]
-          [else (define-values (V:t ΔΣ:t*) (refine₁ V P Σ))
-                (define-values (V:f ΔΣ:f*) (refine-not₁ V P Σ))
-                (values (∪ Vs:t V:t) (∪ Vs:f V:f) (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))])))
-    (values (and (not (set-empty? Vs:t)) (cons (list Vs:t) (assert ΔΣ:t)))
-            (and (not (set-empty? Vs:f)) (cons (list Vs:f) (assert ΔΣ:f)))))
+          [(✓) (set-add acc V)]
+          [(✗) acc]
+          [else (∪ acc (refine-V V P Σ))])))
+    (if (set? P*) (set-fold go Vs P*) (go P* Vs)))
 
-  (: collect₂ : Σ V V^ V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
-  (define (collect₂ Σ P Vs₁ Vs₂)
-    (define-values (Vs₁:t Vs₂:t Vs₁:f Vs₂:f ΔΣ:t ΔΣ:f)
-      (for*/fold ([Vs₁:t : V^ ∅] [Vs₂:t : V^ ∅]
-                  [Vs₁:f : V^ ∅] [Vs₂:f : V^ ∅]
-                  [ΔΣ:t : (Option ΔΣ) #f]
-                  [ΔΣ:f : (Option ΔΣ) #f])
-                 ([V₁ (in-set Vs₁)]
-                  [V₂ (in-set Vs₂)])
-        (case (sat₂ Σ P V₁ V₂)
-          [(✓)
-           (define-values (V₁:t V₂:t ΔΣ:t*) (refine₂ V₁ V₂ P Σ))
-           (values (∪ Vs₁:t V₁:t) (∪ Vs₂:t V₂:t)
-                   Vs₁:f Vs₂:f
-                   (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ⊥ΔΣ))]
-          [(✗)
-           (define-values (V₁:f V₂:f ΔΣ:f*) (refine-not₂ V₁ V₂ P Σ))
-           (values Vs₁:t Vs₂:t
-                   (∪ Vs₁:f V₁:f) (∪ Vs₂:f V₂:f)
-                   (?ΔΣ⊔ ΔΣ:t ⊥ΔΣ) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))]
-          [else (define-values (V₁:t V₂:t ΔΣ:t*) (refine₂ V₁ V₂ P Σ))
-                (define-values (V₁:f V₂:f ΔΣ:f*) (refine-not₂ V₁ V₂ P Σ))
-                (values (∪ Vs₁:t V₁:t) (∪ Vs₂:t V₂:t)
-                        (∪ Vs₁:f V₁:f) (∪ Vs₂:f V₂:f)
-                        (?ΔΣ⊔ ΔΣ:t ΔΣ:t*) (?ΔΣ⊔ ΔΣ:f ΔΣ:f*))])))
-    (values (and (not (or (set-empty? Vs₁:t) (set-empty? Vs₂:t)))
-                 (cons (list Vs₁:t Vs₂:t) (assert ΔΣ:t)))
-            (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f)))
-                 (cons (list Vs₁:f Vs₂:f) (assert ΔΣ:f)))))
+  (: refine-not-V^ : V^ V Σ → V^)
+  (define (refine-not-V^ Vs P Σ)
+    (for*/fold ([acc : V^ ∅]) ([V (in-set Vs)])
+      (case (sat₁ Σ P V)
+        [(✓) acc]
+        [(✗) (set-add acc V)]
+        [else (∪ acc (refine-not-V V P Σ))])))
 
-  (: refine-both (∀ (X) (Base → Boolean : X) K -b V (X → P) V (X → P) Σ → (Values V^ V^ ΔΣ)))
-  (define (refine-both ub? P b V₁ P₁ V₂ P₂ Σ)
-    (match* (V₁ V₂)
-      [((? T? V₁) (? T? V₂))
-       (define T-prop (T:@ P (list V₁ V₂)))
-       (values {set V₁} {set V₂} ((inst cons ΔΞ ΔΓ) ⊥Ξ (hash T-prop {set b})))]
-      [((? T? V₁) (-b (? ub? u₂)))
-       (define-values (V₁* ΔΣ) (refine₁ V₁ (P₁ u₂) Σ))
-       (values V₁* {set V₂} ΔΣ)]
-      [((-b (? ub? u₁)) (? T? V₂))
-       (define-values (V₂* ΔΣ) (refine₁ V₂ (P₂ u₁) Σ))
-       (values {set V₁} V₂* ΔΣ)]
-      [(_ _) (values {set V₁} {set V₂} ⊥ΔΣ)]))
+  (:* refine-V refine-not-V : V V Σ → V^)
+  ;; Refine value `V` with predicate `P`
+  (define (refine-V V P Σ)
+    (match V
+      [(-● Ps)
+       ;; TODO reduce hack. This comes from `one-of/c` not recognized as a refinement
+       (match P
+         [(One-Of/C bs) (refine-V^ (map/set -b bs) Ps Σ)]
+         [_ (reify (refine-Ps Ps P))])]
+      [(St α Ps) {set (St α (refine-Ps Ps P))}]
+      [_ {set V}]))
+  (define (refine-not-V V P Σ)
+    (cond [(and (P? P) (?negate P)) => (λ (¬P) (refine-V V ¬P Σ))]
+          [else {set V}]))
 
-  (: ?ΔΣ⊔ : (Option ΔΣ) ΔΣ → ΔΣ)
-  (define (?ΔΣ⊔ ?ΔΣ ΔΣ)
-    (if ?ΔΣ (ΔΣ⊔ ?ΔΣ ΔΣ) ΔΣ))
+  (:* refine-T refine-not-T : S V Σ → ΔΣ)
+  (define (refine-T T₀ P₀ Σ)
+    (match-define (cons Ξ Γ) Σ)
+    (if (and (P? P₀) (T? T₀))
+        (let go ([T : T T₀] [P : P P₀])
+          (match T
+            [(T:@ (? -st-ac? ac) (list T*)) (go (assert T* T?) (P:St ac P))]
+            [_ (cons ⊥Ξ (hash T (refine-V^ (unpack T Σ) P Σ)))]))
+        ⊥ΔΣ))
+  (define (refine-not-T T P Σ)
+    (cond [(and (P? P) (?negate P)) => (λ (¬P) (refine-T T ¬P Σ))]
+          [else ⊥ΔΣ]))
+
+  (: ?ΔΣ⊔ : Σ (Option ΔΣ) ΔΣ → ΔΣ)
+  (define (?ΔΣ⊔ Σ ?ΔΣ ΔΣ)
+    (if ?ΔΣ (ΔΣ⊔ Σ ?ΔΣ ΔΣ) ΔΣ))
+
 
   ;;;;; Congruence closure stuff
   ;;FIXME: refactor

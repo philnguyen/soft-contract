@@ -36,20 +36,14 @@
 
       ;; Look up full context to span addresses,
       ;; but only copy entries from the store-delta in focus
-      (define Ξ* (if (α? α)
-                     (match (hash-ref Ξ₀ α #f)
-                       [(? values r) (hash-set Ξ α r)]
-                       [#f Ξ])
-                     Ξ))
-      (define Γ* (if (T? α)
-                     (match (hash-ref Γ₀ α #f)
-                       [(? values D) (hash-set Γ α D)]
-                       [#f Γ])
-                     Γ))
+      (define Ξ* (cond [(and (α? α) (hash-ref Ξ₀ α #f)) => (λ (r) (hash-set Ξ α r))]
+                       [else Ξ]))
+      (define Γ* (cond [(and (T? α) (hash-ref Γ₀ α #f)) => (λ (D) (hash-set Γ α D))]
+                       [else Γ]))
       (define S
         (match α
           [(? α?) (Σ@/raw α ctx)] ;`Σ@` instead of just `hash-ref` takes care of `γ:imm`
-          [(T:@ (? -st-ac?) _) (T-root α)]
+          [(T:@ (? -st-ac?) _) (list (T-root α))]
           [_ (hash-ref (cdr ctx) α)]))
 
       (cond
@@ -60,8 +54,8 @@
                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
            (touch α* Ξ* Γ*))]
         [(hash? S)
-         (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
-                    ([D (in-hash-values S)])
+         (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                   ([D (in-hash-values S)])
            (cond [(set? D)
                   (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
                              ([V (in-set D)]
@@ -72,13 +66,21 @@
                               #:unless (and (not (γ:top? α*)) (T? α*))
                               #:unless (touched-has? α*))
                     (touch α* Ξ* Γ*))]
-                 [(not (touched-has? D)) (touch D Ξ* Γ*)]
+                 [(and (α:dyn? D) (not (touched-has? D))) (touch D Ξ* Γ*)]
                  [else (values Ξ* Γ*)]))]
         [(set? S)
          (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
                     ([V (in-set S)]
                      [α* (in-set (V-root V))] #:unless (touched-has? α*))
            (touch α* Ξ* Γ*))]
+        [(list? S)
+         (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                   ([T (in-set (car S))])
+           (touch T Ξ* Γ*))]
+        [(-prim? S) (values Ξ* Γ*)]
+        [(T:@? S)
+         (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*]) ([T (in-set (T-root S))])
+           (touch T Ξ* Γ*))]
         [else (touch S Ξ* Γ*)]))
 
     (: touch* : (℘ (U α T)) Ξ Γ → (Values Ξ Γ))
@@ -142,9 +144,7 @@
       [(Set/C α _) {set α}]
       [(? ==>i? V) (==>i-root V)]
       [(∀/C xs c α) (E-H-root xs c α)]
-      [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
-      [(? α? α) {set α}]
-      [(? T:@? T) (T-root T)]
+      [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))] 
       [(? -prim? p) (prim-root p)]
       [(or (? -prim?) (? One-Of/C?) (? -●?) (? Empty-Set?) (? Empty-Hash?) (? P?)) ∅]))
 
@@ -160,11 +160,15 @@
                         (set-filter (λ (α) (not (γ:lex? α))) (E-root E)))))
         (set-add tops α))))
 
-  (: V^-root : V^ → (℘ (U α T)))
-  (define (V^-root Vs) (set-union-map V-root Vs))
+  (: D-root : D → (℘ (U α T)))
+  (define (D-root D)
+    (cond [(set? D) (set-union-map V-root D)]
+          [(-prim? D) ∅]
+          [(T:@? D) (T-root D)]
+          [else {set D}]))
 
   (: W-root : W → (℘ (U α T)))
-  (define (W-root W) (apply ∪ ∅ (map V^-root W)))
+  (define (W-root W) (apply ∪ ∅ (map D-root W)))
 
   (define ==>i-root : (==>i → (℘ α))
     (match-lambda
@@ -238,12 +242,12 @@
     (: T-root : T:@ → (℘ T))
     ;; Compute terms mentioned by `T₀`
     (define (T-root T₀)
-      (: go : (U T -b) → (℘ T))
+      (: go : (U T -prim) → (℘ T))
       (define (go T)
         (match T
           [(T:@ K Ts)
            (∪ (go-K K) (apply ∪ (if (-st-ac? K) ∅ {set T}) (map go Ts)))]
-          [(? -b?) ∅]
+          [(? -prim?) ∅]
           [(? γ? γ) {set γ}]))
       (: go-K : K → (℘ T))
       (define go-K
@@ -255,7 +259,7 @@
 
     (: all-live? : (℘ (U α T)) T → Boolean)
     (define (all-live? γs T₀)
-      (define (go-T [x : (U T -b)]) : Boolean
+      (define (go-T [x : (U T -prim)]) : Boolean
         (cond [(∋ γs x) #t]
               [(T:@? x) (and (go-K (T:@-_0 x)) (andmap go-T (T:@-_1 x)))]
               [else (not (γ:lex? x))]))

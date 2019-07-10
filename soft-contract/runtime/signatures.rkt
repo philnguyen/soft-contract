@@ -27,9 +27,8 @@
                                (Guarded [ctx : (Pairof -l -l)] [guard : Prox/C] [val : α])
                                (Sealed α)
                                C
-                               T
                                (-● (℘ P)))
-(#|Identities     |# T . ::= . γ (T:@ K (Listof (U T -b))))
+(#|Identities     |# T . ::= . γ (T:@ K (Listof (U T -prim))))
 (#|               |# K . ::= . T '+ '- '* '/ 'add1 'sub1 -st-ac -st-mk (K:≡) (K:≤) (K:=))
 (#|Environments   |# Γ .  ≜  . (Immutable-HashTable T S*))
 (#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
@@ -37,12 +36,14 @@
 (#|Env. Deltas    |# ΔΓ . ≜  . Γ)
 (#|Store Deltas   |# ΔΞ . ≜  . Ξ)
 (#|Memory Deltas  |# ΔΣ . ≜  . (Pairof ΔΞ ΔΓ))
-(#|Stackabls      |# S* . ≜ . (U #|Values          |# V^
+(#|Stackabls      |# S* . ≜ . (U #|Values          |# D
                                  #|Mutable Locations|# α))
 (#|Storables      |# S .  ≜  . (U #|Stackables      |# S*
                                   #|Memory Blobs     |# (Vectorof V^)
                                   #|Closure Contexts |# Γ))
-(#|Values Lists   |# W .  ≜  . (Listof V^))
+(#|Abs. Values    |# D .  ≜  . (U V^ T -prim))
+(#|Abs. Values    |# D¹ . ≜  . (U V T -prim))
+(#|Values Lists   |# W .  ≜  . (Listof D))
 (#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
                                 (Clo -formals E α)
                                 (Case-Clo (Listof Clo) ℓ))
@@ -67,7 +68,7 @@
                                  (Err:Undefined Symbol ℓ)
                                  (Err:Values Natural E W ℓ)
                                  (Err:Arity [proc : (U V ℓ)] [args : (U Natural W)] [site : ℓ])
-                                 (Err:Varargs W V^ ℓ)
+                                 (Err:Varargs W D ℓ)
                                  (Err:Sealed [seal : Symbol] [site : ℓ])
                                  (Err:Term [violator : -l] [site : ℓ] [origin : ℓ] [fun : V] [args : W])
                                  (Blm [violator : -l]
@@ -141,8 +142,8 @@
                                (β:sealed Symbol ℓ) ; points to wrapped objects
                                )
 (#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ ?MS E)
-                                   ($:Key:Mon Σ ?MS Ctx V V^)
-                                   ($:Key:Fc Σ ?MS ℓ V V^)
+                                   ($:Key:Mon Σ ?MS Ctx V D)
+                                   ($:Key:Fc Σ ?MS ℓ V D)
                                    ($:Key:App Σ ?MS ℓ V W)
                                    ($:Key:Hv Σ ?MS α))
 (#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
@@ -155,7 +156,7 @@
 (#|Dynamic Context|# H  . ≜ . (℘ ℓ))
 (#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
                                                   [#:reuse (Listof Fn/C-Sig)])
-(Renamings . ≜ . (Immutable-HashTable T (Option (U T -b))))
+(Renamings . ≜ . (Immutable-HashTable T (Option (U T -prim))))
 
 ;; Size-change Stuff
 (#|SC. Mon-ing Status|# MS . ::= . (MS [pos : -l] [origin : ℓ] [graphs : M]))
@@ -179,6 +180,9 @@
 (define ⊥ΔΣ : ΔΣ ⊥Σ)
 (define ⊥$ : $ (hasheq))
 
+(: D? (S → Boolean : D))
+(define (D? [x : S]) (not (or (α:dyn? x) (vector? x) (hash? x))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; Signatures
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -189,39 +193,37 @@
    [Σ@/raw : (α Σ → S)]
    [Σ@/blob : (α Σ → (Vectorof V^))]
    [Σ@/env : (α Σ → Γ)]
-   [resolve : ((U Symbol -𝒾) Σ → V^)]
-   [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
-   [unpack-W : (W Σ → W)]
+   [resolve : ((U Symbol -𝒾) Σ → D)]
+   [unpack : (D Σ → V^)]; lookup with provings to eliminate spurious results
+   [unpack-W : (W Σ → (Listof V^))]
    [alloc : (α S → ΔΣ)]
-   [alloc-top : (-𝒾 V^ → ΔΣ)]
+   [alloc-top : (-𝒾 D → ΔΣ)]
    [alloc-top* : ((Listof -𝒾) W → ΔΣ)]
-   [alloc-lex : (Σ Symbol V^ → ΔΣ)]
+   [alloc-lex : (Σ Symbol D → ΔΣ)]
    [alloc-lex* : (Σ (Listof Symbol) W → ΔΣ)]
    [alloc-vararg : (Σ Symbol W → ΔΣ)]
-   [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
-   [mut : (α S Σ → ΔΣ)]
-   [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
-   [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
+   [alloc-rest : ([(U Symbol ℓ) (Listof V^)] [#:tail V^] . ->* . (Values V^ ΔΣ))]
+   [mut : (α (U V^ (Vectorof V^)) Σ → ΔΣ)]
+   [ΔΣ⊔ : (Σ ΔΣ ΔΣ → ΔΣ)]
+   [collapse-ΔΣs : (Σ (℘ ΔΣ) → ΔΣ)]
    [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
-   [S-andmap : (∀ (X) (V^ → X) (α → X) S → (U X #t))]
-   [S-ormap : (∀ (X) (V^ → X) (α → X) S → (U X #f))]
+   [S-andmap : (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #t))]
+   [S-ormap : (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #f))]
    [S-map : (∀ (X Y) (V^ → V^) S → S)]
    ))
 
 (define-signature cache^
-  ([R-of : ([(U V V^ W)] [ΔΣ] . ->* . R)]
+  ([R-of : ([(U D W)] [(U ΔΣ (℘ ΔΣ))] . ->* . R)]
    [ΔΣ⧺R : (ΔΣ R → R)]
    [R⧺ΔΣ : (R ΔΣ → R)]
-   [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
-   [collapse-R/ΔΣ : (R → (Option ΔΣ))]
+   [collapse-R : (Σ R → (Option (Pairof W^ ΔΣ)))]
+   [collapse-R/ΔΣ : (Σ R → (Option ΔΣ))]
    [R⊔ : (R R → R)]
    [group-by-ans : (Σ R → R)]))
 
 (define-signature val^
-  ([collapse-W^ : (W^ → W)]
-   [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))]
+  ([collapse-W^ : (Σ W^ → W)]
    #;[V/ : (S → V → V)]
-   [W⊔ : (W W → W)]
    [V⊔ : (V^ V^ → V^)]
    [V⊓ : (V^ V^ → (Option V^))]
    [V⊔₁ : (V V^ → V^)]
@@ -241,19 +243,20 @@
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
-   [T:@/simp : (K (Listof (U T -b)) → (U T -b))]
+   [T:@/simp : (K (Listof (U T -prim)) → (U T -prim))]
    [prop? : (T S* → Boolean)]
+   [ListOf : (γ:imm:listof → V)]
    ))
 
 (define-signature prover^
-  ([sat : (Σ V V^ * → ?Dec)]
+  ([sat : (Σ V D * → ?Dec)]
    [Γ-sat? : (Γ → Boolean)]
    [P⊢P : (V V → ?Dec)]
    [refine-Ps : ((℘ P) V → (℘ P))]
-   [maybe=? : (Σ Integer V^ → Boolean)]
+   [maybe=? : (Σ Integer D → Boolean)]
    [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
-   [refine : (V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))]
-   [refine-not : (V^ V Σ → (Values V^ ΔΣ))]
+   [refine : (D (U V (℘ P)) Σ → (Values D ΔΣ))]
+   [refine-not : (D V Σ → (Values D ΔΣ))]
    [reify : ((℘ P) → V^)]
    ))
 
@@ -261,7 +264,7 @@
   ([show-α : (α → Sexp)]
    [show-V : (V → Sexp)]
    [show-S : (S → Sexp)]
-   [show-V^ : (V^ → Sexp)]
+   [show-D : (D → Sexp)]
    [show-W : (W → (Listof Sexp))]
    [show-Γ : (Γ → Sexp)]
    [show-Σ : (Σ → (Listof Sexp))]

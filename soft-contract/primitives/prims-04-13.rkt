@@ -53,7 +53,7 @@
        (define (hash-helper Σ ℓ Wₓ-old name eq)
          (define Wₓ (unpack-W Wₓ-old Σ))
          (cond
-           [(null? Wₓ) (R-of (Empty-Hash))]
+           [(null? Wₓ) (R-of {set (Empty-Hash)})]
            [(even? (length Wₓ))
             (define αₖ (α:dyn (β:hash:key ℓ) H₀))
             (define αᵥ (α:dyn (β:hash:val ℓ) H₀))
@@ -63,7 +63,7 @@
                   [(list* Vₖ Vᵥ W*)
                    (go W* (⧺ acc (alloc αₖ Vₖ) (alloc αᵥ Vᵥ)))]
                   [_ acc])))
-            (R-of (Hash-Of αₖ αᵥ) ΔΣ₀)]
+            (R-of {set (Hash-Of αₖ αᵥ)} ΔΣ₀)]
            [else (err! (Err:Raised "even number of args" ℓ))
                  ⊥R])))
     (def (hash Σ ℓ W)

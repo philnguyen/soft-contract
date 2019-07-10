@@ -39,10 +39,10 @@
    [current-app : (Parameterof (Option CP))]
    [blm : (-l ℓ ℓ W W → (℘ Blm))]
    [fold-ans : (∀ (X) (X → R) (℘ X) → R)]
-   [fold-ans/collapsing : (∀ (X) (X → R) (℘ X) → R)]
+   [fold-ans/collapsing : (∀ (X) Σ (X → R) (℘ X) → R)]
    [with-split-Σ : (Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)]
    [make-renamings : ((U (Listof Symbol) -formals) W → Renamings)] ; FIXME move?
-   [rename : (Renamings → (U T -b) → (Option (U T -b)))] ; FIXME move?
+   [rename : (Renamings → (U T -prim) → (Option (U T -prim)))] ; FIXME move?
    [fix-return : (Renamings Σ R → R)]
    [db:iter? : (Parameterof Boolean)]
    [db:max-steps : (Parameterof (Option Index))]
@@ -57,13 +57,13 @@
 
 ;; Σ ⊢ V V… ⇓ᵃ A , ΔΣ
 (define-signature app^
-  ([app : (Σ ℓ V^ W → R)]
-   [app/rest : (Σ ℓ V^ W V^ → R)]
+  ([app : (Σ ℓ D W → R)]
+   [app/rest : (Σ ℓ D W D → R)]
    [st-ac-● : (-𝒾 Index (℘ P) Σ → V^)]))
 
 ;; Σ ⊢ V V ⇓ᵐ A , ΔΣ
 (define-signature mon^
-  ([mon : (Σ Ctx V^ V^ → R)]
+  ([mon : (Σ Ctx D D → R)]
    [mon* : (Σ Ctx W W → R)]))
 
 (define-signature hv^
@@ -80,7 +80,7 @@
    [clear-live-set-cache! : (→ Void)]
    [gc-R : ((℘ (U α T)) Σ R → R)]
    [V-root : (V → (℘ (U α T)))]
-   [V^-root : (V^ → (℘ (U α T)))]
+   [D-root : (D → (℘ (U α T)))]
    [W-root : (W → (℘ (U α T)))]
    [E-root : (E → (℘ γ))]
    [T-root : (T:@ → (℘ T))]))
@@ -98,16 +98,16 @@
 
 (define-syntax with-collapsing
   (syntax-parser
-    [(_ [(ΔΣ:id Ws) e:expr]
+    [(_ Σ [(ΔΣ:id Ws) e:expr]
         (~optional (~seq #:fail fail:expr) #:defaults ([fail #'#f]))
         body:expr ...)
      (with-syntax ([collapse-R (format-id #'e "collapse-R")])
        #'(let ([r e])
-           (match (collapse-R r)
+           (match (collapse-R Σ r)
              [(cons Ws ΔΣ) body ...]
              [#f fail])))]))
-(define-syntax-rule (with-collapsing/R [(ΔΣ Ws) e] body ...)
-  (with-collapsing [(ΔΣ Ws) e] #:fail ⊥R body ...))
+(define-syntax-rule (with-collapsing/R Σ [(ΔΣ Ws) e] body ...)
+  (with-collapsing Σ [(ΔΣ Ws) e] #:fail ⊥R body ...))
 
 (define-syntax with-each-path
   (syntax-parser

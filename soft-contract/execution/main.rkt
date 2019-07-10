@@ -123,10 +123,10 @@
     (for/fold ([r : R ⊥R]) ([X (in-set Xs)])
       (R⊔ r (on-X X))))
 
-  (: fold-ans/collapsing (∀ (X) (X → R) (℘ X) → R))
-  (define (fold-ans/collapsing on-X Xs)
-    (match (collapse-R (fold-ans on-X Xs))
-      [(cons Ws ΔΣ) (R-of (collapse-W^ Ws) ΔΣ)]
+  (: fold-ans/collapsing (∀ (X) Σ (X → R) (℘ X) → R))
+  (define (fold-ans/collapsing Σ on-X Xs)
+    (match (collapse-R Σ (fold-ans on-X Xs))
+      [(cons Ws ΔΣ) (R-of (collapse-W^ Σ Ws) ΔΣ)]
       [#f ⊥R]))
 
   (: with-split-Σ : Σ V W (W ΔΣ → R) (W ΔΣ → R) → R)
@@ -173,11 +173,11 @@
            ;; then `T` and `T*` are not the same values.
            ;; But we trust that if `ℰ[f] ⇓ V₁` and `ℰ[f ▷ C] ⇓ V₂`
            ;; then `V₁ ≃ V₂`, where `≃` is equality for all flat values
-           (match* (T* (go-V^ (assert D set?)))
-             [((? γ:lex?) (? (λ (D*) (set-ormap Guarded? D*)) D*)) acc]
+           (match* (T* (if (T? D) (go-T D) D))
+             [((? γ:lex?) (and (? set?) (? (λ (D) (set-ormap Guarded? D)) D))) acc]
              ;; FIXME generalize the very specific hack below!!
-             [((T:@ (and ac (-st-ac 𝒾 _)) Ts) D*)
-              (match* (Ts D*)
+             [((T:@ (and ac (-st-ac 𝒾 _)) Ts) D)
+              (match* (Ts D)
                 [((list (== T)) {singleton-set (-● Ps)})
                  #:when (γ? T)
                  (define Ps*
@@ -187,7 +187,7 @@
                          Ps₀)))
                  (hash-set acc T {set (-● Ps*)})]
                 [(_ _) acc])]
-             [((T:@ (-st-mk 𝒾) Ts) (and D* {singleton-set (St α Ps)}))
+             [((T:@ (-st-mk 𝒾) Ts) {singleton-set (St α Ps)})
               (define Ps-list
                 (let ([Ps-list ((inst make-vector (℘ P)) (length Ts) ∅)])
                   (for ([P (in-set Ps)])
@@ -196,23 +196,20 @@
                        (vector-set! Ps-list i (set-add (vector-ref Ps-list i) P*))]
                       [_ (void)]))
                   Ps-list))
-              (for/fold ([acc : (Option ΔΓ) (hash-set acc T* D*)])
+              (for/fold ([acc : (Option ΔΓ) (hash-set acc T* D)])
                         ([T (in-list Ts)]
                          [Ps (in-vector Ps-list)]
                          [Vs (in-vector (Σ@/blob α (Σₑₑ)))]
-                         #:unless (-b? T)
+                         #:unless (-prim? T)
                          #:break (not acc))
                 (define-values (Vs* _) (refine Vs Ps (Σₑₑ)))
-                (and (not (set-empty? Vs*)) ; indicating spurious branch
+                (and (not (and (set? Vs*) (set-empty? Vs*))) ; indicating spurious branch
                      (hash-set (assert acc) T Vs*)))]
-             [(_ D*) (hash-set acc T* D*)])]
+             [(_ D) (hash-set acc T* D)])]
           [_ acc])))
-    (define (go-W [W : W]) (map go-V^ W))
-    (define (go-V^ [V^ : V^])
-      (match-define (cons Vs₀ Vs*) (set-map V^ go-V))
-      (foldl V⊔ Vs₀ Vs*))
-    (define (go-V [V : V]) (if (T? V) (go-T V) {set V}))
-    (define (go-T [T : T]) (cond [(adjust-T T) => set]
+    (define (go-W [W : W]) (map go-D W))
+    (define (go-D [D : D]) : D (if (or (set? D) (-prim? D)) D (go-T D)))
+    (define (go-T [T : T]) (cond [(adjust-T T) => values]
                                  [else (unpack T (Σₑₑ))]))
 
     (for*/fold ([r* : R ⊥R])
@@ -232,23 +229,22 @@
                                (split-at W (length xs))
                                (values W #f)))
     (define m
-      (for/hash : Renamings ([x (in-list xs)] [Vs (in-list W₀)])
+      (for/hash : Renamings ([x (in-list xs)] [D (in-list W₀)])
         (values (γ:lex x)
                 (and (not (assignable? x))
-                     (match Vs
-                       [{singleton-set (and V (or (? -b?) (? T?)))} V]
-                       [_ #f])))))
+                     (not (set? D))
+                     D))))
     (match fml
       [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
       [_ m]))
 
-  (: rename : Renamings → (U T -b) → (Option (U T -b)))
+  (: rename : Renamings → (U T -prim) → (Option (U T -prim)))
   ;; Compute renaming in general.
   ;; `#f` means there's no correspinding name
   (define (rename rn)
     (: go-K : (K → (Option K)))
-    (define (go-K K) (if (T? K) (cast (go K) (Option T)) K))
-    (: go : (U T -b) → (Option (U T -b)))
+    (define (go-K K₀) (if (T? K₀) (cast (go K₀) (Option K)) K₀))
+    (: go : (U T -prim) → (Option (U T -prim)))
     (define (go T₀)
       (if (hash-has-key? rn T₀)
           (hash-ref rn T₀)
@@ -259,7 +255,7 @@
                               (and Ts* (T:@/simp o* Ts*))]
                [#f #f])]
             [_ T₀])))
-    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
+    (define go* : ((Listof (U T -prim)) → (Option (Listof (U T -prim))))
       (match-lambda
         ['() '()]
         [(cons T Ts) (match (go T)

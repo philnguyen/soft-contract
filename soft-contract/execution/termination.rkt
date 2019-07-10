@@ -74,8 +74,8 @@
   (define (make-sc-graph Σ xs W)
     (define Σ* (with-dummy xs W Σ))
     (for*/hash : SCG ([(x i₀) (in-indexed xs)]
-                      [(Vs₁ i₁) (in-indexed W)]
-                      [?↓ (in-value (cmp Σ* (γ:lex x) Vs₁))]
+                      [(D₁ i₁) (in-indexed W)]
+                      [?↓ (in-value (cmp Σ* (γ:lex x) D₁))]
                       #:when ?↓)
       (values (cons i₀ i₁) ?↓)))
 
@@ -87,8 +87,7 @@
                                                   [γ (in-value (γ:lex x))]
                                                   #:unless (hash-has-key? Γ γ))
                       (hash-set Γ γ ●))])
-            (for*/fold ([Γ : Γ Γ₁]) ([Vs (in-list W)]
-                                     [V (in-set Vs)]
+            (for*/fold ([Γ : Γ Γ₁]) ([V (in-list W)]
                                      #:when (T? V)
                                      #:unless (hash-has-key? Γ V)
                                      #:unless (and (T:@? V) (-st-ac? (T:@-_0 V))))
@@ -109,14 +108,14 @@
       [(list '↧ ...) '↧]
       [_ '↓]))
 
-  (: cmp : Σ T V^ → (Option Ch))
-  (define (cmp Σ T₀ Vs₁)
-    (: must-be? : V P → Boolean)
-    (define (must-be? V P) (eq? '✓ (sat Σ P {set V})))
-    (: must-be?₂ : V P V → Boolean)
-    (define (must-be?₂ V₁ P V₂) (eq? '✓ (sat Σ P {set V₁} {set V₂})))
+  (: cmp : Σ γ D → (Option Ch))
+  (define (cmp Σ T₀ D₁)
+    (: must-be? : D¹ P → Boolean)
+    (define (must-be? V P) (eq? '✓ (sat Σ P (D¹->D V))))
+    (: must-be?₂ : D¹ P D¹ → Boolean)
+    (define (must-be?₂ V₁ P V₂) (eq? '✓ (sat Σ P (D¹->D V₁) (D¹->D V₂))))
 
-    (: ≺? : V T → Boolean)
+    (: ≺? : D¹ T → Boolean)
     ;; Check for definite "smaller-ness". `#f` means "don't know"
     (define (≺? V₀ T)
       (or (V₀ . sub-value? . T)
@@ -126,18 +125,20 @@
                         (V₀ . must-be?₂ . '< T))
                    (and (V₀ . must-be?₂ . '<= -zero)
                         (T  . must-be?₂ . '< V₀))))))
-    
-    (cond [(equal? '✓ (sat Σ 'equal? {set T₀} Vs₁)) '↧]
-          [(for/and : Boolean ([V₁ (in-set Vs₁)])
-             (≺? V₁ T₀))
+
+    (cond [(equal? '✓ (sat Σ 'equal? T₀ D₁)) '↧]
+          [(if (set? D₁)
+               (for/and : Boolean ([V₁ (in-set D₁)])
+                 (≺? V₁ T₀))
+               (≺? D₁ T₀))
            '↓]
           [else #f]))
 
-  (: sub-value? : V T → Boolean)
+  (: sub-value? : D¹ T → Boolean)
   (define (T₁ . sub-value? . T₂)
     (match T₁
       [(T:@ (? sub-ac?) (list T*))
-       (let loop ([T : (U T -b) T*])
+       (let loop ([T : (U T -prim) T*])
          (match T
            [(== T₂) #t]
            [(T:@ (? sub-ac?) (list T*)) (loop T*)]
@@ -158,4 +159,5 @@
          [(-st-ac 𝒾 i) (not (struct-mutable? 𝒾 i))] ; TODO make sure right for substructs
          [_ #f])]))
 
+  (define (D¹->D [x : D¹]) (if (or (T? x) (-prim? x)) x {set x}))
   )

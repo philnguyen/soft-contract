@@ -45,14 +45,15 @@
     (ref-$! ($:Key:Hv Σ* (current-MS) αₕᵥ)
             (λ ()
               (gc-R root Σ*
-                (let ([ΔΣ₁
+                (let* ([ΔΣ₁
                        ;; Next "productive" havoc step on each leaked value
                        (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vᵢ (in-set (unpack αₕᵥ Σ*))])
-                         (ΔΣ⊔ ΔΣ (do-hv Σ* αₕᵥ Vᵢ)))])
+                         (ΔΣ⊔ Σ* ΔΣ (do-hv Σ* αₕᵥ Vᵢ)))]
+                      [Σ₁ (⧺ Σ* ΔΣ₁)])
                   ;; Recursively havoc again
-                  (with-collapsing [(ΔΣ* _) (hv (⧺ Σ* ΔΣ₁) αₕᵥ)]
+                  (with-collapsing Σ₁ [(ΔΣ* _) (hv Σ₁ αₕᵥ)]
                     #:fail (R-of ●* ΔΣ₁)
-                    (R-of ●* (ΔΣ⊔ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*)))))))))
+                    (R-of ●* (ΔΣ⊔ Σ₁ ΔΣ₁ (⧺ ΔΣ₁ ΔΣ*)))))))))
 
   (: gen-havoc-expr : ((Listof -module) → E))
   (define (gen-havoc-expr ms)
@@ -84,18 +85,20 @@
           (define ΔΣ*
             (for/fold ([ΔΣ : (Option ΔΣ) #f]) ([k (in-list ks)])
               (define ΔΣ* (if (or (integer? k) (arity-at-least? k)) (on-arity k) ???))
-              (if ΔΣ (ΔΣ⊔ ΔΣ ΔΣ*) ΔΣ*)))
+              (if ΔΣ (ΔΣ⊔ Σ ΔΣ ΔΣ*) ΔΣ*)))
           (assert ΔΣ*)]
          [(and k (or (? index?) (? arity-at-least?))) (on-arity k)])]
       ;; Havoc and widen struct's public fields
       [(or (St (α:dyn (β:st-elems _ 𝒾) _) _) (Guarded _ (? St/C? (app St/C-tag 𝒾)) _))
        #:when 𝒾
-       (ΔΣ⊔ (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
-          (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-muts 𝒾) (list {set V} ●))))]
+       (ΔΣ⊔ Σ
+            (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-accs 𝒾) (list {set V})))
+            (collapse Σ αₕᵥ (app Σ ℓₕᵥ (get-public-muts 𝒾) (list {set V} ●))))]
       ;; Havoc and widen vector's fields
       [(Guarded _ (or (? Vectof/C?) (? Vect/C?)) _)
        (define I (-● {set 'exact-nonnegative-integer?}))
-       (ΔΣ⊔ (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
+       (ΔΣ⊔ Σ
+            (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-ref} (list {set V} {set I})))
             (collapse Σ αₕᵥ (app Σ ℓₕᵥ {set 'vector-set!} (list {set V} {set I} ●))))]
       [(Vect α)
        (⧺ (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([Vs (in-vector (Σ@/blob α Σ))])
@@ -143,11 +146,12 @@
       [(-∀/c _ E _) (E-arity-of E)]
       [_ ???]))
 
-  (define-simple-macro (collapse Σ αₕᵥ e)
+  (define-simple-macro (collapse Σ:id αₕᵥ e)
     (let ([r e])
-      (match (collapse-R r)
+      (match (collapse-R Σ r)
         [(cons Ws ΔΣ)
-         (⧺ ΔΣ (track-leaks (⧺ Σ ΔΣ) αₕᵥ (apply ∪ ∅ (set-map Ws W->V^))))]
+         (define Σ* (⧺ Σ ΔΣ))
+         (⧺ ΔΣ (track-leaks Σ* αₕᵥ (apply ∪ ∅ (set-map Ws (W->V^ Σ*)))))]
         [#f ⊥ΔΣ])))
 
   (: behavioral? : V Σ → Boolean)
@@ -157,11 +161,17 @@
   (define (behavioral? V₀ Σ)
     (define-set seen : α #:mutable? #t)
 
+    (: check-T : (U T -prim α) → Boolean)
+    (define (check-T x)
+      (cond [(-prim? x) #f]
+            [(T? x) (check-V^ (unpack x Σ))]
+            [else (check-α x)]))
+
     (: check-α : α → Boolean)
     (define (check-α α)
       (cond [(seen-has? α) #f]
             [else (seen-add! α)
-                  (S-ormap check-V^ check-α (Σ@/raw α Σ))]))
+                  (S-ormap check-V^ check-T (Σ@/raw α Σ))]))
 
     (: check-V^ : V^ → Boolean)
     (define (check-V^ V^) (set-ormap check V^))
@@ -188,7 +198,6 @@
         [(? ==>i? V) (check-==>i V)]
         [(Case-=> cases) (ormap check-==>i cases)]
         [(or (? Clo?) (? Case-Clo?)) #t]
-        [(? T? T) (set-ormap check (unpack T Σ))]
         [_ #f]))
 
     (check V₀))
@@ -199,7 +208,7 @@
     (define (go-V V acc) (if (behavioral? V Σ) (set-add acc V) acc))
     (: go-W : W V^ → V^)
     (define (go-W W acc)
-      (for*/fold ([acc : V^ acc]) ([Vs (in-list W)] [V (in-set Vs)])
+      (for*/fold ([acc : V^ acc]) ([D (in-list W)] [V (in-set (unpack D Σ))])
         (go-V V acc)))
     (for/fold ([acc : V^ ∅]) ([x (in-set xs)])
       (if (list? x) (go-W x acc) (go-V x acc))))
@@ -240,6 +249,8 @@
     
     (go-V^ Vs ⊥ΔΣ))
 
-  (: W->V^ : W → V^)
-  (define (W->V^ W) ((inst foldl V^ V^) ∪ ∅ W))
+  (: W->V^ : Σ → W → V^)
+  (define ((W->V^ Σ) W)
+    (for/fold ([acc : V^ ∅]) ([D (in-list W)])
+      (∪ acc (unpack D Σ))))
   )
