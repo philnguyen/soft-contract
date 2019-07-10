@@ -254,6 +254,7 @@
            (append body provides)))
 
        (with-sub id
+         (log-scv-parser-debug "parsing (sub-)module ~a" (cur-path))
          (-module
           (cur-path)
           (for*/list ([formᵢ (in-list form-list)] #:when (care-about? formᵢ)
