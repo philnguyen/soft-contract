@@ -39,7 +39,7 @@
   (define Ctx-flip : (Ctx → Ctx)
     (match-lambda [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
 
-  (: C-flat? : V Σ → Boolean)
+  (: C-flat? : (U V V^) Σ → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? C Σ)
     (define-set seen : α #:mutable? #t)
@@ -76,7 +76,8 @@
         [(? P?) #t]
         [(? α? α) (go-α α)]
         [V (error 'C-flat? "unexpected: ~a" V)]))
-    (go-V C))
+
+    (if (set? C) (go-V^ C) (go-V C)))
 
   (: C^-flat? : V^ Σ → Boolean)
   (define (C^-flat? C^ Σ)

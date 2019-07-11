@@ -230,8 +230,7 @@
    [Ctx-with-site : (Ctx ℓ → Ctx)]
    [Ctx-with-origin : (Ctx ℓ → Ctx)]
    [Ctx-flip : (Ctx → Ctx)]
-   [C-flat? : (V Σ → Boolean)]
-   [C^-flat? : (V^ Σ → Boolean)]
+   [C-flat? : ((U V V^) Σ → Boolean)]
    [arity : (V → (Option Arity))]
    [guard-arity : (Fn/C → Arity)]
    [with-negative-party : (-l V → V)]
@@ -257,6 +256,7 @@
    [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
    [refine : (D (U V (℘ P)) Σ → (Values D ΔΣ))]
    [refine-not : (D V Σ → (Values D ΔΣ))]
+   [refine-V^ : (V^ (U V (℘ P)) Σ → V^)]
    [reify : ((℘ P) → V^)]
    ))
 

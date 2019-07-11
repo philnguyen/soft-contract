@@ -202,8 +202,8 @@
                          [Vs (in-vector (Σ@/blob α (Σₑₑ)))]
                          #:unless (-prim? T)
                          #:break (not acc))
-                (define-values (Vs* _) (refine Vs Ps (Σₑₑ)))
-                (and (not (and (set? Vs*) (set-empty? Vs*))) ; indicating spurious branch
+                (define Vs* (refine-V^ Vs Ps (Σₑₑ)))
+                (and (not (set-empty? Vs*)) ; indicating spurious branch
                      (hash-set (assert acc) T Vs*)))]
              [(_ D) (hash-set acc T* D)])]
           [_ acc])))

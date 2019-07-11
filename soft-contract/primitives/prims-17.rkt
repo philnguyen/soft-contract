@@ -62,8 +62,7 @@
         (define Vₐ
           (for/union : V^ ([(Xᵢ i) (in-indexed (Σ@/blob α Σ))] #:when (maybe=? Σ i Vᵢ))
             Xᵢ))
-        (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
-        (R-of Vₐ* ΔΣ)]
+        (R-of (refine-V^ Vₐ Ps Σ))]
        [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
         (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
         (define S (Σ@/blob αₕ Σ))

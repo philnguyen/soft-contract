@@ -282,9 +282,7 @@
       (match-lambda
         [(St α Ps)
          (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
-         (define-values (V* ΔΣ)
-           (refine (unpack Vᵢ Σ) (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
-         (R-of V* ΔΣ)]
+         (R-of (refine-V^ (unpack Vᵢ Σ) (ac-Ps (-st-ac 𝒾 i) Ps) Σ))]
         [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
          (define-values (αₕ ℓₕ _) (St/C-fields C))
          (define Cᵢ (vector-ref (Σ@/blob αₕ Σ) i))
@@ -306,9 +304,7 @@
           {set (-● ∅)}
           ;; Track access to user-defined structs
           (Σ@ (γ:escaped-field 𝒾 i) Σ)))
-    (cond [(set-empty? V) ∅]
-          [else (define-values (V* _) (refine V (ac-Ps (-st-ac 𝒾 i) Ps) Σ))
-                (assert V* set?)]))
+    (if (set-empty? V) ∅ (refine-V^ V (ac-Ps (-st-ac 𝒾 i) Ps) Σ)))
 
   (: app-st-mut : -𝒾 Index → ⟦F⟧)
   (define ((app-st-mut 𝒾 i) Σ ℓ Wₓ)

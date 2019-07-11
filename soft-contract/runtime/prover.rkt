@@ -82,18 +82,15 @@
 
   (: refine : D (U V (℘ P)) Σ → (Values D ΔΣ))
   (define (refine D₀ P* Σ)
-    (: step : D V → (Values D ΔΣ))
-    (define (step D P)
-      (cond [(set? D) (values (refine-V^ D P Σ) ⊥ΔΣ)]
-            [(-prim? D) (values D ⊥ΔΣ)]
-            [else (values D (refine-T D P Σ))]))
-
-    (if (set? P*)
-        ;; refine by conjunction of predicates
-        (for*/fold ([D : D D₀] [ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
-          (define-values (D* ΔΣ*) (step D P))
-          (values D* (⧺ ΔΣ ΔΣ*)))
-        (step D₀ P*)))
+    (cond
+      [(set? D₀) (values (refine-V^ D₀ P* Σ) ⊥ΔΣ)]
+      [(-prim? D₀) (values D₀ ⊥ΔΣ)]
+      [else
+       (values D₀
+               (if (set? P*)
+                   (for/fold ([ΔΣ : ΔΣ ⊥ΔΣ]) ([P (in-set P*)])
+                     (⧺ ΔΣ (refine-T D₀ P Σ)))
+                   (refine-T D₀ P* Σ)))]))
 
   (: refine-not : D V Σ → (Values D ΔΣ))
   (define (refine-not D P Σ)

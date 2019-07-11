@@ -125,10 +125,23 @@
         [(T:@ (? -st-ac? ac) (list T*))
          (for/fold ([acc : V^ ∅]) ([V (in-set (unpack-T T*))])
            (V⊔ acc (V@ ac V)))]
-        [_ (match (hash-ref (cdr Σ) T #f)
-             [(? set? Vs) Vs]
-             [(and T* (or (? T?) (? -prim?))) (unpack-T T*)]
-             [S (error 'unpack-T:@ "~a ⊢ ~a -> ~a" (show-Σ Σ) (show-D T) (and S (show-S S)))])]))
+        [_ (hack:refine-more
+            T
+            (match (hash-ref (cdr Σ) T #f)
+              [(? set? Vs) Vs]
+              [(and T* (or (? T?) (? -prim?))) (unpack-T T*)]
+              [S (error 'unpack-T:@ "~a ⊢ ~a -> ~a" (show-Σ Σ) (show-D T) (and S (show-S S)))]))]))
+
+    (: hack:refine-more : T V^ → V^)
+    ;; FIXME: will eventually be obsolete when primitive DSL allows dependency
+    (define (hack:refine-more T Vs)
+      (match T
+        [(T:@ '* (list T* T*))
+         (case (sat Σ 'real? T*)
+           [(✓) (refine-V^ Vs (P:≥ 0) Σ)]
+           [(#f) Vs]
+           [(✗) !!!])]
+        [_ Vs]))
 
     (: V@ : -st-ac V → V^)
     (define (V@ ac V)
@@ -137,18 +150,13 @@
         [(St (and α (α:dyn (β:st-elems _ 𝒿) _)) Ps)
          #:when (𝒿 . substruct? . 𝒾)
          (define Vᵢ (vector-ref (Σ@/blob α Σ) i))
-         (define-values (V* _) (refine Vᵢ (ac-Ps ac Ps) Σ))
-         ;; TODO: explicitly enforce that store delta doesn't matter in this case
-         (assert V* set?)]
+         (refine-V^ Vᵢ (ac-Ps ac Ps) Σ)]
         [(-● Ps)
          (define Ps* (ac-Ps ac Ps))
          (if (prim-struct? 𝒾)
              {set (-● Ps*)}
              (let ([Vs (unpack-α (γ:escaped-field 𝒾 i))])
-               (if (set-empty? Vs)
-                   ∅
-                   (let-values ([(Vs* _) (refine Vs Ps* Σ)])
-                     (assert Vs* set?)))))]
+               (if (set-empty? Vs) ∅ (refine-V^ Vs Ps* Σ))))]
         [_ ∅]))
 
     (if (set? D) D (unpack-T D)))
