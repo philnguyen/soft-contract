@@ -55,7 +55,6 @@
 
   (: exec-prim :
      Σ ℓ Symbol
-     #:volatile? Boolean
      #:dom (-var V)
      #:rng W
      #:rng-wrap (Option (Listof V))
@@ -64,7 +63,6 @@
      → R)
   (define (exec-prim
            Σ₀ ℓ o
-           #:volatile? volatile?
            #:dom doms
            #:rng ranges
            #:rng-wrap ?range-wraps

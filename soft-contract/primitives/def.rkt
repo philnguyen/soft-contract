@@ -56,9 +56,7 @@
     ;; General declaration with signature
     [(_ o:id sig:hc
         (~optional (~seq #:refinements ref:ff ...)
-                   #:defaults ([(ref 1) null]))
-        (~optional (~seq #:volatile? volatile?:boolean)
-                   #:defaults ([volatile? #'#t])))
+                   #:defaults ([(ref 1) null])))
 
      (check-shape-ok #'o #'sig (syntax->list #'(ref ...)))
      (define/with-syntax .o (prefix-id #'o))
@@ -89,8 +87,7 @@
                              [-sig #'sig]
                              [-Vⁿ (gen-ids #'W 'V max-inits)]
                              [-Vᵣ (format-id #'W "Vᵣ")]
-                             [-refinements (syntax->list #'(ref ...))]
-                             [-volatile? (syntax-e #'volatile?)])
+                             [-refinements (syntax->list #'(ref ...))])
                 (gen-cases))))
      (define/contract maybe-set-partial (listof syntax?)
        (let go ([sig #'sig])

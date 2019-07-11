@@ -41,6 +41,8 @@
   (define (app Σ ℓ Dₕ W*)
     (define-values (W ΔΣ₁) (escape-clos Σ W*))
     (define W:root (W-root W))
+
+    ;; Compute abstract result
     (define r
       ((inst fold-ans V)
        (λ (Vₕ)
@@ -50,45 +52,42 @@
                  (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W))))))
        (unpack Dₕ Σ)))
 
-    (define Tₐ : (Option T)
+    ;; Attempt to name result with symbolic expression
+    (define Tₐ : (Option (U T -prim))
       (match* (Dₕ W*)
-        [((? K? o)
-          (list (and #{Tₓ : (Listof (U T -prim))} (or (? -prim?) (? T?))) ...))
-         #:when (for/or : Boolean ([T (in-list Tₓ)])
-                  (or (γ? T)
-                      (and (T:@? T) (not (set-empty? (T-root T))))))
-         (define Tₐ* (T:@/simp o Tₓ))
-         (and (T? Tₐ*) Tₐ*)]
+        [((? K? o) (list (and #{Tₓ : (Listof (U T -prim))} (or (? -prim?) (? T?))) ...))
+         #:when (not (hash-empty? r)) ; avoid constant-folding `(/ _ 0)` and the likes
+         (T:@/simp o Tₓ)]
         [(_ _) #f]))
-    (if Tₐ
-        (let ([Wₐ* (list Tₐ)])
-          (match Tₐ
-            [(T:@ (? -st-ac?) _) ; (ignore mapping for symbolic access)
-             (R-of Wₐ* (apply ∪ ∅ (hash-values r)))]
-            [_
-             (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)] #:when (= 1 (length Wₐ)))
-               (match-define (list Dₐ) Wₐ)
-               (for/fold ([r* : R (hash-remove r* Wₐ)])
-                         ([ΔΣᵢ : ΔΣ (in-set ΔΣs)])
-                 (define ΔΣ*
-                   (let ([Vsₐ (unpack Dₐ (⧺ Σ ΔΣᵢ))])
-                     (match-define (cons ΔΞ ΔΓ) ΔΣᵢ)
-                     (define Vsₐ* ; filter by caller's previous knowledge
-                       (match (hash-ref ΔΓ Tₐ #f)
-                         [(? set? Vsₐ₀) (V⊓ Vsₐ₀ Vsₐ)]
-                         [#f Vsₐ]))
-                     (and Vsₐ*
-                          (let ([ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ*)])
-                            (define ΔΓ*
-                              (match Dₐ
-                                [(or (? T?) (? -prim?))
-                                 (hash-set ΔΓ₁ (T:@ (K:≡) (list Tₐ Dₐ)) -tt)]
-                                [_ ΔΓ₁]))
-                            (cons ΔΞ ΔΓ*)))))
-                 (if ΔΣ*
-                     (hash-update r* Wₐ* (λ ([ΔΣs* : (℘ ΔΣ)]) (set-add ΔΣs* ΔΣ*)) mk-∅)
-                     r*)))]))
-        r))
+    (cond
+      [(not Tₐ) r]
+      [(or (-prim? Tₐ)
+           (and (T:@? Tₐ) (-st-ac? (T:@-_0 Tₐ)))) ; (ignore mapping for symbolic access)
+       (R-of (list Tₐ) (apply ∪ ∅ (hash-values r)))]
+      [else
+       (define Wₐ* (list Tₐ))
+       (for/fold ([r* : R r]) ([(Wₐ ΔΣs) (in-hash r)] #:when (= 1 (length Wₐ)))
+         (match-define (list Dₐ) Wₐ)
+         (for/fold ([r* : R (hash-remove r* Wₐ)])
+                   ([ΔΣᵢ : ΔΣ (in-set ΔΣs)])
+           (define ΔΣ*
+             (let ([Vsₐ (unpack Dₐ (⧺ Σ ΔΣᵢ))])
+               (match-define (cons ΔΞ ΔΓ) ΔΣᵢ)
+               (define Vsₐ* ; filter by caller's previous knowledge
+                 (match (hash-ref ΔΓ Tₐ #f)
+                   [(? set? Vsₐ₀) (V⊓ Vsₐ₀ Vsₐ)]
+                   [#f Vsₐ]))
+               (and Vsₐ*
+                    (let ([ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ*)])
+                      (define ΔΓ*
+                        (match Dₐ
+                          [(or (? T?) (? -prim?))
+                           (hash-set ΔΓ₁ (T:@ (K:≡) (list Tₐ Dₐ)) -tt)]
+                          [_ ΔΓ₁]))
+                      (cons ΔΞ ΔΓ*)))))
+           (if ΔΣ*
+               (hash-update r* Wₐ* (λ ([ΔΣs* : (℘ ΔΣ)]) (set-add ΔΣs* ΔΣ*)) mk-∅)
+               r*)))]))
 
   (: app/C : Σ ℓ V^ W → R)
   (define (app/C Σ ℓ Cs W)

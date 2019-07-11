@@ -151,6 +151,12 @@
                   (all-same? 𝒾 𝒾s)
                   (all-same? (car Ts) (cdr Ts)))
       (car Ts)]
+     [('+ (list (-b (? number? #{xs : (Listof Number)})) ...)) (-b (apply + xs))]
+     [('- (list (-b (? number? x₀)) (-b (? number? #{xs : (Listof Number)})) ...)) (-b (apply - x₀ xs))]
+     [('* (list (-b (? number? #{xs : (Listof Number)})) ...)) (-b (apply * xs))]
+     [('/ (list (-b (? number? x₀)) (-b (? number? #{xs : (Listof Number)})) ...)) (-b (apply / x₀ xs))]
+     [('add1 (list (-b (? number? x)))) (-b (add1 x))]
+     [('sub1 (list (-b (? number? x)))) (-b (sub1 x))]
      [(K Ts) (T:@ K Ts)]))
 
   (: counting-up? : (Listof Integer) → Boolean)

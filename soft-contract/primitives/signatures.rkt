@@ -49,7 +49,6 @@
    [make-listof : (V ℓ → V)]
    [exec-prim
     : (Σ ℓ Symbol
-         #:volatile? Boolean
          #:dom (-var V)
          #:rng W
          #:rng-wrap (Option (Listof V))

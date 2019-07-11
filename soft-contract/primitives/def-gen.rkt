@@ -49,7 +49,6 @@
     [-Vᵣ (or/c #f identifier?) #f]
     [-refinements (listof syntax?) '()]
     [-ctc-parameters (listof identifier?) '()]
-    [-volatile? boolean? #t]
     )
 
   ;; Generate cases from signature
@@ -141,7 +140,6 @@
           (define/with-syntax x.name (format-symbol "~a:~a" (syntax-e (-o)) (syntax-e x)))
           #`(define #,x (Seal/C (α:dyn (β:sealed 'x.name #,(-ℓ)) H₀) (ℓ-src #,(-ℓ)))))
       ,#`(exec-prim #,(-Σ) #,(-ℓ) '#,(-o)
-                    #:volatile? #,(-volatile?)
                     #:dom doms
                     #:rng compute-range
                     #:rng-wrap #,(if (?flatten-range rngs)
