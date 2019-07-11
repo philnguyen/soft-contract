@@ -141,6 +141,13 @@
            [(✓) (refine-V^ Vs (P:≥ 0) Σ)]
            [(#f) Vs]
            [(✗) !!!])]
+        [(T:@ '+ Ts)
+         (if (and (for/and : Boolean ([T (in-list Ts)])
+                    (equal? '✓ (sat Σ '>= T -zero)))
+                  (for/or : Boolean ([T (in-list Ts)])
+                    (equal? '✓ (sat Σ '> T -zero))))
+             (refine-V^ Vs (P:> 0) Σ)
+             Vs)]
         [_ Vs]))
 
     (: V@ : -st-ac V → V^)

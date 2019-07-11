@@ -81,7 +81,7 @@
   (test "safe/mochi/hors.rkt" check-safe)
   (test "safe/mochi/hrec.rkt" check-safe)
   (test "safe/mochi/intro1.rkt" check-safe)
-  #;(test "safe/mochi/intro2.rkt" check-safe)
+  (test "safe/mochi/intro2.rkt" check-safe)
   #;(test "safe/mochi/intro3.rkt" check-safe)
   (test "safe/mochi/isnil.rkt" check-safe)
   #;(test "safe/mochi/l-zipmap.rkt" check-safe)
