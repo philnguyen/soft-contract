@@ -110,9 +110,9 @@
       [(Dom x (Clo (-var xs #f) _ _) _) `(,x ,xs …)]
       [(Dom x (? α? α)               _)  `(,x ,(show-α α))]))
 
-  (define show-T : ((U T -prim) → Sexp)
+  (define show-T : (T* → Sexp)
     (match-lambda
-      [(? -prim? v) (show-e v)]
+      [(and v (or (? -λ?) (? -prim?))) (show-e v)]
       [(T:@ o Ts) `(,(show-K o) ,@(map show-T Ts))]
       [(? α? α) (show-α α)]))
 
@@ -223,6 +223,7 @@
           [(hash? S) (show-Γ S)]
           [(set? S) (show-V^ S)]
           [(or (-prim? S) (T? S)) (show-T S)]
+          [(-λ? S) (show-e S)]
           [else (show-α S)]))
 
   (: show-R : R → (Listof Sexp))
@@ -241,7 +242,7 @@
                             ,(show-ℓ ℓ))]
       [(Err:Sealed x ℓ) `(inspect-sealed-value ,x ,(show-ℓ ℓ))]
       [(Err:Term l+ ℓ ℓₒ fun args)
-       `(nontermination ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-V fun) ,(show-W args))]
+       `(nontermination ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-e fun) ,(show-W args))]
       [(Blm l+ ℓ ℓₒ ctc val)
        `(blame ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-W ctc) ,(show-W val))]))
 
@@ -331,7 +332,7 @@
        (printf "~a Potential non-termination at ~a~n" idx (show-full-ℓ ℓ))
        (printf "    - Blaming: ~a~n" l+)
        (printf "    - Contract from: ~a~n" (show-full-ℓ ℓₒ))
-       (printf "    - Function: ~a~n" (show-V fun))
+       (printf "    - Function: ~a~n" (show-e fun))
        (printf "    - Arguments:~n")
        (for ([arg (in-list args)])
          (printf "        * ~a~n" (show-D arg)))]))

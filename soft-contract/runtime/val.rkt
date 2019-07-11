@@ -43,9 +43,10 @@
   ;; Check whether contract is flat, assuming it's already a contract
   (define (C-flat? C Σ)
     (define-set seen : α #:mutable? #t)
-    (: go-T : (U T -prim α) → Boolean)
+    (: go-T : (U T* α) → Boolean)
     (define (go-T T)
       (cond [(-prim? T) #t]
+            [(-λ? T) #t]
             [(T? T) (go-V^ (unpack T Σ))]
             [else (go-α T)]))
 
@@ -69,7 +70,7 @@
         [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
         [(Set/C α _) (go-α α)]
         [(? Fn/C?) #f]
-        [(or (? Clo?) (? -λ?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
+        [(or (? Clo?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
         [(Rec/C α) (go-α α)]
         [(? ∀/C?) #f]
         [(? Seal/C?) #f]
@@ -84,12 +85,11 @@
 
   (: arity (case->
             [Clo → (U Natural arity-at-least)]
-            [V → (Option Arity)]))
+            [D¹ → (Option Arity)]))
   (define arity
     (match-lambda
       [(Guarded _ (? Fn/C? G) _) (guard-arity G)]
-      [(-λ xs _ _) (shape xs)]
-      [(Clo xs _ _) (shape xs)]
+      [(or (Clo xs _ _) (-λ xs _ _)) (shape (assert xs))]
       [(Case-Clo clos _) (map arity clos)]
       [(? And/C?) 1]
       [(? Or/C?) 1]
@@ -136,16 +136,17 @@
 
   (: T-refers-to? : T (℘ Symbol) → Boolean)
   (define (T-refers-to? T₀ xs)
-    (let go : Boolean ([T : (U -prim T) T₀])
+    (let go : Boolean ([T : T* T₀])
       (match T
         [(γ:lex x) (∋ xs x)]
         [(T:@ _ Ts) (ormap go Ts)]
+        [(? -λ? e) (not (set-empty? (∩ (fv e) xs)))]
         [_ #f])))
 
-  (define T:@/simp : (K (Listof (U T -prim)) → (U -prim T))
+  (define T:@/simp : (K (Listof T*) → T*)
     (match-lambda**
      [((-st-ac 𝒾 i) (list (T:@ (-st-mk 𝒾) Ts))) (list-ref Ts i)]
-     [((-st-mk 𝒾) (list (T:@ (-st-ac 𝒾s #{ks : (Listof Index)}) (list #{Ts : (Listof (U -prim T))})) ...))
+     [((-st-mk 𝒾) (list (T:@ (-st-ac 𝒾s #{ks : (Listof Index)}) (list #{Ts : (Listof T*)})) ...))
       #:when (and (pair? Ts)
                   (counting-up? ks)
                   (all-same? 𝒾 𝒾s)

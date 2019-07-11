@@ -52,9 +52,7 @@
 ;; Σ ⊢ E ⇓ A , ΔΣ
 (define-signature evl^
   ([evl-prog : (-prog → (Option ΔΣ))]
-   [evl : (Σ E → R)]
-   [escape-clos : (Σ W → (Values W ΔΣ))]
-   [R-escape-clos : (Σ R → R)]))
+   [evl : (Σ E → R)]))
 
 ;; Σ ⊢ V V… ⇓ᵃ A , ΔΣ
 (define-signature app^
@@ -74,7 +72,7 @@
 
 (define-signature termination^
   ([update-M : (Σ M CP CP W → (Option M))]
-   [check-point : (V → CP)]))
+   #;[check-point : (V → CP)]))
 
 (define-signature gc^
   ([gc : ([(℘ (U α T)) Σ] [Σ] . ->* . Σ)]
@@ -84,7 +82,7 @@
    [D-root : (D → (℘ (U α T)))]
    [W-root : (W → (℘ (U α T)))]
    [E-root : (E → (℘ γ))]
-   [T-root : (T:@ → (℘ T))]))
+   [T-root : (T → (℘ T))]))
 
 (define-syntax with-collapsed
   (syntax-parser

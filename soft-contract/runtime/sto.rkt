@@ -107,10 +107,11 @@
 
   (: unpack : D Σ → V^)
   (define (unpack D Σ)
-    (: unpack-T : (U T -prim) → V^)
+    (: unpack-T : T* → V^)
     (define (unpack-T T)
       (cond [(T:@? T) (unpack-T:@ T)]
             [(-prim? T) {set T}]
+            [(-λ? T) (assert (hash-ref (cdr Σ) T) set?)]
             [else (unpack-α T)]))
 
     (: unpack-α : α → V^)
@@ -453,7 +454,7 @@
         ;; With current implementation, these addresses should be singular by construction
         (γ:lex? α) (γ:top? α)))
 
-  (: S-andmap (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #t)))
+  (: S-andmap (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #t)))
   (define (S-andmap on-Vs? on-T? S)
     (cond [(vector? S) (vector-andmap on-Vs? S)]
           [(hash? S) (for/fold ([acc : (U #t X) #t])
@@ -462,7 +463,7 @@
           [(set? S) (on-Vs? S)]
           [else (on-T? S)]))
 
-  (: S-ormap (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #f)))
+  (: S-ormap (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #f)))
   (define (S-ormap on-Vs? on-T? S)
     (cond [(vector? S) (vector-ormap on-Vs? S)]
           [(hash? S) (for/or : (U X #f) ([D (in-hash-values S)])

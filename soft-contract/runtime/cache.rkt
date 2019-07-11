@@ -59,11 +59,11 @@
   ;; - Collapsed store-delta
   (define (collapse-R Σ R)
     (define retain?
-      (for*/fold ([m : (HashTable Integer (HashTable Integer (Option (U T -prim)))) (hasheq)])
+      (for*/fold ([m : (HashTable Integer (HashTable Integer (Option T*))) (hasheq)])
                  ([W (in-hash-keys R)]
                   [n (in-value (length W))]
                   [(Vᵢ i) (in-indexed W)])
-        ((inst hash-update Integer (HashTable Integer (Option (U T -prim))))
+        ((inst hash-update Integer (HashTable Integer (Option T*)))
          m n
          (λ (m*)
            (cond [(set? Vᵢ) (hash-set m* i #f)]

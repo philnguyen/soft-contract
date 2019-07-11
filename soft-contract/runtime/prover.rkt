@@ -23,8 +23,6 @@
          "signatures.rkt"
          )
 
-(define-type S (U T -prim))
-
 (define-unit prover@
   (import static-info^ meta-functions^
           sto^ val^
@@ -105,6 +103,7 @@
   (define (refine₁ V P Σ)
     (cond [(or (-●? V) (St? V)) (values (refine-V V P Σ) ⊥ΔΣ)]
           [(T? V) (values V (refine-T V P Σ))]
+          [(or (-prim? V) (-λ? V)) (values V ⊥ΔΣ)]
           [else (values {set V} ⊥ΔΣ)]))
 
   (define ?negate : (P → (Option P))
@@ -121,19 +120,19 @@
   (define (refine-V-V V₁ V₂ P Σ) (values {set V₁} {set V₂}))
   (define (refine-not-V-V V₁ V₂ P Σ) (values {set V₂} {set V₂}))
 
-  (:* refine-V-T refine-not-V-T : V S V Σ → (Values V^ ΔΣ))
+  (:* refine-V-T refine-not-V-T : V T* V Σ → (Values V^ ΔΣ))
   ;; TODO
   (define (refine-V-T V T P Σ) (values {set V} (if (-b? V) (refine-T-T V T P Σ) ⊥ΔΣ)))
   (define (refine-not-V-T V T P Σ) (values {set V} (if (-b? V) (refine-not-T-T V T P Σ) ⊥ΔΣ)))
 
-  (:* refine-T-V refine-not-T-V : S V V Σ → (Values ΔΣ V^))
+  (:* refine-T-V refine-not-T-V : T* V V Σ → (Values ΔΣ V^))
   ;; TODO
   (define (refine-T-V T V P Σ) (values (if (-b? V) (refine-T-T T V P Σ) ⊥ΔΣ) {set V}))
   (define (refine-not-T-V T V P Σ) (values (if (-b? V) (refine-not-T-T T V P Σ) ⊥ΔΣ) {set V}))
 
-  (:* refine-T-T refine-not-T-T : S S V Σ → ΔΣ)
+  (:* refine-T-T refine-not-T-T : T* T* V Σ → ΔΣ)
   (splicing-local
-      ((: refine-both (∀ (X) (Base → Boolean : X) K -b S (X → P) S (X → P) Σ → ΔΣ))
+      ((: refine-both (∀ (X) (Base → Boolean : X) K -b T* (X → P) T* (X → P) Σ → ΔΣ))
        (define (refine-both ub? P b V₁ P₁ V₂ P₂ Σ)
          (match* (V₁ V₂)
            [((? T? V₁) (? T? V₂))
@@ -261,15 +260,15 @@
                                                (and (g V*) ... (o? V*)))))]
               ...
               c ...))
-          (: check-among : (V → Boolean) * → ?Dec)
+          (: check-among : (D¹ → Boolean) * → ?Dec)
           (define (check-among . ps)
             (or (for/or : (Option '✓) ([p (in-list ps)] #:when (p V₀)) '✓) '✗))
-          (: with-guard : (V → Boolean) * → (V → Boolean))
+          (: with-guard : (D¹ → Boolean) * → (D¹ → Boolean))
           (define (with-guard . ps)
             (match-lambda [(Guarded _ G _)
                            (for/or : Boolean ([p? (in-list ps)]) (p? G))]
                           [_ #f]))
-          (: proper-flat-contract? : V → Boolean)
+          (: proper-flat-contract? : D¹ → Boolean)
           (define proper-flat-contract?
             (match-lambda
               [(-st-mk 𝒾) (= 1 (count-struct-fields 𝒾))]
@@ -278,8 +277,7 @@
               [(? Not/C?) #t]
               [(? One-Of/C?) #t]
               [(and C (or (? And/C?) (? Or/C?) (? St/C?))) (C-flat? C Σ)]
-              [(Clo xs _ _) (arity-includes? (shape xs) 1)]
-              [(-λ xs _ _) (arity-includes? (shape xs) 1)]
+              [(or (Clo xs _ _) (-λ xs _ _)) (arity-includes? (shape (assert xs)) 1)]
               [(Case-Clo clos _) (ormap proper-flat-contract? clos)]
               [(Guarded _ (? Fn/C? C) _) (arity-includes? (guard-arity C) 1)]
               [_ #f]))
@@ -317,7 +315,7 @@
             ;; Manual cases
             [(values) (bool->Dec (or (not (-b? V₀)) (not (not (-b-unboxed V₀)))))]
             [(procedure?) ; FIXME make sure `and/c` and friends are flat
-             (check-among -o? Fn? (with-guard Fn/C?) proper-flat-contract?)]
+             (check-among -o? -λ? Fn? (with-guard Fn/C?) proper-flat-contract?)]
             [(vector?)
              (check-among Vect? Vect-Of? (with-guard Vect/C? Vectof/C?))]
             [(hash-empty?)
@@ -503,17 +501,17 @@
 
     (go-V V₁ V₂))
 
-  (: check-equal?/congruence : Γ S S → ?Dec)
+  (: check-equal?/congruence : Γ T* T* → ?Dec)
   (define (check-equal?/congruence Γ T₁ T₂)
     (define-values (eqs diseqs) (Γ->eqs/diseqs Γ))
     (cond [(not (sat/extra? eqs (cons (cons T₁ T₂) diseqs))) '✓]
           [(not (sat/extra? (cons (cons T₁ T₂) eqs) diseqs)) '✗]
           [else #f]))
 
-  (: Γ->eqs/diseqs : Γ → (Values (Listof (Pairof S S)) (Listof (Pairof S S))))
+  (: Γ->eqs/diseqs : Γ → (Values (Listof (Pairof T* T*)) (Listof (Pairof T* T*))))
   (define (Γ->eqs/diseqs Γ)
-    (for/fold ([eqs : (Listof (Pairof S S)) '()]
-               [diseqs : (Listof (Pairof S S)) (list (cons -tt -ff))])
+    (for/fold ([eqs : (Listof (Pairof T* T*)) '()]
+               [diseqs : (Listof (Pairof T* T*)) (list (cons -tt -ff))])
               ([(T D) (in-hash Γ)])
       (match* (T D)
         [((T:@ (K:≡) (list T₁ T₂)) (-b b))
@@ -673,7 +671,7 @@
                   (set->predicate
                    {set 'number? 'integer? 'real? 'exact-nonnegative-integer?
                         'string? 'symbol?})])
-    (: check-proper-list : Σ V → ?Dec)
+    (: check-proper-list : Σ D¹ → ?Dec)
     (define (check-proper-list Σ V₀)
       (define-set seen : α #:mutable? #t)
 
@@ -692,7 +690,7 @@
                    ([V (in-set Vs)] #:break (> (set-count acc) 1))
            (set-add acc (go V)))))
 
-      (define go : (V → ?Dec)
+      (define go : (D¹ → ?Dec)
         (match-lambda
           [(St (and α (α:dyn (β:st-elems _ (== -𝒾-cons)) _)) _) (go-α α)]
           [(Guarded _ (? St/C? (app St/C-tag (== -𝒾-cons))) α) (go-α α)]
@@ -758,7 +756,7 @@
          (values (and (not (set-empty? Vs:t)) Vs:t)
                  (and (not (set-empty? Vs:f)) Vs:f)))
 
-       (: distribute₁-T : Σ V S → (Values (Option ΔΣ) (Option ΔΣ)))
+       (: distribute₁-T : Σ V T* → (Values (Option ΔΣ) (Option ΔΣ)))
        (define (distribute₁-T Σ P T)
          (define (t) (refine-T T P Σ))
          (define (f) (refine-not-T T P Σ))
@@ -793,7 +791,7 @@
          (values (and (not (or (set-empty? Vs₁:t) (set-empty? Vs₂:t))) (list Vs₁:t Vs₂:t))
                  (and (not (or (set-empty? Vs₁:f) (set-empty? Vs₂:f))) (list Vs₁:f Vs₂:f))))
 
-       (: distribute₂-V^-T : Σ V V^ S → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+       (: distribute₂-V^-T : Σ V V^ T* → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
        (define (distribute₂-V^-T Σ P Vs T)
          (define-values (Vs:t Vs:f ΔΣ:t ΔΣ:f)
            (for/fold ([Vs₁:t : V^ ∅]
@@ -810,7 +808,7 @@
          (values (and (not (set-empty? Vs:t)) ΔΣ:t (cons (list Vs:t T) ΔΣ:t))
                  (and (not (set-empty? Vs:f)) ΔΣ:f (cons (list Vs:f T) ΔΣ:f))))
 
-       (: distribute₂-T-V^ : Σ V S V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
+       (: distribute₂-T-V^ : Σ V T* V^ → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
        (define (distribute₂-T-V^ Σ P T Vs)
          (define-values (ΔΣ:t ΔΣ:f Vs:t Vs:f)
            (for/fold ([ΔΣ:t : (Option ΔΣ) #f]
@@ -828,7 +826,7 @@
          (values (and ΔΣ:t (not (set-empty? Vs:t)) (cons (list T Vs:t) ΔΣ:t))
                  (and ΔΣ:f (not (set-empty? Vs:f)) (cons (list T Vs:f) ΔΣ:f))))
 
-       (: distribute₂-T-T : Σ V S S → (Values (Option ΔΣ) (Option ΔΣ)))
+       (: distribute₂-T-T : Σ V T* T* → (Values (Option ΔΣ) (Option ΔΣ)))
        (define (distribute₂-T-T Σ P T₁ T₂)
          (define (t) (refine-T-T T₁ T₂ P Σ))
          (define (f) (refine-not-T-T T₁ T₂ P Σ))
@@ -885,7 +883,7 @@
     (cond [(and (P? P) (?negate P)) => (λ (¬P) (refine-V V ¬P Σ))]
           [else {set V}]))
 
-  (:* refine-T refine-not-T : S V Σ → ΔΣ)
+  (:* refine-T refine-not-T : T* V Σ → ΔΣ)
   (define (refine-T T₀ P₀ Σ)
     (match-define (cons Ξ Γ) Σ)
     (if (and (P? P₀) (T? T₀))
@@ -907,24 +905,24 @@
   ;;FIXME: refactor
   (splicing-local
       (;; Return list of term successors
-       (define succ : (S → (Listof S))
+       (define succ : (T* → (Listof T*))
          (match-lambda
            [(T:@ _ Ts) Ts]
            [_ '()]))
 
        ;; Return node label for term
-       (define lab : (S → Any)
+       (define lab : (T* → Any)
          (match-lambda
            [(T:@ K _) K]
-           [S S]))
+           [T T]))
 
        ;; Generate additional axioms for appropriate terms
-       (define gen-eqs : (S → (℘ (Pairof S S)))
+       (define gen-eqs : (T* → (℘ (Pairof T* T*)))
          (match-lambda
            ;; e.g. (car (cons x y)) ≡ x
            ;; FIXME do properly for substructs
            [(and T (T:@ (-st-mk 𝒾) Ts))
-            (for/set: : (℘ (Pairof S S)) ([Tᵢ (in-list Ts)]
+            (for/set: : (℘ (Pairof T* T*)) ([Tᵢ (in-list Ts)]
                                           [i (in-range (count-struct-fields 𝒾))])
               (cons (T:@ (-st-ac 𝒾 (assert i index?)) (list T)) Tᵢ))]
            [(T:@ (-st-ac 𝒾 _) (and arg (list T*)))
@@ -939,17 +937,17 @@
                  (cons (T:@ '+ (list -zero T₂)) T₂)}]
            [_ ∅]))
 
-       (: make-congruence-closer : (S → (℘ S)) → (Values (S S → Void) (S S → Boolean)))
+       (: make-congruence-closer : (T* → (℘ T*)) → (Values (T* T* → Void) (T* T* → Boolean)))
        ;; https://dl.acm.org/citation.cfm?id=322198 , section 2
        (define (make-congruence-closer preds)
-         (define-values (union! find) ((inst make-union-find S)))
-         (define equivs : (Mutable-HashTable S (℘ S)) (make-hash))
-         (define (equivs-of [x : S]) #;(assert (equal? x (find x))) (hash-ref equivs x (λ () {set x})))
-         (define (preds-of [xs : (℘ S)])
-           (for/union : (℘ S) ([x (in-set xs)])
+         (define-values (union! find) ((inst make-union-find T*)))
+         (define equivs : (Mutable-HashTable T* (℘ T*)) (make-hash))
+         (define (equivs-of [x : T*]) #;(assert (equal? x (find x))) (hash-ref equivs x (λ () {set x})))
+         (define (preds-of [xs : (℘ T*)])
+           (for/union : (℘ T*) ([x (in-set xs)])
              (preds x)))
 
-         (: merge! : S S → Void)
+         (: merge! : T* T* → Void)
          ;; Mark `u` and `v` as being in the same partition and extend congruence closure
          (define (merge! u v)
            (define u* (find u))
@@ -969,7 +967,7 @@
                     #:when (congruent? x y))
                (merge! x y))))
 
-         (: congruent? : S S → Boolean)
+         (: congruent? : T* T* → Boolean)
          (define (congruent? x y)
            (and (equal? (lab x) (lab y))
                 (let ([us (succ x)]
@@ -981,27 +979,27 @@
          (values merge! (λ (x y) (equal? (find x) (find y)))))
 
        (: fold-terms (∀ (A)
-                        (S A → A)
+                        (T* A → A)
                         A
-                        (Listof (Pairof S S))
-                        (Listof (Pairof S S)) → A))
+                        (Listof (Pairof T* T*))
+                        (Listof (Pairof T* T*)) → A))
        (define (fold-terms step acc eqs diseqs)
-         (: on-x : S A → A)
+         (: on-x : T* A → A)
          (define (on-x x a) (foldl on-x (step x a) (succ x)))
-         (: on-xx : (Pairof S S) A → A)
+         (: on-xx : (Pairof T* T*) A → A)
          (define (on-xx xx xs) (on-x (cdr xx) (on-x (car xx) xs)))
          (foldl on-xx (foldl on-xx acc eqs) diseqs))
 
-       (: sat? : (Listof (Pairof S S)) (Listof (Pairof S S)) → Boolean)
+       (: sat? : (Listof (Pairof T* T*)) (Listof (Pairof T* T*)) → Boolean)
        ;; Check if given equalities and dis-equalities are satisfiable
        ;; https://dl.acm.org/citation.cfm?id=322198, section 3
        (define (sat? eqs diseqs)
          (define-values (merge! ≡)
            (let ([m
-                  ((inst fold-terms (HashTable S (℘ S)))
+                  ((inst fold-terms (HashTable T* (℘ T*)))
                    (λ (x m)
-                     (foldl (λ ([x* : S] [m : (HashTable S (℘ S))])
-                              (hash-update m x* (λ ([xs : (℘ S)]) (set-add xs x)) mk-∅))
+                     (foldl (λ ([x* : T*] [m : (HashTable T* (℘ T*))])
+                              (hash-update m x* (λ ([xs : (℘ T*)]) (set-add xs x)) mk-∅))
                             m
                             (succ x)))
                    (hash) eqs diseqs)])
@@ -1010,14 +1008,14 @@
            (merge! (car eq) (cdr eq)))
          (not (for/or : Boolean ([diseq (in-list diseqs)])
                 (≡ (car diseq) (cdr diseq))))))
-    (: sat/extra? : (Listof (Pairof S S)) (Listof (Pairof S S)) → Boolean)
+    (: sat/extra? : (Listof (Pairof T* T*)) (Listof (Pairof T* T*)) → Boolean)
     ;; Given extra assumptions generated by `gen-eqs`, check if given equalities
     ;; and dis-equalities are satisfiable
     ;; https://dl.acm.org/citation.cfm?id=322198, section 4
     (define (sat/extra? eqs diseqs)
       (define all-eqs
         (let ([more-eqs
-               ((inst fold-terms (℘ (Pairof S S)))
+               ((inst fold-terms (℘ (Pairof T* T*)))
                 (λ (x acc) (set-union acc (gen-eqs x)))
                 ∅ eqs diseqs)])
           (append (set->list more-eqs) eqs)))

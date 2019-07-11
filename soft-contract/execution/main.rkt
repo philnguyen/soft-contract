@@ -205,6 +205,7 @@
                 (define-values (Vs* _) (refine Vs Ps (Σₑₑ)))
                 (and (not (and (set? Vs*) (set-empty? Vs*))) ; indicating spurious branch
                      (hash-set (assert acc) T Vs*)))]
+             [((? -λ?) _) acc] ; no re-setting lambda!
              [(_ D) (hash-set acc T* D)])]
           [_ acc])))
     (define (go-W [W : W]) (map go-D W))
@@ -244,11 +245,12 @@
   (define (rename rn)
     (: go-K : (K → (Option K)))
     (define (go-K K₀) (if (T? K₀) (cast (go K₀) (Option K)) K₀))
-    (: go : (U T -prim) → (Option (U T -prim)))
+    (: go : T* → (Option T*))
     (define (go T₀)
       (if (hash-has-key? rn T₀)
           (hash-ref rn T₀)
           (match T₀
+            [(? -λ?) #f]
             [(T:@ o Ts)
              (match (go-K o)
                [(? values o*) (define Ts* (go* Ts))
