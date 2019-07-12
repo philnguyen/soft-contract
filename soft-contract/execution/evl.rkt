@@ -23,7 +23,7 @@
 
 (define-unit evl@
   (import meta-functions^ static-info^ ast-pretty-print^
-          sto^ cache^ val^
+          sto^ cache^ val^ pretty-print^
           exec^ app^ mon^ gc^)
   (export evl^)
 
@@ -78,17 +78,25 @@
     (define Σ* (gc root Σ))
     (ref-$! ($:Key:Exp Σ* (current-MS) E) (λ () (gc-R root Σ* (do-evl Σ* E)))))
 
+  (define close : (-λ Σ → (Values Clo ΔΣ))
+    (match-lambda**
+     [((and E₀ (-λ Xs E ℓ)) Σ)
+      (define α (α:dyn (β:clo ℓ) H₀))
+      (values (Clo Xs E α) (alloc α (cdr (gc (E-root E₀) Σ))))]))
+
   (: do-evl : Σ E → R)
   ;; Evaluate `E₀` under `Σ` without caching `E₀`
   (define (do-evl Σ E₀)
     (match E₀
       [(? -prim? p) (R-of p)]
       [(-•) (R-of {set (-● ∅)})]
-      [(-λ Xs E ℓ) (R-of {set E₀})]
+      [(? -λ?)
+       (define-values (V ΔΣ) (close E₀ Σ))
+       (R-of E₀ (⧺ ΔΣ ((inst cons ΔΞ ΔΓ) ⊥Ξ (hash E₀ {set V}))))]
       [(-case-λ cases ℓ)
        (define-values (Cases-rev ΔΣ*)
          (for/fold ([Cases-rev : (Listof Clo) '()] [ΔΣ : ΔΣ ⊥ΔΣ]) ([E (in-list cases)])
-           (define-values (V ΔΣ*) (escape-clo Σ E))
+           (define-values (V ΔΣ*) (close E Σ))
            (values (cons V Cases-rev) (⧺ ΔΣ ΔΣ*))))
        (R-of {set (Case-Clo (reverse Cases-rev) ℓ)} ΔΣ*)]
       [(-x (? symbol? x) ℓ) ; lexical variable
@@ -140,7 +148,7 @@
            ⊥R
            (let ([r* (for/fold ([r : R ⊥R]) ([ΔΣₓ : ΔΣ (in-set ΔΣₓs)])
                        (R⊔ r (ΔΣ⧺R ΔΣₓ (evl (⧺ Σ ΔΣₓ) E))))])
-             (erase-names bnds Σ (R-escape-clos Σ r*))))]
+             (erase-names bnds Σ r*)))]
       [(-letrec-values bnds E ℓ)
        (define ΔΣ₀
          (for*/fold ([ΔΣ₀ : ΔΣ ⊥ΔΣ])
@@ -151,7 +159,7 @@
          (with-collapsed/R [ΔΣₓ (evl*/discard/collapse (evl-set-bnd ℓ) (⧺ Σ ΔΣ₀) bnds)]
            (define ΔΣ* (⧺ ΔΣ₀ ΔΣₓ))
            (ΔΣ⧺R ΔΣ* (evl (⧺ Σ ΔΣ*) E))))
-       (erase-names bnds Σ (R-escape-clos Σ r*))]
+       (erase-names bnds Σ r*)]
       [(-set! X E ℓ)
        (with-collapsing/R Σ [(ΔΣ:rhs rhs) (evl/arity Σ E 1 ℓ)]
          (define ΔΣ:mut
@@ -159,8 +167,7 @@
                  [Σ* (⧺ Σ ΔΣ:rhs)])
              (define α* (assert (Σ@/raw α Σ) α?))
              (define rhs^ (unpack (car (collapse-W^ Σ* rhs)) Σ*))
-             (define-values (rhs^* ΔΣ) (V^-escape-clos Σ* rhs^))
-             (⧺ ΔΣ (mut α* rhs^* Σ))))
+             (mut α* rhs^ Σ)))
          (R-of -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err! (Err:Raised s ℓ)) ⊥R]
       [(-rec/c (-x x ℓ))
@@ -221,82 +228,6 @@
       (when (∋ (unpack D Σ) -undefined)
         (err! (Err:Undefined x ℓ)))))
 
-  (: escape-clo : Σ -λ → (Values Clo ΔΣ))
-  (define (escape-clo Σ E₀)
-    (match-define (-λ Xs E ℓ) E₀)
-    (define α (α:dyn (β:clo ℓ) H₀))
-    (values (Clo Xs E α) (alloc α (cdr (gc (E-root E₀) Σ)))))
-
-  (: D-escape-clos : Σ D → (Values D ΔΣ))
-  (define (D-escape-clos Σ D)
-    (if (set? D) (V^-escape-clos Σ D) (values D ⊥ΔΣ)))
-
-  (: V^-escape-clos : Σ V^ → (Values V^ ΔΣ))
-  (define (V^-escape-clos Σ Vs)
-    (for/fold ([Vs : V^ Vs] [ΔΣ : ΔΣ ⊥ΔΣ]) ([V (in-set Vs)] #:when (-λ? V))
-      (define-values (V* ΔΣ*) (escape-clo Σ V))
-      (values (set-add (set-remove Vs V) V*) (⧺ ΔΣ ΔΣ*))))
-
-  (: escape-clos : Σ W → (Values W ΔΣ))
-  (define (escape-clos Σ W)
-    (define ΔΣ* : ΔΣ ⊥ΔΣ)
-    (define W* (map (λ ([D : D]) (let-values ([(D* ΔΣ) (D-escape-clos Σ D)])
-                                   (set! ΔΣ* (⧺ ΔΣ* ΔΣ))
-                                   D*))
-                    W))
-    (values W* ΔΣ*))
-
-  (: R-escape-clos : Σ R → R)
-  (define (R-escape-clos Σ₀ r)
-
-    (: S-escape-clos : Σ S → (Values S ΔΣ))
-    (define (S-escape-clos Σ S)
-      (cond [(vector? S)
-             (let ([ΔΣ : ΔΣ ⊥ΔΣ])
-               (define S* (vector-map (λ ([Vs : V^])
-                                        (let-values ([(Vs* ΔΣ*) (V^-escape-clos Σ Vs)])
-                                          (set! ΔΣ (⧺ ΔΣ ΔΣ*))
-                                          Vs*))
-                                      S))
-               (values S* ΔΣ))]
-            [(hash? S)
-             (let ([ΔΣ : ΔΣ ⊥ΔΣ])
-               (define S* (for/hash : Γ ([(x D) (in-hash S)])
-                            (if (set? D)
-                                (let-values ([(Vs* ΔΣ*) (V^-escape-clos Σ D)])
-                                  (set! ΔΣ (⧺ ΔΣ ΔΣ*))
-                                  (values x Vs*))
-                                (values x D))))
-               (values S* ΔΣ))]
-            [(set? S) (V^-escape-clos Σ S)]
-            [(α? S) (values S ⊥ΔΣ)]))
-
-    (: ΔΞ-escape-clos : Σ ΔΞ → (Values ΔΞ ΔΣ))
-    (define (ΔΞ-escape-clos Σ ΔΞ₀)
-      (for/fold ([acc : ΔΞ ⊥ΔΞ] [ΔΣ : ΔΣ ⊥ΔΣ]) ([(α r) (in-hash ΔΞ₀)])
-        (match-define (cons Vs N) r)
-        (define-values (Vs* ΔΣ*) (S-escape-clos Σ Vs))
-        (values (hash-set acc α (cons Vs* N)) (⧺ ΔΣ ΔΣ*))))
-
-    (: ΔΓ-escape-clos : Σ ΔΓ → (Values ΔΓ ΔΣ))
-    (define (ΔΓ-escape-clos Σ ΔΓ₀)
-      (for/fold ([acc : ΔΓ ⊤ΔΓ] [ΔΣ : ΔΣ ⊥ΔΣ]) ([(x D) (in-hash ΔΓ₀)])
-        (if (set? D)
-            (let-values ([(Vs* ΔΣ*) (V^-escape-clos Σ D)])
-              (values (hash-set acc x Vs*) (⧺ ΔΣ ΔΣ*)))
-            (values (hash-set acc x D) ΔΣ))))
-
-    (: ΔΣ-escape-clos : Σ ΔΣ → ΔΣ)
-    (define (ΔΣ-escape-clos Σ ΔΣ₀)
-      (match-define (cons ΔΞ₀ ΔΓ₀) ΔΣ₀)
-      (define-values (ΔΞ₁ ΔΣ₁) (ΔΞ-escape-clos Σ ΔΞ₀))
-      (define-values (ΔΓ₁ ΔΣ₂) (ΔΓ-escape-clos Σ ΔΓ₀))
-      (⧺ (cons ΔΞ₁ ΔΓ₁) ΔΣ₁ ΔΣ₂))
-
-    (for*/fold ([acc : R ⊥R]) ([(W ΔΣs) (in-hash r)] [ΔΣᵢ : ΔΣ (in-set ΔΣs)])
-      (define Σ* (⧺ Σ₀ ΔΣᵢ))
-      (define-values (W* ΔΣ*) (escape-clos Σ* W))
-      (R⊔ acc (R-of W* (⧺ ΔΣ* (ΔΣ-escape-clos Σ* ΔΣᵢ))))))
   (: erase-names : (Listof Binding) Σ R → R)
   ;; Erase symbolic names in results' values and conditions
   (define (erase-names bnds Σ₀ r)
@@ -329,10 +260,11 @@
   ;; Run let-rec binding where the addresses have already been allocated
   (define ((evl-set-bnd ℓ) Σ bnd)
     (match-define (mk-Binding xs E) bnd)
-    (: mut-lex : Symbol D ΔΣ → ΔΣ)
-    (define (mut-lex x D ΔΣ) (⧺ ΔΣ (mut (α:dyn (β:mut x) H₀) (unpack D Σ) Σ)))
+    (: mut-lex : ΔΣ → Symbol D ΔΣ → ΔΣ)
+    (define ((mut-lex Σ) x D ΔΣ) (⧺ ΔΣ (mut (α:dyn (β:mut x) H₀) (unpack D Σ) Σ)))
     (with-collapsing Σ [(ΔΣ rhs) (evl/arity Σ E (length xs) ℓ)]
-      (foldl mut-lex ΔΣ xs (collapse-W^ (⧺ Σ ΔΣ) rhs))))
+      (define Σ* (⧺ Σ ΔΣ))
+      (foldl (mut-lex Σ*) ΔΣ xs (collapse-W^ Σ* rhs))))
 
   (: evl-dom : Σ -dom → (Option (Pairof (U Clo D) ΔΣ)))
   (define (evl-dom Σ dom)

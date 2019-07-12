@@ -35,13 +35,6 @@
       [(-λ (-var xs _) _ _) xs]
       [(? list? xs) xs]))
 
-  (define check-point : (V → CP)
-    (match-lambda
-      [(? -λ? x) x]
-      [(Clo xs E (α:dyn (β:clo ℓ) _)) (-λ xs E ℓ)]
-      [(Guarded _ (==>i (-var doms _) _ _) _) (map Dom-name doms)]
-      [_ !!!]))
-
   (: transitive-graphs : M CP CP SCG → (Immutable-HashTable CP (℘ SCG)))
   (define (transitive-graphs M₀ src tgt G)
     (for/hash : (Immutable-HashTable CP (℘ SCG))

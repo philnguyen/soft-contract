@@ -28,7 +28,8 @@
                                (Sealed α)
                                C
                                (-● (℘ P)))
-(#|Identities     |# T . ::= . γ (T:@ K (Listof (U T -prim))))
+(#|Identities     |# T . ::= . γ -λ (T:@ K (Listof T*)))
+(#|               |# T* . ::= . T -prim)
 (#|               |# K . ::= . T '+ '- '* '/ 'add1 'sub1 -st-ac -st-mk (K:≡) (K:≤) (K:=))
 (#|Environments   |# Γ .  ≜  . (Immutable-HashTable T S*))
 (#|Stores         |# Ξ .  ≜  . (Immutable-HashTable α (Pairof S N)))
@@ -41,11 +42,10 @@
 (#|Storables      |# S .  ≜  . (U #|Stackables      |# S*
                                   #|Memory Blobs     |# (Vectorof V^)
                                   #|Closure Contexts |# Γ))
-(#|Abs. Values    |# D .  ≜  . (U V^ T -prim))
-(#|Abs. Values    |# D¹ . ≜  . (U V T -prim))
+(#|Abs. Values    |# D .  ≜  . (U V^ T*))
+(#|Abs. Values    |# D¹ . ≜  . (U V T*))
 (#|Values Lists   |# W .  ≜  . (Listof D))
-(#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
-                                (Clo -formals E α)
+(#|Non-Prim Funcs |# Fn . ::= . (Clo -formals E α)
                                 (Case-Clo (Listof Clo) ℓ))
 (#|Contracts      |# C . ::= . (And/C α α ℓ)
                                (Or/C α α ℓ)
@@ -70,7 +70,7 @@
                                  (Err:Arity [proc : (U V ℓ)] [args : (U Natural W)] [site : ℓ])
                                  (Err:Varargs W D ℓ)
                                  (Err:Sealed [seal : Symbol] [site : ℓ])
-                                 (Err:Term [violator : -l] [site : ℓ] [origin : ℓ] [fun : V] [args : W])
+                                 (Err:Term [violator : -l] [site : ℓ] [origin : ℓ] [fun : -v] [args : W])
                                  (Blm [violator : -l]
                                       [site : ℓ]
                                       [origin : ℓ]
@@ -156,7 +156,7 @@
 (#|Dynamic Context|# H  . ≜ . (℘ ℓ))
 (#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
                                                   [#:reuse (Listof Fn/C-Sig)])
-(Renamings . ≜ . (Immutable-HashTable T (Option (U T -prim))))
+(Renamings . ≜ . (Immutable-HashTable T (Option T*)))
 
 ;; Size-change Stuff
 (#|SC. Mon-ing Status|# MS . ::= . (MS [pos : -l] [origin : ℓ] [graphs : M]))
@@ -207,8 +207,8 @@
    [ΔΣ⊔ : (Σ ΔΣ ΔΣ → ΔΣ)]
    [collapse-ΔΣs : (Σ (℘ ΔΣ) → ΔΣ)]
    [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
-   [S-andmap : (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #t))]
-   [S-ormap : (∀ (X) (V^ → X) ((U T -prim α) → X) S → (U X #f))]
+   [S-andmap : (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #t))]
+   [S-ormap : (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #f))]
    [S-map : (∀ (X Y) (V^ → V^) S → S)]
    ))
 
@@ -231,7 +231,7 @@
    [Ctx-with-origin : (Ctx ℓ → Ctx)]
    [Ctx-flip : (Ctx → Ctx)]
    [C-flat? : ((U V V^) Σ → Boolean)]
-   [arity : (V → (Option Arity))]
+   [arity : (D¹ → (Option Arity))]
    [guard-arity : (Fn/C → Arity)]
    [with-negative-party : (-l V → V)]
    [with-positive-party : (-l V → V)]
@@ -242,7 +242,7 @@
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
    [T-refers-to? : (T (℘ Symbol) → Boolean)]
-   [T:@/simp : (K (Listof (U T -prim)) → (U T -prim))]
+   [T:@/simp : (K (Listof T*) → T*)]
    [prop? : (T S* → Boolean)]
    [ListOf : (γ:imm:listof → V)]
    ))

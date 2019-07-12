@@ -34,12 +34,20 @@
   (: mon : Σ Ctx D D → R)
   (define (mon Σ ctx C^ V^)
     (define args:root (D-root V^))
-    (fold-ans (λ ([C : V])
-                (define root (∪ (V-root C) args:root))
-                (define Σ* (gc root Σ))
-                (ref-$! ($:Key:Mon Σ* (current-MS) ctx C V^)
-                        (λ () (gc-R root Σ* ((mon₁ C) Σ* ctx V^)))))
-              (unpack C^ Σ)))
+    (cond
+      [(-λ? C^)
+       (define root (set-add args:root C^))
+       (define Σ* (gc root Σ))
+       (match-define {singleton-set C} (unpack C^ Σ))
+       (ref-$! ($:Key:Mon Σ* (current-MS) ctx C V^)
+               (λ () (gc-R root Σ* (mon-λ Σ* ctx C^ V^))))]
+      [else
+       (fold-ans (λ ([C : V])
+                   (define root (∪ (V-root C) args:root))
+                   (define Σ* (gc root Σ))
+                   (ref-$! ($:Key:Mon Σ* (current-MS) ctx C V^)
+                           (λ () (gc-R root Σ* ((mon₁ C) Σ* ctx V^)))))
+                 (unpack C^ Σ))]))
 
   (: mon* : Σ Ctx W W → R)
   (define (mon* Σ₀ ctx Cs Vs)
@@ -351,6 +359,15 @@
            [(list _) (R-of W ΔΣ)]
            [(list Vs* _) (err! (blame)) ⊥R]))]))
 
+  (: mon-λ : Σ Ctx -λ D → R)
+  (define (mon-λ Σ ctx C Vs)
+    (match-define (Ctx l+ _ ℓₒ ℓ) ctx)
+    (with-each-path ([(ΔΣ W) (fc Σ ℓₒ C Vs)])
+      (match W
+        [(list _) (R-of W ΔΣ)]
+        [(list Vs* _) (err! (blm l+ ℓ ℓₒ (list C) (list Vs)))
+                      ⊥R])))
+
   ;; Can't get away with not having specialized flat-check procedure.
   ;; There's no straightforward way to fully refine a value by contract `c`
   ;; after applying `c` as a procedure (tricky when `c` is recursive and effectful)
@@ -360,15 +377,23 @@
   (: fc : Σ ℓ D D → R)
   (define (fc Σ₀ ℓ Cs Vs)
     (define Vs:root (D-root Vs))
-    ((inst fold-ans V)
-     (λ (C)
-       (define root (∪ (V-root C) Vs:root))
+    (cond
+      [(-λ? Cs)
+       (define root (∪ (T-root Cs) Vs:root))
        (define Σ₀* (gc root Σ₀))
+       (match-define {singleton-set C} (unpack Cs Σ₀))
        (ref-$! ($:Key:Fc Σ₀* (current-MS) ℓ C Vs)
-               (λ () (gc-R root Σ₀* (fc₁ Σ₀* ℓ C Vs)))))
-     (unpack Cs Σ₀)))
+               (λ () (gc-R root Σ₀* (fc₁ Σ₀* ℓ Cs Vs))))]
+      [else
+       ((inst fold-ans V)
+        (λ (C)
+          (define root (∪ (V-root C) Vs:root))
+          (define Σ₀* (gc root Σ₀))
+          (ref-$! ($:Key:Fc Σ₀* (current-MS) ℓ C Vs)
+                  (λ () (gc-R root Σ₀* (fc₁ Σ₀* ℓ C Vs)))))
+        (unpack Cs Σ₀))]))
 
-  (: fc₁ : Σ ℓ V D → R)
+  (: fc₁ : Σ ℓ (U V -λ) D → R)
   (define (fc₁ Σ₀ ℓ C Vs)
     (match C
       [(And/C α₁ α₂ _)
@@ -438,7 +463,7 @@
        (define Σ₁ (⧺ Σ₀ ΔΣₓ))
        ;; FIXME instead of manually `resolve` like this, make the whole thing
        ;; more analogous to applying lamdbas
-       (with-each-path ([(ΔΣ W) (app Σ₁ ℓ {set C} (list (resolve x-mon Σ₁)))])
+       (with-each-path ([(ΔΣ W) (app Σ₁ ℓ (if (-λ? C) C {set C}) (list (resolve x-mon Σ₁)))])
          (define Σ₂ (⧺ Σ₁ ΔΣ))
          (define Vs* (Σ@ (γ:lex x-mon) Σ₂))
          (with-split-Σ Σ₂ 'values W

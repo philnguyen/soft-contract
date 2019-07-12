@@ -38,24 +38,31 @@
   (define global-stores : (HashTable (Pairof Stk Γ) Σ) (make-hash))
 
   (: app : Σ ℓ D W → R)
-  (define (app Σ ℓ Dₕ W*)
-    (define-values (W ΔΣ₁) (escape-clos Σ W*))
+  (define (app Σ ℓ Dₕ W)
     (define W:root (W-root W))
 
     ;; Compute abstract result
     (define r
-      ((inst fold-ans V)
-       (λ (Vₕ)
-         (define root (∪ W:root (V-root Vₕ)))
-         (define Σ* (gc root (⧺ Σ ΔΣ₁)))
+      (cond
+        [(-λ? Dₕ)
+         (define root (set-add W:root Dₕ))
+         (define Σ* (gc root Σ))
+         (match-define {singleton-set Vₕ} (unpack Dₕ Σ))
          (ref-$! ($:Key:App Σ* (current-MS) ℓ Vₕ W)
-                 (λ () (gc-R root Σ* (ΔΣ⧺R ΔΣ₁ (app₁ Σ* ℓ Vₕ W))))))
-       (unpack Dₕ Σ)))
+                 (λ () (gc-R root Σ* ((app-λ Dₕ) Σ* ℓ W))))]
+        [else
+         ((inst fold-ans V)
+          (λ (Vₕ)
+            (define root (∪ W:root (V-root Vₕ)))
+            (define Σ* (gc root Σ))
+            (ref-$! ($:Key:App Σ* (current-MS) ℓ Vₕ W)
+                    (λ () (gc-R root Σ* (app₁ Σ* ℓ Vₕ W)))))
+          (unpack Dₕ Σ))]))
 
     ;; Attempt to name result with symbolic expression
     (define Tₐ : (Option (U T -prim))
-      (match* (Dₕ W*)
-        [((? K? o) (list (and #{Tₓ : (Listof (U T -prim))} (or (? -prim?) (? T?))) ...))
+      (match* (Dₕ W)
+        [((? K? o) (list (and #{Tₓ : (Listof T*)} (or (? -prim?) (? T?))) ...))
          #:when (not (hash-empty? r)) ; avoid constant-folding `(/ _ 0)` and the likes
          (T:@/simp o Tₓ)]
         [(_ _) #f]))
@@ -100,7 +107,6 @@
   (: app₁ : Σ ℓ V W → R)
   (define (app₁ Σ ℓ V W)
     (define f (match V
-                [(? -λ? V) (app-λ V)]
                 [(? Clo? V) (app-Clo V)]
                 [(? Case-Clo? V) (app-Case-Clo V)]
                 [(-st-mk 𝒾) (app-st-mk 𝒾)]
@@ -139,11 +145,11 @@
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            ;; TODO: code dup
-           (let* ([root (∪ (E-root Vₕ) (W-root Wₓ))]
+           (let* ([root (set-add (W-root Wₓ) Vₕ)]
                   [Σ₁ (gc root Σ)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E))
              (define rn (make-renamings fml Wₓ*))
-             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))))]))
+             (fix-return rn Σ₁ (ΔΣ⧺R ΔΣₓ rₐ)))))]))
 
   (: app-Clo : Clo → ⟦F⟧)
   (define ((app-Clo Vₕ) Σ ℓ Wₓ*)
@@ -160,7 +166,7 @@
                   [Σ₁ (cons (car (gc root Σ)) Γ*)])
              (define rₐ (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
              (define rn (insert-fv-erasures Γ* (make-renamings fml Wₓ*)))
-             (fix-return rn Σ₁ (R-escape-clos Σ₁ (ΔΣ⧺R ΔΣₓ rₐ))))))]))
+             (fix-return rn Σ₁ (ΔΣ⧺R ΔΣₓ rₐ)))))]))
 
   (: alloc-args : Σ -formals W → (Values ΔΣ W))
   ;; Unpack and allocate the arguments given parameter list
@@ -205,9 +211,8 @@
                     [T* (in-value (rn T))] #:when (T? T*))
       (values T* D)))
 
-  (: with-sct-guard : Σ ℓ V W (→ R) → R)
-  (define (with-sct-guard Σ ℓ ee:raw W comp)
-    (define ee (check-point ee:raw))
+  (: with-sct-guard : Σ ℓ CP W (→ R) → R)
+  (define (with-sct-guard Σ ℓ ee W comp)
     (match (current-MS)
       [(MS l+ ℓₒ M)
        (match (current-app)
@@ -387,9 +392,6 @@
          (with-each-path ([(ΔΣ W) (mon Σ ctx (Σ@ α Σ) V)])
            (match-define (list V*) W)
            (R-of W (⧺ ΔΣ (alloc-lex Σ x V*))))]))
-
-    (define Dom-ref (compose γ:lex Dom-name))
-
     ;; Maybe monitor the result from applying the inner function
     (define (with-result [Σ₀ : Σ] [ΔΣ-acc : ΔΣ] [comp : (→ R)])
       (define r
@@ -401,7 +403,7 @@
 
     (: maybe-check-termination : (→ R) → (→ R))
     (define ((maybe-check-termination comp))
-      (with-sct-guard Σ₀-full ℓ (Guarded ctx:saved G αₕ) Wₓ*
+      (with-sct-guard Σ₀-full ℓ (map Dom-name (-var-init (==>i-doms G))) Wₓ*
         (cond [(not ?total) comp]
               [else (λ ()
                       (parameterize ([current-MS
@@ -414,7 +416,8 @@
            [Σ₀ (⧺ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full)
                   (cons ⊥Ξ (caller->callee-props Σ₀-full
                                                  (map Dom-name Doms)
-                                                 Wₓ*)))])
+                                                 Wₓ*)))]
+           [Dom-ref (compose γ:lex Dom-name)])
       (with-guarded-arity Wₓ G ℓ
         [Wₓ
          #:when (and (not ?Doms:rest) (= (length Wₓ) (length Doms)))
@@ -526,7 +529,7 @@
               (leak Σ (γ:hv #f) ((inst foldl V^ V^) ∪ ∅ (unpack-W Wₓ* Σ))))
             (match (current-MS)
               [(MS l+ ℓₒ _)
-               (err! (Err:Term l+ ℓ ℓₒ (-● Ps) Wₓ*))
+               (err! (Err:Term l+ ℓ ℓₒ 'unknown-function Wₓ*))
                (run-opq)]
               [#f (run-opq)]))
           (λ _ (err! (blm (ℓ-src ℓ) ℓ ℓₒ (list {set P-arity}) Wₕ))

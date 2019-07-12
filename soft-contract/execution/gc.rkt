@@ -11,6 +11,7 @@
          set-extras
          unreachable
          "../utils/vector.rkt"
+         (only-in "../utils/patterns.rkt" singleton-set)
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "../signatures.rkt"
@@ -44,6 +45,9 @@
         (match α
           [(? α?) (Σ@/raw α ctx)] ;`Σ@` instead of just `hash-ref` takes care of `γ:imm`
           [(T:@ (? -st-ac?) _) (list (T-root α))]
+          [(? -λ?) (list (∪ (T-root α)
+                            (match-let ([{singleton-set (? Clo? V)} (hash-ref (cdr ctx) α)])
+                              (Clo-root V))))]
           [_ (hash-ref (cdr ctx) α)]))
 
       (cond
@@ -75,11 +79,12 @@
            (touch α* Ξ* Γ*))]
         [(list? S)
          (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
-                   ([T (in-set (car S))])
+                   ([T (in-set (car S))] #:unless (touched-has? T))
            (touch T Ξ* Γ*))]
         [(-prim? S) (values Ξ* Γ*)]
-        [(T:@? S)
-         (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*]) ([T (in-set (T-root S))])
+        [(T? S)
+         (for/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
+                   ([T (in-set (T-root S))] #:unless (touched-has? T))
            (touch T Ξ* Γ*))]
         [else (touch S Ξ* Γ*)]))
 
@@ -120,7 +125,6 @@
       [(Vect-Of αₑ Vₙ) (set-add (set-filter α? Vₙ) αₑ)]
       [(Hash-Of αₖ αᵥ) {set αₖ αᵥ}]
       [(Set-Of α) {set α}]
-      [(? -λ? V) (E-root V)]
       [(? Clo? V) (Clo-root V)]
       [(Case-Clo clos _) (apply ∪ ∅ (map Clo-root clos))]
       [(Guarded _ C α) (set-add (V-root C) α)]
@@ -164,7 +168,7 @@
   (define (D-root D)
     (cond [(set? D) (set-union-map V-root D)]
           [(-prim? D) ∅]
-          [(T:@? D) (T-root D)]
+          [(T? D) (T-root D)]
           [else {set D}]))
 
   (: W-root : W → (℘ (U α T)))
@@ -242,16 +246,20 @@
            [(? symbol? o) {set (γ:hv o)}]
            [_ ∅]))))
 
-    (: T-root : T:@ → (℘ T))
+    (: T-root : T → (℘ T))
     ;; Compute terms mentioned by `T₀`
     (define (T-root T₀)
-      (: go : (U T -prim) → (℘ T))
+      (: go : T* → (℘ T))
       (define (go T)
         (match T
           [(T:@ K Ts)
            (∪ (go-K K) (apply ∪ (if (-st-ac? K) ∅ {set T}) (map go Ts)))]
           [(? -prim?) ∅]
-          [(? γ? γ) {set γ}]))
+          [(? -λ?)
+           ;; `λ` keeps around both the environment in case it needs to unpack,
+           ;; and the captured lexical variables in case it's applied in scope
+           (set-add (E-root T) T)]
+          [(? γ?) {set T}]))
       (: go-K : K → (℘ T))
       (define go-K
         (match-lambda
@@ -262,7 +270,7 @@
 
     (: all-live? : (℘ (U α T)) T → Boolean)
     (define (all-live? γs T₀)
-      (define (go-T [x : (U T -prim)]) : Boolean
+      (define (go-T [x : T*]) : Boolean
         (cond [(∋ γs x) #t]
               [(T:@? x) (and (go-K (T:@-_0 x)) (andmap go-T (T:@-_1 x)))]
               [else (not (γ:lex? x))]))
