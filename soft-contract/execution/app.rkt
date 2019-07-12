@@ -317,7 +317,7 @@
       [(list Vₓ V*)
        (with-split-Σ Σ (-st-p 𝒾) (list Vₓ)
          (λ (Wₓ* ΔΣ₁) (ΔΣ⧺R ΔΣ₁ ((unchecked-app-st-mut 𝒾 i) (⧺ Σ ΔΣ₁) ℓ (car Wₓ*) V*)))
-         (λ (Wₓ* ΔΣ₂) (err! (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ (show-o (-st-mut 𝒾 i))) (list {set (-st-p 𝒾)}) Wₓ*))
+         (λ (Wₓ* ΔΣ₂) (err! (blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ (show-o (-st-mut 𝒾 i))) (list (-st-p 𝒾)) Wₓ*))
             ⊥R))]))
 
   (: unchecked-app-st-mut : -𝒾 Index → Σ ℓ D D → R)

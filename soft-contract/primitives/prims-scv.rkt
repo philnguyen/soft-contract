@@ -56,7 +56,7 @@
          (cond [(seen-has? α) ⊥R]
                [else (seen-add! α)
                      (fold-ans step (Σ@ α Σ))])]
-        [_ (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ (list {set 'constructor?}) (list Vₖ)))
+        [_ (err! (blm (ℓ-src ℓ) ℓ +ℓ₀ '(constructor?) (list Vₖ)))
            ⊥R]))
     (fold-ans step (unpack Vₖ Σ)))
 

@@ -111,7 +111,7 @@
             (R-of {set (Guarded (cons l+ l-) C αᵥ)} ΔΣ)])
           (λ (W _) (err! (blm l+ ℓₒ ℓ (list {set arity-check}) W))
              ⊥R)))
-      (λ (W _) (err! (blm l+ ℓₒ ℓ (list {set 'procedure?}) W))
+      (λ (W _) (err! (blm l+ ℓₒ ℓ '(procedure?) W))
          ⊥R)))
 
   (: mon-St/C : St/C → ⟦C⟧)
@@ -354,7 +354,7 @@
       [(✓) (R-of Vs)]
       [(✗) (err! (blame)) ⊥R]
       [else
-       (with-each-path ([(ΔΣ W) (fc Σ ℓₒ {set C} Vs)])
+       (with-each-path ([(ΔΣ W) (fc₁ Σ ℓₒ C Vs)])
          (match W
            [(list _) (R-of W ΔΣ)]
            [(list Vs* _) (err! (blame)) ⊥R]))]))
@@ -453,7 +453,7 @@
          (λ (W ΔΣ) (R-of (list (car W) -FF) ΔΣ)))]
       [(Rec/C α) (fc Σ₀ ℓ (Σ@ α Σ₀) (unpack Vs Σ₀))]
       [(and b (-b ub))
-       (with-split-Σ Σ₀ 'equal? (list {set b} Vs)
+       (with-split-Σ Σ₀ 'equal? (list b Vs)
          (λ (_ ΔΣ) (R-of {set b} ΔΣ))
          (λ (W ΔΣ)
            (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ ub)) Σ₀))
