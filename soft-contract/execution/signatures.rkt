@@ -7,10 +7,8 @@
          hv^
          gc^
          termination^
-         with-collapsed with-collapsed/R
          with-collapsing with-collapsing/R
          with-each-path
-         for/ans
          log-scv-eval-debug)
 
 (require (for-syntax racket/base
@@ -71,8 +69,7 @@
    [behavioral? : (V Σ → Boolean)]))
 
 (define-signature termination^
-  ([update-M : (Σ M CP CP W → (Option M))]
-   #;[check-point : (V → CP)]))
+  ([update-M : (Σ M CP CP W → (Option M))]))
 
 (define-signature gc^
   ([gc : ([(℘ (U α T)) Σ] [Σ] . ->* . Σ)]
@@ -83,17 +80,6 @@
    [W-root : (W → (℘ (U α T)))]
    [E-root : (E → (℘ γ))]
    [T-root : (T → (℘ T))]))
-
-(define-syntax with-collapsed
-  (syntax-parser
-    [(_ [?x:expr e:expr]
-        (~optional (~seq #:fail fail:expr) #:defaults ([fail #'#f]))
-        body:expr ...)
-     #'(match e
-         [(? values ?x) (let-values () body ...)]
-         [#f fail])]))
-(define-syntax-rule (with-collapsed/R [?x e] body ...)
-  (with-collapsed [?x e] #:fail ⊥R body ...))
 
 (define-syntax with-collapsing
   (syntax-parser
@@ -120,13 +106,6 @@
              #'[ΔΣᵢ : ΔΣ (in-set ΔΣsᵢ)])]))
        #`(for*/fold ([r : R ⊥R])
                     (#,@(append-map mk-clause (syntax->list #'([ΔΣᵢ Wᵢ eᵢ] ...))))
-           (R⊔ r (let () body ...))))]))
-
-(define-syntax for/ans
-  (syntax-parser
-    [(for/ans (clauses ...) body ...)
-     (with-syntax ([R⊔ (format-id #'for/ans "R⊔")])
-       #'(for/fold ([r : R ⊥R]) (clauses ...)
            (R⊔ r (let () body ...))))]))
 
 (define-logger scv-eval)

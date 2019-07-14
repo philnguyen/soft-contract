@@ -64,10 +64,6 @@
                   (for*/fold ([Ξ* : ΔΞ Ξ*] [Γ* : ΔΓ Γ*])
                              ([V (in-set D)]
                               [α* (in-set (V-root V))]
-                              ;; FIXME: Attempt to only touch "store-addresses"
-                              ;; But this may accidentally omit top-level addreses,
-                              ;; which are currently store
-                              #:unless (and (not (γ:top? α*)) (T? α*))
                               #:unless (touched-has? α*))
                     (touch α* Ξ* Γ*))]
                  [(and (α:dyn? D) (not (touched-has? D))) (touch D Ξ* Γ*)]

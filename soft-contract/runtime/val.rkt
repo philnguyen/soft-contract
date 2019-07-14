@@ -30,14 +30,8 @@
     (: collapse-W^ : Σ W^ → W)
     (define (collapse-W^ Σ Ws) (set-fold (curry W⊔ Σ) (set-first Ws) (set-rest Ws))))
 
-  (define Ctx-with-site : (Ctx ℓ → Ctx)
-    (match-lambda** [((Ctx l+ l- ℓₒ _) ℓ) (Ctx l+ l- ℓₒ ℓ)]))
-
   (define Ctx-with-origin : (Ctx ℓ → Ctx)
     (match-lambda** [((Ctx l+ l- _ ℓ) ℓₒ) (Ctx l+ l- ℓₒ ℓ)]))
-
-  (define Ctx-flip : (Ctx → Ctx)
-    (match-lambda [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
 
   (: C-flat? : (U V V^) Σ → Boolean)
   ;; Check whether contract is flat, assuming it's already a contract
@@ -134,15 +128,6 @@
     (match-lambda**
      [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
      [(_ V) V]))
-
-  (: T-refers-to? : T (℘ Symbol) → Boolean)
-  (define (T-refers-to? T₀ xs)
-    (let go : Boolean ([T : T* T₀])
-      (match T
-        [(γ:lex x) (∋ xs x)]
-        [(T:@ _ Ts) (ormap go Ts)]
-        [(? -λ? e) (not (set-empty? (∩ (fv e) xs)))]
-        [_ #f])))
 
   (define T:@/simp : (K (Listof T*) → T*)
     (match-lambda**

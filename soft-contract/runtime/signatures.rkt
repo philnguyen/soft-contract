@@ -209,7 +209,6 @@
    [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
    [S-andmap : (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #t))]
    [S-ormap : (∀ (X) (V^ → X) ((U T* α) → X) S → (U X #f))]
-   [S-map : (∀ (X Y) (V^ → V^) S → S)]
    ))
 
 (define-signature cache^
@@ -223,13 +222,10 @@
 
 (define-signature val^
   ([collapse-W^ : (Σ W^ → W)]
-   #;[V/ : (S → V → V)]
    [V⊔ : (V^ V^ → V^)]
    [V⊓ : (V^ V^ → (Option V^))]
    [V⊔₁ : (V V^ → V^)]
-   [Ctx-with-site : (Ctx ℓ → Ctx)]
    [Ctx-with-origin : (Ctx ℓ → Ctx)]
-   [Ctx-flip : (Ctx → Ctx)]
    [C-flat? : ((U V V^) Σ → Boolean)]
    [arity : (D¹ → (Option Arity))]
    [guard-arity : (Fn/C → Arity)]
@@ -241,7 +237,6 @@
    [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
    [St/C-fields : (St/C → (Values α ℓ -𝒾))]
    [St/C-tag : (St/C → -𝒾)]
-   [T-refers-to? : (T (℘ Symbol) → Boolean)]
    [T:@/simp : (K (Listof T*) → T*)]
    [prop? : (T S* → Boolean)]
    [ListOf : (γ:imm:listof → V)]

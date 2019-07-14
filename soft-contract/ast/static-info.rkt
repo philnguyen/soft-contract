@@ -35,7 +35,6 @@
                   (make-hash)
                   (make-hash)
                   (make-hash)
-                  (make-hash)
                   (make-hash)))
 
   (define current-static-info : (Parameterof -static-info) (make-parameter (new-static-info)))
@@ -124,16 +123,6 @@
                   (λ ([muts : (℘ -st-mut)])
                     (set-add muts mut))
                   mk-∅))
-
-
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;; Querying top-level definitions
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  (define (add-top-level! [𝒾 : -𝒾])
-    (hash-set! (-static-info-top-level-defs (current-static-info)) 𝒾 #t))
-  (define (top-levels) : (Listof -𝒾)
-    (hash-keys (-static-info-top-level-defs (current-static-info))))
 
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

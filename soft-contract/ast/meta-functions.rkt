@@ -182,9 +182,6 @@
 
     (go m e))
 
-  (: e/ : Symbol -e -e → -e)
-  (define (e/ x eₓ e) (e/map (hasheq x eₓ) e))
-
   (: remove-keys : Subst (℘ Symbol) → Subst)
   (define (remove-keys m xs)
     (for/fold ([m : Subst m]) ([x (in-set xs)])
@@ -202,18 +199,6 @@
       (and ?xs
            (for/or : (Option Symbol) ([x (in-list ?xs)] #:unless (seen-has? x))
              x)))) 
-
-  (: +x! : (U Symbol Integer) * → Symbol)
-  (define (+x! . prefixes)
-    (define (stuff->string x) (format "~a" x))
-    (define prefix (string-join (map stuff->string prefixes) "_" #:after-last "_"))
-    (gensym prefix))
-
-  (: +x!/memo : (U Symbol Integer) * → Symbol)
-  (define +x!/memo
-    (let ([m : (HashTable (Listof (U Symbol Integer)) Symbol) (make-hash)])
-      (λ [xs : (U Symbol Integer) *]
-        (hash-ref! m xs (λ () (apply +x! xs))))))
 
   (define (any/c? x) (equal? x 'any/c))
   

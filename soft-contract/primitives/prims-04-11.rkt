@@ -204,5 +204,12 @@
     (∀/c (α _) ((α . -> . _) (vectorof α) . -> . exact-nonnegative-integer?)))
   (def* (vector-argmin vector-argmax) (∀/c (α) ((α . -> . real?) (vectorof α) . -> . α)))
   (def* (vector-member vector-memv vector-memq)
-    (∀/c (_) (_ vector? . -> . (or/c exact-nonnegative-integer? not)))) 
+    (∀/c (_) (_ vector? . -> . (or/c exact-nonnegative-integer? not))))
+
+  (define-syntax for/ans
+    (syntax-parser
+      [(for/ans (clauses ...) body ...)
+       (with-syntax ([R⊔ (format-id #'for/ans "R⊔")])
+         #'(for/fold ([r : R ⊥R]) (clauses ...)
+             (R⊔ r (let () body ...))))]))
   )

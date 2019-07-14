@@ -43,16 +43,6 @@
       (λ (_ ΔΣ) (R-of -tt ΔΣ))
       (λ (_ ΔΣ) (R-of -ff ΔΣ))))
 
-  (: W->bs : W → (Option (Listof Base)))
-  (define W->bs
-    (match-lambda
-      ['() '()]
-      [(cons (-b b) W)
-       (match (W->bs W)
-         [(? values bs) (cons b bs)]
-         [#f #f])]
-      [_ #f]))
-
   (: exec-prim :
      Σ ℓ Symbol
      #:dom (-var V)

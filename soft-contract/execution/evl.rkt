@@ -333,4 +333,15 @@
          (match (ev Σ x₁)
            [(cons y₁ ΔΣ₁) (loop (⧺ acc-ΔΣ ΔΣ₁) (cons y₁ acc-rev-ys) (⧺ Σ ΔΣ₁) xs*)]
            [#f #f])])))
+
+  (define-syntax with-collapsed
+    (syntax-parser
+      [(_ [?x:expr e:expr]
+          (~optional (~seq #:fail fail:expr) #:defaults ([fail #'#f]))
+          body:expr ...)
+       #'(match e
+           [(? values ?x) (let-values () body ...)]
+           [#f fail])]))
+  (define-syntax-rule (with-collapsed/R [?x e] body ...)
+    (with-collapsed [?x e] #:fail ⊥R body ...))
   )

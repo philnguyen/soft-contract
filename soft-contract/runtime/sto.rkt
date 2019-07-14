@@ -485,12 +485,4 @@
                        (if (set? D) (on-Vs? D) (on-T? D)))]
           [(set? S) (on-Vs? S)]
           [else (on-T? S)]))
-
-  (: S-map (∀ (X Y) (V^ → V^) S → S))
-  (define (S-map f S)
-    (cond [(vector? S) (vector-map f S)]
-          [(hash? S) (for/hash : Γ ([(x Vs) (in-hash S)])
-                       (values x (if (set? Vs) (f Vs) Vs)))]
-          [(set? S) (f S)]
-          [else S]))
   )

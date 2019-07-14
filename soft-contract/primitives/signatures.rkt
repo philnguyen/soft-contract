@@ -44,7 +44,6 @@
 (define-signature prim-runtime^
   ([make-total-pred : (Index → Symbol → ⟦O⟧)]
    [implement-predicate : (Σ -o W → R)]
-   [W->bs : (W → (Option (Listof Base)))]
    [make-static-listof : (Symbol (→ (Values V ℓ)) → V)]
    [make-listof : (V ℓ → V)]
    [exec-prim

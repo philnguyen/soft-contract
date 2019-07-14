@@ -233,11 +233,8 @@
   ([fv : (-e → (℘ Symbol))]
    [fv-count : (-e Symbol → Natural)]
    [e/map : (Subst -e → -e)]
-   [e/ : (Symbol -e -e → -e)]
    [formals->names : ([-formals] [#:eq? Boolean] . ->* . (℘ Symbol))]
-   [first-forward-ref : ((Listof -dom) → (Option Symbol))]
-   [+x! : ((U Symbol Integer) * → Symbol)]
-   [+x!/memo : ((U Symbol Integer) * → Symbol)]))
+   [first-forward-ref : ((Listof -dom) → (Option Symbol))]))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -248,7 +245,6 @@
 (struct -static-info ([structs : (HashTable -𝒾 -struct-info)]
                       [public-accs : (HashTable -𝒾 (℘ -st-ac))]
                       [public-muts : (HashTable -𝒾 (℘ -st-mut))]
-                      [top-level-defs : (HashTable -𝒾 #t)]
                       [export-aliases : (HashTable -𝒾 -𝒾)]
                       [dependencies : (HashTable -l (℘ -l))]
                       [alternate-aliases : (HashTable -𝒾 (Pairof -𝒾 Boolean))]
@@ -268,8 +264,6 @@
    [struct-direct-accessor-names : (-𝒾 → (Listof Symbol))]
    [struct-accessor-name : (-𝒾 Integer → Symbol)]
    [add-struct-info! : (-𝒾 (Listof Symbol) (℘ Natural) → Void)]
-   [add-top-level! : (-𝒾 → Void)]
-   [top-levels : (→ (Listof -𝒾))]
    [get-public-accs : (-𝒾 → (℘ -st-ac))]
    [get-public-muts : (-𝒾 → (℘ -st-mut))]
    [add-public-acc! : (-𝒾 -st-ac → Void)]

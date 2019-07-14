@@ -375,10 +375,6 @@
 
        (let ([acc-names (build-list (attribute d.field-count) (λ (i) (hash-ref accs i)))])
          (add-struct-info! 𝒾 acc-names (list->seteq (hash-keys muts))))
-       (for ([name (in-sequences (list ctor (attribute d.predicate-name))
-                                 (hash-values accs)
-                                 (hash-values muts))])
-         (add-top-level! (-𝒾 name (cur-path))))
        (let ([acc-list (hash->list accs)]
              [mut-list (hash->list muts)])
          (-define-values
@@ -398,8 +394,6 @@
        #f]
       [(~and d (define-values (x:identifier ...) e))
        (define lhs (syntax->datum #'(x ...)))
-       (for ([i lhs])
-         (add-top-level! (-𝒾 i (cur-path))))
        (filter-out-junks (-define-values lhs (parse-e #'e) (next-ℓ! #'d)))]
       [(#%require spec ...) #f]
       [(~and d (define-syntaxes (k:id) ; constructor alias
@@ -409,7 +403,6 @@
                         _ _
                         (#%plain-lambda () (quote-syntax k1:id))))))
        (define lhs (syntax-e #'k1))
-       (add-top-level! (-𝒾 lhs (cur-path)))
        (-define-values (list lhs) (-x (-𝒾 (syntax-e #'k) (cur-path)) (next-ℓ! #'d)) (next-ℓ! #'d))]
       [d:scv-struct-info-alias
        (-define-values (list (attribute d.lhs)) (parse-ref (attribute d.rhs)) (next-ℓ! #'d))]

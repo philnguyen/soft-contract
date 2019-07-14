@@ -84,12 +84,11 @@
   (: -comp/c : Symbol -e ℓ → -e)
   ;; Return ast representing `(op _ e)`
   (define (-comp/c op e ℓ)
-    (define x (+x! 'cmp))
-    (define 𝐱 (-x x (ℓ-with-id ℓ 'cmp)))
+    (define x (-x 'cmp (ℓ-with-id ℓ 'cmp)))
     (match-define (list ℓ₀ ℓ₁) (ℓ-with-ids ℓ 2))
-    (-λ (-var (list x) #f)
-        (-and (list (-@ 'real? (list 𝐱) ℓ₀)
-                    (-@ op (list 𝐱 e) ℓ₁))
+    (-λ (-var '(cmp) #f)
+        (-and (list (-@ 'real? (list x) ℓ₀)
+                    (-@ op (list x e) ℓ₁))
               ℓ)
         (ℓ-with-id ℓ 'lam)))
 
