@@ -83,9 +83,10 @@
                (define Vsₐ* ; filter by caller's previous knowledge
                  (match (hash-ref ΔΓ Tₐ #f)
                    [(? set? Vsₐ₀) (V⊓ Vsₐ₀ Vsₐ)]
+                   [(? T? T) (V⊓ (unpack T Σ) Vsₐ)]
                    [#f Vsₐ]))
                (and Vsₐ*
-                    (let ([ΔΓ₁ (hash-set ΔΓ Tₐ Vsₐ*)])
+                    (let ([ΔΓ₁ (hash-set ΔΓ Tₐ (if (γ:top? Dₐ) Dₐ Vsₐ*))])
                       (define ΔΓ*
                         (match Dₐ
                           [(or (? T?) (? -prim?))

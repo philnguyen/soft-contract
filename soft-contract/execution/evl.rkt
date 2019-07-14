@@ -242,8 +242,9 @@
     (define (evl-bnd [Σ : Σ] [bnd : Binding])
       (match-define (mk-Binding xs E) bnd)
       (define r (evl/arity Σ E (length xs) ℓ))
-      (for/set: : (℘ ΔΣ) ([(rhs ΔΣs) (in-hash r)])
-        (⧺ (collapse-ΔΣs Σ ΔΣs) (alloc-lex* Σ xs rhs))))
+      (for*/set: : (℘ ΔΣ) ([(rhs ΔΣs) (in-hash r)]
+                           [ΔΣ : ΔΣ (in-set ΔΣs)])
+        (⧺ ΔΣ (alloc-lex* Σ xs rhs))))
 
     (let step ([Σ : Σ Σ₀] [bnds : (Listof Binding) bnds])
       (match bnds
