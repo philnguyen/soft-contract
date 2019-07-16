@@ -150,6 +150,7 @@
       [(β:or/c:l ℓ) (show-β:ℓ ℓ 0)]
       [(β:or/c:r ℓ) (show-β:ℓ ℓ 1)]
       [(β:not/c ℓ) (show-ℓ ℓ)]
+      [(β:rec/c ℓ) (show-ℓ ℓ)]
       [(β:vect/c-elems ℓ n) (show-ℓ ℓ)]
       [(β:vectof ℓ) (show-ℓ ℓ)]
       [(β:hash/c:key _) 'hash/c:key]
