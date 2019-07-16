@@ -22,7 +22,11 @@
          "../signatures.rkt"
          "signatures.rkt"
          "../execution/signatures.rkt" ; TODO just for debugging
-         ) 
+         )
+
+(require/typed (submod (lib "typed-racket/private/type-contract.rkt") predicates)
+  [nonnegative? (Real → Boolean)]
+  [nonpositive? (Real → Boolean)])
 
 (define-unit prover@
   (import static-info^ meta-functions^
@@ -278,6 +282,7 @@
             ;; Order matters. More specific ones come first.
             (with-base-predicates ([not]
                                    [byte?]
+                                   [index?]
                                    [fixnum?]
                                    [exact-positive-integer?]
                                    [exact-nonnegative-integer?]
@@ -286,6 +291,8 @@
                                    [exact-integer?]
                                    [real? positive?]
                                    [real? negative?]
+                                   [real? nonnegative?]
+                                   [real? nonpositive?]
                                    [number? zero?]
                                    [number? exact?]
                                    [number? inexact?]
