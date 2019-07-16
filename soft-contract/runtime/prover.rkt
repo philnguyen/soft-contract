@@ -31,6 +31,8 @@
           exec^)
   (export prover^)
 
+  (define-logger scv-prover)
+
   (: sat : Σ V V^ → ?Dec)
   (define (sat Σ P V) (sat^₁ (λ (V) (sat₁ Σ P V)) V))
 
@@ -41,6 +43,7 @@
 
   (: check-plaus : Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))
   (define (check-plaus Σ P W)
+    (log-scv-prover-debug "~a ⊢ ~a ~a" (show-Σ Σ) (show-V P) (show-W W))
     (match W
       [(list V    ) (collect sat₁ refine₁ refine-not₁ Σ P V)]
       [(list V₁ V₂) (collect sat₂ refine₂ refine-not₂ Σ P V₁ V₂)]
