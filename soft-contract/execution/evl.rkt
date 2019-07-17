@@ -77,6 +77,10 @@
   (define (evl Σ E)
     (define root (E-root E))
     (define Σ* (gc root Σ))
+    (log-scv-preval-debug "~n~a~a ⊢ₑ ~a~n"
+                          (make-string (* 4 (db:depth)) #\space)
+                          (show-Σ Σ*)
+                          (show-e E))
     (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Exp Σ* E)
                                   (λ () (with-gc root Σ* (λ () (do-evl Σ* E)))))))
     (log-scv-eval-debug "~n~a~a ⊢ₑ ~a ⇓ ~a~n"

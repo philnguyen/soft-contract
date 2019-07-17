@@ -38,7 +38,9 @@
   (define-logger scv-prover)
 
   (: sat : Σ V V^ → ?Dec)
-  (define (sat Σ P V) (sat^₁ (λ (V) (sat₁ Σ P V)) V))
+  (define (sat Σ P V)
+    (log-scv-prover-debug "~a ⊢ ~a ~a~n" (show-Σ Σ) (show-V P) (show-V^ V))
+    (sat^₁ (λ (V) (sat₁ Σ P V)) V))
 
   (: maybe=? : Σ Integer V^ → Boolean)
   ;; Check if value `V` can possibly be integer `i`

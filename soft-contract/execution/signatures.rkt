@@ -12,7 +12,8 @@
          with-each-ans
          with-pre
          for/ans
-         log-scv-eval-debug)
+         log-scv-eval-debug
+         log-scv-preval-debug)
 
 (require (for-syntax racket/base
                      (only-in racket/list append-map)
@@ -155,3 +156,4 @@
            (values (R⊔ r rᵢ) (∪ es esᵢ))))]))
 
 (define-logger scv-eval)
+(define-logger scv-preval)

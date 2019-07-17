@@ -36,6 +36,12 @@
     (fold-ans (λ ([C : V])
                 (define root (∪ (V-root C) args:root))
                 (define Σ* (gc root Σ))
+                (log-scv-preval-debug "~n~a~a ⊢ₘ:~a ~a ▷ ~a~n"
+                                      (make-string (* 4 (db:depth)) #\space)
+                                      (show-Σ Σ*)
+                                      (show-full-ℓ (Ctx-origin ctx))
+                                      (show-V^ V^)
+                                      (show-V C))
                 (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Mon Σ* ctx C V^)
                                               (λ () (with-gc root Σ* (λ () ((mon₁ C) Σ* ctx V^)))))))
                 (log-scv-eval-debug "~n~a~a ⊢ₘ:~a ~a ▷ ~a ⇓ ~a~n"
