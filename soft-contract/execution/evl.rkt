@@ -54,7 +54,7 @@
   (define-logger scv-preval-spec)
   (: evl-spec : Σ -provide-spec → (Values (Option ΔΣ) (℘ Err)))
   (define (evl-spec Σ spec)
-    (log-scv-preval-spec-debug "~a ⊢ ~a~n" (show-Σ Σ) (show-provide-spec spec))
+    (log-scv-preval-spec-debug "~a ⊢ ~a~n" Σ spec)
     (define (in+out [id : (U -𝒾 -o)])
       (match id
         [(and 𝒾 (-𝒾 x l))
