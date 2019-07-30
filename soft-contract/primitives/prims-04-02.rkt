@@ -24,6 +24,7 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
+         (submod (lib "typed-racket/private/type-contract.rkt") predicates)
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
          "def.rkt"
@@ -83,6 +84,7 @@
     (() #:rest (listof (>/c 0)) . ->* . (>/c 0))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
     (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
+    (() #:rest (listof nonnegative?) . ->* . nonnegative?)
     #:volatile? #f)
   (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
