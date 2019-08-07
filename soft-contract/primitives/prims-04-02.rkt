@@ -153,6 +153,7 @@
     ((integer?) #:rest (listof integer?) . ->* . integer?))
   (def min ((real?) #:rest (listof real?) . ->* . real?)
     #:refinements
+    ((index?) #:rest (listof index?) . ->* . index?)
     ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
     ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
     ((integer?) #:rest (listof integer?) . ->* . integer?))
