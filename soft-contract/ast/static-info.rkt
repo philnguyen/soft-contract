@@ -78,6 +78,17 @@
         (car (vector-ref (get-struct-info 𝒾) (- i o)))
         (let ([𝒾* (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)])
           (struct-accessor-name 𝒾* (- i o)))))
+  (define (all-struct-accessors [𝒾 : -𝒾]) : (Listof -st-ac)
+    (let loop ([𝒾 : -𝒾 𝒾] [acs : (Listof -st-ac) '()])
+      (define offset (struct-offset 𝒾))
+      (define acs*
+        (for/fold ([acs : (Listof -st-ac) acs])
+                  ([i (in-range (sub1 (count-direct-struct-fields 𝒾)) -1 -1)])
+          (cons (-st-ac 𝒾 (assert (+ i offset) index?)) acs)))
+      (if (zero? offset)
+          acs*
+          (loop (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)
+                acs*))))
   (define (add-struct-info! [𝒾 : -𝒾] [direct-fields : (Listof Symbol)] [mutables : (Setof Natural)])
     (define v
       (vector->immutable-vector

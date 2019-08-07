@@ -302,32 +302,33 @@
        (unless (equal? (cur-path) (-𝒾-src 𝒾*))
          (set-struct-alias! (-𝒾 (-𝒾-name 𝒾*) (cur-path)) 𝒾*))
        (define st-p (-@ 'scv:struct/c (cons ctr-ref st-doms) ℓ))
-       (define dec-constr
+       (define dec-constr ; TODO prim instead
          (let* ([ℓₖ (ℓ-with-id ℓ  'constructor)]
                 [ℓₑ (ℓ-with-id ℓₖ 'provide)])
            (-p/c-item s-id (--> (-var st-doms #f) st-p ℓₖ) ℓₑ)))
        (define dec-pred
          (let* ([ℓₚ (ℓ-with-id ℓ  'predicate)]
                 [ℓₑ (ℓ-with-id ℓₚ 'provide)])
-           (-p/c-item (-𝒾 (format-symbol "~a?" s-name) src)
+           (-p/c-item (-𝒾 (format-symbol "~a?" s-name) src) ; TODO prim instead
                       (--> (-var (list 'any/c) #f) 'boolean? ℓₚ)
                       ℓₑ)))
        (define dec-acs
-         ;; HACK also export non-existent names for super-struct's accessors,
-         ;; which should never be referenced
-         (for/list ([ac (in-list (attribute d.field-names))]
-                    [st-dom st-doms]
-                    [i (in-naturals)])
-           (define ℓᵢ (ℓ-with-id ℓ i))
-           (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
-           (define ac-name (format-symbol "~a-~a" s-name ac))
-           (-p/c-item (-𝒾 ac-name src) (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ)))
+         (let ([all-acs (all-struct-accessors 𝒾*)])
+           (unless (equal? (length all-acs) (length st-doms))
+             (error 'parse-provide-spec "accesors: ~a, contracts: ~a" all-acs st-doms))
+           (for/list ([ac (in-list all-acs)]
+                      [st-dom st-doms]
+                      [i (in-naturals)])
+             (define ℓᵢ (ℓ-with-id ℓ i))
+             (define ℓₑ (ℓ-with-id ℓᵢ 'provide))
+             (-p/c-item ac (--> (-var (list st-p) #f) st-dom ℓᵢ) ℓₑ))))
        (list* dec-constr dec-pred dec-acs)]
       [d:scv-id-struct-out
        (match-define (and s-id (-𝒾 s-name src)) (parse-id (attribute d.struct-id)))
        (define 𝒾* (resolve-struct-alias s-id))
        (unless (equal? (cur-path) (-𝒾-src 𝒾*))
          (set-struct-alias! (-𝒾 (-𝒾-name 𝒾*) (cur-path)) 𝒾*))
+       ;; FIXME: provide the primitives instead of their names?
        (list* s-id
               (-𝒾 (format-symbol "~a?" s-name) src)
               (map (λ (x) (-𝒾 x src)) (struct-direct-accessor-names 𝒾*)))]

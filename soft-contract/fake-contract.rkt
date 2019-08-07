@@ -188,7 +188,7 @@
              (struct-out so:id)
              (contract-out (~or [p/i:id ctc:expr]
                                 ;; TODO confirm that ignoring parent declaration makes no difference
-                                [struct (~or s:id (s:id _:id)) ([ac:id dom:expr] ...)]) ...))
+                                [struct (~and s* (~or s:id (s:id _:id))) ([ac:id dom:expr] ...)]) ...))
         ...)
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
@@ -202,7 +202,7 @@
           (r:provide i ...
                      (struct-out so) ...
                      (contract-out [p/i ctc] ...
-                                   [struct s ([ac dom] ...)] ...)
+                                   [struct s* ([ac dom] ...)] ...)
                      ...))
          ;; Things to give to SCV for verification.
          ;; Ignore all non-contracted identifiers because they might be macros even.
