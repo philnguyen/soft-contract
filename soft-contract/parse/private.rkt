@@ -741,7 +741,7 @@
                        (resolved-module-path-name (module-path-index-resolve x)))))
                   src)
              _ _ _ _ _ _)
-       #:when (not (equal? src 'Λ))
+       #:when (not (memq src '(Λ unsafe)))
        (define src:base (src-base src))
        (unless (∋ (modules-to-parse) src:base)
          (raise (exn:missing (format "missing `~a` for `~a` from `~a`" src:base (syntax-e id) (cur-mod))
