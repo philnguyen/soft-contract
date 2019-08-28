@@ -265,6 +265,9 @@
   (test '("programs/unsafe/issues/re-provide-substruct/structs.rkt"
           "programs/unsafe/issues/re-provide-substruct/adapted.rkt")
         check-fail)
+  (test '("programs/unsafe/issues/opaque/lib.rkt"
+          "programs/unsafe/issues/opaque/user.rkt")
+        check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

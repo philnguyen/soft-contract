@@ -23,6 +23,7 @@
 ;; expansion will have already resolved them to those the original `racket/contract`.
 (define swap-table (make-free-id-table #:phase #f))
 (let ([add! (λ (i1 i2) (free-id-table-set! swap-table i1 i2))])
+  (add! #'define #'f:define)
   (add! #'provide #'f:provide)
   (add! #'provide/contract #'f:provide/contract)
   (add! #'contract-out #'f:contract-out)
@@ -73,7 +74,7 @@
 
   (define go
     (syntax-parser
-      [(~or (~literal racket/contract) (~literal soft-contract/fake-contract))
+      [(~or #;(~literal racket/contract) (~literal soft-contract/fake-contract))
        (set-box! (faked?) #t)
        #'soft-contract/fake-contract]
       ;; TODO restore source location information?

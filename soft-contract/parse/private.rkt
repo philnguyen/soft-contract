@@ -281,11 +281,16 @@
         #'(#%provide spec ...))]
       [(#%declare form ...)
        (raise-syntax-error 'parse-module-level-form "TODO: '#%declare" #'(#%declare form ...))]
-      [(begin-for-syntax _ ...) #f]
+      [(begin-for-syntax _ ...) '()]
       
       ;; Hack for reading our fake-contracts:
       [prov:scv-provide
        (-provide (append-map parse-provide-spec (syntax->list #'prov.provide-list)))]
+
+      ;; Hack for reading opaque bindings
+      [d:scv-define-opaque
+       (match-define (-𝒾 x _) (parse-id (attribute d.name)))
+       (-define-values (list x) (-•) (next-ℓ! #'d))]
       
       [form (parse-general-top-level-form #'form)]))
 

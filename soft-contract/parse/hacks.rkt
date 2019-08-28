@@ -94,6 +94,15 @@
             _)
            #:attr provide-list #'(prov ...)))
 
+(define-syntax-class scv-define-opaque
+  #:description "hacked scv define opaque form"
+  #:literal-sets (lits)
+  (pattern (#%plain-app
+            call-with-values
+            (#%plain-lambda () (#%plain-app (~literal fake:dynamic-define-opaque) x:id))
+            _)
+           #:attr name #'x))
+
 (define-syntax-class scv-parametric->/c
   #:description "hacked parametric contract"
   #:literal-sets (lits)
