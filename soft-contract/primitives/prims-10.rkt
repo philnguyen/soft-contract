@@ -48,6 +48,7 @@
                       [position (or/c #f exact-positive-integer?)]
                       [span (or/c #f exact-nonnegative-integer?)])
     #:extra-constructor-name make-srcloc)
+  (def srcloc->string (srcloc? . -> . (or/c #f string?)))
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
