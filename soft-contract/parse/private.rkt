@@ -723,34 +723,33 @@
        (-dom x ?dep c (syntax-ℓ #'dom))]))
 
   (define/contract (parse-ref id)
-    (identifier? . -> . -x?)
+    (identifier? . -> . (or/c -x? -b?))
     (define (lookup)
       (hash-ref (env) (syntax-e id)
                 (λ ()
                   (define scope (hash-keys (env)))
                   (raise-syntax-error 'parser (format "`~a` not in scope (~a)" id scope)))))
+    (define (err)
+      (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id))
 
     (match (identifier-binding id)
       ['lexical (-x (lookup) (next-ℓ! id))]
       [#f (-x (lookup) (next-ℓ! id))]
-      [(list (app (λ (x)
-                    (parameterize ([current-directory (directory-part (cur-mod))])
-                      ;(printf "part: ~a~n" (directory-part (cur-mod)))
-                      ;(printf "id: ~a~n" id)
-                      (mod-path->mod-name
-                       (resolved-module-path-name (module-path-index-resolve x)))))
-                  src)
-             _ _ _ _ _ _)
-       #:when (not (memq src '(Λ unsafe)))
-       (define src:base (src-base src))
-       (unless (∋ (modules-to-parse) src:base)
-         (raise (exn:missing (format "missing `~a` for `~a` from `~a`" src:base (syntax-e id) (cur-mod))
-                             (current-continuation-marks) src:base (syntax-e id))))
-       (unless (equal? src:base (cur-mod))
-         (set-module-before! src (cur-mod)))
-       (-x (-𝒾 (syntax-e id) (src->path src)) (next-ℓ! id (cur-path)))]
-      [_
-       (raise-syntax-error 'parser "don't know what this identifier means. It is possibly an unimplemented primitive." id)]))
+      [(list (app resolve-module-path src) _ _ _ _ _ _)
+       (case src
+         [(unsafe)
+          (if (equal? (syntax-e id) 'unsafe-undefined) -undefined (err))]
+         [(Λ)
+          (err)]
+         [else
+          (define src:base (src-base src))
+          (unless (∋ (modules-to-parse) src:base)
+            (raise (exn:missing (format "missing `~a` for `~a` from `~a`" src:base (syntax-e id) (cur-mod))
+                                (current-continuation-marks) src:base (syntax-e id))))
+          (unless (equal? src:base (cur-mod))
+            (set-module-before! src (cur-mod)))
+          (-x (-𝒾 (syntax-e id) (src->path src)) (next-ℓ! id (cur-path)))])]
+      [_ (err)]))
 
   (define (parse-id id)
     (cond [(parse-prim id) => values]
@@ -828,14 +827,16 @@
   (define/contract (id-defining-module id)
     (identifier? . -> . any)
     (match (identifier-binding id)
-      [(list (app (λ (x)
-                    (parameterize ([current-directory (directory-part (cur-mod))])
-                      (mod-path->mod-name
-                       (resolved-module-path-name (module-path-index-resolve x)))))
-                  src)
-             _ _ _ _ _ _)
-       src]
+      [(list (app resolve-module-path src) _ _ _ _ _ _) src]
       [else (error 'id-defining-module "export module-level id, given ~a" (syntax-e id))]))
+
+  (define resolve-module-path
+    (λ (x)
+      (parameterize ([current-directory (directory-part (cur-mod))])
+        ;(printf "part: ~a~n" (directory-part (cur-mod)))
+        ;(printf "id: ~a~n" id)
+        (mod-path->mod-name
+         (resolved-module-path-name (module-path-index-resolve x))))))
 
   (define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
