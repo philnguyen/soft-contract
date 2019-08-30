@@ -737,10 +737,8 @@
       [#f (-x (lookup) (next-ℓ! id))]
       [(list (app resolve-module-path src) _ _ _ _ _ _)
        (case src
-         [(unsafe)
-          (if (equal? (syntax-e id) 'unsafe-undefined) -undefined (err))]
-         [(Λ)
-          (err)]
+         [(unsafe) (if (equal? (syntax-e id) 'unsafe-undefined) -undefined (err))]
+         [(Λ) (err)]
          [else
           (define src:base (src-base src))
           (unless (∋ (modules-to-parse) src:base)
@@ -840,7 +838,7 @@
 
   (define/contract (id->𝒾 id)
     (identifier? . -> . -𝒾?)
-    (-𝒾 (syntax-e id) (id-defining-module id)))
+    (-𝒾 (syntax-e id) (src->path (id-defining-module id))))
 
   (define (canonicalize-path p)
     (define p* (if (absolute-path? p) p (path->complete-path p)))
