@@ -209,6 +209,9 @@
   (test '("programs/safe/issues/re-provide-substruct/structs.rkt"
           "programs/safe/issues/re-provide-substruct/adapted.rkt")
         check-safe)
+  (test '("safe/issues/submodule-id/adapter.rkt"
+          "safe/issues/submodule-id/main.rkt")
+        (check 'Ok-pos 0 #f))
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
