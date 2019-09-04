@@ -352,6 +352,7 @@
   (def* (fxmin fxmax) (fixnum? fixnum? . -> . fixnum?))
   (def fx->fl (fixnum? . -> . flonum?))
   (def fl->fx (flonum? . -> . fixnum?))
+  (def fixnum-for-every-system? (any/c . -> . boolean?))
 
   ;; 4.2.4.2 Fixnum Vectors
   (def-pred fxvector?)
