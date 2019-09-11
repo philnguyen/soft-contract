@@ -17,6 +17,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; 15.1.1 Manipulating Paths
+  (def-pred path?)
   (def-pred path-string?)
   (def string->path (string? . -> . path?))
 
