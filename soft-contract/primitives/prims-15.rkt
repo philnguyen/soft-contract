@@ -4,6 +4,7 @@
 
 (require racket/contract
          typed/racket/unit
+         racket/path
          "def.rkt"
          "signatures.rkt")
 
