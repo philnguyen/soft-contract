@@ -93,6 +93,7 @@
    [exn:fail? ⇒ exn?]
    ;; procedures
    [primitive? ⇒ procedure?]
+   [path? ⇒ path-for-some-system?]
    )
 
   (dec-exclusions

@@ -186,6 +186,7 @@
                 (~literal output-port?)
                 (~literal port?)
                 (~literal path?)
+                (~literal path-for-some-system?)
                 (~literal pair?)
                 (~literal list?)
                 (~literal placeholder?)

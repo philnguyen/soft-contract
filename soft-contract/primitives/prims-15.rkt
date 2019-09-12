@@ -18,8 +18,13 @@
 
   ;; 15.1.1 Manipulating Paths
   (def-pred path?)
+  (def-pred path-for-some-system?)
   (def-pred path-string?)
   (def string->path (string? . -> . path?))
+
+  ;; 15.1.2 More Path Utilities
+  (def file-name-from-path ((or/c path-string? path-for-some-system?) . -> . (or/c #f path-for-some-system?)))
+  (def filename-extension ((or/c path-string? path-for-some-system?) . -> . (or/c #f bytes?)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
