@@ -184,27 +184,17 @@
   (: mon-Or/C : Or/C → ⟦C⟧)
   (define ((mon-Or/C C) Σ ctx V)
     (match-define (Or/C α₁ α₂ ℓ) C)
-
-    (: chk : V^ V^ → (Values R (℘ Err)))
-    (define (chk C-fo C-ho)
-      (with-collapsing/R
-        [(ΔΣ Ws)
-         (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C-fo V)])
-           (match W₁
-             [(list _) (just W₁ ΔΣ₁)]
-             [(list V* _)
-              (with-pre ΔΣ₁
-                (mon (⧺ Σ ΔΣ₁) (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C-ho V*))]))]
-        (just (collapse-W^ Ws) ΔΣ)))
     (define C₁ (Σ@ α₁ Σ))
     (define C₂ (Σ@ α₂ Σ))
-    (cond [(C^-flat? C₁ Σ) (chk C₁ C₂)]
-          [(C^-flat? C₂ Σ) (chk C₂ C₁)]
-          [else (error 'or/c
-                       "No more than 1 higher-order disjunct for now. Got ~a and ~a at ~a"
-                       (show-V^ C₁)
-                       (show-V^ C₂)
-                       (show-full-ℓ ℓ))]))
+    (with-collapsing/R
+      [(ΔΣ Ws)
+       (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C₁ V)])
+         (define Σ₁ (⧺ Σ ΔΣ₁))
+         (with-pre ΔΣ₁
+           (match W₁
+             [(list V*)   (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 0)) C₁ V*)]
+             [(list V* _) (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C₂ V*)])))]
+      (just (collapse-W^ Ws) ΔΣ)))
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) Σ ctx V)
@@ -423,11 +413,7 @@
                            (assert (+ 1 i) index?)
                            (⧺ ΔΣ ΔΣ:a ΔΣᵢ) (cons Vᵢ rev-W))]
                       [(list Vᵢ _)
-                       (define fields ((inst vector-append V^)
-                                       (list->vector (reverse rev-W))
-                                       (make-vector (- n i 1) {set (-● ∅)})))
-                       (define α (α:dyn (β:st-elems ℓ 𝒾) H₀))
-                       (just (list {set (St α ∅)} -FF) (⧺ ΔΣ:a ΔΣᵢ (alloc α fields)))])))])))
+                       (just (list (car W*) -FF))])))])))
          (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
       [(Rec/C α) (fc Σ₀ ℓ (unpack α Σ₀) (unpack Vs Σ₀))]
       [(? -b? b)
@@ -436,6 +422,14 @@
          (λ (W ΔΣ)
            (define-values (V* ΔΣ*) (refine (cadr W) (P:¬ (P:≡ b)) Σ₀))
            (just (list V* -FF) (⧺ ΔΣ ΔΣ*))))]
+      [(==>i dom _)
+       (with-split-Σ Σ₀ 'procedure? (list Vs)
+         (λ (W₁ ΔΣ₁)
+           (with-split-Σ (⧺ Σ₀ ΔΣ₁) (P:arity-includes (shape dom)) W₁
+             (λ (W₂ ΔΣ₂) (just (list (car W₂)) (⧺ ΔΣ₁ ΔΣ₂)))
+             (λ (W  ΔΣ ) (just (list (car W) -FF) (⧺ ΔΣ₁ ΔΣ)))))
+         (λ (W ΔΣ) (just (list (car W) -FF) ΔΣ)))]
+      [_ #:when (not (C-flat? C Σ₀)) (just Vs)]
       [_
        (define ΔΣₓ (alloc γ-mon Vs))
        (with-each-ans ([(ΔΣ W) (app (⧺ Σ₀ ΔΣₓ) ℓ {set C} (list {set γ-mon}))])
