@@ -213,6 +213,7 @@
           "safe/issues/submodule-id/main.rkt")
         (check 'Ok-pos 0 #f))
   (test "safe/issues/ho-disjunct.rkt" check-safe)
+  (test "safe/issues/sub-exn.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -273,6 +274,7 @@
           "programs/unsafe/issues/opaque/user.rkt")
         check-fail)
   (test "unsafe/issues/ho-disjunct.rkt" check-fail)
+  (test "unsafe/issues/sub-exn.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

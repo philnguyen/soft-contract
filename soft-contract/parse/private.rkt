@@ -373,7 +373,8 @@
        (cond
          [(attribute d.?parent) =>
           (λ (p)
-            (set-parent-struct! 𝒾 (hash-ref (struct-map) (id->𝒾 p))))])
+            (define 𝒾* (id->𝒾 p))
+            (set-parent-struct! 𝒾 (hash-ref (struct-map) 𝒾* 𝒾*)))])
        (define offset (struct-offset 𝒾))
 
        ;; Parse for direct field accessors/mutators
