@@ -186,15 +186,12 @@
     (match-define (Or/C α₁ α₂ ℓ) C)
     (define C₁ (Σ@ α₁ Σ))
     (define C₂ (Σ@ α₂ Σ))
-    (with-collapsing/R
-      [(ΔΣ Ws)
-       (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C₁ V)])
-         (define Σ₁ (⧺ Σ ΔΣ₁))
-         (with-pre ΔΣ₁
-           (match W₁
-             [(list V*)   (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 0)) C₁ V*)]
-             [(list V* _) (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C₂ V*)])))]
-      (just (collapse-W^ Ws) ΔΣ)))
+    (with-each-ans ([(ΔΣ₁ W₁) (fc Σ (Ctx-origin ctx) C₁ V)])
+      (define Σ₁ (⧺ Σ ΔΣ₁))
+      (with-pre ΔΣ₁
+        (match W₁
+          [(list V*)   (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 0)) C₁ V*)]
+          [(list V* _) (mon Σ₁ (Ctx-with-origin ctx (ℓ-with-id ℓ 1)) C₂ V*)]))))
 
   (: mon-Not/C : Not/C → ⟦C⟧)
   (define ((mon-Not/C C) Σ ctx V)
