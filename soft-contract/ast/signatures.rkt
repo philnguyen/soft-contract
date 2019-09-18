@@ -262,6 +262,7 @@
    [struct-all-immutable? : (-𝒾 → Boolean)]
    [struct-mutable? : (-𝒾 Natural → Boolean)]
    [struct-direct-accessor-names : (-𝒾 → (Listof Symbol))]
+   [all-struct-accessors : (-𝒾 → (Listof -st-ac))]
    [struct-accessor-name : (-𝒾 Integer → Symbol)]
    [add-struct-info! : (-𝒾 (Listof Symbol) (℘ Natural) → Void)]
    [get-public-accs : (-𝒾 → (℘ -st-ac))]

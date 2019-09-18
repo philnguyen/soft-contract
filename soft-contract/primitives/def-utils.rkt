@@ -28,6 +28,8 @@
                        racket/generator
                        racket/dict
                        racket/set
+                       (only-in (submod (lib "typed-racket/private/type-contract.rkt") predicates) nonnegative?)
+                       (only-in typed/racket/base index?)
                        (prefix-in z: compiler/decompile)
                        (prefix-in z: compiler/zo-parse)
                        (prefix-in z: compiler/zo-marshal)
@@ -165,6 +167,8 @@
                 (~literal byte?)
                 (~literal bytes?)
                 (~literal complex?)
+                (~literal index?)
+                (~literal nonnegative?)
                 (~literal float-complex?)
                 (~literal extflonum?)
                 (~literal flvector?)
@@ -182,6 +186,7 @@
                 (~literal output-port?)
                 (~literal port?)
                 (~literal path?)
+                (~literal path-for-some-system?)
                 (~literal pair?)
                 (~literal list?)
                 (~literal placeholder?)

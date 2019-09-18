@@ -228,6 +228,14 @@
   (test "safe/issues/sqrt.rkt" check-safe)
   (test "safe/issues/file2list.rkt" check-safe)
   (test "safe/issues/prim-precise.rkt" check-safe)
+  (test '("programs/safe/issues/re-provide-substruct/structs.rkt"
+          "programs/safe/issues/re-provide-substruct/adapted.rkt")
+        check-safe)
+  (test '("safe/issues/submodule-id/adapter.rkt"
+          "safe/issues/submodule-id/main.rkt")
+        (check 'Ok-pos 0 #f))
+  (test "safe/issues/ho-disjunct.rkt" check-safe)
+  (test "safe/issues/sub-exn.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -283,6 +291,14 @@
   (test "unsafe/issues/sqrt.rkt" check-fail)
   (test "unsafe/issues/file2list.rkt" check-fail)
   (test "unsafe/issues/prim-precise.rkt" check-fail)
+  (test '("programs/unsafe/issues/re-provide-substruct/structs.rkt"
+          "programs/unsafe/issues/re-provide-substruct/adapted.rkt")
+        check-fail)
+  (test '("programs/unsafe/issues/opaque/lib.rkt"
+          "programs/unsafe/issues/opaque/user.rkt")
+        check-fail)
+  (test "unsafe/issues/ho-disjunct.rkt" check-fail)
+  (test "unsafe/issues/sub-exn.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

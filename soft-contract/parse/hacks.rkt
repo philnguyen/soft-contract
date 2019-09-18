@@ -34,7 +34,8 @@
                       with-input-from-file
                       with-output-to-file
                       string-join
-                      sort))
+                      sort
+                      remove-duplicates))
      (define (?recognized-name name) (first-prefix names name)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"
@@ -93,6 +94,15 @@
                             (#%plain-app (~literal fake:dynamic-provide/contract) prov ...))
             _)
            #:attr provide-list #'(prov ...)))
+
+(define-syntax-class scv-define-opaque
+  #:description "hacked scv define opaque form"
+  #:literal-sets (lits)
+  (pattern (#%plain-app
+            call-with-values
+            (#%plain-lambda () (#%plain-app (~literal fake:dynamic-define-opaque) x:id))
+            _)
+           #:attr name #'x))
 
 (define-syntax-class scv-parametric->/c
   #:description "hacked parametric contract"

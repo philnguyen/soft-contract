@@ -153,8 +153,9 @@
 
   (define show-provide-spec : (-provide-spec → Sexp)
     (match-lambda
-      [(-p/c-item (-𝒾 x _) c _) `(,x ,(show-e c))]
-      [(-𝒾 x _) x]))
+      [(-p/c-item x c _) `(,(if (-𝒾? x) (-𝒾-name x) (show-o x)) ,(show-e c))]
+      [(-𝒾 x _) x]
+      [(? -o? o) (show-o o)]))
 
   (define show-require-spec : (-require-spec → Sexp)
     values)

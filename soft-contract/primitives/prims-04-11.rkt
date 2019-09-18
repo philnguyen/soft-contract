@@ -84,7 +84,7 @@
              [(Guarded _ (? Vect/C? C) _)
               (define-values (_₁ _₂ n) (Vect/C-fields C))
               {set (-b (assert n))}]
-             [_ {set (-● {set 'exact-nonnegative-integer?})}])
+             [_ {set (-● {set 'index?})}])
            (unpack V Σ))))
 
   (def (vector-ref Σ ℓ W)

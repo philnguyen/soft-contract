@@ -17,6 +17,7 @@
    [zero? ⇒ byte?]
    [byte? ⇒ fixnum?]
    [index? ⇒ fixnum?]
+   [fixnum-for-every-system? ⇒ fixnum?]
    [index? ⇒ exact-nonnegative-integer?]
    [byte? ⇒ exact-nonnegative-integer?]
    [fixnum? ⇒ exact-integer?]
@@ -92,6 +93,7 @@
    [exn:fail? ⇒ exn?]
    ;; procedures
    [primitive? ⇒ procedure?]
+   [path? ⇒ path-for-some-system?]
    )
 
   (dec-exclusions

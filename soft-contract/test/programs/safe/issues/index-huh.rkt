@@ -7,8 +7,10 @@
 (define (f x) (if (index? x) (+ 1 x) 42))
 (define c nonnegative?)
 (define (g x) (if (nonnegative? x) x 42))
+(define n 0)
 
 (provide
  (contract-out
   [f (any/c . -> . exact-nonnegative-integer?)]
-  [g (nonnegative? . -> . nonnegative?)]))
+  [g (nonnegative? . -> . nonnegative?)]
+  [n index?]))

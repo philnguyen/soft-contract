@@ -9,7 +9,8 @@
          termination^
          with-collapsing with-collapsing/R
          with-each-path
-         log-scv-eval-debug)
+         log-scv-eval-debug
+         log-scv-preval-debug)
 
 (require (for-syntax racket/base
                      (only-in racket/list append-map)
@@ -109,3 +110,4 @@
            (R⊔ r (let () body ...))))]))
 
 (define-logger scv-eval)
+(define-logger scv-preval)

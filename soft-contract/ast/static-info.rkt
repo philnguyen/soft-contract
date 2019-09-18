@@ -13,18 +13,26 @@
   (import ast-pretty-print^)
   (export static-info^)
 
+  (define -𝒾-exn (-𝒾 'struct:exn 'Λ))
+  (define -𝒾-exn:fail (-𝒾 'struct:exn:fail 'Λ))
+
+  ;; FIXME: eventually make `def-struct` automatically add these and remove these special cases
   (define primitive-struct-info : (Immutable-HashTable -𝒾 -struct-info)
     (hash -𝒾-cons (Vector->struct-info (vector-immutable (cons 'car #f) (cons 'cdr #f)))
           -𝒾-mcons (Vector->struct-info (vector-immutable (cons 'mcar #t) (cons 'mcdr #t)))
           -𝒾-box (Vector->struct-info (vector-immutable (cons 'unbox #t)))
-          -𝒾-thread-cell (Vector->struct-info (vector-immutable (cons 'thread-cell-ref #t)))))
+          -𝒾-thread-cell (Vector->struct-info (vector-immutable (cons 'thread-cell-ref #t)))
+          -𝒾-exn (Vector->struct-info (vector-immutable (cons 'string? #f) (cons #|TODO|# 'any/c #f)))
+          -𝒾-exn:fail (Vector->struct-info (vector-immutable))))
 
   (define (new-static-info)
     (-static-info (make-hash (hash->list primitive-struct-info))
                   (make-hash (list (cons -𝒾-cons {set -car -cdr})
                                    (cons -𝒾-mcons {set -mcar -mcdr})
                                    (cons -𝒾-box {set -unbox})
-                                   (cons -𝒾-thread-cell {set -thread-cell-ref})))
+                                   (cons -𝒾-thread-cell {set -thread-cell-ref})
+                                   (cons -𝒾-exn {set (-st-ac -𝒾-exn 0)
+                                                     (-st-ac -𝒾-exn 1)})))
                   (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
                                    (cons -𝒾-box (set -set-box!))
                                    (cons -𝒾-thread-cell {set -set-thread-cell!})))
@@ -33,7 +41,7 @@
                   (make-hash)
                   (make-hash)
                   (make-hash)
-                  (make-hash)
+                  (make-hash (list (cons -𝒾-exn:fail -𝒾-exn)))
                   (make-hash)
                   (make-hash)))
 
@@ -77,6 +85,17 @@
         (car (vector-ref (get-struct-info 𝒾) (- i o)))
         (let ([𝒾* (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)])
           (struct-accessor-name 𝒾* (- i o)))))
+  (define (all-struct-accessors [𝒾 : -𝒾]) : (Listof -st-ac)
+    (let loop ([𝒾 : -𝒾 𝒾] [acs : (Listof -st-ac) '()])
+      (define offset (struct-offset 𝒾))
+      (define acs*
+        (for/fold ([acs : (Listof -st-ac) acs])
+                  ([i (in-range (sub1 (count-direct-struct-fields 𝒾)) -1 -1)])
+          (cons (-st-ac 𝒾 (assert (+ i offset) index?)) acs)))
+      (if (zero? offset)
+          acs*
+          (loop (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)
+                acs*))))
   (define (add-struct-info! [𝒾 : -𝒾] [direct-fields : (Listof Symbol)] [mutables : (Setof Natural)])
     (define v
       (vector->immutable-vector

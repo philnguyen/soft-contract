@@ -33,7 +33,9 @@
          dynamic-recursive-contract
          dynamic-struct-out
          dynamic-id-struct-out
+         dynamic-define-opaque
          define/contract dynamic-mon
+         (rename-out [-define define])
          --> forall
          (rename-out [--> ⇒] [forall ∀]))
 
@@ -188,7 +190,7 @@
              (struct-out so:id)
              (contract-out (~or [p/i:id ctc:expr]
                                 ;; TODO confirm that ignoring parent declaration makes no difference
-                                [struct (~or s:id (s:id _:id)) ([ac:id dom:expr] ...)]) ...))
+                                [struct (~and s* (~or s:id (s:id _:id))) ([ac:id dom:expr] ...)]) ...))
         ...)
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
@@ -202,7 +204,7 @@
           (r:provide i ...
                      (struct-out so) ...
                      (contract-out [p/i ctc] ...
-                                   [struct s ([ac dom] ...)] ...)
+                                   [struct s* ([ac dom] ...)] ...)
                      ...))
          ;; Things to give to SCV for verification.
          ;; Ignore all non-contracted identifiers because they might be macros even.
@@ -225,6 +227,15 @@
 
 (define (dynamic-mon x c e) e)
 
+(define-syntax -define
+  (syntax-parser
+    [(_ x:id #:opaque)
+     #'(begin
+         (scv:ignore (define x (λ () (error 'opaque))))
+         (dynamic-define-opaque x))]
+    [(~and stx (_ x ...))
+     (with-syntax-source #'stx #'(define x ...))]))
+
 ;; Phil's clueless hack for `recursive-contract`
 (define-syntax-rule (recursive-contract x type ...)
   (begin (dynamic-recursive-contract x '(type ...))
@@ -239,6 +250,7 @@
 (define (dynamic-case-> . _) (void))
 (define (dynamic-provide/contract . _) (void))
 (define (dynamic-recursive-contract . _) (void))
+(define (dynamic-define-opaque x) (void))
 
 ;; Syntactic sugar for theorem proving
 (define-simple-macro

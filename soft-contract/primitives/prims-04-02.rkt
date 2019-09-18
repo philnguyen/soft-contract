@@ -24,6 +24,7 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
+         (submod (lib "typed-racket/private/type-contract.rkt") predicates)
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
          "def.rkt"
@@ -82,7 +83,8 @@
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>/c 0)) . ->* . (>/c 0))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
-    (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
+    (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
+    (() #:rest (listof nonnegative?) . ->* . nonnegative?))
   (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
     (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
@@ -145,6 +147,7 @@
     ((integer?) #:rest (listof integer?) . ->* . integer?))
   (def min ((real?) #:rest (listof real?) . ->* . real?)
     #:refinements
+    ((index?) #:rest (listof index?) . ->* . index?)
     ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
     ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
     ((integer?) #:rest (listof integer?) . ->* . integer?))
@@ -342,6 +345,7 @@
   (def* (fxmin fxmax) (fixnum? fixnum? . -> . fixnum?))
   (def fx->fl (fixnum? . -> . flonum?))
   (def fl->fx (flonum? . -> . fixnum?))
+  (def fixnum-for-every-system? (any/c . -> . boolean?))
 
   ;; 4.2.4.2 Fixnum Vectors
   (def-pred fxvector?)
