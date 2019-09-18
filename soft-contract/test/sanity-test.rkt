@@ -231,8 +231,8 @@
   (test '("programs/safe/issues/re-provide-substruct/structs.rkt"
           "programs/safe/issues/re-provide-substruct/adapted.rkt")
         check-safe)
-  (test '("safe/issues/submodule-id/adapter.rkt"
-          "safe/issues/submodule-id/main.rkt")
+  (test '("programs/safe/issues/submodule-id/adapter.rkt"
+          "programs/safe/issues/submodule-id/main.rkt")
         (check 'Ok-pos 0 #f))
   (test "safe/issues/ho-disjunct.rkt" check-safe)
   (test "safe/issues/sub-exn.rkt" check-safe)

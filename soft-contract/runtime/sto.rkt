@@ -79,7 +79,7 @@
     (define (Σ@/raw α Σ)
       (match-define (cons Ξ Γ) Σ)
       (cond
-        [(γ:lex? α) (hash-ref Γ α)]
+        [(or (γ:lex? α) (and (γ? α) (hash-has-key? Γ α))) (hash-ref Γ α)]
         [(hash-ref Ξ α #f) => car]
         [(γ:imm*? α) (resolve-imm α)]
         [else
