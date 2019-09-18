@@ -354,7 +354,12 @@
           "programs/safe/games/snake-files/handlers.rkt"
           "programs/safe/games/snake-files/main.rkt"
           )
-          (check 'Ok-pos 1 1))
+        (check 'Ok-pos 1 1))
+  (test '("programs/safe/games/zombie-files/image.rkt"
+          "programs/safe/games/zombie-files/image-adapted.rkt"
+          "programs/safe/games/zombie-files/math.rkt"
+          "programs/safe/games/zombie-files/zombie.rkt")
+        check-safe)
   (test "unsafe/games" check-fail)
 
   ;; big ones

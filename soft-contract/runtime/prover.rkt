@@ -659,6 +659,8 @@
       ['exact-integer? {set 'exact? 'integer?}]
       ['positive? (P:> 0)]
       ['negative? (P:< 0)]
+      ['nonnegative? (P:≥ 0)]
+      ['nonpositive? (P:≤ 0)]
       ['zero? (P:= 0)]
       ['index? {set 'fixnum? (P:≥ 0)}]
       [(P:¬ 'even?) 'odd?]
