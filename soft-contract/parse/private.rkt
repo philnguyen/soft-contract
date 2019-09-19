@@ -187,7 +187,7 @@
       (for-each-module-level-form!
        (syntax-parser
          #:literals (define-values #%plain-app quote)
-         [(define-values (ex:id _) (#%plain-app do-partial-app _ _ (quote in:id) _ ...))
+         [(define-values (ex:id _) (#%plain-app do-partial-app _ in:id (quote _:id) _ ...))
           #:when (equal? 'do-partial-app (syntax->datum #'do-partial-app)) ; TODO use "utils/evil"
           (define p (cur-path))
           (define 𝒾ᵢₙ (-𝒾 (syntax-e #'in) p))

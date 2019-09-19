@@ -236,6 +236,9 @@
         (check 'Ok-pos 0 #f))
   (test "safe/issues/ho-disjunct.rkt" check-safe)
   (test "safe/issues/sub-exn.rkt" check-safe)
+  (test '("programs/safe/issues/sieve/streams.rkt"
+          "programs/safe/issues/sieve/main.rkt")
+        check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
