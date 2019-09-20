@@ -16,6 +16,7 @@
          racket/random
          racket/format
          racket/splicing
+         racket/sequence
          typed/racket/unit
          syntax/parse/define
          set-extras
@@ -128,8 +129,8 @@
     ((any/c . -> . boolean?) sequence? . -> . sequence?))
   (def sequence-add-between
     (∀/c (_) (sequence? _ . -> . sequence?)))
-  #;[sequence/c ; FIXME uses, `contract?`
-     (any/c . -> . any/c)]
+  (def sequence/c ; FIXME uses, `contract?`
+     (any/c . -> . any/c))
 
   ; 4.14.1.3.1 Additional Sequence Constructors
   #;[in-syntax
@@ -184,5 +185,5 @@
     (sequence? . -> . (-> any)))
   (def sequence->repeated-generator
     (sequence? . -> . (-> any)))
-  
+
   )

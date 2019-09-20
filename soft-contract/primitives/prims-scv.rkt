@@ -9,6 +9,7 @@
          unreachable
          set-extras
          (submod (lib "typed-racket/private/type-contract.rkt") predicates)
+         (lib "typed-racket/types/numeric-predicates.rkt")
          "../utils/debug.rkt"
          "../utils/list.rkt"
          "../utils/patterns.rkt"

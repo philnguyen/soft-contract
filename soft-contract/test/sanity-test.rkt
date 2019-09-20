@@ -11,7 +11,7 @@
          "../runtime/signatures.rkt"
          "../main.rkt")
 
-(define TIMEOUT 1200)
+(define TIMEOUT 2000)
 
 (define elapsed ((inst make-parameter (Option Integer)) #f)) ; HACK to avoid passing around
 
