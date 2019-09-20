@@ -239,6 +239,7 @@
   (test '("programs/safe/issues/sieve/streams.rkt"
           "programs/safe/issues/sieve/main.rkt")
         check-safe)
+  (test "safe/issues/except-in-setc.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -302,6 +303,7 @@
         check-fail)
   (test "unsafe/issues/ho-disjunct.rkt" check-fail)
   (test "unsafe/issues/sub-exn.rkt" check-fail)
+  (test "unsafe/issues/except-in-setc.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
