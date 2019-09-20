@@ -62,6 +62,8 @@
   (add! #'contract? #'f:contract?)
   )
 
+(define swap-identifiers? (make-parameter #t))
+
 (define (expand/high-level-contracts stx)
   ;(define stop-list (list* #'#%require (free-id-table-keys swap-table)))
   ;; TODO If I expand/hide first with this stop-list,
@@ -78,32 +80,37 @@
        (set-box! (faked?) #t)
        #'soft-contract/fake-contract]
       ;; TODO restore source location information?
-      [i:id (free-id-table-ref swap-table #'i (λ () #'i))]
+      [i:id (if (swap-identifiers?)
+                (free-id-table-ref swap-table #'i (λ () #'i))
+                #'i)]
       [e (with-syntax-source #'e (go-e (syntax-e #'e)))]))
 
   (define go-e
     (match-lambda
       [(cons p q)
        ;; `syntax-parse` and `~literal` didn't work :(
-       (if (and (identifier? p) (eq? 'module (syntax-e p)))
-           (parameterize ([faked? (box #f)])
-             (define p* (go-e p))
-             (define q* (go-e q))
-             (cons p*
-                   (if (unbox (faked?))
-                       q*
-                       (syntax-parse q*
-                         [(id path (#%plain-module-begin form ...))
-                          (with-syntax ([require (datum->syntax #'id 'require)])
-                            (list #'id #'path
-                                  #'(#%plain-module-begin
-                                     (require soft-contract/fake-contract)
-                                     form ...)))]
-                         [(id path form ...)
-                          (with-syntax ([require (datum->syntax #'id 'require)])
-                            (list* #'id #'path #'(require soft-contract/fake-contract)
-                                   (syntax->list #'(form ...))))]))))
-           (cons (go-e p) (go-e q)))]
+       (cond [(and (identifier? p) #|HACK|# (eq? 'module (syntax-e p)))
+              (parameterize ([faked? (box #f)])
+                (define p* (go-e p))
+                (define q* (go-e q))
+                (cons p*
+                      (if (unbox (faked?))
+                          q*
+                          (syntax-parse q*
+                            [(id path (#%plain-module-begin form ...))
+                             (with-syntax ([require (datum->syntax #'id 'require)])
+                               (list #'id #'path
+                                     #'(#%plain-module-begin
+                                        (require soft-contract/fake-contract)
+                                        form ...)))]
+                            [(id path form ...)
+                             (with-syntax ([require (datum->syntax #'id 'require)])
+                               (list* #'id #'path #'(require soft-contract/fake-contract)
+                                      (syntax->list #'(form ...))))]))))]
+             [(and (identifier? p) #|HACK|# (eq? 'except-in (syntax-e p)))
+              (parameterize ([swap-identifiers? #f])
+                (cons (go-e p) (go-e q)))]
+             [else (cons (go-e p) (go-e q))])]
       [(? syntax? s) (go s)]
       [x x]))
 
