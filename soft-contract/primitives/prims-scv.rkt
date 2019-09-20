@@ -9,6 +9,7 @@
          unreachable
          set-extras
          (submod (lib "typed-racket/private/type-contract.rkt") predicates)
+         (lib "typed-racket/types/numeric-predicates.rkt")
          "../utils/debug.rkt"
          "../utils/list.rkt"
          "../utils/patterns.rkt"
@@ -112,4 +113,5 @@
   (def-pred extflzero?)
   (def-pred extflnonnegative?)
   (def-pred extflnonpositive?)
+  (def-pred exact-rational?)
   )

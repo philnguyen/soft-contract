@@ -35,7 +35,10 @@
                       with-output-to-file
                       string-join
                       sort
-                      remove-duplicates))
+                      remove-duplicates
+                      string-trim
+                      sequence/c
+                      string-split))
      (define (?recognized-name name) (first-prefix names name)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"

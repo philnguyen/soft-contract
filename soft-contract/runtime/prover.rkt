@@ -663,6 +663,7 @@
       ['nonpositive? (P:≤ 0)]
       ['zero? (P:= 0)]
       ['index? {set 'fixnum? (P:≥ 0)}]
+      ['exact-rational? {set 'exact? 'rational?}]
       [(P:¬ 'even?) 'odd?]
       [(P:¬ 'odd?) 'even?]
       [(and P₀ (P:St ac P*))

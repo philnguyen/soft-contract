@@ -26,6 +26,8 @@
    [float-complex? ⇒ number?]
    [nonnegative? ⇒ real?]
    [nonpositive? ⇒ real?]
+   [exact-rational? ⇒ rational?]
+   [exact-rational? ⇒ exact?]
    
    [not ⇒ boolean?]
    [exact-integer? ⇒ integer?]
@@ -94,6 +96,7 @@
    ;; procedures
    [primitive? ⇒ procedure?]
    [path? ⇒ path-for-some-system?]
+   [complete-path? ⇒ path?]
    )
 
   (dec-exclusions
