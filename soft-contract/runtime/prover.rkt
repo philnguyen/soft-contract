@@ -291,6 +291,7 @@
                                    [exact-integer? even?]
                                    [exact-integer? odd?]
                                    [exact-integer?]
+                                   [flonum?]
                                    [real? positive?]
                                    [real? negative?]
                                    [real? nonnegative?]
