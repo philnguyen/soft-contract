@@ -108,4 +108,5 @@
   (def-pred extflzero?)
   (def-pred extflnonnegative?)
   (def-pred extflnonpositive?)
+  (def-pred exact-rational?)
   )

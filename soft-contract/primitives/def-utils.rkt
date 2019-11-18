@@ -174,6 +174,7 @@
                 (~literal flvector?)
                 (~literal extflvector?)
                 (~literal fxvector?)
+                (~literal exact-rational?)
                 (~literal sequence?)
                 (~literal pseudo-random-generator?)
                 (~literal pseudo-random-generator-vector?)

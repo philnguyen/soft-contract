@@ -624,6 +624,7 @@
       ['exact-nonnegative-integer? {set 'exact? 'integer? (P:≥ -zero)}]
       ['exact-positive-integer? {set 'exact? 'integer? (P:> -zero)}]
       ['exact-integer? {set 'exact? 'integer?}]
+      ['exact-rational? {set 'exact? 'rational?}]
       ['positive? (P:> -zero)]
       ['negative? (P:< -zero)]
       ['zero? (P:= -zero)]
