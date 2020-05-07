@@ -10,4 +10,5 @@
                        (syntax-line src)
                        (syntax-column src)
                        (syntax-position src)
-                       (syntax-span src))))
+                       (syntax-span src))
+                 src))
