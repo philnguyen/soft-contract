@@ -38,9 +38,9 @@
   (define show-o : (-o → Symbol)
     (match-lambda
       [(? symbol? s) s]
-      [(-st-mk 𝒾) (format-symbol "_~a" (-𝒾-name 𝒾))]
-      [(-st-ac 𝒾 i) (format-symbol "_~a" (struct-accessor-name 𝒾 i))]
-      [(-st-p 𝒾) (format-symbol "_~a?" (-𝒾-name 𝒾))]
+      [(-st-mk 𝒾) (format-symbol "~a" (-𝒾-name 𝒾))]
+      [(-st-ac 𝒾 i) (format-symbol "~a" (struct-accessor-name 𝒾 i))]
+      [(-st-p 𝒾) (format-symbol "~a?" (-𝒾-name 𝒾))]
       [(-st-mut (== -𝒾-mcons) 0) 'set-mcar!]
       [(-st-mut (== -𝒾-mcons) 1) 'set-mcdr!]
       [(-st-mut (== -𝒾-box) _) 'set-box!]
