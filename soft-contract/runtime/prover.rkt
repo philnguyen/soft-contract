@@ -442,6 +442,8 @@
       [(T (T:@ '+ (list (-b (? (</c 0))) T))) '✗]
       [(_ _) #f]))
 
+  (define assumed-equal ((inst make-parameter (Setof (Pairof α α))) (set)))
+
   (: check-equal? : Σ V V → ?Dec)
   (define (check-equal? Σ V₁ V₂)
 
@@ -476,16 +478,19 @@
        [((St (and α₁ (α:dyn (β:st-elems _ 𝒾₁) _)) _)
          (St (and α₂ (α:dyn (β:st-elems _ 𝒾₂) _)) _))
         (cond [(not (equal? 𝒾₁ 𝒾₂)) #f]
-              [(and (equal? α₁ α₂) (not (ambiguous? α₁ Σ))) '✓]
+              [(or (∋ (assumed-equal) (cons α₁ α₂))
+                   (∋ (assumed-equal) (cons α₂ α₁))
+                   (and (equal? α₁ α₂) (not (ambiguous? α₁ Σ)))) '✓]
               [else
-               (for/fold ([acc : ?Dec '✓])
-                         ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
-                          [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
-                          #:break (eq? acc '✗))
-                 (case (go-V^ Vs₁ Vs₂)
-                   [(✓) acc]
-                   [(✗) '✗]
-                   [(#f) #f]))])]
+               (parameterize ([assumed-equal (set-add (assumed-equal) (cons α₁ α₂))])
+                 (for/fold ([acc : ?Dec '✓])
+                           ([Vs₁ (in-vector (Σ@/blob α₁ Σ))]
+                            [Vs₂ (in-vector (Σ@/blob α₂ Σ))]
+                            #:break (eq? acc '✗))
+                   (case (go-V^ Vs₁ Vs₂)
+                     [(✓) acc]
+                     [(✗) '✗]
+                     [(#f) #f])))])]
        [((? T? T₁) (? T? T₂)) (go T₁ T₂)]
        [((? T? T) V) (go-V^ (unpack T Σ) (unpack V Σ))]
        [(V (? T? T)) (go-V^ (unpack V Σ) (unpack T Σ))]
