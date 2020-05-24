@@ -3,20 +3,28 @@
 (provide (all-defined-out))
 
 (require typed/racket/unit
+         "primitives/signatures.rkt"
+         "execution/signatures.rkt"
+         
          "ast/main.rkt"
          "runtime/main.rkt"
          "verifier.rkt"
-         "proof-relation/main.rkt"
-         "reduction/main.rkt"
+         "execution/main.rkt"
          "primitives/main.rkt"
          "parse/main.rkt"
-         "primitives/signatures.rkt"
          "signatures.rkt"
          )
 
 (define-values/invoke-unit/infer
-  (export verifier^ parser^ prim-runtime^
-          ast-pretty-print^ pretty-print^)
+  (export ast-pretty-print^
+          pretty-print^ val^ sto^
+          prim-runtime^
+          prover^
+          exec^
+          parser^ verifier^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
-        env@ sto@ val@ instr@ pc@ pretty-print@
-        prims@ proof-system@ reduction@ verifier@ parser@ for-gc@))
+        prims@ parser@
+        cache@ sto@ val@ pretty-print@
+        prover@
+        exec@
+        verifier@))

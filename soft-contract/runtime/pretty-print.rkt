@@ -1,296 +1,309 @@
 #lang typed/racket/base
 
-(require racket/match
-         racket/set
+(provide pretty-print@)
+
+(require typed/racket/unit
+         racket/match
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
+         (only-in racket/list make-list)
          racket/string
-         racket/splicing
-         typed/racket/unit
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
          "signatures.rkt"
          )
 
-(provide pretty-print@)
 (define-unit pretty-print@
-  (import ast-pretty-print^ env^)
+  (import ast-pretty-print^ static-info^
+          val^)
   (export pretty-print^)
 
-  (define (show-ς [ς : -ς]) : Sexp
-    (match ς
-      [(-ς↑ αₖ      ) (show-αₖ αₖ)]
-      [(-ς↓ αₖ $ Γ A) `(rt: ,(show-αₖ αₖ) ,(show-A A) ‖ ,@(show-Γ Γ))]))
-
-  (define (show-σ [σ : -σ])
-    (for*/list : (Listof Sexp) ([(⟪α⟫ᵢ Vs) (in-hash σ)]
-                                [α (in-value (⟪α⟫->-α (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)))])
-      `(,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ᵢ ⟪α⟫)) ↦ ,@(set-map Vs show-V))))
-
-  (define (show-h [h : -h]) : Sexp
-    (match h
-      [(? -t?) (show-t h)]
-      [(? -o?) (show-o h)]
-      [(? -αₖ?) (show-αₖ h)]
-      [(? -V? V) (show-V V)]
-      [(-st/c.mk 𝒾) (format-symbol "~a/c" (-𝒾-name 𝒾))]
-      [(-st/c.ac 𝒾 i) (format-symbol "~a/c._~a" (-𝒾-name 𝒾) (n-sub i))]
-      [(-->i.mk) '-->i]
-      [(-->i.dom i) (format-symbol "-->i._~a" (n-sub i))]
-      [(-->i.rng) '-->i.rng]
-      [(-->.mk) '-->]
-      [(-->*.mk) '-->*]
-      [(-->.dom i) (format-symbol "-->._~a" (n-sub i))]
-      [(-->.rst) '-->.rest]
-      [(-->.rng) '-->.rng]
-      [(-ar.mk) 'arr]
-      [(-ar.ctc) 'arr.ctc]
-      [(-ar.fun) 'arr.fun]
-      [(-values.ac i) (format-symbol "values._~a" (n-sub i))]
-      [(-≥/c b) `(≥/c ,(show-b b))]
-      [(-≤/c b) `(≤/c ,(show-b b))]
-      [(->/c b) `(>/c ,(show-b b))]
-      [(-</c b) `(</c ,(show-b b))]
-      [(-≡/c b) `(≡/c ,(show-b b))]
-      [(-≢/c b) `(≢/c ,(show-b b))]
-      [(-not/c o) `(not/c ,(show-o o))]
-      [(-clo ⟦e⟧) `(λ∈ ,(show-⟦e⟧ ⟦e⟧))]))
-
-  (define (show-t [?t : -?t]) : Sexp
-    (match ?t
-      [#f '∅]
-      [(? integer? i) (show-ℓ (cast i ℓ))]
-      [(-t.x x) x]
-      [(-𝒾 x _) x]
-      [(? -e? e) (show-e e)]
-      [(-t.@ h ts) `(@ ,(show-h h) ,@(map show-t ts))]))
-
-  (define (show-Γ [Γ : -Γ]) : (Listof Sexp)
-    (set-map Γ show-t))
-
-  (define (show-δ$ [δ$ : -δ$]) : (Listof Sexp)
-    (for/list : (Listof Sexp) ([(l t) (in-hash δ$)])
-      `(,(show-loc l) ↦ ,(show-t t))))
-
-  (define show-$ : (-$ → (Listof Sexp)) show-δ$)
-
-  (define (show-σₖ [σₖ : -σₖ]) : (Listof Sexp)
-    (for/list ([(αₖ κs) σₖ])
-      `(,(show-αₖ αₖ) ↦ ,@(set-map κs show-κ))))
-
-  (define show-blm-reason : ((U -V -v -h) → Sexp)
+  (define show-V : (V → Sexp)
     (match-lambda
-      [(? -V? V) (show-V V)]
-      [(? -v? v) (show-e v)]
-      [(? -h? h) (show-h h)]))
-
-  (define (show-V [V : -V]) : Sexp
-    (match V
       [(-b b) (show-b b)]
-      [(-● ps)
-       (string->symbol
-        (string-join
-         (for/list : (Listof String) ([p ps])
-           (format "_~a" (show-h p)))
-         ""
-         #:before-first "●"))]
+      [(-● Ps) (show-Ps Ps "●")]
       [(? -o? o) (show-o o)]
-      [(-Clo xs ⟦e⟧ ρ Γ) `(λ ,(show-formals xs) ,(show-⟦e⟧ ⟦e⟧) ‖ ,(show-ρ ρ) ‖ ,@(show-Γ Γ))]
-      [(-Case-Clo cases) `(case-lambda ,@(map show-V cases))]
-      [(-Fn● arity)
-       (string->symbol (format "Fn●_~a" arity))]
-      [(-Ar guard α _)
-       (match α
-         [(? -𝒾? 𝒾) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
-         [(-α.wrp 𝒾) (format-symbol "⟪~a⟫" (-𝒾-name 𝒾))]
-         [_ `(,(show-V guard) ◃ ,(show-⟪α⟫ α))])]
-      [(-St 𝒾 αs) `(,(-𝒾-name 𝒾) ,@(map show-⟪α⟫ αs))]
-      [(-St* (-St/C _ 𝒾 γℓs) α _)
-       `(,(format-symbol "~a/wrapped" (-𝒾-name 𝒾))
-         ,@(for/list : (Listof Sexp) ([γℓ γℓs]) (if γℓ (show-⟪α⟫ℓ γℓ) '✓))
-         ▹ ,(show-⟪α⟫ α))]
-      [(-Vector αs) `(vector ,@(map show-⟪α⟫ αs))]
-      [(-Vector^ α n) `(vector^ ,(show-⟪α⟫ α) ,(show-V n))]
-      [(-Hash^ k v im?) `(,(if im? 'hash^ 'mutable-hash^) ,(show-⟪α⟫ k) ,(show-⟪α⟫ v))]
-      [(-Set^ elems im?) `(,(if im? 'set^ 'mutable-set^) ,(show-⟪α⟫ elems))]
-      [(-Hash/guard C α _) `(hash/guard ,(show-V C) ,(show-⟪α⟫ α))]
-      [(-Set/guard C α _) `(set/guard ,(show-V C) ,(show-⟪α⟫ α))]
-      [(-Vector/guard grd _ _)
-       (match grd
-         [(-Vector/C γs) `(vector/diff ,@(map show-⟪α⟫ℓ γs))]
-         [(-Vectorof γ) `(vector/same ,(show-⟪α⟫ℓ γ))])]
-      [(-And/C _ l r) `(and/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
-      [(-Or/C _ l r) `(or/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr l)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr r)))]
-      [(-Not/C γ) `(not/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
-      [(-One-Of/C vs) `(one-of/c ,@(set-map vs show-b))]
-      [(-Vectorof γ) `(vectorof ,(show-⟪α⟫ (-⟪α⟫ℓ-addr γ)))]
-      [(-Vector/C γs) `(vector/c ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr γs)))]
-      [(-Hash/C k v) `(hash/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr k)) ,(show-⟪α⟫ (-⟪α⟫ℓ-addr v)))]
-      [(-Set/C elems) `(set/c ,(show-⟪α⟫ (-⟪α⟫ℓ-addr elems)))]
-      [(-=> αs βs)
-       (define show-rng
-         (cond [(list? βs) (show-⟪α⟫ℓs βs)]
-               [else 'any]))
-       (match αs
-         [(-var αs α) `(,(map show-⟪α⟫ℓ αs) #:rest ,(show-⟪α⟫ℓ α) . ->* . ,show-rng)]
-         [(? list? αs) `(,@(map show-⟪α⟫ℓ αs) . -> . ,show-rng)])]
-      [(-=>i γs (list (-Clo _ ⟦e⟧ _ _) (-λ xs d) _))
-       `(->i ,@(map show-⟪α⟫ℓ γs)
-             ,(match xs
-                [(? list? xs) `(res ,xs ,(show-e d))]
-                [_ (show-e d)]))]
-      [(-Case-> cases) `(case-> ,@(map show-V cases))]
-      [(-St/C _ 𝒾 αs)
-       `(,(format-symbol "~a/c" (-𝒾-name 𝒾)) ,@(map show-⟪α⟫ (map -⟪α⟫ℓ-addr αs)))]
-      [(-x/C ⟪α⟫) `(recursive-contract ,(show-⟪α⟫ ⟪α⟫))]
-      [(-∀/C xs ⟦c⟧ ρ) `(∀/C ,xs ,(show-⟦e⟧ ⟦c⟧))]
-      [(-Seal/C x ⟪ℋ⟫ _) (format-symbol "(seal/c ~a_~a)" x (n-sub ⟪ℋ⟫))]
-      [(-Sealed α) (format-symbol "sealed@~a" (assert (show-⟪α⟫ α) symbol?))]
-      [(->/c b) `(>/c ,(show-b b))]
-      [(-≥/c b) `(>=/c ,(show-b b))]
-      [(-</c b) `(</c ,(show-b b))]
-      [(-≤/c b) `(<=/c ,(show-b b))]
-      [(-≢/c b) `(not/c ,(show-b b))]))
+      [(? -λ? V) (show-e V)]
+      [(? Clo? clo) (show-Clo clo)]
+      [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
+      [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
+      [(St (α:dyn (β:st-elems ctx 𝒾) _) Ps) `(,(-𝒾-name 𝒾) ,(show-ctx/ℓ ctx) ,(show-Ps Ps "_"))]
+      [(Vect (α:dyn (β:vect-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
+      [(Vect-Of α n) `(vector^ ,(show-α α) × ,(show-V^ n))]
+      [(Empty-Hash) 'empty-hash]
+      [(Hash-Of αₖ αᵥ) `(hash-of ,(show-α αₖ) ,(show-α αᵥ))]
+      [(Empty-Set) '∅]
+      [(Set-Of α) `(set-of ,(show-α α))]
+      [(And/C α₁ α₂ ℓ) `(and/c ,(show-α α₁) ,(show-α α₂))]
+      [(Or/C α₁ α₂ ℓ) `(or/c ,(show-α α₂) ,(show-α α₂))]
+      [(Not/C α ℓ) `(not/c ,(show-α α))]
+      [(Rec/C α) `(recursive-contract ,(show-α α))]
+      [(One-Of/C bs) `(one-of/c ,@(set-map bs show-b))]
+      [(? Prox/C? C) (show-Prox/C C)]
+      [(Seal/C α _) `(seal/c ,(show-α α))]
+      [(Sealed α) (format-symbol "sealed@~a" (assert (show-α α) symbol?))]
+      [(? P? P) (show-P P)]
+      [(? T? T) (show-T T)]))
 
-  (define (show-⟪α⟫ℓ [⟪α⟫ℓ : -⟪α⟫ℓ]) : Symbol
-    (match-define (-⟪α⟫ℓ ⟪α⟫ ℓ) ⟪α⟫ℓ)
-    (define α (⟪α⟫->-α ⟪α⟫))
-    (string->symbol
-     (format "~a~a" (if (-e? α) (show-e α) (show-⟪α⟫ ⟪α⟫)) (n-sup ℓ))))
-
-  (: show-⟪α⟫ℓs : (Listof -⟪α⟫ℓ) → Sexp)
-  (define show-⟪α⟫ℓs (show-values-lift show-⟪α⟫ℓ))
-
-  (define (show-ΓA [ΓA : -ΓA]) : Sexp
-    (match-define (-ΓA Γ A) ΓA)
-    `(,(show-A A) ‖ ,@(set-map Γ show-t)))
-
-  (define (show-A [A : -A])
-    (cond [(-W? A) (show-W A)]
-          [else (show-blm A)]))
-
-  (define (show-W [W : -W]) : Sexp
-    (match-define (-W Vs t) W)
-    `(,@(map show-V Vs) @ ,(show-t t)))
-
-  (define (show-W¹ [W : -W¹]) : Sexp
-    (match-define (-W¹ V t) W)
-    `(,(show-V V) @ ,(show-t t)))
-
-  (define (show-blm [blm : -blm]) : Sexp
-    (match-define (-blm l+ lo Cs Vs ℓ) blm)
-    (match* (Cs Vs)
-      [('() (list (-b (? string? msg)))) `(error ,msg)] ;; HACK
-      [(_ _) `(blame ,l+ ,lo ,(map show-blm-reason Cs) ,(map show-V Vs) ,(show-ℓ ℓ))]))
-
-
-  (splicing-local
-      ((define ⟦e⟧->e : (HashTable -⟦e⟧ -e) (make-hasheq)))
-    
-    (: remember-e! : -e -⟦e⟧ → -⟦e⟧)
-    (define (remember-e! e ⟦e⟧)
-      (define ?e₀ (recall-e ⟦e⟧))
-      (when (and ?e₀ (not (equal? ?e₀ e)))
-        (error 'remember-e! "already mapped to ~a, given ~a" (show-e ?e₀) (show-e e)))
-      (hash-set! ⟦e⟧->e ⟦e⟧ e)
-      ⟦e⟧)
-
-    (: recall-e : -⟦e⟧ → (Option -e))
-    (define (recall-e ⟦e⟧) (hash-ref ⟦e⟧->e ⟦e⟧ #f))
-    
-    (define show-⟦e⟧ : (-⟦e⟧ → Sexp)
-      (let-values ([(⟦e⟧->symbol symbol->⟦e⟧ _) ((inst unique-sym -⟦e⟧) '⟦e⟧)])
-        (λ (⟦e⟧)
-          (cond [(recall-e ⟦e⟧) => show-e]
-                [else (⟦e⟧->symbol ⟦e⟧)])))))
-
-  (define (show-αₖ [αₖ : -αₖ]) : Sexp
-    (cond [(-ℬ? αₖ) (show-ℬ αₖ)]
-          [(-ℳ? αₖ) (show-ℳ αₖ)]
-          [(-ℱ? αₖ) (show-ℱ αₖ)]
-          [(-ℋ𝒱? αₖ) (format-symbol "ℋ𝒱_~a" (n-sub (-αₖ-ctx αₖ)))]
-          [else     (error 'show-αₖ "~a" αₖ)]))
-
-  (define (show-ℬ [ℬ : -ℬ]) : Sexp
-    (match-define (-ℬ _ _ xs ⟦e⟧ ρ _) ℬ)
-    (match xs
-      ['() `(ℬ ()                 ,(show-⟦e⟧ ⟦e⟧) ,(show-ρ ρ))]
-      [_   `(ℬ ,(show-formals xs) …               ,(show-ρ ρ))]))
-
-  (define (show-ℳ [ℳ : -ℳ]) : Sexp
-    (match-define (-ℳ $ ⟪ℋ⟫ ctx C V Γ) ℳ)
-    `(ℳ ,(show-⟪ℋ⟫ ⟪ℋ⟫) ,(show-W¹ C) ,(show-W¹ V) ‖ ,@(show-Γ Γ) ‖ ,@(show-$ $)))
-
-  (define (show-ℱ [ℱ : -ℱ]) : Sexp
-    (match-define (-ℱ _ _ l ℓ C V _) ℱ)
-    `(ℱ ,(show-W¹ C) ,(show-W¹ V)))
-
-  (define-parameter verbose? : Boolean #f)
-
-  (define (show-⟪ℋ⟫ [⟪ℋ⟫ : -⟪ℋ⟫]) : Sexp
-    (if (verbose?)
-        (show-ℋ (-⟪ℋ⟫->-ℋ ⟪ℋ⟫))
-        ⟪ℋ⟫))
-  (define (show-ℋ [ℋ : -ℋ]) : (Listof Sexp) (map show-edge ℋ))
-
-  (: show-edge : -edge → Sexp)
-  (define (show-edge edge)
-    (match-define (-edge tgt ℓ) edge)
-    `(,(show-ℓ ℓ) ↝ ,(show-tgt tgt)))
-
-  (: show-tgt : -edge.tgt → Sexp)
-  (define (show-tgt tgt)
-    (cond
-      [(-o? tgt) (show-o tgt)]
-      [(-t? tgt) (show-t tgt)]
-      [(-h? tgt) (show-h tgt)]
-      [(list? tgt) (map show-tgt tgt)]
-      [(set? tgt) (set-map tgt show-b)]
-      [(integer? tgt) (show-ℓ (cast tgt ℓ))]
-      [(not tgt) '⊘]
-      [(-var? tgt)
-       `(,(map show-ℓ (cast (-var-init tgt) (Listof ℓ))) ,(show-ℓ (cast (-var-rest tgt) ℓ)))]
-      [else (show-⟦e⟧ tgt)]))
-
-  (define (show-⟪α⟫ [⟪α⟫ : ⟪α⟫]) : Sexp
-
-    (define (show-α.x [x : Symbol] [⟪ℋ⟫ : -⟪ℋ⟫])
-      (format-symbol "~a_~a" x (n-sub ⟪ℋ⟫)))
-
-    (define α (⟪α⟫->-α ⟪α⟫))
-    (match (⟪α⟫->-α ⟪α⟫)
-      [(-α.x x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
-      [(-α.hv) 'αₕᵥ]
-      [(-α.mon-x/c x ⟪ℋ⟫ _) (show-α.x x ⟪ℋ⟫)]
-      [(-α.fc-x/c x ⟪ℋ⟫) (show-α.x x ⟪ℋ⟫)]
-      [(-α.fv ⟪ℋ⟫) (show-α.x 'dummy ⟪ℋ⟫)]
-      [(-𝒾 x _) x]
-      [(-α.wrp (-𝒾 x _)) (format-symbol "⟨~a⟩" x)]
-      [(-α.sealed x ⟪ℋ⟫) (format-symbol "~a*" (show-α.x x ⟪ℋ⟫))]
-      [(-α.imm V) (show-V V)]
-      [(-α.imm-listof x C _) (string->symbol (format "(listof ~a)" (show-V C)))]
-      [(-α.imm-ref-listof x C _) (string->symbol (format "(ref ~a)" x))]
-      [_ (format-symbol "α~a" (n-sub ⟪α⟫))]))
-
-  (define (show-ρ [ρ : -ρ]) : (Listof Sexp)
-    (for/list ([(x ⟪α⟫ₓ) ρ] #:unless (equal? x -x-dummy))
-      `(,x ↦ ,(show-⟪α⟫ (cast #|FIXME TR|# ⟪α⟫ₓ ⟪α⟫)))))
-
-  (define show-loc : (-loc → Sexp)
+  (define show-P : (P → Sexp)
     (match-lambda
-      [(? symbol? s) s]
-      [(-𝒾 x _) x]
-      [(-loc.offset 𝒾 i t) `(,(show-t t) ↪ ,(show-ac (if (-𝒾? 𝒾) 𝒾 (-𝒾 𝒾 'Λ)) i))]))
+      [(? -o? o) (show-o o)]
+      [(P:> T) `(>/c ,(show-T T))]
+      [(P:≥ T) `(≥/c ,(show-T T))]
+      [(P:< T) `(</c ,(show-T T))]
+      [(P:≤ T) `(≤/c ,(show-T T))]
+      [(P:= T) `(=/c ,(show-T T))]
+      [(P:≡ T) `(≡/c ,(show-T T))]
+      [(P:arity-includes n) `(arity-includes/c ,(show-Arity n))]
+      [(P:¬ Q) `(¬/c ,(show-P Q))]
+      [(P:St acs P*) `(,(show-acs acs) ↝ ,(show-P P*))]
+      [(P:vec-len n) `(vector-length/c ,n)]))
 
-  (: show-M : -M → (Listof Sexp))
-  (define (show-M M)
-    (for/list ([(α As) (in-hash M)])
-      `(,(show-αₖ α) ↦ ,(set-map As show-ΓA))))
+  (define (show-Ps [Ps : (℘ P)] [prefix : String]) : Symbol
+    (string->symbol (string-join (set-map Ps (compose1 sexp->string show-P))
+                                 "_" #:before-first prefix)))
 
-  (: show-κ : -κ → Sexp)
-  (define (show-κ κ)
-    (match κ
-      [(-κ.rt _ dom Γ t looped?)
-       `(,(show-t t) ,(set->list dom) ,(show-Γ Γ) ,looped?)]
-      [(-κ _)
-       `κ]))
+  (define (show-acs [acs : (Listof -st-ac)])
+    (string->symbol (string-join (map (compose1 symbol->string show-o) acs) ".")))
+
+  (define show-Arity : (Arity → Sexp)
+    (match-lambda
+      [(? integer? n) n]
+      [(arity-at-least n) `(arity-at-least ,n)]
+      [(? list? as) (map show-Arity as)]))
+
+  (define show-Clo : (Clo → Sexp)
+    (match-lambda [(Clo xs _ _ _) `(λ ,(show-formals xs) …)]))
+
+  (define show-Prox/C : (Prox/C → Sexp)
+    (match-lambda
+      [(? ==>i? V) (show-==>i V)]
+      [(∀/C xs C _ _) `(∀/C ,xs …)]
+      [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
+      [(? St/C? C) (define-values (_ ℓ 𝒾) (St/C-fields C))
+                   (format-symbol "~a/c@~a" (-𝒾-name 𝒾) (show-ℓ ℓ))]
+      [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
+      [(Vect/C α) `(vector/c ,(show-α α))]
+      [(Hash/C αₖ αᵥ ℓ) `(hash/c ,(show-α αₖ) ,(show-α αᵥ))]
+      [(Set/C α ℓ) `(set/c ,(show-α α))]))
+
+  (define show-==>i : (==>i → Sexp)
+    (match-lambda
+      [(==>i (-var Dom:init ?Dom:rest) Rng)
+       `(->i ,(map show-Dom Dom:init)
+             ,@(if ?Dom:rest `(#:rest ,(show-Dom ?Dom:rest)) '())
+             ,(match Rng
+                [#f 'any]
+                [(list d) (show-Dom d)]
+                [(? values ds) `(values ,@(map show-Dom ds))]))]))
+
+  (: show-V^ : V^ → Sexp)
+  (define (show-V^ V^)
+    (string->symbol (string-join (set-map V^ (compose1 sexp->string show-V))
+                                 "|" #:before-first "{" #:after-last "}")))
+
+  (: show-W : W → (Listof Sexp))
+  (define (show-W W) (map show-V^ W))
+
+  (define show-Dom : (Dom → (Listof Sexp))
+    (match-lambda
+      [(Dom x (Clo (-var xs #f) _ _ _) _) `(,x ,xs …)]
+      [(Dom x (? α? α)                _)  `(,x ,(show-α α))]))
+
+  (define show-T : ((U T -b) → Sexp)
+    (match-lambda
+      [(-b b) (show-b b)]
+      [(T:@ o Ts) `(,(show-o o) ,@(map show-T Ts))]
+      [(? α? α) (show-α α)]))
+
+  (define show-α : (α → Sexp)
+    (match-lambda
+      [(α:dyn β H) (format-symbol "~a~a" (show-β β) (n-sup (intern-H H)))]
+      [(γ:lex x) x]
+      [(γ:top x) (-𝒾-name x)]
+      [(γ:wrp x) (format-symbol "⟨~a⟩" (-𝒾-name x))]
+      [(γ:hv hv-tag) (format-symbol "hv:~a" (show-HV-Tag hv-tag))]
+      [(γ:imm V) (show-V V)]
+      [(γ:imm:blob _ ℓ) (show-ℓ ℓ)]
+      [(γ:imm:listof x V _) (format-symbol "~a:listof" x)]
+      [(γ:escaped-field 𝒾 i) (format-symbol "escaped-~a" (show-o (-st-ac 𝒾 i)))]))
+
+  (define show-β : (β → Symbol)
+    (match-lambda
+      [(β:esc x ℓ) (format-symbol "~a:~a" x (show-ℓ ℓ))]
+      [(β:mut x) (format-symbol "~a!" (if (symbol? x) x (-𝒾-name x)))]
+      [(β:st-elems ctx 𝒾) (format-symbol "~a-~a" (-𝒾-name 𝒾) (show-ctx/ℓ ctx))]
+      [(β:var:car tag idx) (format-symbol "var:car_~a_~a" tag (or idx '*))]
+      [(β:var:cdr tag idx) (format-symbol "var:cdr_~a_~a" tag (or idx '*))]
+      [(β:st 𝒾 _) (format-symbol "⟨~a⟩" (-𝒾-name 𝒾))]
+      [(β:vect-elems ℓ n) (show-ℓ ℓ)]
+      [(β:vct ℓ) (show-ℓ ℓ)]
+      [(β:hash:key ℓ) (show-β:ℓ ℓ 0)]
+      [(β:hash:val ℓ) (show-β:ℓ ℓ 1)]
+      [(β:set:elem ℓ) (show-ℓ ℓ)]
+      [(β:unvct ctx) (show-β:ctx ctx)]
+      [(β:unhsh ctx _) (show-β:ctx ctx)]
+      [(β:unset ctx _) (show-β:ctx ctx)]
+      [(β:and/c:l ℓ) (show-β:ℓ ℓ 0)]
+      [(β:and/c:r ℓ) (show-β:ℓ ℓ 1)]
+      [(β:or/c:l ℓ) (show-β:ℓ ℓ 0)]
+      [(β:or/c:r ℓ) (show-β:ℓ ℓ 1)]
+      [(β:not/c ℓ) (show-ℓ ℓ)]
+      [(β:rec/c ℓ) (show-ℓ ℓ)]
+      [(β:vect/c-elems ℓ n) (show-ℓ ℓ)]
+      [(β:vectof ℓ) (show-ℓ ℓ)]
+      [(β:hash/c:key _) 'hash/c:key]
+      [(β:hash/c:val _) 'hash/c:val]
+      [(β:set/c:elem _) 'set/c:elem]
+      [(β:st/c-elems ℓ 𝒾) (show-ℓ ℓ)]
+      [(β:dom ℓ) (show-ℓ ℓ)]
+      [(β:fn ctx _) (show-β:ctx ctx)]
+      [(β:sealed x _) (format-symbol "⦇~a⦈" x)]))
+
+  (: show-β:ℓ (ℓ Natural → Symbol))
+  (define (show-β:ℓ ℓ i) (format-symbol "~a@~a" (show-ℓ ℓ) i))
+
+  (define show-β:ctx : (Ctx → Symbol)
+    (match-lambda
+      [(Ctx l+ l- ℓₒ ℓ)
+       (format-symbol "~a-~a-~a"
+                      (if (transparent-module? l+) '⊕ '⊖)
+                      (show-ℓ ℓₒ)
+                      (show-ℓ ℓ))]))
+
+  (define show-HV-Tag : (HV-Tag → Symbol)
+    (match-lambda
+      [#f '•]
+      [(? string? s) (string->symbol s)]
+      [(? symbol? s) s]))
+
+  (: show-Σ : Σ → (Listof Sexp))
+  (define (show-Σ Σ)
+    (for/list : (Listof Sexp) ([(T r) (in-hash Σ)])
+      (match-define (cons S n) r)
+      (define ↦ (case n
+                  [(0) '↦⁰]
+                  [(1) '↦¹]
+                  [(?) '↦?]
+                  [(N) '↦ⁿ]))
+      `(,(show-T T) ,↦ ,(show-S S))))
+
+  (: show-S : S → Sexp)
+  (define (show-S S)
+    (if (vector? S)
+        (string->symbol
+         (string-join
+          (for/list : (Listof String) ([Vs (in-vector S)])
+            (format "~a" (show-V^ Vs)))
+          " "
+          #:before-first "["
+          #:after-last "]"))
+        (show-V^ S)))
+
+  (: show-R : R → (Listof Sexp))
+  (define (show-R r)
+    (for/list : (Listof Sexp) ([(W ΔΣ) (in-hash r)])
+      `(,(show-W W) @ ,@(set-map ΔΣ show-Σ))))
+
+  (define show-Err : (Err → Sexp)
+    (match-lambda
+      [(Err:Raised s _) `(error ,s)]
+      [(Err:Undefined x ℓ) `(undefined ,x ,(show-ℓ ℓ))]
+      [(Err:Values n E W ℓ) `(wrong-number-of-values ,n ,@(show-W W) ,(show-ℓ ℓ))]
+      [(Err:Arity f xs ℓ) `(wrong-number-of-arguments
+                            ,(if (integer? f) (show-ℓ f) (show-V f))
+                            ,(if (integer? xs) `(,xs args) (show-W xs))
+                            ,(show-ℓ ℓ))]
+      [(Err:Sealed x ℓ) `(inspect-sealed-value ,x ,(show-ℓ ℓ))]
+      [(Blm l+ ℓ ℓₒ ctc val)
+       `(blame ,l+ ,(show-ℓ ℓ) ,(show-ℓ ℓₒ) ,(show-W ctc) ,(show-W val))]))
+
+  (define show-$:Key : ($:Key → Sexp)
+    (match-lambda
+      [($:Key:Exp Σ E)
+       `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
+      [($:Key:Mon Σ Ctx V V^)
+       `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+      [($:Key:Fc Σ ℓ V V^)
+       `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
+      [($:Key:App Σ ℓ V W)
+       `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
+      [($:Key:Hv Σ α)
+       `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
+
+  (define (sexp->string [s : Sexp]) (format "~a" s))
+  
+  (define intern-H : (H → Index)
+    (let ([cache : (HashTable H Index) (make-hash)])
+      (λ (H) (hash-ref! cache H (λ () (hash-count cache))))))
+
+  (define show-ctx/ℓ : ((U Ctx ℓ (Pairof (U Symbol ℓ) (Option Index))) → Symbol)
+    (match-lambda
+      [(? integer? ℓ) (show-ℓ ℓ)]
+      [(Ctx l+ _ ℓₒ ℓ)
+       (format-symbol "~a-~a-~a" (if (transparent-module? l+) '⊕ '⊖) (show-ℓ ℓₒ) (show-ℓ ℓ))]
+      [(cons x i)
+       (format-symbol "~a@~a" (if (symbol? x) x (show-ℓ x)) (if i i 'N))]))
+
+  (: print-blame : Err String → Void)
+  (define (print-blame blm idx)
+    (match blm
+      [(Blm l+ ℓ:site ℓ:origin Cs Vs)
+       (printf "~a At: ~a~n" idx (show-full-ℓ ℓ:site))
+       (printf "    - Blaming: ~a~n" l+)
+       (printf "    - Contract from: ~a ~n" (show-full-ℓ ℓ:origin))
+       (printf "    - Expected: ~a~n"
+               (match Cs
+                 [(list C) (show-V^ C)]
+                 ['() "no value"]
+                 [_ (format "~a values: ~a" (length Cs) (show-W Cs))]))
+       (printf "    - Given: ~a~n"
+               (match Vs
+                 [(list V) (show-V^ V)]
+                 ['() "(values)"]
+                 [_ (format "~a values: ~a" (length Vs) (show-W Vs))]))]
+      [(Err:Raised s ℓ)
+       (printf "~a Error: ~a~n" idx s)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Undefined x ℓ)
+       (printf "~a Undefined `~a`~n" idx x)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Values n E W ℓ)
+       (printf "~a Expected ~a values, given ~a:~n" idx n (length W))
+       (for ([Vs (in-list W)])
+         (printf "    - ~a~n" (show-V^ Vs)))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Arity f xs ℓ)
+       (printf "~a Function applied with wrong arity~n" idx)
+       (if (V? f)
+           (printf "    - Function: ~a~n" (show-V f))
+           (printf "    - Function defined at ~a~n" (show-full-ℓ f)))
+       (if (integer? xs)
+           (printf "    - Given ~a arguments~n" xs)
+           (begin
+             (printf "    - Given ~a arguments:~n" (length xs))
+             (for ([Vs (in-list xs)])
+               (printf "        + ~a~n" (show-V^ Vs)))))
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Varargs W₀ Vᵣ ℓ)
+       (printf "~a Invalid number of rest args~n" idx)
+       (printf "    - ~a inits:~n" (length W₀))
+       (for ([V (in-list W₀)])
+         (printf "        * ~a~n" (show-V^ V)))
+       (printf "    - rest: ~a~n" (show-V^ Vᵣ))
+       (printf "    - Application at ~a~n" (show-full-ℓ ℓ))]
+      [(Err:Sealed x ℓ)
+       (printf "~a Attempt to inspect value sealed in ~a~n" idx x)
+       (printf "    - At: ~a~n" (show-full-ℓ ℓ))]))
+
+  (: print-blames : (℘ Err) → Void)
+  (define (print-blames blames)
+    (define maybe-plural (match-lambda [1 ""] [_ "s"]))
+    (match (set-count blames)
+      [0 (printf "Safe~n")]
+      [n
+       (printf "Found ~a possible error~a~n" n (maybe-plural n))
+       (for ([b (in-set blames)] [i (in-naturals)])
+         (print-blame b (format "(~a)" (+ 1 i))))]))
   )

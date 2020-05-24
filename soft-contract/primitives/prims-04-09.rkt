@@ -55,20 +55,27 @@
                             . -> . (listof α))))
 
   ;; 4.9.2 List Operations
-  (def length (list? . -> . exact-nonnegative-integer?)
+  (def length (list? . -> . index?)
     #:refinements
-    (pair? . -> . exact-positive-integer?)
-    (null? . -> . zero?))
+    (pair? . -> . index?)
+    (pair? . -> . positive?)
+    (null? . -> . 0))
   (def list-ref (∀/c (α) ((and/c (listof α) pair?) exact-nonnegative-integer? . -> . α))) ; FIXME mismatch
   (def list-tail (∀/c (α) ((listof α) exact-nonnegative-integer? . -> . (listof α)))) ; FIXME mismatch
   (def append (∀/c (α) (() #:rest (listof (listof α)) . ->* . (listof α))))
-  (def reverse (∀/c (α) ((listof α) . -> . (listof α))))
+  (def reverse (∀/c (α) ((listof α) . -> . (listof α)))
+    #:refinements
+    (pair? . -> . pair?)
+    (null? . -> . null?))
 
   ;; 4.9.3 List Iteration
   (def map (∀/c (α β) ((α . -> . β) (listof α) . -> . (listof β)))) ; FIXME uses
   (def andmap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #t β)))) ; FIXME uses
   (def ormap (∀/c (α β) ((α . -> . β) (listof α) . -> . (or/c #f β)))) ; FIXME uses
-  (def for-each (∀/c (α _) ((α . -> . _) (listof α) . -> . void?))) ; FIXME uses
+  (def for-each (∀/c (α β _)
+                     (case->
+                      [(α . -> . _) (listof α) . -> . void?]
+                      [(α β . -> . _) (listof α) (listof β) . -> . void?]))) ; FIXME uses
   (def foldl (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
   (def foldr (∀/c (α β) ((α β . -> . β) β (listof α) . -> . β))) ; FIXME uses
 
@@ -93,17 +100,17 @@
   (def member
     (∀/c (α β _)
          (case->
-          [β (listof α) . -> . (or/c (and/c (listof α) pair?) not)]
-          [β (listof α) (α β . -> . _) . -> . (or/c (and/c (listof α) pair?) not)])))
-  (def* (memv memq) (∀/c (α _) (_ (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
+          [β (listof α) . -> . (or/c (cons/c β (listof α)) #f)]
+          [β (listof α) (α β . -> . _) . -> . (or/c (cons/c β (listof α)) #f)])))
+  (def* (memv memq) (∀/c (α β) (β (listof α) . -> . (or/c (cons/c β (listof α)) #f))))
   (def memf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c (and/c (listof α) pair?) not))))
   (def findf (∀/c (α _) ((α . -> . _) (listof α) . -> . (or/c α not))))
   (def assoc
-    (∀/c (α β _)
+    (∀/c (α β _ _₁)
          (case->
-          [α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not)]
-          [α (listof (cons/c α β)) (α α . -> . _) . -> . (or/c (cons/c α β) not)])))
-  (def* (assv assq) (∀/c (α β) (α (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
+          [α (listof (cons/c _ β)) . -> . (or/c (cons/c α β) not)]
+          [α (listof (cons/c _ β)) (α _ . -> . _₁) . -> . (or/c (cons/c α β) not)])))
+  (def* (assv assq) (∀/c (α β _) (α (listof (cons/c _ β)) . -> . (or/c (cons/c α β) not))))
   (def assf (∀/c (α β _) ((α . -> . _) (listof (cons/c α β)) . -> . (or/c (cons/c α β) not))))
 
   ;; 4.9.6 Pair Acesssor Shorthands
@@ -121,14 +128,30 @@
   (def cdadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ α) _)) . -> . α)))
   (def cddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ α)) _) . -> . α)))
   (def cdddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ α))) . -> . α)))
+  (def caaaar (∀/c (α _) ((cons/c (cons/c (cons/c (cons/c α _) _) _) _) . -> . α)))
+  (def caaadr (∀/c (α _) ((cons/c _ (cons/c (cons/c (cons/c α _) _) _)) . -> . α)))
+  (def caadar (∀/c (α _) ((cons/c (cons/c _ (cons/c (cons/c α _) _)) _) . -> . α)))
+  (def caaddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c (cons/c α _) _))) . -> . α)))
+  (def cadaar (∀/c (α _) ((cons/c (cons/c (cons/c _ (cons/c α _)) _) _) . -> . α)))
+  (def cadadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ (cons/c α _)) _)) . -> . α)))
+  (def caddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ (cons/c α _))) _) . -> . α)))
+  (def cadddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c α _)))) . -> . α)))
+  (def cdaaar (∀/c (α _) ((cons/c (cons/c (cons/c (cons/c _ α) _) _) _) . -> . α)))
+  (def cdaadr (∀/c (α _) ((cons/c _ (cons/c (cons/c (cons/c _ α) _) _)) . -> . α)))
+  (def cdadar (∀/c (α _) ((cons/c (cons/c _ (cons/c (cons/c _ α) _)) _) . -> . α)))
+  (def cdaddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c (cons/c _ α) _))) . -> . α)))
+  (def cddaar (∀/c (α _) ((cons/c (cons/c (cons/c _ (cons/c _ α)) _) _) . -> . α)))
+  (def cddadr (∀/c (α _) ((cons/c _ (cons/c (cons/c _ (cons/c _ α)) _)) . -> . α)))
+  (def cdddar (∀/c (α _) ((cons/c (cons/c _ (cons/c _ (cons/c _ α))) _) . -> . α)))
+  (def cddddr (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c _ α)))) . -> . α)))
   ; TODO rest of them
 
   ;; 4.9.7 Additional List Functions and Synonyms
   (def-alias empty null)
   (def-alias pair? cons?)
   (def-alias empty? null?)
-  (def first (∀/c (α) ((cons/c α list?) . -> . α)))
-  (def rest (∀/c (α _) ((cons/c _ (and/c list? α)) . -> . α)))
+  (def first (∀/c (α _) ((and/c list? (cons/c α _)) . -> . α)))
+  (def rest (∀/c (α _) ((and/c list? (cons/c _ α)) . -> . α)))
   (def second (∀/c (α _) ((cons/c _ (cons/c α list?)) . -> . α)))
   (def third (∀/c (α _) ((cons/c _ (cons/c _ (cons/c α list?))) . -> . α)))
   (def fourth (∀/c (α _) ((cons/c _ (cons/c _ (cons/c _ (cons/c α list?)))) . -> . α)))
@@ -210,7 +233,7 @@
   (def make-reader-graph (∀/c (_) (_ . -> . any/c)))
   (def-pred placeholder?)
   (def make-placeholder (∀/c (_) (_ . -> . placeholder?)))
-  (def placeholder-set! (∀/c (_) (placeholder? _ . -> . void?)) #:lift-concrete? #f)
+  (def placeholder-set! (∀/c (_) (placeholder? _ . -> . void?)))
   (def placeholder-get (placeholder? . -> . any/c))
   (def-pred hash-placeholder?)
   (def* (make-hash-placeholder make-hasheq-placeholder make-hasheqv-placeholder)

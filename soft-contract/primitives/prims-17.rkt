@@ -8,15 +8,20 @@
          typed/racket/unit
          racket/unsafe/ops
          set-extras
+         "../utils/patterns.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
          "def.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit prims-17@
-  (import static-info^ prim-runtime^ proof-system^ widening^ app^ kont^ val^ pc^ sto^ instr^ env^ pretty-print^)
+  (import static-info^
+          sto^ val^ cache^
+          prim-runtime^
+          prover^
+          exec^ app^ mon^)
   (export)
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -48,48 +53,38 @@
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
 
-  (def (unsafe-struct-ref ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:init ([Wᵥ any/c] [Wᵢ integer?])
-    (match-define (-W¹ Vᵥ sᵥ) Wᵥ)
-    (match-define (-W¹ Vᵢ sᵢ) Wᵢ)
-    (define sₐ
-      (match* (Vᵥ Vᵢ)
-        [((or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _))
-          (-b (? index? i)))
-         #:when 𝒾
-         (?t@ (-st-ac 𝒾 i) sᵥ)]
-        [(_ _) (?t@ 'unsafe-struct-ref sᵥ sᵢ)]))
-    (unless sₐ
-      (printf "unsafe-struct-ref: ~a ~a -> ⊘~n" (show-t sᵥ) (show-t sᵢ)))
-    (match Vᵥ
-      [(-St 𝒾 ⟪α⟫s)
-       (define n (count-struct-fields 𝒾))
-       (for/union : (℘ -ς) ([⟪α⟫ᵢ (in-list ⟪α⟫s)]
-                            [i : Natural (in-naturals)]
-                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
-                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (for/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵢ ⟪α⟫)))])
-                             (⟦k⟧ (-W (list V) sₐ) $ Γ* ⟪ℋ⟫ Σ)))]
-      [(-St* (-St/C _ 𝒾 ⟪γ⟫ℓs) ⟪α⟫ᵥ ctx)
-       (define n (count-struct-fields 𝒾))
-       (match-define (-ctx l+ l- lo _) ctx)
-       (for/union : (℘ -ς) ([⟪γ⟫ℓ (in-list ⟪γ⟫ℓs)]
-                            [i : Natural (in-naturals)]
-                            #:when (plausible-index? (-Σ-σ Σ) Γ Wᵢ i))
-                  (define Γ* (Γ+ Γ (?t@ '= sᵢ (-b i))))
-                  (cond
-                    [(struct-mutable? 𝒾 (assert i index?))
-                     (define c #f #;(⟪α⟫->s (car ⟪γ⟫ℓ)))
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
-                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                        (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ
-                             (mon.c∷ (ctx-with-ℓ ctx (-⟪α⟫ℓ-loc (assert ⟪γ⟫ℓ))) (-W¹ C c) ⟦k⟧)))]
-                    [else
-                     (for*/union : (℘ -ς) ([V (in-set (σ@ Σ (cast ⟪α⟫ᵥ ⟪α⟫)))]
-                                           [C (in-set (σ@ Σ (-⟪α⟫ℓ-addr ⟪γ⟫ℓ)))])
-                       (app ℓ (+W¹ 'unsafe-struct-ref) (list (-W¹ V sᵥ) Wᵢ) $ Γ* ⟪ℋ⟫ Σ ⟦k⟧))]))]
-      [_
-       (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  (def (unsafe-struct-ref Σ ℓ W)
+    #:init ([Vᵥ any/c] [Vᵢ integer?])
+    ((inst fold-ans/collapsing V)
+     (match-lambda
+       [(St (and α (α:dyn (β:st-elems _ 𝒾) _)) Ps)
+        (define Vₐ
+          (for/union : V^ ([(Xᵢ i) (in-indexed (Σ@/blob α Σ))] #:when (maybe=? Σ i Vᵢ))
+            Xᵢ))
+        (define-values (Vₐ* ΔΣ) (refine Vₐ Ps Σ))
+        (just Vₐ* ΔΣ)]
+       [(Guarded (cons l+ l-) (? St/C? C) αᵥ)
+        (define-values (αₕ ℓₕ 𝒾) (St/C-fields C))
+        (define S (Σ@/blob αₕ Σ))
+        (define Vᵥ* (unpack αᵥ Σ))
+        (with-collapsing/R [(ΔΣ₀ Ws) (app Σ ℓₕ {set 'unsafe-struct-ref} (list Vᵥ* Vᵢ))]
+          (define Σ₀ (⧺ Σ ΔΣ₀))
+          (define Vₐ (car (collapse-W^ Ws)))
+          (define ctx (Ctx l+ l- ℓₕ ℓ))
+          (for/fold ([r : R ⊥R] [es : (℘ Err) ∅])
+                    ([(Cᵢ i) (in-indexed S)] #:when (maybe=? Σ i Vᵢ))
+            (define-values (rᵢ esᵢ) (mon Σ₀ ctx Cᵢ Vₐ))
+            (values (R⊔ r (ΔΣ⧺R ΔΣ₀ rᵢ)) (∪ es esᵢ))))]
+       [(-● Ps)
+        (match Vᵢ
+          [{singleton-set (-b (? index? i))}
+           (just (or (for/or : (Option V^) ([P (in-set Ps)] #:when (-st-p? P))
+                       (match-define (-st-p 𝒾) P)
+                       (st-ac-● 𝒾 i Ps Σ))
+                     (-● ∅)))]
+          [_ (just (-● ∅))])]
+       [_ (values ⊥R ∅)])
+     (unpack Vᵥ Σ)))
 
   (def unsafe-struct-set! (any/c integer? . -> . void?)))
 

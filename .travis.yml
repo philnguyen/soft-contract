@@ -32,8 +32,8 @@ before_script:
 
 script:
  # Set up Z3 path
- - ls /opt/python/2.7.13/lib
- - export Z3_LIB="/opt/python/2.7.13/lib"
+ - ls /usr/lib/python2.7/dist-packages
+ - export Z3_LIB="/usr/lib/python2.7/dist-packages"
  # Install soft-contract
  - cd soft-contract
  - /usr/racket/bin/raco pkg install --deps search-auto

@@ -7,6 +7,7 @@
 
 (define-signature parser-helper^
   ([parse-files : ((Listof Path-String) → (Listof -module))]
+   [parse-stxs : ((Listof Path-String) (Listof Syntax) → (Listof -module))]
    [parse-module : (Syntax → -module)]
    [parse-e : (Syntax → -e)]
    [canonicalize-path : (Path-String → Path-String)]))

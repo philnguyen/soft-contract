@@ -4,6 +4,7 @@
 
 (require racket/match
          racket/set
+         (only-in racket/string string-join)
          typed/racket/unit
          set-extras
          "signatures.rkt")
@@ -12,23 +13,36 @@
   (import ast-pretty-print^)
   (export static-info^)
 
+  (define -𝒾-exn (-𝒾 'struct:exn 'Λ))
+  (define -𝒾-exn:fail (-𝒾 'struct:exn:fail 'Λ))
+
+  ;; FIXME: eventually make `def-struct` automatically add these and remove these special cases
+  (define primitive-struct-info : (Immutable-HashTable -𝒾 -struct-info)
+    (hash -𝒾-cons (Vector->struct-info (vector-immutable (cons 'car #f) (cons 'cdr #f)))
+          -𝒾-mcons (Vector->struct-info (vector-immutable (cons 'mcar #t) (cons 'mcdr #t)))
+          -𝒾-box (Vector->struct-info (vector-immutable (cons 'unbox #t)))
+          -𝒾-thread-cell (Vector->struct-info (vector-immutable (cons 'thread-cell-ref #t)))
+          -𝒾-exn (Vector->struct-info (vector-immutable (cons 'string? #f) (cons #|TODO|# 'any/c #f)))
+          -𝒾-exn:fail (Vector->struct-info (vector-immutable))))
+
   (define (new-static-info)
-    (define cons-info (Vector->struct-info (vector-immutable #f #f)))
-    (define mcons-info (Vector->struct-info (vector-immutable #t #t)))
-    (define box-info (Vector->struct-info (vector-immutable #t)))
-    (-static-info (make-hash (list (cons -𝒾-cons cons-info)
-                                   (cons -𝒾-mcons mcons-info)
-                                   (cons -𝒾-box  box-info)))
+    (-static-info (make-hash (hash->list primitive-struct-info))
                   (make-hash (list (cons -𝒾-cons {set -car -cdr})
                                    (cons -𝒾-mcons {set -mcar -mcdr})
-                                   (cons -𝒾-box (set -unbox))))
+                                   (cons -𝒾-box {set -unbox})
+                                   (cons -𝒾-thread-cell {set -thread-cell-ref})
+                                   (cons -𝒾-exn {set (-st-ac -𝒾-exn 0)
+                                                     (-st-ac -𝒾-exn 1)})))
                   (make-hash (list (cons -𝒾-mcons {set -set-mcar! -set-mcdr!})
-                                   (cons -𝒾-box (set -set-box!))))
+                                   (cons -𝒾-box (set -set-box!))
+                                   (cons -𝒾-thread-cell {set -set-thread-cell!})))
                   (make-hash)
                   (make-hash)
                   (make-hash)
                   (make-hash)
                   (make-hash)
+                  (make-hash)
+                  (make-hash (list (cons -𝒾-exn:fail -𝒾-exn)))
                   (make-hash)
                   (make-hash)))
 
@@ -46,27 +60,59 @@
   (: get-struct-info : -𝒾 → -struct-info)
   (define (get-struct-info 𝒾)
     (define structs (-static-info-structs (current-static-info)))
-    (hash-ref structs 𝒾 (λ () (error 'get-struct-info "Nothing for ~a" (-𝒾-name 𝒾)))))
+    (hash-ref
+     structs 𝒾
+     (λ ()
+       (error 'get-struct-info "Nothing for ~a among ~a"
+              (show-𝒾 𝒾)
+              (string-join (map show-𝒾 (hash-keys structs))
+                           ", "
+                           #:before-first "["
+                           #:after-last "]")))))
 
+  ;; Return number of fields that this struct directly declares
   (define (count-direct-struct-fields [𝒾 : -𝒾]) : Index (vector-length (get-struct-info 𝒾)))
-  (define (struct-mutable? [𝒾 : -𝒾] [i : Index]) (vector-ref (get-struct-info 𝒾) i))
+  (define (struct-mutable? [𝒾 : -𝒾] [i : Natural]) (cdr (vector-ref (get-struct-info 𝒾) (- i (struct-offset 𝒾)))))
   (define (struct-all-immutable? [𝒾 : -𝒾])
-    (not (for/or : Boolean ([mut? (in-vector (get-struct-info 𝒾))])
-           mut?)))
-  (define (add-struct-info! [𝒾 : -𝒾] [arity : Index] [mutables : (Setof Index)])
+    (not (for/or : Boolean ([fld-info (in-vector (get-struct-info 𝒾))])
+           (cdr fld-info))))
+  (define (struct-direct-accessor-names [𝒾 : -𝒾])
+    (define pre (-𝒾-name 𝒾))
+    (for/list : (Listof Symbol) ([fld (in-vector (get-struct-info 𝒾))])
+      (car fld)))
+  (define (struct-accessor-name [𝒾 : -𝒾] [i : Integer]) : Symbol
+    (define o (struct-offset 𝒾))
+    (if (>= i o)
+        (car (vector-ref (get-struct-info 𝒾) (- i o)))
+        (let ([𝒾* (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)])
+          (struct-accessor-name 𝒾* (- i o)))))
+  (define (all-struct-accessors [𝒾 : -𝒾]) : (Listof -st-ac)
+    (let loop ([𝒾 : -𝒾 𝒾] [acs : (Listof -st-ac) '()])
+      (define offset (struct-offset 𝒾))
+      (define acs*
+        (for/fold ([acs : (Listof -st-ac) acs])
+                  ([i (in-range (sub1 (count-direct-struct-fields 𝒾)) -1 -1)])
+          (cons (-st-ac 𝒾 (assert (+ i offset) index?)) acs)))
+      (if (zero? offset)
+          acs*
+          (loop (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)
+                acs*))))
+  (define (add-struct-info! [𝒾 : -𝒾] [direct-fields : (Listof Symbol)] [mutables : (Setof Natural)])
     (define v
-      (for/vector : (Vectorof Boolean) #:length arity ([i arity])
-                  (∋ mutables i)))
+      (vector->immutable-vector
+       (for/vector : (Vectorof (Pairof Symbol Boolean)) #:length (length direct-fields)
+                   ([(fld i) (in-indexed direct-fields)])
+                   (cons fld (∋ mutables i)))))
     (define m (-static-info-structs (current-static-info)))
     (cond
       [(hash-ref m 𝒾 #f) =>
-                         (λ ([v₀ : -struct-info])
-                           (cond [(equal? v₀ v) (void)]
-                                 [else (error 'add-struct-info!
-                                              "inconsistent struct information for ~a:~n - ~a~n - ~a"
-                                              (-𝒾-name 𝒾)
-                                              v₀
-                                              v)]))]
+        (λ ([v₀ : -struct-info])
+          (cond [(equal? v₀ v) (void)]
+                [else (error 'add-struct-info!
+                             "inconsistent struct information for ~a:~n - ~a~n - ~a"
+                             (-𝒾-name 𝒾)
+                             v₀
+                             v)]))]
       [else
        (hash-set! m 𝒾 (Vector->struct-info v))]))
 
@@ -197,6 +243,10 @@
   ;;;;; Superstructs
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+  (: in-struct-tags : → (Sequenceof -𝒾))
+  (define (in-struct-tags)
+    (in-hash-keys (-static-info-structs (current-static-info))))
+
   (: set-parent-struct! : -𝒾 -𝒾 → Void)
   (define (set-parent-struct! 𝒾-sub 𝒾-sup)
     (define parentstruct (-static-info-parentstruct (current-static-info)))
@@ -217,18 +267,42 @@
             [(hash-ref parentstruct 𝒾 #f) => loop]
             [else #f])))
 
-  (: field-offset : -𝒾 → Index)
-  (define (field-offset 𝒾)
+  (: struct-offset : -𝒾 → Index)
+  ;; Return the total number of fields from super-structs
+  (define (struct-offset 𝒾)
     ;; NOTE: maybe unsafe to memoize this function because it depends on parameter
     (define parentstruct (-static-info-parentstruct (current-static-info)))
     (let loop ([𝒾 : -𝒾 𝒾] [n : Index 0])
-      (cond [(hash-ref parentstruct 𝒾 #f)
-             =>
-             (λ ([𝒾* : -𝒾])
-               (loop 𝒾* (assert (+ n (count-direct-struct-fields 𝒾*)) index?)))]
-            [else n])))
+      (match (hash-ref parentstruct 𝒾 #f)
+        [(? values 𝒾*) (loop 𝒾* (assert (+ n (count-direct-struct-fields 𝒾*)) index?))]
+        [#f n])))
 
   (: count-struct-fields : -𝒾 → Index)
+  ;; Return the total number of fields in struct, including its super-structs
   (define (count-struct-fields 𝒾)
-    (assert (+ (field-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
+    (assert (+ (struct-offset 𝒾) (count-direct-struct-fields 𝒾)) index?))
+
+  (: add-transparent-module! : -l → Void)
+  (define (add-transparent-module! l)
+    (hash-set! (-static-info-transparent-modules (current-static-info)) l #t))
+
+  (: transparent-module? : -l → Boolean)
+  (define (transparent-module? l)
+    (hash-has-key? (-static-info-transparent-modules (current-static-info)) l))
+
+  (: prim-struct? : -𝒾 → Boolean)
+  (define (prim-struct? 𝒾) (hash-has-key? primitive-struct-info 𝒾))
+
+  (: set-struct-alias! : -𝒾 -𝒾 → Void)
+  (define (set-struct-alias! 𝒾-ref 𝒾-def)
+    (define m (-static-info-struct-alias (current-static-info)))
+    (match (hash-ref m 𝒾-ref #f)
+      [#f (hash-set! m 𝒾-ref 𝒾-def)]
+      [(== 𝒾-def) (void)]
+      [(? values 𝒾*) (error 'set-struct-alias! "~a ↦ ~a, attempt to set to ~a"
+                            (show-𝒾 𝒾-ref) (show-𝒾 𝒾*) (show-𝒾 𝒾-def))]))
+
+  (: resolve-struct-alias : -𝒾 → -𝒾)
+  (define (resolve-struct-alias 𝒾)
+    (hash-ref (-static-info-struct-alias (current-static-info)) 𝒾 (λ () 𝒾)))
   )

@@ -1,18 +1,14 @@
 #lang typed/racket/base
 (provide
- (all-from-out "env.rkt"
+ (all-from-out "cache.rkt"
                "sto.rkt"
-               "pc.rkt"
                "val.rkt"
-               "instr.rkt"
-               "for-gc.rkt"
+               "prover.rkt"
                "pretty-print.rkt"
                "signatures.rkt"))
-(require "env.rkt"
+(require "cache.rkt"
          "sto.rkt"
-         "pc.rkt"
          "val.rkt"
-         "instr.rkt"
-         "for-gc.rkt"
+         "prover.rkt"
          "pretty-print.rkt"
          "signatures.rkt")

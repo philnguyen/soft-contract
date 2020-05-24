@@ -4,8 +4,7 @@
 
 (require typed/racket/unit
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prims-04-01.rkt"
@@ -30,8 +29,10 @@
          )
 
 (define-compound-unit/infer prims-04@
-  (import prim-runtime^ proof-system^ local-prover^ widening^ kont^ app^ compile^ for-gc^ mon^
-          pretty-print^ val^ pc^ sto^ instr^ env^)
+  (import prim-runtime^
+          val^ sto^ cache^
+          prover^
+          exec^ app^ mon^)
   (export)
   (link prims-04-01@
         prims-04-02@

@@ -1,10 +1,11 @@
 #lang typed/racket/base
 
 (require racket/match
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/cmdline
          racket/list
          racket/pretty
+         racket/string
          bnf
          set-extras
          "utils/main.rkt"
@@ -13,20 +14,12 @@
          "parse/signatures.rkt"
          "main.rkt")
 
-(Mode . ::= . 'light 'havoc 'expand 'havoc-last)
+(Mode . ::= . 'light 'havoc 'expand 'havoc-last 'havoc/profile)
 (define mode : Mode 'havoc)
-
-(define (print-result [ans : (℘ -ΓA)])
-  (define safe? : Boolean #t)
-  (for ([A ans] #:when (-blm? (-ΓA-ans A)))
-    (set! safe? #f)
-    (pretty-write (show-a A)))
-  (when safe?
-    (printf "Safe~n")))
 
 (define fnames
   (cast
-   (command-line
+   [command-line
     #:program "raco scv"
     
     #:once-each
@@ -40,42 +33,28 @@
      "Print expanded program (just for debugging, might look cryptic)"
      (set! mode 'expand)]
     [("-p" "--progress")
-     "Print progress"
-     (debug-iter? #t)]
-    [("-v" "--verbose")
-     "Print debugging information"
-     (debug-iter? #t)
-     (debug-trace? #t)]
+     "Dump progress"
+     (db:iter? #t)]
+    [("-d" "--profile")
+     "Havoc with profiling"
+     (set! mode 'havoc/profile)]
     [("-s" "--max-steps") n
      "Set maximum steps to explore"
-     (max-steps (assert (string->number (assert n string?)) exact-nonnegative-integer?))]
+     (db:max-steps (assert (string->number (assert n string?)) index?))]
 
     #:args (first-module . other-modules) ; TODO re-enable file list
-    (cons first-module other-modules))
+    (cons first-module other-modules)]
    (Listof Path-String)))
 
-(: show-Vs : (Listof (U -V -v)) → Sexp)
-(define (show-Vs Vs)
-  (match Vs
-    [(list V) (show-blm-reason V)]
-    [_ `(values ,@(map show-blm-reason Vs))]))
-
-(: show-a : -ΓA → Sexp)
-(define (show-a a)
-  (match a
-    [(-ΓA _ (-W Vs _)) (show-Vs Vs)]
-    [(-ΓA _ (-blm l+ lo Cs Vs ℓ))
-     `(blame
-       [line ,(ℓ-line ℓ) col ,(ℓ-col ℓ)]
-       [violator : ,l+]
-       [contract from : ,lo]
-       [contracts : ,@(map show-blm-reason Cs)]
-       [values : ,@(map show-V Vs)])]))
-
-(: main : (Listof Path-String) → Void)
+(: main : (Listof Path-String) → Any)
 (define (main fnames)
 
-  (: go : (Listof Path-String) → Void)
+  (: run-with : ((Listof Path-String) → (Values (℘ Err) $)) (Listof Path-String) → Void)
+  (define (run-with f files)
+    (define-values (blms _) (f files))
+    (print-blames blms))
+
+  (: go : (Listof Path-String) → Any)
   (define (go fnames)
     (with-handlers ([exn:missing?
                      (match-lambda
@@ -89,20 +68,10 @@
          (for ([m (in-list (parse-files fnames))])
            (pretty-write (show-module m))
            (printf "~n"))]
-        [(light)
-         (define-values (ans Σ) (run-files fnames))
-         (cond
-           [(set-empty? ans)
-            (printf "Safe~n")]
-           [else
-            (for ([A ans])
-              (pretty-write (show-a A)))])]
-        [(havoc)
-         (define-values (ans _) (havoc-files fnames))
-         (print-result ans)]
-        [(havoc-last)
-         (define-values (ans _) (havoc-last-file fnames))
-         (print-result ans)])))
+        [(light) (run-with run fnames)]
+        [(havoc) (run-with havoc fnames)]
+        [(havoc/profile) (run-with havoc/profile fnames)]
+        [(havoc-last) (run-with havoc-last fnames)])))
 
   (go (map canonicalize-path fnames)))
 

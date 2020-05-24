@@ -9,7 +9,7 @@
          racket/stream
          racket/dict
          racket/function
-         racket/set
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
          racket/flonum
          racket/fixnum
          racket/generator
@@ -19,12 +19,12 @@
          typed/racket/unit
          syntax/parse/define
          set-extras
+         unreachable
          "../utils/debug.rkt"
          "../utils/pretty.rkt"
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "def.rkt"
@@ -39,81 +39,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-unit prims-04-17@
-  (import prim-runtime^ proof-system^ local-prover^ widening^ app^ val^ pc^)
+  (import val^
+          prim-runtime^ prover^
+          exec^ app^)
   (export)
 
   (def-pred procedure?)
-
-  (def (apply ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (define ℓ:apply (loc->ℓ (loc 'apply 0 0 '())))
+  (def (apply Σ ℓ args)
     #:init ()
-    #:rest [Ws (listof any/c)] ; manual arity check instead
-    (define l (ℓ-src ℓ))
-
-    (: blm-for : -V (Listof -V) → -Γ → (℘ -ς))
-    (define ((blm-for C Vs) Γ)
-      (⟦k⟧ (-blm l 'apply (list C) Vs ℓ) $ Γ ⟪ℋ⟫ Σ))
-
-    (: check-func-arity : -W¹ (Listof -W¹) -W¹ → -Γ → (℘ -ς))
-    ;; Make sure init arguments and rest args are compatible with the function's arity
-    (define ((check-func-arity W-func W-inits W-rest) Γ)
-      (: blm-arity : Arity → (℘ -ς))
-      (define (blm-arity a)
-        (define blm-args (append (map -W¹-V W-inits) (list (-W¹-V W-rest))))
-        (define msg (string->symbol (format "~a argument(s)" a)))
-        (define blm (-blm l 'apply (list msg) blm-args ℓ))
-        (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ))
-
-      (define-simple-macro (with-num-rest-args-check pred #:on-t e₁ #:on-f e₂)
-        (let-values ([(ok? er?)
-                      (for/fold ([ok? : Boolean #f] [er? : Boolean #f])
-                                ([len (in-set (estimate-list-lengths (-Σ-σ Σ) (-W¹-V W-rest)))])
-                        (if (pred len) (values #t er?) (values ok? #t)))])
-          (∪ (if ok? e₁ ∅) (if er? e₂ ∅))))
-
-      ;; turn estinate-list-lengths into 
-      
-      (define num-inits (length W-inits))
-      (match-define (-W¹ V-func t-func) W-func)
-
-      (match (V-arity V-func)
-        [(? index? fixed-arity)
-         (define num-remaining-args (- fixed-arity num-inits))
-         (cond
-           ;; Fewer init arguments than required, then try to retrieve in rest-arg for more
-           [(<= 0 num-remaining-args)
-            (with-num-rest-args-check (match-lambda
-                                        [(? index? len) (equal? len num-remaining-args)]
-                                        [(arity-at-least len) #|TODO|# #t])
-              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-              #:on-f (blm-arity fixed-arity))]
-           ;; More init arguments than required
-           [else (blm-arity fixed-arity)])]
-        [(arity-at-least arity.min)
-         (define remaining-inits (- arity.min num-inits))
-         (cond
-           ;; init-args maybe too short, then retrieve some more from rest-arg
-           [(<= 0 remaining-inits)
-            (with-num-rest-args-check (match-lambda
-                                        [(? index? len) (>= len remaining-inits)]
-                                        [(arity-at-least len) (>= len remaining-inits)])
-              #:on-t (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-              #:on-f (blm-arity arity.min))]
-           ;; init args more than enough
-           [else
-            (app/rest/unsafe ℓ W-func W-inits W-rest $ Γ ⟪ℋ⟫ Σ ⟦k⟧)])]
-        [a
-         (error 'apply "TODO: handle arity ~a" a)]))
-
-    ;; Make sure there is at least the function and rest args
-    (match Ws
-      [(list W-func W-inits ... W-rest)
-       (Γ+/-oW/handler
-        (check-func-arity W-func (cast W-inits (Listof -W¹)) W-rest)
-        (blm-for 'procedure? (list (-W¹-V W-func)))
-        (-Σ-σ Σ) Γ 'procedure? W-func)]
-      [_
-       (define blm (blm-arity ℓ l (arity-at-least 2) (map -W¹-V Ws)))
-       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)]))
+    #:rest [args (listof any/c)] ; manual arity check instead
+    (define n (length args))
+    ;; Instead of pattern matching to get around TR cast
+    (if (>= n 2)
+        (match-let-values ([(Vₕ) (car args)]
+                           [(Wₓ (list Vᵣ)) (split-at (cdr args) (- n 2))])
+          (app/rest Σ ℓ Vₕ Wₓ Vᵣ))
+        (err (Err:Arity 'apply args ℓ))))
   
   (def compose ; FIXME uses
     (∀/c (α β γ)
@@ -129,15 +71,10 @@
 
   ;; 4.17.1 Keywords and Arity
   ;[keyword-apply #|FIXME uses|#]
-  (def (procedure-arity ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
-    #:init ([W procedure?])
-    (match-define (-W¹ V s) W)
-    (define sₐ (?t@ 'procedure-arity s))
-    (cond [(V-arity V)
-           =>
-           (λ ([a : Arity])
-             (⟦k⟧ (-W (list (-b a)) sₐ) $ Γ ⟪ℋ⟫ Σ))]
-          [else (⟦k⟧ (-W (list (+●)) sₐ) $ Γ ⟪ℋ⟫ Σ)]))
+  (def (procedure-arity Σ ℓ W)
+    #:init ([Vₕ procedure?])
+    (just (for/set : V^ ([V (in-set Vₕ)])
+            (cond [(arity V) => -b] [else (-● ∅)]))))
   (def-pred procedure-arity?)
   {def-pred procedure-arity-includes? (procedure? exact-nonnegative-integer?)} ; FIXME uses
   (def procedure-reduce-arity
@@ -177,5 +114,5 @@
     (procedure-arity? . -> . normalized-arity?))
   (def-pred arity=? (procedure-arity? procedure-arity?))
   (def-pred arity-includes? (procedure-arity? procedure-arity?))
-  
+  (define ℓ:Λ (loc->ℓ (loc 'Λ 0 0 '())))
   )

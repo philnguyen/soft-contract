@@ -1,9 +1,10 @@
 #lang typed/racket/base
 
-(provide prim-runtime^)
+(provide prim-runtime^ ⟦O⟧)
 
 (require typed/racket/unit
          typed/racket/unsafe
+         bnf
          set-extras
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt")
@@ -37,27 +38,24 @@
                 alias-table-count
                 in-alias-table)
 
+(⟦O⟧ . ≜ . (Σ ℓ W → (Values R (℘ Err))))
+
 ;; TODO: tmp. hack. Signature doesn't need to be this wide.
 (define-signature prim-runtime^
-  ([make-total-pred : (Index → Symbol → -⟦f⟧)]
-   [implement-predicate : (-σ -Γ Symbol (Listof -W¹) → (Values -V -?t))]
-   [ts->bs : ((Listof -?t) → (Option (Listof Base)))] ; TODO obsolete
-   [Ws->bs : ((Listof -W¹) → (Option (Listof Base)))]
-   [unchecked-ac : (-σ -Γ -st-ac -W¹ → (℘ -W¹))]
-   [arity-check/handler : (∀ (X) (-Γ → (℘ X)) (-Γ → (℘ X)) -Γ -W¹ Arity → (℘ X))]
-   [make-static-listof : (Symbol (→ (Values Boolean -V ℓ)) → -V)]
-   [make-listof : (Boolean -V ℓ → -V)]
-   [make-static-∀/c : (Symbol Symbol (Listof Symbol) (→ -e) → -V)]
-   [make-∀/c : (Symbol (Listof Symbol) -e -ρ → -V)]
+  ([make-total-pred : (Index → Symbol → ⟦O⟧)]
+   [implement-predicate : (Σ -o W → (Values R (℘ Err)))]
+   [W->bs : (W → (Option (Listof Base)))]
+   [make-static-listof : (Symbol (→ (Values V ℓ)) → V)]
+   [make-listof : (V ℓ → V)]
    [exec-prim
-    : (-$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧
-          ℓ (Intersection Symbol -o)
-          #:dom (Listof (Pairof -V ℓ))
-          #:rng (Listof -V)
-          #:rng-wrap (Option (Listof (Pairof -V ℓ)))
-          #:refinements (Listof (List (Listof -V) (Option -V) (Listof -V)))
-          #:args (Listof -W¹)
-          → (℘ -ς))]
+    : (Σ ℓ Symbol
+         #:volatile? Boolean
+         #:dom (-var V)
+         #:rng W
+         #:rng-wrap (Option (Listof V))
+         #:refinements (Listof (List (Listof V) (Option V) (Listof V)))
+         #:args W
+         → (Values R (℘ Err)))]
 
    [get-weakers : (Symbol → (℘ Symbol))]
    [get-strongers : (Symbol → (℘ Symbol))]
@@ -69,7 +67,7 @@
    [update-arity! : (Symbol Arity → Void)]
    [set-partial! : (Symbol Natural → Void)]
 
-   [prim-table : (HashTable Symbol -⟦f⟧)]
+   [prim-table : (HashTable Symbol ⟦O⟧)]
    [const-table : Parse-Prim-Table]
    [alias-table : Alias-Table]
    [debug-table : (HashTable Symbol Any)]
@@ -80,9 +78,16 @@
 
    [add-alias! : (Identifier Identifier → Void)]
    [add-const! : (Identifier -prim → Void)]
+   
+   #;[mk-res : (Φ^ (Listof (℘ P)) -o W → (Values W Φ^))]
 
-   ;; re-exported stuff to avoid confusing dependency in `def`
-   [r:Γ⊢oW/handler : ((→ (℘ -ς)) (→ (℘ -ς)) -σ -Γ -o -W¹ * → (℘ -ς))]
-   [mk-● : (-h * → -●)]
-   [add-seal! : (-Σ Symbol -⟪ℋ⟫ -l → -Seal/C)]
+   ;; HACK re-exported stuff to avoid confusing dependency in `def`
+   [r:err : ((U (℘ Err) Err) → (Values R (℘ Err)))]
+   [r:just : ([(U V V^ W)] [ΔΣ] . ->* . (Values R (℘ Err)))]
+   [r:blm : (-l ℓ ℓ W W → (℘ Blm))]
+   [r:reify : ((℘ P) → V^)]
+   [r:with-split-Σ : (Σ P W (W ΔΣ → (Values R (℘ Err))) (W ΔΣ → (Values R (℘ Err)))
+                        → (Values R (℘ Err)))]
+   [r:⧺ : (ΔΣ ΔΣ * → ΔΣ)]
+   [r:ΔΣ⧺R : (ΔΣ R → R)]
    ))

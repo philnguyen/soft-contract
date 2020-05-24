@@ -4,483 +4,251 @@
 
 (require racket/match
          racket/set
-         syntax/parse/define
          typed/racket/unit
          bnf
-         intern
+         unreachable
          set-extras
-         "../ast/signatures.rkt"
+         intern
+         (only-in "../utils/list.rkt" NeListof)
+         "../ast/signatures.rkt" 
          )
 
-(define-type -ρ (Immutable-HashTable Symbol ⟪α⟫))
+(E . ≜ . -e)
+
+(#|Run-time Values|# V . ::= . -prim
+                               (St α (℘ P))
+                               (Vect α)
+                               (Vect-Of [content : α] [length : #|restricted|# V^])
+                               (Empty-Hash)
+                               (Hash-Of [key : α] [val : α])
+                               (Empty-Set)
+                               (Set-Of [elems : α])
+                               Fn
+                               (Guarded [ctx : (Pairof -l -l)] [guard : Prox/C] [val : α])
+                               (Sealed α)
+                               C
+                               T
+                               (-● (℘ P)))
+(#|Identities     |# T . ::= . α (T:@ -o (Listof (U T -b))))
+(#|Stores         |# Σ .  ≜  . (Immutable-HashTable α (Pairof S N)))
+(#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
+(#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
+(#|Values Lists   |# W .  ≜  . (Listof V^))
+(#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
+                                (Clo -formals E H ℓ)
+                                (Case-Clo (Listof Clo) ℓ))
+(#|Contracts      |# C . ::= . (And/C α α ℓ)
+                               (Or/C α α ℓ)
+                               (Not/C α ℓ)
+                               (One-Of/C (℘ Base))
+                               (Rec/C α)
+                               Prox/C
+                               (Seal/C α -l)
+                               P)
+(#|Proxies        |# Prox/C . ::= . Fn/C
+                               (St/C α)
+                               (Vectof/C α ℓ)
+                               (Vect/C α)
+                               (Hash/C α α ℓ)
+                               (Set/C α ℓ))
+(#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
+                                  (∀/C (Listof Symbol) E H ℓ)
+                                  (Case-=> (Listof ==>i))) 
+(#|Errors         |# Err . ::= . (Err:Raised String ℓ)
+                                 (Err:Undefined Symbol ℓ)
+                                 (Err:Values Natural E W ℓ)
+                                 (Err:Arity [proc : (U V ℓ)] [args : (U Natural W)] [site : ℓ])
+                                 (Err:Varargs W V^ ℓ)
+                                 (Err:Sealed [seal : Symbol] [site : ℓ])
+                                 (Blm [violator : -l]
+                                      [site : ℓ]
+                                      [origin : ℓ]
+                                      [ctc : W]
+                                      [val : W]))
+(#|Predicates     |# P . ::= . Q (P:¬ Q) (P:St (NeListof -st-ac) P))
+(#|Pos. Predicates|# Q . ::= . -o (P:> (U T -b)) (P:≥ (U T -b)) (P:< (U T -b)) (P:≤ (U T -b)) (P:= (U T -b)) (P:arity-includes Arity) (P:≡ (U T -b)) (P:vec-len Index))
+(#|Caches         |# $ .  ≜  . (Immutable-HashTable $:K (Pairof R (℘ Err))))
+(#|Result         |# R .  ≜  . (Immutable-HashTable W (℘ ΔΣ)))
+(#|Decisions      |# Dec . ::= . '✓ '✗)
+(#|Maybe Decisions|# ?Dec . ≜ . (Option Dec))
+(#|Call Edge      |# K .  ≜  . (Pairof ℓ ℓ))
+(#|Addresses      |# α . ::= . γ (α:dyn β H))
+(#|Static Addrs   |# γ . ::= . (γ:lex Symbol)
+                               (γ:top -𝒾)
+                               (γ:wrp -𝒾)
+                               (γ:hv HV-Tag)
+                               ;; Only use this in the prim DSL where all values are finite
+                               ;; with purely syntactic components
+                               γ:imm*
+                               ;; Escaped struct field
+                               (γ:escaped-field -𝒾 Index)) 
+(#|Immediate Addrs|# γ:imm* . ::= . (γ:imm #|restricted|# V)
+                               (γ:imm:blob (Vectorof V^) ℓ)
+                               (γ:imm:blob:st (Vectorof V^) ℓ -𝒾)
+                               (γ:imm:listof     Symbol #|elem, ok with care|# V ℓ))
+(#|Addr. Bases    |# β . ::= . ; escaped parameter
+                               (β:esc Symbol ℓ)
+                               ; mutable cell
+                               (β:mut (U Symbol -𝒾))
+                               ; struct field
+                               (β:st-elems (U ℓ Ctx (Pairof (U ℓ Symbol) (Option Index))) -𝒾)
+                               ; for varargs
+                               (β:var:car (U ℓ Symbol) (Option Natural))
+                               (β:var:cdr (U ℓ Symbol) (Option Natural))
+                               ;; for wrapped mutable struct
+                               (β:st -𝒾 Ctx)
+                               ;; for vector content blob
+                               (β:vect-elems ℓ Index)
+                               ;; for vect-of content
+                               (β:vct ℓ)
+                               ;; for hash-of content
+                               (β:hash:key ℓ)
+                               (β:hash:val ℓ)
+                               ;; for set-of content
+                               (β:set:elem ℓ)
+                               ;; for wrapped vector
+                               (β:unvct Ctx)
+                               ;; for wrapped hash
+                               (β:unhsh Ctx ℓ)
+                               ;; for wrapped set
+                               (β:unset Ctx ℓ)
+                               ;; for contract components
+                               (β:and/c:l ℓ)
+                               (β:and/c:r ℓ)
+                               (β:or/c:l ℓ)
+                               (β:or/c:r ℓ)
+                               (β:not/c ℓ)
+                               (β:rec/c ℓ)
+                               (β:vect/c-elems ℓ Index)
+                               (β:vectof ℓ)
+                               (β:hash/c:key ℓ)
+                               (β:hash/c:val ℓ)
+                               (β:set/c:elem ℓ)
+                               (β:st/c-elems ℓ -𝒾)
+                               (β:dom ℓ)
+                               ;; for wrapped function
+                               (β:fn Ctx Fn/C-Sig)
+                               ;; For values wrapped in seals
+                               (β:sealed Symbol ℓ) ; points to wrapped objects
+                               )
+(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
+                                   ($:Key:Mon Σ Ctx V V^)
+                                   ($:Key:Fc Σ ℓ V V^)
+                                   ($:Key:App Σ ℓ V W)
+                                   ($:Key:Hv Σ α))
+(#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
+(#|Cardinalities  |# N . ::= . 0 '? 1 'N)
+(#|Havoc Tags     |# HV-Tag . ≜ . (Option -l))
+(#|Mon. Contexts  |# Ctx . ::= . (Ctx [pos : -l] [neg : -l] [origin : ℓ] [site : ℓ]))
+(#|Cache Tags     |# $:Tag . ::= . 'app 'mon 'flc)
+(#|Abstract Values|# V^ . ≜ . (℘ V))
+(#|Abs. Val. Lists|# W^ . ≜ . (℘ W))
+(#|Dynamic Context|# H  . ≜ . (℘ ℓ))
+(#|Function Contract Signature|# Fn/C-Sig . ::= . [#:reuse (Pairof -formals (Option (Listof Symbol)))]
+                                                  [#:reuse (Listof Fn/C-Sig)])
+
+;; Size-change Stuff
+(#|Size-change Graphs|# SCG . ≜ . (Immutable-HashTable (Pairof Integer Integer) Ch))
+(#|Changes           |# Ch . ::= . '↓ '↧)
+
+(Renamings . ≜ . (Immutable-HashTable α (Option T)))
+
+(define-interner $:K $:Key
+  #:intern-function-name intern-$:Key
+  #:unintern-function-name unintern-$:Key)
+
+(define ⊥R : R (hash))
+(define H₀ : H ∅eq)
+(define ⊥Σ : Σ (hash))
+(define ⊥ΔΣ : ΔΣ (hash))
+(define ⊥$ : $ (hasheq))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Stores
+;;;;; Signatures
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-type -σ (Immutable-HashTable ⟪α⟫ (℘ -V)))
-(define-type -σₖ (Immutable-HashTable -αₖ (℘ -κ)))
-(define-type -M (Immutable-HashTable -αₖ (℘ -ΓA)))
-(define-type -𝒜 (Immutable-HashTable ⟪α⟫ (℘ -loc)))
-
-(struct -κ ([rest : -⟦k⟧]) #:transparent)
-(struct -κ.rt -κ ([dom : (℘ Symbol)] [pc : -Γ] [ans : -?t] [looped? : Boolean]) #:transparent)
-
-;; Grouped mutable references to stores
-(struct -Σ ([σ : -σ] [σₖ : -σₖ] [M : -M] [𝒜 : -𝒜]) #:mutable #:transparent)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Runtime Values
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(-V . ::= . -prim
-            (-● (℘ -h))
-            (-St -𝒾 (Listof ⟪α⟫))
-            (-Vector (Listof ⟪α⟫))
-            (-Vector^ [content : ⟪α⟫] [length : #|restricted|# -V])
-            (-Hash^ [key : ⟪α⟫] [val : ⟪α⟫] [immutable? : Boolean])
-            (-Set^ [elems : ⟪α⟫] [immutable? : Boolean])
-            -Fn
-            
-            ;; Proxied higher-order values
-            ;; Inlining the contract in the data definition is ok
-            ;; because there's no recursion
-            (-Ar [guard : -=>_] [v : ⟪α⟫] [ctx : -ctx])
-            (-St* [guard : -St/C] [val : ⟪α⟫] [ctx : -ctx])
-            (-Vector/guard [guard : (U -Vector/C -Vectorof)] [val : ⟪α⟫] [ctx : -ctx])
-            (-Hash/guard [guard : -Hash/C] [val : ⟪α⟫] [ctx : -ctx])
-            (-Set/guard [guard : -Set/C] [val : ⟪α⟫] [ctx : -ctx])
-            (-Sealed ⟪α⟫)
-            
-            -C)
-
-(-Fn . ::= . (-Clo -formals -⟦e⟧ -ρ -Γ)
-             (-Case-Clo [cases : (Listof -Clo)])
-             (-Fn● [arity : Arity]))
-
-;; Contract combinators
-(-C . ::= . (-And/C [flat? : Boolean]
-                    [l : -⟪α⟫ℓ]
-                    [r : -⟪α⟫ℓ])
-            (-Or/C [flat? : Boolean]
-                   [l : -⟪α⟫ℓ]
-                   [r : -⟪α⟫ℓ])
-            (-Not/C -⟪α⟫ℓ)
-            (-One-Of/C (Setof Base))
-            (-x/C [c : ⟪α⟫])
-            ;; Guards for higher-order values
-            -=>_
-            (-St/C [flat? : Boolean]
-                   [id : -𝒾]
-                   [fields : (Listof -⟪α⟫ℓ)])
-            (-Vectorof -⟪α⟫ℓ)
-            (-Vector/C (Listof -⟪α⟫ℓ))
-            (-Hash/C [key : -⟪α⟫ℓ] [val : -⟪α⟫ℓ])
-            (-Set/C [elems : -⟪α⟫ℓ])
-            ;; Seal
-            (-Seal/C Symbol -⟪ℋ⟫ -l)
-
-            ;;
-            ->/c -≥/c -</c -≤/c -≢/c
-            )
-
-;; Function contracts
-(-=>_ . ::= . (-=>  [doms : (-maybe-var -⟪α⟫ℓ)] [rng : (U (Listof -⟪α⟫ℓ) 'any)])
-              (-=>i [doms : (Listof -⟪α⟫ℓ)]
-                    [mk-rng : (List -Clo -λ ℓ)])
-              (-∀/C (Listof Symbol) -⟦e⟧ -ρ)
-              (-Case-> (Listof -=>)))
-
-(struct -blm ([violator : -l]
-              [origin : -l]
-              [c : (Listof (U -V -v -h))]
-              [v : (Listof -V)]
-              [loc : ℓ]) #:transparent)
-(struct -W¹ ([V : -V] [t : -?t]) #:transparent)
-(struct -W ([Vs : (Listof -V)] [t : -?t]) #:transparent)
-(-A . ::= . -W -blm)
-(struct -ΓA ([cnd : -Γ] [ans : -A]) #:transparent)
-
-(struct -⟪α⟫ℓ ([addr : ⟪α⟫] [loc : ℓ]) #:transparent)
-
-;; Convenient patterns
-(define-match-expander -Cons
-  (syntax-rules () [(_ αₕ αₜ) (-St (== -𝒾-cons) (list αₕ αₜ))])
-  (syntax-rules () [(_ αₕ αₜ) (-St -𝒾-cons      (list αₕ αₜ))]))
-(define-match-expander -Cons*
-  (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-cons) _) α _)]))
-(define-match-expander -Box
-  (syntax-rules () [(_ α) (-St (== -𝒾-box) (list α))])
-  (syntax-rules () [(_ α) (-St -𝒾-box      (list α))]))
-(define-match-expander -Box*
-  (syntax-rules () [(_ α) (-St* (-St/C _ (== -𝒾-box) _) α _)]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Monitoring contexts
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(struct -ctx ([pos : -l] [neg : -l] [src : -l] [loc : ℓ]) #:transparent)
-
-(define ctx-neg : (-ctx → -ctx)
-  (match-lambda
-    [(-ctx l+ l- lo ℓ)
-     (-ctx l- l+ lo ℓ)]))
-(define ctx-with-ℓ : (-ctx ℓ → -ctx)
-  (match-lambda**
-   [((-ctx l+ l- lo _) ℓ) (-ctx l+ l- lo ℓ)]))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Symbols and Path Conditions
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(-loc . ::= . ;; references
-              Symbol -𝒾
-              ;; struct field or vector access with concrete offset
-              (-loc.offset (U -𝒾 Symbol) Index -t)
-              )
-
-(define-type -$ (Immutable-HashTable -loc -t))
-(define-type -δ$ (Immutable-HashTable -loc -?t))
-
-;; Path condition is set of terms known to have evaluated to non-#f
-;; It also maintains a "canonicalized" symbolic name for each variable
-(define-type -Γ (℘ -t))
-
-;; First order term for use in path-condition
-(-t . ::= . (-t.x Symbol)
-            -𝒾
-            -v
-            ℓ ; RHS
-            (-t.@ -h (Listof -t)))
-;; Formula "head" is either a primitive operation or a stack address
-(-h . ::= . -t ; TODO restrict
-            ;; Hacky stuff
-            -One-Of/C
-            (-st/c.mk -𝒾)
-            (-st/c.ac -𝒾 Index)
-            (-->i.mk)
-            (-->i.dom Index)
-            (-->i.rng)
-            (-->.mk)
-            (-->*.mk)
-            (-->.dom Index)
-            (-->.rst)
-            (-->.rng)
-            (-ar.mk)
-            (-ar.ctc)
-            (-ar.fun)
-            (-values.ac Index)
-            (-≥/c Base)
-            (-≤/c Base)
-            (->/c Base)
-            (-</c Base)
-            (-≡/c Base)
-            (-≢/c Base)
-            (-not/c -o)
-            (-clo -⟦e⟧))
-(-?t . ::= . -t #f)
-
-(-special-bin-o . ::= . '> '< '>= '<= '= 'equal? 'eqv? 'eq? #|made up|# '≢)
-
-(define-match-expander -not/c/simp
-  (syntax-rules ()
-    [(_ p) (-not/c p)])
-  (syntax-rules ()
-    [(_ p) (case p
-             [(negative?) (-≥/c 0)]
-             [(    zero?) (-≢/c 0)]
-             [(positive?) (-≤/c 0)]
-             [else (-not/c p)])]))
-
-;; convenient syntax
-(define-match-expander -t.not
-  (syntax-rules () [(_ t) (-t.@ 'not (list t))])
-  (syntax-rules () [(_ t) (and t (-t.@ 'not (list t)))]))
-
-(define-simple-macro (with-Γ+/- ([(Γ₁:id Γ₂:id) e])
-                       #:true  e₁
-                       #:false e₂)
-  (let-values ([(Γ₁ Γ₂) e])
-    (∪ (if Γ₁ e₁ ∅)
-       (if Γ₂ e₂ ∅))))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Call history
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-type -edge.tgt (U -⟦e⟧ -o -?t -h ℓ (-maybe-var ℓ) (Listof -edge.tgt) (℘ Base)))
-(struct -edge ([tgt : -edge.tgt] [src : ℓ]) #:transparent)
-(define-type -ℋ (Listof -edge))
-(define-interner -⟪ℋ⟫ -ℋ
-  #:intern-function-name -ℋ->-⟪ℋ⟫
-  #:unintern-function-name -⟪ℋ⟫->-ℋ)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Value address
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Some address values have `e` embeded in them.
-;; This used to be a neccessary precision hack.
-;; Nowaways it's just a temporary fix for the inaccurate source location returned
-;; by `fake-contract`
-(-α . ::= . ; For wrapped top-level definition
-            (-α.wrp -𝒾)
-            ; for binding
-            (-α.x Symbol -⟪ℋ⟫)
-            (-α.fv -⟪ℋ⟫)
-            ; for struct field
-            (-α.fld [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            ; for Cons/varargs
-            ; idx prevents infinite list
-            (-α.var-car [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
-            (-α.var-cdr [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : (Option Natural)])
-
-            ;; for wrapped mutable struct
-            (-α.st [id : -𝒾] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
-
-            ;; for vector indices
-            (-α.idx [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            
-            ;; for vector^ content
-            (-α.vct [loc : ℓ] [ctx : -⟪ℋ⟫])
-
-            ;; for hash^ content
-            (-α.hash.key [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash.val [loc : ℓ] [ctx : -⟪ℋ⟫])
-
-            ;; for set^ content
-            (-α.set.elem [loc : ℓ] [ctx : -⟪ℋ⟫])
-
-            ;; for wrapped vector
-            (-α.unvct [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
-
-            ;; for wrapped hash
-            (-α.unhsh [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
-
-            ;; for wrapped set
-            (-α.unset [mon-ctx : -ctx] [ctx : -⟪ℋ⟫])
-
-            ;; for contract components
-            (-α.and/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.and/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-l [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.or/c-r [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.not/c [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.x/c Symbol -⟪ℋ⟫)
-            (-α.vector/c [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.vectorof [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-key [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.hash/c-val [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.set/c-elem [loc : ℓ] [ctx : -⟪ℋ⟫])
-            (-α.struct/c [id : -𝒾] [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.dom [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-            (-α.rst [loc : ℓ] [ctd : -⟪ℋ⟫])
-            (-α.rng [loc : ℓ] [ctx : -⟪ℋ⟫] [idx : Natural])
-
-            ;; for wrapped function
-            (-α.fn [sym : (Option -⟦e⟧)] [mon-ctx : -ctx] [ctx : -⟪ℋ⟫] [pc : -Γ])
-
-            ;; For values wrapped in seals
-            (-α.sealed Symbol -⟪ℋ⟫) ; points to wrapped objects
-
-            ;; HACK
-            (-α.hv)
-            (-α.mon-x/c Symbol -⟪ℋ⟫ -l)
-            (-α.fc-x/c Symbol -⟪ℋ⟫)
-            -𝒾
-            ;; tmp hack.
-            ;; Only use this in the prim DSL where all values are finite
-            ;; with purely syntactic components
-            (-α.imm -V)
-            ;; indirection for `listof` to keep in-sync with regular listof contracts
-            (-α.imm-listof Symbol #|elem, ok with care|# -V ℓ)
-            (-α.imm-ref-listof Symbol #|elem, ok with care|# -V ℓ)
-            )
-
-(-α.rec-ref . ::= . -α.x/c -α.imm-listof)
-
-(define-interner ⟪α⟫ -α
-  #:intern-function-name -α->⟪α⟫
-  #:unintern-function-name ⟪α⟫->-α)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Compiled expression
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; A computation returns set of next states
-;; and may perform side effects widening mutable store(s)
-(define-type -⟦e⟧ (-ρ -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-(define-type -⟦k⟧ (-A -$ -Γ -⟪ℋ⟫ -Σ     → (℘ -ς)))
-(define-type -⟦f⟧ (ℓ (Listof -W¹) -$ -Γ -⟪ℋ⟫ -Σ -⟦k⟧ → (℘ -ς)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; State
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Configuration
-(struct -ς ([block : -αₖ]) #:transparent)
-#|block start |# (struct -ς↑ -ς () #:transparent)
-#|block return|# (struct -ς↓ -ς ([cache : -$] [pc : -Γ] [ans : -A]) #:transparent)
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Blocks
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Stack-address / Evaluation "check-point"
-(struct -αₖ ([cache : -$] [ctx : -⟪ℋ⟫]) #:transparent)
-(struct -ℬ -αₖ ([var : -formals] [exp : -⟦e⟧] [env : -ρ] [pc : -Γ]) #:transparent)
-(struct -ℳ -αₖ ([ctx : -ctx] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Contract monitoring
-(struct -ℱ -αₖ ([l : -l] [loc : ℓ] [ctc : -W¹] [val : -W¹] [pc : -Γ]) #:transparent) ; Flat checking
-(struct -ℋ𝒱 -αₖ () #:transparent) ; Havoc
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;;; Verification Result
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(-R . ::= . '✓ '✗ '?)
-
-;; Take the first definite result
-(define-syntax first-R
-  (syntax-rules ()
-    [(_) '?]
-    [(_ R) R]
-    [(_ R₁ R ...)
-     (let ([ans R₁])
-       (case ans
-         ['? (first-R R ...)]
-         [else ans]))]))
-
-(: not-R : -R → -R)
-;; Negate provability result
-(define (not-R R)
-  (case R [(✓) '✗] [(✗) '✓] [else '?]))
-
-(: boolean->R : Boolean → (U '✓ '✗))
-(define (boolean->R x) (if x '✓ '✗))
-
-
-(define-signature env^
-  ([⊥ρ : -ρ]
-   [ρ@ : (-ρ Symbol → ⟪α⟫)]
-   [ρ+ : (-ρ Symbol ⟪α⟫ → -ρ)]
-   [-x-dummy : Symbol]))
 
 (define-signature sto^
-  ([⊥σ : -σ]
-   [σ@ : ((U -Σ -σ) ⟪α⟫ → (℘ -V))]
-   [σ@¹ : ((U -Σ -σ) ⟪α⟫ → -V)]
-   [σ@/list : ((U -Σ -σ) (Listof ⟪α⟫) → (℘ (Listof -V)))]
-   [defined-at? : ((U -Σ -σ) ⟪α⟫ → Boolean)]
-   [σ-remove! : (-Σ ⟪α⟫ -V → Void)]
-   [⊥σₖ : -σₖ]
-   [σₖ@ : ((U -Σ -σₖ) -αₖ → (℘ -κ))]
-   [⊥M : -M]
-   [M@ : ((U -Σ -M) -αₖ → (℘ -ΓA))]
-   [⟪α⟫ₕᵥ : ⟪α⟫]
-   [⟪α⟫ₒₚ : ⟪α⟫]
-   [⊤$ : -$]
-   [⊤$* : -δ$]
-   [$-set : (-$ -loc -?t → -$)]
-   [$-set* : (-$ (Listof -loc) (Listof -?t) → -$)]
-   [$-set! : (-Σ -$ ⟪α⟫ -loc -?t → -$)]
-   [$-del : (-$ -loc → -$)]
-   [$-del* : (-$ (Sequenceof -loc) → -$)]
-   [$@! : (-Σ -Γ ⟪α⟫ -$ -loc ℓ → (Values (℘ -W¹) -$))]
-   [$-extract : (-$ (Sequenceof -loc) → -δ$)]
-   [$-restore : (-$ -δ$ → -$)]
-   [$↓ : (-$ (℘ -loc) → -$)]
-   [$-cleanup : (-$ → -$)]
-   [$-symbolic-names : (-$ → (℘ Symbol))]
-   [⊥𝒜 : -𝒜]
-   [get-aliases : (-Σ ⟪α⟫ → (℘ -loc))]
-   [hack:α->loc : (⟪α⟫ → (Option -loc))]
+  ([⧺ : (ΔΣ ΔΣ * → ΔΣ)]
+   [lookup : (γ Σ → V^)]
+   [Σ@ : (α Σ → V^)]
+   [Σ@/raw : (α Σ → S)]
+   [Σ@/blob : (α Σ → (Vectorof V^))]
+   [V@ : (Σ -st-ac V → V^)]
+   [unpack : ((U V V^) Σ → V^)]; lookup with provings to eliminate spurious results
+   [unpack-W : (W Σ → W)]
+   [alloc : (α S → ΔΣ)]
+   [alloc-lex : ((U Symbol -𝒾) V^ → ΔΣ)]
+   [alloc-lex* : ((Listof (U Symbol -𝒾)) W → ΔΣ)]
+   [alloc-vararg : (Symbol W → ΔΣ)]
+   [alloc-rest : ([(U Symbol ℓ) W] [#:tail V^] . ->* . (Values V^ ΔΣ))]
+   [resolve-lex : ((U Symbol -𝒾) → α)]
+   [mut : (α S Σ → ΔΣ)]
+   [ΔΣ⊔ : (ΔΣ ΔΣ → ΔΣ)]
+   [escape : (ℓ (℘ Symbol) Σ → ΔΣ)]
+   [stack-copy : ((℘ α) Σ → ΔΣ)]
+   [ambiguous? : (T Σ → Boolean)]
+   [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
+   [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
    ))
+
+(define-signature cache^
+  ([R-of : ([(U V V^ W)] [ΔΣ] . ->* . R)]
+   [ΔΣ⧺R : (ΔΣ R → R)]
+   [R⧺ΔΣ : (R ΔΣ → R)]
+   [collapse-R : (R → (Option (Pairof W^ ΔΣ)))]
+   [collapse-R/ΔΣ : (R → (Option ΔΣ))]
+   [R⊔ : (R R → R)]))
 
 (define-signature val^
-  ([+● : (-h * → -●)]
-   [+W¹ : ([-prim] [-?t] . ->* . -W¹)]
-   [+W : ([(Listof -prim)] [-?t] . ->* . -W)]
-   [W¹->W : (-W¹ → -W)]
-   [W->W¹s : (-W -> (Listof -W¹))]
-   [C-flat? : (-V → Boolean)]
-   [with-negative-party : (-l -V → -V)]
-   [with-positive-party : (-l -V → -V)]
-   [behavioral? : (-σ -V → Boolean)]
-   [guard-arity : (-=>_ → Arity)]
-   [blm-arity : (ℓ -l Arity (Listof -V) → -blm)]
-   [strip-C : (-V → -edge.tgt)]
-   [predicates-of-V : (-V → (℘ -h))]
+  ([collapse-W^ : (W^ → W)]
+   [collapse-W^-by-arities : (W^ → (Immutable-HashTable Natural W))] 
+   #;[V/ : (S → V → V)]
+   [W⊔ : (W W → W)]
+   [V⊔ : (V^ V^ → V^)]
+   [V⊔₁ : (V V^ → V^)]
+   [Ctx-with-site : (Ctx ℓ → Ctx)]
+   [Ctx-with-origin : (Ctx ℓ → Ctx)]
+   [Ctx-flip : (Ctx → Ctx)]
+   [C-flat? : (V Σ → Boolean)]
+   [C^-flat? : (V^ Σ → Boolean)]
+   [arity : (V → (Option Arity))]
+   [guard-arity : (Fn/C → Arity)]
+   [with-negative-party : (-l V → V)]
+   [with-positive-party : (-l V → V)]
+   [make-renamings : ((U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)]
+   [rename : (Renamings → (case->
+                           [T → (Option T)]
+                           [(U T -b) → (Option (U T -b))]))]
+   [T-root : (T:@ → (℘ α))]
+   [ac-Ps : (-st-ac (℘ P) → (℘ P))]
+   [merge/compact  : (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X))]
+   [merge/compact₁ : (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X))]
+   [Vect/C-fields : (Vect/C → (Values α ℓ Index))]
+   [St/C-fields : (St/C → (Values α ℓ -𝒾))]
+   [St/C-tag : (St/C → -𝒾)]
+   [Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))]
    ))
 
-(define-signature pc^
-  ([⊤Γ : -Γ]
-   [Γ↓ : (-Γ (℘ Symbol) → -Γ)]
-   [t-contains? : (-t -t → Boolean)]
-   [t-contains-any? : (-t (℘ -t) → Boolean)]
-   [bin-o->h : (-special-bin-o → Base → -h)]
-   [flip-bin-o : (-special-bin-o → -special-bin-o)]
-   [neg-bin-o : (-special-bin-o → -special-bin-o)]
-   [complement? : (-t -t →  Boolean)]
-   ;; simp
-   [?t@ : ((Option -h) -?t * → -?t)]
-   [op-≡? : (Any → Boolean)]
-   ;; split
-   [-struct/c-split : (-?t -𝒾 → (Listof -?t))]
-   [-struct-split : (-?t -𝒾 → (Listof -?t))]
-   [-ar-split : (-?t → (Values -?t -?t))]
-   [-->-split : (-?t (U Index arity-at-least) → (Values (-maybe-var -?t) -?t))]
-   [-->i-split : (-?t Index → (Values (Listof -?t) -?t))]
-   [split-values : (-?t Natural → (Listof -?t))]
-   ;; constr
-   [-?list : ((Listof -?t) → -?t)]
-   [-?unlist : (-?t Natural → (Listof -?t))]
-   [-app-split : (-h -?t Natural → (Listof -?t))]
-   [-?-> : ((-maybe-var -?t) -?t → -?t)]
-   [-?->i : ((Listof -?t) (Option -λ) → -?t)]
-   ;; path-cond
-   [predicates-of : (-Γ -?t → (℘ -h))]
-   [fvₜ : (-?t → (℘ Symbol))]
-   ))
-
-(define-signature instr^
-  ([⟪ℋ⟫∅ : -⟪ℋ⟫]
-   [⟪ℋ⟫+ : (-⟪ℋ⟫ -edge → (Values -⟪ℋ⟫ Boolean))]
+(define-signature prover^
+  ([sat : (Σ V V^ → ?Dec)]
+   [P⊢P : (Σ V V → ?Dec)]
+   [refine-Ps : ((℘ P) V Σ → (℘ P))]
+   [maybe=? : (Σ Integer V^ → Boolean)]
+   [check-plaus : (Σ V W → (Values (Option (Pairof W ΔΣ)) (Option (Pairof W ΔΣ))))]
+   [refine : (V^ (U V (℘ P)) Σ → (Values V^ ΔΣ))]
+   [refine-not : (V^ V Σ → (Values V^ ΔΣ))]
+   [reify : ((℘ P) → V^)]
    ))
 
 (define-signature pretty-print^
-  ([show-ς : (-ς → Sexp)]
-   [show-σ : (-σ → (Listof Sexp))]
-   [show-M : (-M → (Listof Sexp))]
-   [show-h : (-h → Sexp)]
-   [show-t : (-?t → Sexp)]
-   [show-Γ : (-Γ → (Listof Sexp))]
-   [show-$ : (-$ → (Listof Sexp))]
-   [show-δ$ : (-δ$ → (Listof Sexp))]
-   [show-σₖ : (-σₖ → (Listof Sexp))]
-   [show-blm-reason : ((U -V -v -h) → Sexp)]
-   [show-V : (-V → Sexp)]
-   [show-⟪α⟫ℓ : (-⟪α⟫ℓ → Symbol)]
-   [show-⟪α⟫ℓs : ((Listof -⟪α⟫ℓ) → Sexp)]
-   [show-ΓA : (-ΓA → Sexp)]
-   [show-A : (-A → Sexp)]
-   [show-W¹ : (-W¹ → Sexp)]
-   [show-⟦e⟧ : (-⟦e⟧ → Sexp)]
-   [show-αₖ : (-αₖ → Sexp)]
-   [show-edge : (-edge → Sexp)]
-   [show-⟪ℋ⟫ : (-⟪ℋ⟫ → Sexp)]
-   [show-⟪α⟫ : (⟪α⟫ → Sexp)]
-   [show-κ : (-κ → Sexp)]
-   [show-ρ : (-ρ → (Listof Sexp))]
-   [show-loc : (-loc → Sexp)]
-   [remember-e! : (-e -⟦e⟧ → -⟦e⟧)]
-   [recall-e : (-⟦e⟧ → (Option -e))]
-   [verbose? : (Parameterof Boolean)]
-   ))
+  ([show-α : (α → Sexp)]
+   [show-V : (V → Sexp)]
+   [show-S : (S → Sexp)]
+   [show-V^ : (V^ → Sexp)]
+   [show-W : (W → (Listof Sexp))]
+   [show-Σ : (Σ → (Listof Sexp))]
+   [show-Dom : (Dom → Sexp)]
+   [show-R : (R → (Listof Sexp))]
+   [show-Err : (Err → Sexp)]
+   [show-$:Key : ($:Key → Sexp)]
+   [print-blames : ((℘ Err) → Void)]))

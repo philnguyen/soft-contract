@@ -19,6 +19,7 @@
                      racket/syntax
                      syntax/parse)
          (for-template racket/base
+                       racket/string
                        racket/flonum
                        racket/extflonum
                        racket/fixnum
@@ -27,6 +28,8 @@
                        racket/generator
                        racket/dict
                        racket/set
+                       (only-in (submod (lib "typed-racket/private/type-contract.rkt") predicates) nonnegative?)
+                       (only-in typed/racket/base index?)
                        (prefix-in z: compiler/decompile)
                        (prefix-in z: compiler/zo-parse)
                        (prefix-in z: compiler/zo-marshal)
@@ -41,6 +44,7 @@
 
 (define-syntax-class c
   #:description "restricted contract"
+  (pattern (~and _:id (~not (~literal any)))) ; only used for seals
   (pattern _:fc)
   (pattern _:hc)
   (pattern _:mc))
@@ -86,7 +90,6 @@
 
 (define-syntax-class fc
   #:description "restricted first-order contract"
-  (pattern (~and x:id (~not (~literal any)))) ; only used for seals
   (pattern _:o)
   (pattern _:lit)
   (pattern ((~literal not/c) _:fc))
@@ -151,6 +154,7 @@
                 (~literal single-flonum?)
                 (~literal boolean?)
                 (~literal path-string?)
+                (~literal non-empty-string?)
                 (~literal string?)
                 (~literal symbol?)
                 (~literal keyword?)
@@ -163,11 +167,14 @@
                 (~literal byte?)
                 (~literal bytes?)
                 (~literal complex?)
+                (~literal index?)
+                (~literal nonnegative?)
                 (~literal float-complex?)
                 (~literal extflonum?)
                 (~literal flvector?)
                 (~literal extflvector?)
                 (~literal fxvector?)
+                (~literal exact-rational?)
                 (~literal sequence?)
                 (~literal pseudo-random-generator?)
                 (~literal pseudo-random-generator-vector?)
@@ -180,6 +187,7 @@
                 (~literal output-port?)
                 (~literal port?)
                 (~literal path?)
+                (~literal path-for-some-system?)
                 (~literal pair?)
                 (~literal list?)
                 (~literal placeholder?)
@@ -299,66 +307,10 @@
   (pattern _:fc)
   (pattern ((~literal values) _:fc _:fc _:fc ...)))
 
-(define base?
-  ;; Ones that fit in implementation's `Base`
-  (syntax-parser
-    [(~or (~literal not)
-          (~literal fixnum?)
-          (~literal integer?)
-          (~literal rational?)
-          (~literal real?)
-          (~literal number?)
-          (~literal positive?)
-          (~literal negative?)
-          (~literal zero?)
-          (~literal exact?)
-          (~literal inexact?)
-          (~literal inexact-real?)
-          (~literal exact-integer?)
-          (~literal exact-positive-integer?)
-          (~literal exact-nonnegative-integer?)
-          (~literal exact-integer?)
-          (~literal flonum?)
-          (~literal single-flonum?)
-          (~literal boolean?)
-          (~literal path-string?)
-          (~literal string?)
-          (~literal symbol?)
-          (~literal keyword?)
-          (~literal char?)
-          (~literal null?)
-          (~literal void?)
-          (~literal eof-object?)
-          (~literal immutable?)
-          (~literal byte?)
-          (~literal bytes?)
-          (~literal complex?)
-          (~literal float-complex?)
-          (~literal extflonum?)
-          (~literal regexp?)
-          (~literal pregexp?)
-          (~literal byte-regexp?)
-          (~literal byte-pregexp?)
-          (~literal path?))
-     #t]
-    [_ #f]))
-
 (define for-TR
   (syntax-parser
     [(~literal integer?) #'exact-nonnegative-integer?]
     [o #'o]))
-
-(define c-flat?
-  (syntax-parser
-    [_:fc #t]
-    [((~or (~literal and/c)
-           (~literal or/c)
-           (~literal list/c)
-           (~literal listof)
-           (~literal cons/c))
-      c ...)
-     (andmap c-flat? (syntax->list #'(c ...)))]
-    [_ #f]))
 
 (define/contract in-syntax-list (syntax? . -> . sequence?) (compose in-list syntax->list))
 

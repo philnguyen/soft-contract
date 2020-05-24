@@ -9,22 +9,23 @@
          "../utils/list.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "../execution/signatures.rkt"
          "signatures.rkt"
          "def.rkt")
 
 (define-unit prims-10@
-  (import prim-runtime^ pc^)
+  (import prim-runtime^
+          exec^)
   (export)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 10.1 Multiple Values
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  (def (values ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+  (def (values Σ ℓ W)
     #:init ()
-    #:rest (Ws (listof any/c))
-    (define-values (Vs ss) (unzip-by -W¹-V -W¹-t Ws))
-    (⟦k⟧ (-W Vs (apply ?t@ 'values ss)) $ Γ ⟪ℋ⟫ Σ))
+    #:rest [W (listof any/c)]
+    (just W))
   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -47,6 +48,7 @@
                       [position (or/c #f exact-positive-integer?)]
                       [span (or/c #f exact-nonnegative-integer?)])
     #:extra-constructor-name make-srcloc)
+  (def srcloc->string (srcloc? . -> . (or/c #f string?)))
 
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

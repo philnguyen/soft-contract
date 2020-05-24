@@ -48,7 +48,8 @@
   (def gensym
     (case->
      [-> symbol?]
-     [(or/c string? symbol?) . -> . symbol?]))
+     [(or/c string? symbol?) . -> . symbol?])
+    #:volatile? #t)
   (def-pred symbol<? (symbol? symbol?))
   
   )

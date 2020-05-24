@@ -24,6 +24,7 @@
          syntax/parse/define
          set-extras
          "../utils/debug.rkt"
+         (submod (lib "typed-racket/private/type-contract.rkt") predicates)
          (except-in "../ast/signatures.rkt" normalize-arity arity-includes?)
          "signatures.rkt"
          "def.rkt"
@@ -60,7 +61,9 @@
   (def-pred odd? (integer?))
   (def-pred exact? (number?))
   (def-pred inexact? (number?))
-  (def inexact->exact (number? . -> . exact?))
+  (def inexact->exact (number? . -> . exact?)
+    #:refinements
+    (real? . -> . exact-rational?))
   (def exact->inexact (number? . -> . inexact?)
     #:refinements
     (real? . -> . real?)
@@ -74,13 +77,18 @@
   (def +
     (() #:rest (listof number?)  . ->* . number?)
     #:refinements
+    ((exact-positive-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-positive-integer?)
     (() #:rest (listof exact-positive-integer?) . ->* . exact-positive-integer?)
     (() #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
     (() #:rest (listof exact-integer?) . ->* . exact-integer?)
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
+    (() #:rest (listof (>/c 0)) . ->* . (>/c 0))
     (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
-    #;(() #:rest (listof (not/c positive?)) . ->* . (not/c positive?)))
+    (() #:rest (listof (not/c positive?)) . ->* . (not/c positive?))
+    (() #:rest (listof nonnegative?) . ->* . nonnegative?)
+    (() #:rest (listof exact-rational?) . ->* . exact-rational?)
+    #:volatile? #f)
   (def - ((number?) #:rest (listof number?) . ->* . number?)
     #:refinements
     (exact-positive-integer? (=/c 1) . -> . exact-nonnegative-integer?)
@@ -88,7 +96,9 @@
     ((integer?) #:rest (listof integer?) . ->* . integer?)
     ((real?) #:rest (listof real?) . ->* . real?)
     (((<=/c 0)) #:rest (listof (>=/c 0)) . ->* . (<=/c 0))
-    (((>=/c 0)) #:rest (listof (<=/c 0)) . ->* . (>=/c 0)))
+    (((>=/c 0)) #:rest (listof (<=/c 0)) . ->* . (>=/c 0))
+    ((exact-rational?) #:rest (listof exact-rational?) . ->* . exact-rational?)
+    #:volatile? #f)
 
   (def *
     (() #:rest (listof number?) . ->* . number?)
@@ -99,13 +109,22 @@
     (() #:rest (listof integer?) . ->* . integer?)
     (() #:rest (listof real?) . ->* . real?)
     (() #:rest (listof (>=/c 1)) . ->* . (>=/c 1))
-    (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0)))
+    (() #:rest (listof (>=/c 0)) . ->* . (>=/c 0))
+    (() #:rest (listof exact-rational?) . ->* . exact-rational?)
+    #:volatile? #f)
   (def / ((number?) #:rest (listof (and/c number? (or/c inexact? (not/c zero?)))) . ->* . number?)
     #:refinements
     ((real?) #:rest (listof real?) . ->* . real?)
-    (((not/c zero?)) #:rest list? . ->* . (not/c zero?)))
+    (((not/c zero?)) #:rest list? . ->* . (not/c zero?))
+    (even? (=/c 2) . -> . exact-integer?)
+    ((exact-rational?) #:rest (listof exact-rational?) . ->* . exact-rational?)
+    #:volatile? #f)
   (def* (quotient remainder modulo) ; FIXME: only error on exact 0
-    (integer? (and/c integer? (not/c zero?)) . -> . integer?))
+    (integer? (and/c integer? (not/c zero?)) . -> . integer?)
+    #:refinements
+    (exact-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?)
+    (exact-integer? exact-integer? . -> . exact-integer?)
+    (integer? exact-nonnegative-integer? . -> . (>=/c 0)))
   (def quotient/remainder
     (integer? (and/c integer? (not/c zero?)) . -> . (values integer? integer?)))
   (def add1
@@ -118,16 +137,16 @@
     (exact-nonnegative-integer? . -> . exact-positive-integer?)
     (exact-positive-integer? . -> . exact-positive-integer?)
     (exact-integer? . -> . exact-integer?)
-    ((not/c negative?) . -> . positive?)
-    (positive? . -> . positive?))
+    ((>=/c 0) . -> . (>/c 0))
+    #:volatile? #f)
   (def sub1
     (number? . -> . number?)
     #:refinements
     (exact-positive-integer? . -> . exact-nonnegative-integer?)
-    (exact-nonnegative-integer? . -> . exact-integer?)
     (exact-integer? . -> . exact-integer?)
     (integer? . -> . integer?)
-    (real? . -> . real?))
+    (real? . -> . real?)
+    #:volatile? #f)
   (def abs
     (real? . -> . real?)
     #:refinements
@@ -140,13 +159,17 @@
     ((integer?) #:rest (listof integer?) . ->* . integer?))
   (def min ((real?) #:rest (listof real?) . ->* . real?)
     #:refinements
+    ((index?) #:rest (listof index?) . ->* . index?)
     ((exact-nonnegative-integer?) #:rest (listof exact-nonnegative-integer?) . ->* . exact-nonnegative-integer?)
     ((exact-integer?) #:rest (listof exact-integer?) . ->* . exact-integer?)
     ((integer?) #:rest (listof integer?) . ->* . integer?))
   (def* (gcd lcm) ((real?) #:rest (listof real?) . ->* . real?))
   (def* (round floor ceiling truncate)
     (real? . -> . (or/c integer? +inf.0 -inf.0 +nan.0)))
-  (def* (numerator denominator) (rational? . -> . integer?))
+  (def* (numerator denominator)
+    (rational? . -> . integer?)
+    #:refinements
+    (exact? . -> . exact-integer?))
   (def rationalize (real? real? . -> . real?))
 
   ;; 4.2.2.2 Number Comparison
@@ -168,7 +191,12 @@
   (def log (number? . -> . number?))
 
   ;; 4.2.2.4 Trigonometric Functions
-  (def* (sin cos tan asin acos atan) (number? . -> . number?)
+  (def* (sin cos tan asin acos) (number? . -> . number?)
+    #:refinements
+    (real? . -> . real?))
+  (def atan
+    (case-> [number? . -> . number?]
+            [real? real? . -> . real?])
     #:refinements
     (real? . -> . real?))
 
@@ -197,7 +225,8 @@
     (case->
      [-> (and/c inexact-real? (>/c 0) (</c 1))]
      [exact-nonnegative-integer? . -> . exact-nonnegative-integer?]
-     [exact-nonnegative-integer? exact-nonnegative-integer? . -> . exact-nonnegative-integer?]))
+     [exact-nonnegative-integer? (or/c exact-nonnegative-integer? pseudo-random-generator?) . -> . exact-nonnegative-integer?])
+    #:volatile? #t)
   (def random-seed ((and/c exact-integer? positive?) . -> . void?))
   (def make-pseudo-random-generator (-> pseudo-random-generator?))
   (def-pred pseudo-random-generator?)
@@ -254,7 +283,7 @@
      [real? (or/c 2 4 8) boolean? . -> . bytes?]
      [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) . -> . bytes?]
      [real? (or/c 2 4 8) boolean? (and/c bytes? (not/c immutable?)) exact-nonnegative-integer? . -> . bytes?]))
-  (def system-big-endian? (-> boolean?) #:lift-concrete? #f)
+  (def system-big-endian? (-> boolean?))
 
   ;; 4.2.2.10 Extra Functions
   (def-const pi)
@@ -286,7 +315,7 @@
   (def make-flrectangular (flonum? flonum? . -> . float-complex?))
   (def* (flreal-part flimag-part) ; FIXME correct domain
     (float-complex? . -> . flonum?))
-  (def flrandom (pseudo-random-generator? . -> . (and/c flonum? (>/c 0) (</c 1))) #:lift-concrete? #f)
+  (def flrandom (pseudo-random-generator? . -> . (and/c flonum? (>/c 0) (</c 1))))
 
   ;; 4.2.3.2 Flonum Vectors
   (def-pred flvector?)
@@ -329,6 +358,7 @@
   (def* (fxmin fxmax) (fixnum? fixnum? . -> . fixnum?))
   (def fx->fl (fixnum? . -> . flonum?))
   (def fl->fx (flonum? . -> . fixnum?))
+  (def fixnum-for-every-system? (any/c . -> . boolean?))
 
   ;; 4.2.4.2 Fixnum Vectors
   (def-pred fxvector?)

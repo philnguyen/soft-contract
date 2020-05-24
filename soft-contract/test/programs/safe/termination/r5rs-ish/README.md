@@ -1,0 +1,46 @@
+- [ ] ~~browse~~
+- [o] collatz-q
+- [o] collatz
+- [ ] conform (`list->mlist`, `to-mutable`)
+- [o] cpstak
+- [o] ctak
+- [x] dderiv (pozes)
+- [o] deriv
+- [o] destruct
+- [x] div
+- [ ] ~~dynamic~~
+- [ ] dynamic2 (exn:missing)
+- [o] earley
+- [o] fft (pozes)
+- [o] graphs (pozes)
+- [ ] kanren (weird blame)
+- [ ] ~~lattice~~
+- [ ] lattice2 (apply)
+- [ ] ~~maze~~
+- [ ] maze2 (long, more and more states)
+- [o] mazefun (pozes)
+- [ ] nboyer (explode)
+- [o] nestedloop
+- [x] nfa (fixed program itself)
+- [o] nqueens
+- [ ] nucleic2 (haven't tried)
+- [ ] nucleic3 (haven't tried)
+- [ ] paraffins (explode)
+- [ ] peval (`to-mutable`)
+- [ ] psyntax (???)
+- [o] puzzle
+- [o] ray (pozes)
+- [ ] sboyer (explode)
+- [ ] ~~scheme-c~~
+- [ ] scheme-c2 (explode)
+- [ ] ~~scheme-i~~
+- [o] scheme-i2 (true poz for arbitrary input)
+- [ ] ~~scheme~~
+- [ ] scheme2 (parser)
+- [ ] sort1 ($@ error)
+- [o] tak
+- [o] takl (pozes)
+- [ ] takr (explode)
+- [ ] takr2 (explode)
+- [ ] traverse (pozes)
+- [o] triangle (pozes)

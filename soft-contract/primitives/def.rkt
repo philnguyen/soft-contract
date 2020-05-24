@@ -24,18 +24,21 @@
          "../utils/map.rkt"
          "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
+         "signatures.rkt"
          "def-gen.rkt")
 
 (define-syntax (def stx)
 
+  ;; Count contract leaves (conservative on the smaller side)
   (define (count-leaves c)
     (syntax-parse c
       [(~literal any/c) 0]
       [((~or (~literal and/c) (~literal or/c) (~literal not/c)) cᵢ ...)
-       (apply + 0 (map count-leaves (syntax->list #'(cᵢ ...))))]
+       (apply + (map count-leaves (syntax->list #'(cᵢ ...))))]
       [_ 1]))
 
-  (syntax-parse stx
+  (define src (syntax-parse stx
+    
     ;; Generate total predicates specially to reduce code duplicate
     [(_ o:id ((~literal ->) c:id ... (~literal boolean?)))
      #:when (for/and ([c (in-list (syntax->list #'(c ...)))])
@@ -49,13 +52,13 @@
          (set-range! 'o 'boolean?)
          (update-arity! 'o n)
          (add-const! #'o 'o))]
+    
+    ;; General declaration with signature
     [(_ o:id sig:hc
         (~optional (~seq #:refinements ref:ff ...)
                    #:defaults ([(ref 1) null]))
         (~optional (~seq #:volatile? volatile?:boolean)
-                   #:defaults ([volatile? #'#f]))
-        (~optional (~seq #:lift-concrete? lift?:boolean)
-                   #:defaults ([lift? #'#t])))
+                   #:defaults ([volatile? #'#t])))
 
      (check-shape-ok #'o #'sig (syntax->list #'(ref ...)))
      (define/with-syntax .o (prefix-id #'o))
@@ -78,49 +81,45 @@
                           (syntax->list #'(clauses ...))))]
            [((~literal ∀/c) _ c) (go #'c)])))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o Σ ℓ W)
            #,@(parameterize ([-o #'o]
                              [-ℓ #'ℓ]
-                             [-Ws #'Ws]
-                             [-$ #'$]
-                             [-Γ #'Γ]
-                             [-⟪ℋ⟫ #'⟪ℋ⟫]
+                             [-W #'W]
                              [-Σ #'Σ]
-                             [-⟦k⟧ #'⟦k⟧]
                              [-sig #'sig]
-                             [-Wⁿ (gen-ids #'Ws 'W max-inits)]
-                             [-Wᵣ (format-id #'Ws "Wᵣ")]
-                             [-gen-lift? (syntax-e #'lift?)]
-                             [-refinements (syntax->list #'(ref ...))])
+                             [-Vⁿ (gen-ids #'W 'V max-inits)]
+                             [-Vᵣ (format-id #'W "Vᵣ")]
+                             [-refinements (syntax->list #'(ref ...))]
+                             [-volatile? (syntax-e #'volatile?)])
                 (gen-cases))))
      (define/contract maybe-set-partial (listof syntax?)
        (let go ([sig #'sig])
          (hack:make-available #'o set-partial!)
          (syntax-parse sig
            [(dom ... . (~literal ->) . _)
-            (define n (apply + 0 (map count-leaves (syntax->list #'(dom ...)))))
+            (define n (apply + (map count-leaves (syntax->list #'(dom ...)))))
             (list #`(set-partial! 'o #,n))]
            [((inits ...) #:rest rest . (~literal ->*) . _)
             (define n
-              (+ (apply + 0 (map count-leaves (syntax->list #'(inits ...))))
+              (+ (apply + (map count-leaves (syntax->list #'(inits ...))))
                  (count-leaves #'rest)))
             (list #`(set-partial! 'o #,n))]
            [((~literal case->) clause _ ...)
             (syntax-parse #'clause ; sloppily count first clause only
               [((~literal ->) c ... #:rest r _)
                (define n
-                 (+ (apply + 0 (count-leaves (syntax->list #'(c ...))))
+                 (+ (apply + (count-leaves (syntax->list #'(c ...))))
                     (count-leaves #'r)))
                
                (list #`(set-partial! 'o #,n))]
               [((~literal ->) c ... _)
-               (define n (apply + 0 (map count-leaves (syntax->list #'(c ...)))))
+               (define n (apply + (map count-leaves (syntax->list #'(c ...)))))
                (list #`(set-partial! 'o #,n))])]
            [((~literal ∀/c) c) (go #'c)]
            [_ '()])))
      (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const!)
      #`(begin
-         (: .o : -⟦f⟧)
+         (: .o : ⟦O⟧)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)
@@ -135,16 +134,17 @@
               [_ '()]))]
 
     ;; Hack mode
-    [(_ (o:id ℓ:id Ws:id $:id Γ:id ⟪ℋ⟫:id Σ:id ⟦k⟧:id)
-        #:init ([W:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
-        (~optional (~seq #:rest [Wᵣ:id cᵣ])
+    [(_ (o:id Σ:id ℓ:id W:id)
+        #:init ([V:id (~and c (~or _:id ((~literal and/c) _:id ...)))] ...)
+        (~optional (~seq #:rest [Vᵣ:id cᵣ])
                    #:defaults ([cᵣ #'null?]
-                               [Wᵣ #'dummy]))
+                               [Vᵣ #'dummy]))
         e ...)
+     (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial! r:err)
      (define/with-syntax ok-pat
        (syntax-parse #'cᵣ
-         [(~literal null?) #'(list W ...)]
-         [((~literal listof) _:id) #'(list* W ... Wᵣ)]
+         [(~literal null?) #'(list V ...)]
+         [((~literal listof) _:id) #'(list* V ... Vᵣ)]
          [_
           (raise-syntax-error
            (syntax-e #'o) "unsupported rest contract in hack mode" #'cᵣ)]))
@@ -162,54 +162,45 @@
          [((~literal listof) c) #'c]
          [_ #f]))
      (define/with-syntax defn-o
-       #`(define (.o ℓ Ws $ Γ ⟪ℋ⟫ Σ ⟦k⟧)
+       #`(define (.o Σ ℓ W)
            #,(parameterize ([-o #'o]
                             [-ℓ #'ℓ]
-                            [-Ws #'Ws]
-                            [-$ #'$]
-                            [-Γ #'Γ]
-                            [-⟪ℋ⟫ #'⟪ℋ⟫]
+                            [-W #'W]
                             [-Σ #'Σ]
-                            [-⟦k⟧ #'⟦k⟧]
-                            [-Wⁿ (syntax->list #'(W ...))]
-                            [-Wᵣ #'Wᵣ])
-               (syntax-parse #'(W ...)
+                            [-Vⁿ (syntax->list #'(V ...))]
+                            [-Vᵣ #'Vᵣ])
+               (syntax-parse #'(V ...)
                  [()
                   (list*
-                   #`(let ([Wᵣ Ws])
+                   #`(let ([Vᵣ W])
                        #,@(gen-flat-checks '()
                                            ?c-elem
                                            (syntax->list #'(e ...)))))]
                  [_
-                  #`(match Ws
+                  (hack:make-available #'o r:blm)
+                  #`(match W
                       [ok-pat
                        #,@(gen-flat-checks (syntax->list #'(c ...))
                                            ?c-elem
                                            (syntax->list #'(e ...)))]
                       [_
-                       (define blm
-                         (-blm (ℓ-src ℓ) 'o
-                               '(#,(string->symbol (format "~v" arity)))
-                               (map -W¹-V Ws)
-                               ℓ))
-                       (⟦k⟧ blm $ Γ ⟪ℋ⟫ Σ)])]))))
-     (hack:make-available #'o prim-table debug-table set-range! update-arity! add-const! set-partial!)
+                       (r:err (Err:Arity '#,(-o) (length W) ℓ))])]))))
      (define/contract maybe-set-partial (listof syntax?)
-       (let ([n
-              (+ (apply + 0 (map count-leaves (syntax->list #'(c ...))))
-                 (syntax-parse #'cᵣ
-                   [(~literal null?) 0]
-                   [((~literal listof) c) (+ 1 (count-leaves #'c))]))])
+       (let ([n (+ (apply + (map count-leaves (syntax->list #'(c ...))))
+                   (syntax-parse #'cᵣ
+                     [(~literal null?) 0]
+                     [((~literal listof) c) (+ 1 (count-leaves #'c))]))])
          (list #`(set-partial! 'o #,n))))
      #`(begin
-         (: .o : -⟦f⟧)
+         (: .o : ⟦O⟧)
          defn-o
          (add-const! #'o 'o)
          (hash-set! prim-table 'o .o)
          (hash-set! debug-table 'o '#,(syntax->datum #'defn-o))
          (update-arity! 'o stx-arity)
-         #,@maybe-set-partial)]
-    ))
+         #,@maybe-set-partial)]))
+  ;(pretty-print (syntax->datum src))
+  src)
 
 (define-simple-macro (def* (o:id ...) clauses ...)
   (begin (def o clauses ...) ...))

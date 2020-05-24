@@ -2,7 +2,7 @@
 
 (require racket/match
          racket/function
-         #;racket/contract/base)
+         racket/contract/base)
 
 ;; adapted from http://typeocaml.com/2015/03/12/heap-leftist-tree/
 
@@ -126,4 +126,4 @@
  [leftist-tree-min (-> leftist-tree? any/c)]
  [leftist-tree-remove-min (-> leftist-tree? leftist-tree?)]
  [leftist-tree->list (-> leftist-tree? (listof any/c))]
- [in-leftist-tree (-> leftist-tree sequence?)])
+ [in-leftist-tree (-> leftist-tree? sequence?)])

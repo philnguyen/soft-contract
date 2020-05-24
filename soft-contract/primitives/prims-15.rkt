@@ -4,6 +4,7 @@
 
 (require racket/contract
          typed/racket/unit
+         racket/path
          "def.rkt"
          "signatures.rkt")
 
@@ -17,8 +18,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
   ;; 15.1.1 Manipulating Paths
+  (def-pred path?)
+  (def-pred path-for-some-system?)
   (def-pred path-string?)
   (def string->path (string? . -> . path?))
+
+  ;; 15.1.2 More Path Utilities
+  (def file-name-from-path ((or/c path-string? path-for-some-system?) . -> . (or/c #f path-for-some-system?)))
+  (def filename-extension ((or/c path-string? path-for-some-system?) . -> . (or/c #f bytes?)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,19 +34,20 @@
 
 
   ;; 15.2.2 Files
-  (def file-exists? (path-string? . -> . boolean?) #:lift-concrete? #f)
-  (def delete-file (path-string? . -> . void?) #:lift-concrete? #f)
+  (def file-exists? (path-string? . -> . boolean?))
+  (def delete-file (path-string? . -> . void?))
 
   ;; 15.2.6 More File and Directory Utilities
-  (def file->list (path-string? . -> . list?) #:volatile? #t #:lift-concrete? #f)
-  (def file->value (path-string? . -> . any/c) #:volatile? #t #:lift-concrete? #f)
+  (def file->list (path-string? . -> . list?))
+  (def file->lines (path-string? . -> . (listof string?)))
+  (def file->value (path-string? . -> . any/c))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 15.7
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-  {def getenv (string? . -> . (or/c string? not)) #:lift-concrete? #f}
-  {def putenv (string? string? . -> . boolean?) #:lift-concrete? #f}
+  (def getenv (string? . -> . (or/c string? not)))
+  (def putenv (string? string? . -> . boolean?))
   )
 

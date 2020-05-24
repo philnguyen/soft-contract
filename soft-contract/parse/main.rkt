@@ -1,6 +1,7 @@
 #lang typed/racket/base
 
 (require racket/match
+         racket/splicing
          typed/racket/unit
          "../ast/signatures.rkt"
          "../signatures.rkt"
@@ -13,12 +14,21 @@
   (import static-info^ prims^ (prefix pre: parser-helper^))
   (export parser^)
 
-  (: parse-files : (Listof Path-String) → (Listof -module))
-  ;; Alpha renaming on top of the old parser (hack)
-  (define (parse-files ps)
-    (define ms (pre:parse-files (map pre:canonicalize-path ps)))
-    (for-each collect-public-accs! ms)
-    ms)
+  (splicing-local
+      ((: with-post-processing : (Listof -module) → (Listof -module))
+       ;; Alpha renaming on top of the old parser (hack)
+       (define (with-post-processing ms)
+         (for-each collect-public-accs! ms)
+         (for-each collect-transparent-modules! ms)
+         ms))
+    (: parse-files : (Listof Path-String) → (Listof -module))
+
+    (define (parse-files ps)
+      (with-post-processing (pre:parse-files (map pre:canonicalize-path ps))))
+
+    (: parse-stxs : (Listof Path-String) (Listof Syntax) → (Listof -module))
+    (define (parse-stxs fns stxs)
+      (with-post-processing (pre:parse-stxs fns stxs))))
 
   (: parse-module : Syntax → -module)
   (define (parse-module stx)
@@ -47,12 +57,13 @@
         [(-provide specs)
          (for ([spec (in-list specs)])
            (match spec
-             [(-p/c-item x _ _)
+             [(-p/c-item (-𝒾 x _) _ _)
               (hash-set! decs x #t)]
-             [(? symbol? x) (hash-set! decs x #t)]))]
-        [(-define-values (list x) (? -st-ac? e))
+             [(-𝒾 x _) (hash-set! decs x #t)]
+             [(or (? -o?) (-p/c-item (? -o?) _ _)) (void)]))]
+        [(-define-values (list x) (? -st-ac? e) _)
          (hash-set! acc-defs x e)]
-        [(-define-values (list x) (? -st-mut? e))
+        [(-define-values (list x) (? -st-mut? e) _)
          (hash-set! mut-defs x e)]
         [_ (void)]))
     
@@ -63,6 +74,13 @@
     (for ([(x mut) (in-hash mut-defs)] #:when (hash-has-key? decs x))
       (match-define (-st-mut 𝒾 _) mut)
       (add-public-mut! 𝒾 mut)))
+
+  (define collect-transparent-modules! : (-module → Void)
+    (match-lambda
+      [(-module l body)
+       (add-transparent-module! l)
+       (for ([form (in-list body)] #:when (-module? form))
+         (collect-transparent-modules! form))]))
 
   (define canonicalize-path pre:canonicalize-path)
   )

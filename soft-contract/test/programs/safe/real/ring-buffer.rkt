@@ -47,10 +47,18 @@
     [(struct ring-buffer (max fst _ vals))
      (vector-set! vals (wrap+ max (if fst fst 0) i) v)]))
 
+(define ring-buffer/c
+  (struct/c ring-buffer
+            exact-nonnegative-integer?
+            exact-nonnegative-integer?
+            exact-nonnegative-integer?
+            vector?))
+
 (provide/contract
  [empty-ring-buffer (exact-nonnegative-integer? . -> . ring-buffer?)]
  [ring-buffer? (any/c . -> . boolean?)]
  [ring-buffer-length (ring-buffer? . -> . exact-nonnegative-integer?)]
  [ring-buffer-ref (ring-buffer? exact-nonnegative-integer? . -> . (or/c any/c false/c))]
- [ring-buffer-set! (ring-buffer? exact-nonnegative-integer? (and/c any/c (not/c false/c)) . -> . void)]
- [ring-buffer-push! (ring-buffer? (and/c any/c (not/c false/c)) . -> . void)])
+ [ring-buffer-set! (ring-buffer? exact-nonnegative-integer? (and/c any/c (not/c false/c)) . -> . void?)]
+ [ring-buffer-push! (ring-buffer? (and/c any/c (not/c false/c)) . -> . void?)]
+ )

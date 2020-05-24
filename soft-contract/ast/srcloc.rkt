@@ -56,6 +56,11 @@
   (match-define (loc _ line col ids) (ℓ->loc ℓ))
   (loc->ℓ (loc src line col ids)))
 
+(: strip-ℓ : ℓ → ℓ)
+(define (strip-ℓ ℓ)
+  (match-define (loc src l c _) (ℓ->loc ℓ))
+  (loc->ℓ (loc src l c '())))
+
 (define ℓ-src (on-ℓ loc-src))
 (define ℓ-line (on-ℓ loc-line))
 (define ℓ-col  (on-ℓ loc-col))
@@ -63,6 +68,15 @@
 
 (define (show-ℓ [ℓ : ℓ])
   (match-define (loc src line col id) (ℓ->loc ℓ))
-  (case loc
+  (case src
     [(dummy) '□]
-    [else (format-symbol "ℓ~a~a" (n-sub line) (n-sup col))]))
+    [(havoc) '|arbitrary site|]
+    [else (format-symbol "~a:~a" line col)]))
+
+(define (show-full-ℓ [ℓ : ℓ])
+  (match-define (loc src line col id) (ℓ->loc ℓ))
+  (case src
+    [(dummy) '□]
+    [(havoc) '|arbitrary site|]
+    [else
+     (if (symbol? src) src (format-symbol "~a:~a:~a" src line col))]))

@@ -1,67 +1,48 @@
-This is the scaled up version of SCV,
-intended to be (eventually) usable for real Racket programs.
+[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=dev-adi)](https://travis-ci.org/philnguyen/soft-contract)
 
-[![Build Status](https://travis-ci.org/philnguyen/soft-contract.png?branch=master)](https://travis-ci.org/philnguyen/soft-contract)
+Soft Contract Verifier
+=============================================================
 
-Installation
-=========================================
+This is a branch of the tool that's under active development, with the main
+differences:
+* Writing the analysis as (a variant of) [abstract definitional interpreter]
+(https://dl.acm.org/doi/pdf/10.1145/3110256?download=true) with an improved
+cache-fixing loop that reduces redundant computation.
+* Per-step abstract garbage collection with respect to a much smaller
+live set, thanks to stack irrelevance and big-step formulation,
+as well-described in
+[Stack-Liberated Abstract Garbage Collection](https://icfp19.sigplan.org/details/scheme-2019-papers/12/Stack-Liberated-Abstract-Garbage-Collection),
+although the technique was independently discovered.
+* Dropping dependence on Z3 in favor of an internal solver,
+as the analysis's typical use case is a large number of very simple queries.
 
-### Install Z3 and set `$Z3_LIB`:
+The tool is expected to be plagued with bugs and not ready for production.
 
-Install [Z3](https://github.com/Z3Prover/z3), then set `$Z3_LIB` to the **directory**
-containing:
-  - `libz3.dll` if you're on Windows
-  - `libz3.so` if you're on Linux
-  - `libz3.dylib` if you're on Mac
+The previous versions of the implementation are archived in branches
+[icfp14](https://github.com/philnguyen/soft-contract/tree/icfp14),
+[pldi-aec-2015](https://github.com/philnguyen/soft-contract/tree/pldi-aec-2015),
+[jpf](https://github.com/philnguyen/soft-contract/tree/jfp),
+[popl18-ae](https://github.com/philnguyen/soft-contract/tree/popl18-ae).
 
-### Install `soft-contract`
+## Installation
 
-Clone the repository:
+Clone this repository
 
-```
-git clone git@github.com:philnguyen/soft-contract.git
-```
+    git clone https://github.com/philnguyen/soft-contract.git
 
-Install:
+Navigate into the inner `soft-contract` directory and install using `raco`:
 
-```
-cd soft-contract/soft-contract
-raco pkg install
-```
+    cd soft-contract/soft-contract
+    raco pkg install --deps search-auto
 
-I will register this package on Racket Packages eventually.
+## Usage
 
-Running
-=========================================
+To verify one or more modules, use `raco scv` command:
 
-Use `raco scv` to run the analysis on one example at `test/programs/safe/octy/ex-14.rkt`:
-```
-raco scv test/programs/safe/octy/ex-14.rkt
-```
+    raco scv paths/to/files.rkt ...
 
-If the program is big and you want to print out something that looks like progress,
-use `-p`:
-```
-raco scv -p test/programs/safe/games/snake.rkt
-```
+### Non-standard construct
 
-To verify multiple files that depend on one another,
-pass them all as arguments.
-If you forget to include any file that's part of the dependency,
-it'll error out asking you to include the right one.
-```
-raco scv -p test/programs/safe/multiple/*.rkt
-```
+Using non-standard constructs require `fake-contract`:
 
-
-Generating benchmark results
-=========================================
-
-To generate benchmark results for (sub-)test-suites, use `test/gen-table.rkt`.
-The outputs are in a form that can be conveniently copied to a latex document as a table.
-
-For example, to run the occurence benchmarks, execute:
-
-```
-racket test/gen-table.rkt test/programs/safe/octy
-```
+    (require soft-contract/fake-contract)

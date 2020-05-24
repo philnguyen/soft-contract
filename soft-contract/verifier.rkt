@@ -4,53 +4,70 @@
 
 (require racket/match
          racket/list
+         racket/set
+         racket/port
          typed/racket/unit
          set-extras
+         intern
+         bnf
+         unreachable
          "utils/main.rkt"
          "ast/signatures.rkt"
          "runtime/signatures.rkt"
          "signatures.rkt"
-         "reduction/signatures.rkt"
+         "execution/signatures.rkt"
          )
 
+(require (only-in typed/racket/unsafe unsafe-require/typed))
+
 (define-unit verifier@
-  (import static-info^ reduction^ compile^ parser^ havoc^)
+  (import parser^
+          meta-functions^ static-info^
+          sto^ pretty-print^
+          exec^ hv^)
   (export verifier^)
 
   (define-syntax-rule (with-initialized-static-info e ...)
     (parameterize ([current-static-info (new-static-info)])
       e ...))
-  
-  (define (run-files [ps : (Listof Path-String)]) : (Values (℘ -ΓA) -Σ)
+
+  (: run : Runnable → (Values (℘ Err) $))
+  (define (run x)
     (with-initialized-static-info
-      (run (↓ₚ (parse-files ps) -void))))
+      (exec (if (list? x) (-prog (parse-files x)) x))))
 
-  (define (havoc-files [ps : (Listof Path-String)]) : (Values (℘ -ΓA) -Σ)
+  (: verify-modules : (Listof Path-String) (Listof Syntax) → (Listof Serialized-Blm))
+  (define (verify-modules fns stxs)
     (with-initialized-static-info
-      (define ms (parse-files ps))
-      (run (↓ₚ ms (gen-havoc-expr ms)))))
+      (define ms (parse-stxs fns stxs))
+      (define-values (es _) (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms)))))))
+      ;; HACK to use `log-debug` instead of `printf`
+      (log-debug (with-output-to-string (λ () (print-blames es))))
+      (set-map (set-filter Blm? es) serialize-Blm)))
 
-  (: havoc-files/profile
-     ([(Listof Path-String)] [#:delay Positive-Real] . ->* . (Values (℘ -ΓA) -Σ)))
-  (define (havoc-files/profile ps #:delay [delay 0.05])
-    (define ans : (℘ -ΓA) ∅)
-    (define Σ : (Option -Σ) #f)
-    ((inst profile-thunk Void)
-     (λ ()
-       (set!-values (ans Σ) (havoc-files ps)))
-     #:delay delay)
-    (values ans (assert Σ)))
-
-  (define (havoc-last-file [ps : (Listof Path-String)]) : (Values (℘ -ΓA) -Σ)
+  (: havoc : (Listof Path-String) → (Values (℘ Err) $))
+  (define (havoc ps)
     (with-initialized-static-info
       (define ms (parse-files ps))
-      (run (↓ₚ ms (gen-havoc-expr (list (last ms)))))))
+      (exec (-prog `(,@ms ,(-module 'havoc (list (gen-havoc-expr ms))))))))
 
-  (define (run-e [e : -e]) : (Values (℘ -ΓA) -Σ)
+  (: havoc/profile ([(Listof Path-String)]
+                    [#:delay Positive-Real]
+                    . ->* . (Values (℘ Err) $)))
+  (define (havoc/profile ps #:delay [delay 0.00001])
+    (profile2 (havoc ps) #:delay delay #:order 'self #:use-errortrace? #t))
+
+  (: havoc-last : (Listof Path-String) → (Values (℘ Err) $))
+  (define (havoc-last ps)
     (with-initialized-static-info
-      (run (↓ₑ 'top e))))
+      (define ms (parse-files ps))
+      (define hv (-module 'havoc (list (gen-havoc-expr (list (last ms))))))
+      (exec (-prog `(,@ms ,hv)))))
 
-  (define-parameter debug-iter? : Boolean #f)
-  (define-parameter debug-trace? : Boolean #f)
-  (define-parameter max-steps : (Option Natural) (expt 2 31)))
+  (define serialize-Blm : (Blm → Serialized-Blm)
+    (let ([serialize-ℓ (λ ([ℓ : ℓ]) (list (ℓ-src ℓ) (ℓ-line ℓ) (ℓ-col ℓ)))])
+      (match-lambda
+        [(Blm party site origin ctc val)
+         (list party (serialize-ℓ site) (serialize-ℓ origin) (show-W ctc) (show-W val))])))
+  )
 

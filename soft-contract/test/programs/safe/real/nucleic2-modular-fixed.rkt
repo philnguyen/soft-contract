@@ -132,13 +132,13 @@
 
 (define ? any/c)
 
-(define pt/c (vector/c real? real? real?))
+(define pt/c (vector/c flonum? flonum? flonum?))
 (define-structure #f pt
   make-pt make-constant-pt
   (pt-x pt-y pt-z)
   (pt-x-set! pt-y-set! pt-z-set!))
 
-(define tfo/c (vector/c real? real? real? real? real? real? real? real? real? real? real? real?))
+(define tfo/c (vector/c flonum? flonum? flonum? flonum? flonum? flonum? flonum? flonum? flonum? flonum? flonum? flonum?))
 (define-structure #f tfo
   make-tfo make-constant-tfo
   (tfo-a tfo-b tfo-c tfo-d tfo-e tfo-f tfo-g tfo-h tfo-i tfo-tx tfo-ty tfo-tz)

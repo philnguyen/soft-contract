@@ -5,201 +5,366 @@
 (require typed/racket/unit
          racket/match
          racket/set
-         racket/splicing
+         (only-in racket/list make-list split-at)
          set-extras
+         unreachable
          "../utils/main.rkt"
          "../ast/signatures.rkt"
+         "../signatures.rkt"
          "signatures.rkt")
 
 (define-unit val@
-  (import pc^ pretty-print^ sto^)
+  (import meta-functions^ static-info^
+          prims^
+          sto^ pretty-print^ prover^)
   (export val^)
 
-  (define +● : (-h * → -●)
-    (let ([m : (HashTable (Listof -h) -●) (make-hash)])
-      (λ hs
-        (hash-ref! m hs (λ () (-● (list->set hs)))))))
+  (: collapse-W^ : W^ → W)
+  (define (collapse-W^ Ws) (set-fold W⊔ (set-first Ws) (set-rest Ws)))
+  
+  (: collapse-W^-by-arities : W^ → (Immutable-HashTable Index W))
+  (define (collapse-W^-by-arities Ws)
+    (for/fold ([acc : (Immutable-HashTable Index W) (hasheq)])
+              ([Wᵢ (in-set Ws)])
+      (define n (length Wᵢ))
+      (hash-update acc n
+                   (λ ([W₀ : W]) (W⊔ W₀ Wᵢ))
+                   (λ () (make-list n ∅))))) 
 
-  (define +W¹ : ([-prim] [-?t] . ->* . -W¹)
-    (let ([m : (HashTable -W¹ -W¹) (make-hash)])
-      (λ ([b : -prim] [t : -?t b])
-        (define W (-W¹ b t))
-        (hash-ref! m W (λ () W)))))
-
-  (define +W : ([(Listof -prim)] [-?t] . ->* . -W)
-    (let ([m : (HashTable -W -W) (make-hash)])
-      (λ ([bs : (Listof -prim)] [t : -?t (apply ?t@ 'values bs)])
-        (define W (-W bs t))
-        (hash-ref! m W (λ () W)))))
-
-  (define (W¹->W [W : -W¹])
-    (match-define (-W¹ V s) W)
-    (-W (list V) s))
-
-  (define (W->W¹s [W : -W]) : (Listof -W¹)
-    (match-define (-W Vs t) W)
-    (for/list ([Vᵢ (in-list Vs)]
-               [tᵢ (in-list (split-values t (length Vs)))])
-      (-W¹ Vᵢ tᵢ)))
-
-  (: C-flat? : -V → Boolean)
-  ;; Check whether contract is flat, assuming it's already a contract
-  (define (C-flat? V)
-    (match V
-      [(-And/C flat? _ _) flat?]
-      [(-Or/C flat? _ _) flat?]
-      [(? -Not/C?) #t]
-      [(? -One-Of/C?) #t]
-      [(-St/C flat? _ _) flat?]
-      [(or (? -Vectorof?) (? -Vector/C?)) #f]
-      [(-Hash/C _ _) #f] ; TODO
-      [(-Set/C _) #f] ; TODO
-      [(? -=>_?) #f]
-      [(or (? -Clo?) (? -Ar?) (? -prim?)) #t]
-      [(? -x/C?) #t]
-      [(? -∀/C?) #f]
-      [(? -Seal/C?) #f]
-      [V (error 'C-flat? "Unepxected: ~a" (show-V V))]))
-
-
-  (splicing-local
-      ((: with-swapper : (-l -ctx → -ctx) → -l -V → -V)
-       (define ((with-swapper swap) l V)
-         (match V
-           [(-Ar C α ctx)
-            (-Ar C α (swap l ctx))]
-           [(-St* grd α ctx)
-            (-St* grd α (swap l ctx))]
-           [(-Vector/guard grd α ctx)
-            (-Vector/guard grd α (swap l ctx))]
-           [(-Hash/guard C α ctx)
-            (-Hash/guard C α (swap l ctx))]
-           [(-Set/guard C α ctx)
-            (-Set/guard C α (swap l ctx))]
-           [_ V])))
-    (define with-negative-party
-      (with-swapper
-        (match-lambda**
-          [(l (-ctx l+ _ lo ℓ))
-           (-ctx l+ l lo ℓ)])))
-    (define with-positive-party
-      (with-swapper
-        (match-lambda**
-          [(l (-ctx _ l- lo ℓ))
-           (-ctx l l- lo ℓ)]))))
-
-  (: behavioral? : -σ -V → Boolean)
-  ;; Check if value maybe behavioral.
-  ;; `#t` is a conservative answer "maybe yes"
-  ;; `#f` is a strong answer "definitely no"
-  (define (behavioral? σ V)
-    (define-set seen : ⟪α⟫ #:eq? #t #:as-mutable-hash? #t)
-
-    (: check-⟪α⟫! : ⟪α⟫ → Boolean)
-    (define (check-⟪α⟫! ⟪α⟫)
-      (cond [(seen-has? ⟪α⟫) #f]
-            [else
-             (seen-add! ⟪α⟫)
-             (for/or ([V (σ@ σ ⟪α⟫)])
-               (check! V))]))
-
-    (: check! : -V → Boolean)
-    (define (check! V)
-      (match V
-        [(-St _ αs) (ormap check-⟪α⟫! αs)]
-        [(-St* _ α _) (check-⟪α⟫! α)]
-        [(-Vector αs) (ormap check-⟪α⟫! αs)]
-        [(-Vector^ α _) (check-⟪α⟫! α)]
-        [(-Ar grd α _) #t]
-        [(-=> doms rngs)
-         (match doms
-           [(? list? doms)
-            (or (for/or : Boolean ([dom (in-list doms)])
-                  (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
-                (and (pair? rngs)
-                     (for/or : Boolean ([rng (in-list rngs)])
-                       (check-⟪α⟫! (-⟪α⟫ℓ-addr rng)))))]
-           [(-var doms dom)
-            (or (check-⟪α⟫! (-⟪α⟫ℓ-addr dom))
-                (for/or : Boolean ([dom (in-list doms)])
-                  (check-⟪α⟫! (-⟪α⟫ℓ-addr dom)))
-                (and (pair? rngs)
-                     (for/or : Boolean ([rng (in-list rngs)])
-                       (check-⟪α⟫! (-⟪α⟫ℓ-addr rng)))))])]
-        [(? -=>i?) #t]
-        [(-Case-> cases) (ormap check! cases)]
-        [(or (? -Clo?) (? -Case-Clo?)) #t]
-        [_ #f]))
-
-    (check! V))
-
-  (define guard-arity : (-=>_ → Arity)
-    (match-lambda
-      [(-=> αs _) (shape αs)]
-      [(and grd (-=>i αs (list mk-D mk-d _)))
-       (match mk-D
-         [(-Clo xs _ _ _) (shape xs)]
-         [_
-          ;; FIXME: may be wrong for var-args. Need to have saved more
-          (length αs)])]
-      [(-Case-> cases) (normalize-arity (map guard-arity cases))]
-      [(? -∀/C?)
-       ;; TODO From observing behavior in Racket. But this maybe unsound for proof system
-       (arity-at-least 0)]))
-
-  (: blm-arity : ℓ -l Arity (Listof -V) → -blm)
-  (define blm-arity
-    (let ([arity->msg : (Arity → Symbol)
-                      (match-lambda
-                        [(? integer? n)
-                         (format-symbol (case n
-                                          [(0 1) "~a value"]
-                                          [else "~a values"])
-                                        n)]
-                        [(arity-at-least n)
-                         (format-symbol "~a+ values" n)])])
-      (λ (ℓ lo arity Vs)
-        (-blm (ℓ-src ℓ) lo (list (arity->msg arity)) Vs ℓ))))
-
-  (: strip-C : -V → -edge.tgt)
-  (define (strip-C C)
-    (define get-ℓ : ((-maybe-var -⟪α⟫ℓ) → (-maybe-var ℓ))
+  #;(: V/ : S → V → V)
+  #;(define (V/ S)
+    (define (α/ [α : α]) (hash-ref S α (λ () α)))
+    (define Clo/ : (Clo → Clo)
+      (match-lambda [(Clo xs E αs ℓ) (Clo xs E (map/set α/ αs) ℓ)]))
+    (define ==>i/ : (==>i → ==>i)
+      (match-lambda [(==>i dom rng) (==>i (var-map Dom/ dom) (and rng (map Dom/ rng)))]))
+    (define Dom/ : (Dom → Dom)
+      (match-lambda [(Dom x c ℓ) (Dom x (if (Clo? c) (Clo/ c) (α/ c)) ℓ)]))
+    (define Prox/C/ : (Prox/C → Prox/C)
       (match-lambda
-        [(? list? l) (map -⟪α⟫ℓ-loc l)]
-        [(-var l x) (-var (map -⟪α⟫ℓ-loc l) (-⟪α⟫ℓ-loc x))]))
-    
-    (match C
-      [(-Clo xs ⟦e⟧ _ _) (list 'flat ⟦e⟧)] ; distinct from just ⟦e⟧
-      [(-And/C _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list 'and/c ℓ₁ ℓ₂)]
-      [(-Or/C  _ (-⟪α⟫ℓ _ ℓ₁) (-⟪α⟫ℓ _ ℓ₂)) (list  'or/c ℓ₁ ℓ₂)]
-      [(-Not/C (-⟪α⟫ℓ _ ℓ)) (list 'not/c ℓ)]
-      [(-One-Of/C bs) bs]
-      [(-St/C _ (-𝒾 𝒾 _) ⟪α⟫ℓs) (cons 𝒾 (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
-      [(-Vectorof (-⟪α⟫ℓ _ ℓ)) (list 'vectorof ℓ)]
-      [(-Vector/C ⟪α⟫ℓs) (cons 'vector/c (map -⟪α⟫ℓ-loc ⟪α⟫ℓs))]
-      [(-Hash/C (-⟪α⟫ℓ _ ℓₖ) (-⟪α⟫ℓ _ ℓᵥ)) (list 'hash/c ℓₖ ℓᵥ)]
-      [(-Set/C (-⟪α⟫ℓ _ ℓ)) (list 'set/c ℓ)]
-      [(-=> αs βs) (list '-> (get-ℓ αs) (if (list? βs) (get-ℓ βs) 'any))]
-      [(-=>i αs (list _ _ ℓ)) (list '->i ℓ)]
-      [(-Case-> cases) (list 'case-> (map strip-C cases))]
-      [(-x/C α)
-       (match-define (or (-α.x/c x _) (-α.imm-listof x _ _)) (⟪α⟫->-α α))
-       (list 'recursive-contract/c x)]
-      [(? -o? o) (list 'flat o)]
-      [(-Ar _ (app ⟪α⟫->-α (-α.fn _ ctx _ _)) _) (list 'flat (-ctx-loc ctx))]
-      [(-∀/C xs ⟦c⟧ ρ) (list '∀/c ⟦c⟧)]
-      [(-Seal/C x _ _) (list 'seal/c x)]
-      [(and c (or (? ->/c?) (? -≥/c?) (? -</c?) (? -≤/c?) (? -≢/c?) (? -b?))) (list 'flat c)]
-      [V (error 'strip-C "~a not expected" V)]))
+        [(St/C 𝒾 αs ℓ) (St/C 𝒾 (map α/ αs) ℓ)]
+        [(Vectof/C α ℓ) (Vectof/C (α/ α) ℓ)]
+        [(Vect/C αs ℓ) (Vect/C (map α/ αs) ℓ)]
+        [(Hash/C α₁ α₂ ℓ) (Hash/C (α/ α₁) (α/ α₂) ℓ)]
+        [(Set/C α ℓ) (Set/C (α/ α) ℓ)]
+        [(? ==>i? V) (==>i/ V)]
+        [(∀/C xs E αs ℓ) (∀/C xs E (map/set α/ αs) ℓ)]
+        [(Case-=> Cs) (Case-=> (map ==>i/ Cs))]))
+    (define P/ : (P → P)
+      (match-lambda
+        [(P:¬ Q) (P:¬ (Q/ Q))]
+        [(P:St acs P) (P:St acs (P/ P))]))
+    (define Q/ : (Q → Q)
+      (match-lambda
+        [(P:> T) (P:> (T/ T))]
+        [(P:≥ T) (P:≥ (T/ T))]
+        [(P:< T) (P:< (T/ T))]
+        [(P:≤ T) (P:≤ (T/ T))]
+        [(P:= T) (P:= (T/ T))]
+        [P P]))
+    (define T/ : ((U T -b) → (U T -b))
+      (match-lambda
+        [(T:@ o Ts) (T:@ o (map T/ Ts))]
+        [(? α? α) (α/ α)]
+        [(? -b? b) b]))
+    (λ (V₀)
+      (let go ([V : V V₀])
+        (match V
+          [(? P? P) (P/ P)]
+          [(? T? T) (T/ T)]
+          [(St 𝒾 αs Ps) (St 𝒾 (map α/ αs) (map/set P/ Ps))]
+          [(Vect n ℓ H) (Vect (map α/ αs))]
+          [(Vect-Of α Vₙ) (Vect-Of (α/ α) (map/set go Vₙ))]
+          [(Hash-Of α₁ α₂) (Hash-Of (α/ α₁) (α/ α₂))]
+          [(Set-Of α) (Set-Of (α/ α))]
+          [(Guarded ctx G α) (Guarded ctx (Prox/C/ G) (α/ α))]
+          [(Sealed α) (Sealed (α/ α))]
+          [(? Clo? clo) (Clo/ clo)]
+          [(Case-Clo clos ℓ) (Case-Clo (map Clo/ clos) ℓ)]
+          [(And/C α₁ α₂ ℓ) (And/C (α/ α₁) (α/ α₂) ℓ)]
+          [(Or/C α₁ α₂ ℓ) (Or/C (α/ α₁) (α/ α₂) ℓ)]
+          [(Not/C α ℓ) (Not/C (α/ α) ℓ)]
+          [(? Prox/C? C) (Prox/C/ C)]
+          [(Seal/C α l) (Seal/C (α/ α) l)]
+          [(-● Ps) (-● (map/set P/ Ps))]
+          [V V]))))
 
-  (: predicates-of-V : -V → (℘ -h))
-  (define predicates-of-V
+  (: W⊔ : W W → W)
+  (define (W⊔ W₁ W₂) (map V⊔ W₁ W₂))
+
+  (define Ctx-with-site : (Ctx ℓ → Ctx)
+    (match-lambda** [((Ctx l+ l- ℓₒ _) ℓ) (Ctx l+ l- ℓₒ ℓ)]))
+
+  (define Ctx-with-origin : (Ctx ℓ → Ctx)
+    (match-lambda** [((Ctx l+ l- _ ℓ) ℓₒ) (Ctx l+ l- ℓₒ ℓ)]))
+
+  (define Ctx-flip : (Ctx → Ctx)
+    (match-lambda [(Ctx l+ l- lo ℓ) (Ctx l- l+ lo ℓ)]))
+
+  (: C-flat? : V Σ → Boolean)
+  ;; Check whether contract is flat, assuming it's already a contract
+  (define (C-flat? C Σ)
+    (define-set seen : α #:mutable? #t)
+    (: go-α : α → Boolean)
+    (define (go-α α)
+      (cond [(seen-has? α) #t]
+            [else (seen-add! α)
+                  (define S (Σ@/raw α Σ))
+                  (if (vector? S) (vector-andmap go-V^ S) (go-V^ S))]))
+
+    (: go-V^ : V^ → Boolean)
+    (define (go-V^ [Vs : V^]) (set-andmap go-V Vs))
+    (: go-V : V → Boolean)
+    (define go-V
+      (match-lambda
+        [(And/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
+        [(Or/C α₁ α₂ _) (and (go-α α₁) (go-α α₂))]
+        [(? Not/C?) #t]
+        [(? One-Of/C?) #t]
+        [(St/C α) (go-α α)]
+        [(or (? Vectof/C?) (? Vect/C?)) #f]
+        [(Hash/C αₖ αᵥ _) (and (go-α αₖ) (go-α αᵥ))]
+        [(Set/C α _) (go-α α)]
+        [(? Fn/C?) #f]
+        [(or (? Clo?) (? -λ?) (Guarded _ (? Fn/C?) _) (? -prim?) (? Case-Clo?)) #t]
+        [(Rec/C α) (go-α α)]
+        [(? ∀/C?) #f]
+        [(? Seal/C?) #f]
+        [(? P?) #t]
+        [(? α? α) (go-α α)]
+        [V (error 'C-flat? "unexpected: ~a" V)]))
+    (go-V C))
+
+  (: C^-flat? : V^ Σ → Boolean)
+  (define (C^-flat? C^ Σ)
+    (for/and : Boolean ([C (in-set C^)]) (C-flat? C Σ)))
+
+  (: arity (case->
+            [Clo → (U Natural arity-at-least)]
+            [V → (Option Arity)]))
+  (define arity
     (match-lambda
-      [(-b (? number?)) {set 'number?}]
-      [(-b (? null?)) {set 'null?}]
-      [(-Clo _ ⟦e⟧ _ _) {set (-clo ⟦e⟧)}]
-      [(or (-St 𝒾 _) (-St* (-St/C _ 𝒾 _) _ _)) #:when 𝒾 {set (-st-p 𝒾)}]
-      [(or (? -Ar?) (? -o?)) {set 'procedure?}]
-      [_ ∅]))
+      [(Guarded _ (? Fn/C? G) _) (guard-arity G)]
+      [(-λ xs _ _) (shape xs)]
+      [(Clo xs _ _ _) (shape xs)]
+      [(Case-Clo clos _) (map arity clos)]
+      [(? And/C?) 1]
+      [(? Or/C?) 1]
+      [(? Not/C?) 1]
+      [(? St/C?) 1]
+      [(? One-Of/C?) 1]
+      [(? -st-p?) 1]
+      [(? -st-ac?) 1]
+      [(? -st-mut?) 2]
+      [(-st-mk 𝒾) (count-struct-fields 𝒾)]
+      [(? symbol? o) (prim-arity o)]
+      [V #:when (not (Clo? V)) #f]))
 
+  (: guard-arity (case->
+                  [==>i → (U Natural arity-at-least)]
+                  [Fn/C → Arity]))
+  (define guard-arity
+    (match-lambda
+      [(==>i doms _) (shape doms)]
+      [(Case-=> cases) (map guard-arity cases)]
+      [(∀/C _ E _ _)
+       ;; TODO: real Racket just returns `(arity-at-least 0)`
+       (cond [(E-arity E) => values] [else (error 'guard-arity "~a" E)])]))
+
+  (: E-arity (case->
+              [-->i → (U Natural arity-at-least)]
+              [E → Arity]))
+  (define E-arity
+    (match-lambda
+      [(-->i doms _) (shape doms)]
+      [(case--> cases) (map E-arity cases)]
+      [(-∀/c _ E _) (E-arity E)]
+      [E (error 'E-arity "~a" E)]))
+
+  (:* with-negative-party with-positive-party : -l V → V)
+  (define with-negative-party
+    (match-lambda**
+     [(l- (Guarded (cons l+ 'dummy-) C α)) (Guarded (cons l+ l-) C α)]
+     [(_ V) V]))
+  (define with-positive-party
+    (match-lambda**
+     [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
+     [(_ V) V]))
+
+  (: make-renamings : (U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)
+  (define (make-renamings fml W prevent?)
+    (define xs (if (-var? fml) (-var-init fml) fml))
+    (define-values (W₀ Wᵣ) (if (and (-var? fml) (-var-rest fml))
+                               (split-at W (length xs))
+                               (values W #f))) 
+    (define m
+      (for/hash : (Immutable-HashTable γ (Option T)) ([x (in-list xs)] [Vs (in-list W₀)])
+        (values (γ:lex x)
+                (and (not (prevent? x))
+                     (= 1 (set-count Vs))
+                     (let ([V (set-first Vs)])
+                       (and (T? V) V))))))
+    (match fml
+      [(-var _ (? values z)) (hash-set m (γ:lex z) #f)]
+      [_ m]))
+
+  (: rename : Renamings → (case->
+                           [T → (Option T)]
+                           [(U T -b) → (Option (U T -b))]))
+  ;; Compute renaming in general.
+  ;; `#f` means there's no correspinding name
+  (define (rename rn)
+    (: go (case-> [T → (Option T)]
+                  [(U T -b) → (Option (U T -b))]))
+    (define go
+      (match-lambda
+        [(T:@ o Ts)
+         (define Ts* (go* Ts))
+         (and Ts* (T:@ o Ts*))]
+        [(? -b? b) b]
+        [(? α? α) (hash-ref rn α (λ () α))]))
+    (define go* : ((Listof (U T -b)) → (Option (Listof (U T -b))))
+      (match-lambda
+        ['() '()]
+        [(cons T Ts) (match (go T)
+                       [#f #f]
+                       [(? values T*) (match (go* Ts)
+                                        [#f #f]
+                                        [(? values Ts*) (cons T* Ts*)])])]))
+    go)
+
+  (: T-root : T:@ → (℘ α))
+  (define (T-root T₀)
+    (define o-root : (-o → (℘ α))
+      (match-lambda
+        [(-st-ac 𝒾 i) {set (γ:escaped-field 𝒾 i)}]
+        [_ ∅]))
+    (let go ([T : (U T -b) T₀])
+      (cond [(T:@? T) (apply ∪ (o-root (T:@-_0 T)) (map go (T:@-_1 T)))]
+            [(-b? T) ∅]
+            [else {set T}])))
+
+  (: ac-Ps : -st-ac (℘ P) → (℘ P))
+  (define (ac-Ps ac Ps)
+    (for/fold ([Ps* : (℘ P) ∅]) ([P (in-set Ps)])
+      (match P
+        [(P:St (cons (== ac) acs*) P*)
+         (set-add Ps* (if (pair? acs*) (P:St acs* P*) P*))]
+        ;; Special case for rest of `list?`. TODO: reduce hack
+        ['list? #:when (equal? ac -cdr) (set-add Ps* 'list?)]
+        [_ Ps*])))
+
+  (: V⊔ : V^ V^ → V^)
+  (define (V⊔ Vs₁ Vs₂)
+    (if (> (set-count Vs₁) (set-count Vs₂))
+        (set-fold V⊔₁ Vs₁ Vs₂)
+        (set-fold V⊔₁ Vs₂ Vs₁)))
+
+  (: V⊔₁ : V V^ → V^)
+  (define (V⊔₁ V Vs) (merge/compact₁ V⊕ V Vs))
+
+  (define V⊕ : (V V → (Option V))
+    (match-lambda**
+     [((? -b? b) (and V (-● Qs))) (and (b∈Ps? b Qs) V)]
+     [((and V (-● Qs)) (? -b? b)) (and (b∈Ps? b Qs) V)]
+     [((and V₁ (-● Ps)) (and V₂ (-● Qs)))
+      (cond [(Ps⇒Ps? Ps Qs) V₂]
+            [(Ps⇒Ps? Qs Ps) V₁]
+            [(and (= 1 (set-count Ps))
+                  (= 1 (set-count Qs))
+                  (opposite? (set-first Ps) (set-first Qs)))
+             (-● ∅)]
+            [else (define Ps* (∩ Ps Qs))
+                  (and (set-ormap -o? Ps*) (-● Ps*))])]
+     [(V₁ V₂) (and (equal? V₁ V₂) V₁)]))
+
+  (define opposite? : (P P → Boolean)
+    (match-lambda**
+     [((P:¬ Q) Q) #t]
+     [(Q (P:¬ Q)) #t]
+     [('values 'not) #t]
+     [('not 'values) #t]
+     [(_ _) #f]))
+
+  (: b∈Ps? : -b (℘ P) → Boolean)
+  (define (b∈Ps? b Ps)
+    (define b^ {set b})
+    (for/and : Boolean ([P (in-set Ps)])
+      (and (meaningful-without-store? P) (eq? '✓ (sat ⊥Σ P b^)))))
+
+  (: Ps⇒Ps? : (℘ P) (℘ P) → Boolean)
+  (define (Ps⇒Ps? Ps Qs)
+    (for/and : Boolean ([Q (in-set Qs)])
+      (for/or : Boolean ([P (in-set Ps)])
+        (P⊢P-without-store? P Q))))
+
+  (: P⊢P-without-store? : P P → Boolean)
+  (define (P⊢P-without-store? P Q)
+    (or (equal? P Q)
+        ;; FIXME: ugly redundancy, but `(P:> T)` need store in general
+        (and (memq Q '(real? number?))
+             (or (P:>? P) (P:≥? P) (P:<? P) (P:≤? P) (P:=? P)))
+        (and (meaningful-without-store? P)
+             (meaningful-without-store? Q)
+             (eq? '✓ (P⊢P ⊥Σ P Q)))))
+
+  (define meaningful-without-store? : (P → Boolean)
+    (match-lambda
+      [(P:¬ Q) (meaningful-without-store? Q)]
+      [(P:St acs Q) (meaningful-without-store? Q)]
+      [(or (P:> T) (P:≥ T) (P:< T) (P:≤ T) (P:= T) (P:≡ T)) (-b? T)]
+      [(or (? P:arity-includes?) (? -o?)) #t]))
+
+  (: merge/compact (∀ (X) (X X → (Option (Listof X))) X (℘ X) → (℘ X)))
+  ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
+  (define (merge/compact ⊕ x xs)
+    (let loop ([x : X x] [xs : (℘ X) xs])
+      (or (for/or : (Option (℘ X)) ([xᵢ (in-set xs)])
+            (cond [(equal? x xᵢ) xs]
+                  [else (define xs* (⊕ xᵢ x))
+                        (and xs* (foldl loop (set-remove xs xᵢ) xs*))]))
+          (set-add xs x))))
+
+  (: merge/compact₁ (∀ (X) (X X → (Option X)) X (℘ X) → (℘ X)))
+  ;; "Merge" `x` into `xs`, compacting the set according to `⊕`
+  (define (merge/compact₁ ⊕ x xs)
+    (let loop ([x : X x] [xs : (℘ X) xs])
+      (or (for/or : (Option (℘ X)) ([xᵢ (in-set xs)])
+            (cond [(equal? x xᵢ) xs]
+                  [else (define x* (⊕ xᵢ x))
+                        (and x* (loop x* (set-remove xs xᵢ)))]))
+          (set-add xs x))))
+
+  (define Vect/C-fields : (Vect/C → (Values α ℓ Index))
+    (match-lambda
+      [(Vect/C α)
+       (match α
+         [(α:dyn (β:vect/c-elems ℓ n) _) (values α ℓ n)]
+         [(γ:imm:blob S ℓ) (values α ℓ (vector-length S))])]))
+
+  (define St/C-fields : (St/C → (Values α ℓ -𝒾))
+    (match-lambda
+      [(St/C α)
+       (match α
+         [(α:dyn (β:st/c-elems ℓ 𝒾) _) (values α ℓ 𝒾)]
+         [(γ:imm:blob:st _ ℓ 𝒾) (values α ℓ 𝒾)])]))
+
+  (define St/C-tag : (St/C → -𝒾)
+    (match-lambda
+      [(St/C α)
+       (match α
+         [(α:dyn (β:st/c-elems _ 𝒾) _) 𝒾]
+         [(γ:imm:blob:st _ _ 𝒾) 𝒾])]))
+
+  (define Clo-escapes : ((U -formals (Listof Symbol)) E H ℓ → (℘ α))
+    (let ([$ : (Mutable-HashTable E (Mutable-HashTable H (℘ α))) (make-hasheq)])
+      (λ (fml E H* ℓ)
+        (define $* (hash-ref! $ E (λ () ((inst make-hash H (℘ α))))))
+        (hash-ref!
+         $* H*
+         (λ ()
+           (define bvs (if (list? fml) (list->seteq fml) (formals->names fml)))
+           (define fvs (set-subtract (fv E) bvs))
+           (for/set: : (℘ α) ([x (in-set fvs)])
+             (α:dyn (β:esc x ℓ) H*)))))))
   )

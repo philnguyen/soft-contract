@@ -5,12 +5,21 @@
 (define pkg-desc "Contract verifier")
 
 (define deps '("base"
-               "typed-racket-lib"
-               "typed-racket-more"
-               "z3"
                "bnf"
+               "compiler-lib"
+               "htdp-lib"
                "intern"
-               "set-extras"))
+               "macro-debugger-text-lib"
+               "math-lib"
+               "profile-lib"
+               "rackunit-typed"
+               "set-extras"
+               "typed-racket-hacks"
+               "typed-racket-lib"
+               "unreachable"
+               "web-server-lib"
+               "z3"
+               "zo-lib"))
 
 (define compile-omit-paths '("test"))
 

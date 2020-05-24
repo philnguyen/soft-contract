@@ -2,14 +2,18 @@
 
 (provide (all-defined-out))
 
-(require racket/match racket/set set-extras)
+(require racket/match
+         (except-in racket/set for/set for*/set for/seteq for*/seteq)
+         racket/bool
+         set-extras
+         typed-racket-hacks)
 
 ;; Return the domain of a finite function represented as a hashtable
 (: dom : (∀ (X Y) (HashTable X Y) → (℘ X)))
 (define (dom f)
   (if (hash-eq? f)
-      (for/seteq: : (℘ X) ([x (in-hash-keys f)]) x)
-      (for/set:   : (℘ X) ([x (in-hash-keys f)]) x)))
+      (for/seteq : (℘ X) ([x (in-hash-keys f)]) x)
+      (for/set   : (℘ X) ([x (in-hash-keys f)]) x)))
 
 (: m↓ : (∀ (X Y) (Immutable-HashTable X Y) (℘ X) → (Immutable-HashTable X Y)))
 ;; Restrict map to given domain
@@ -39,7 +43,8 @@
 
 (: span* (∀ (X Y) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → (℘ X)))
 (define (span* m root f)
-  (span m root (mk-set-spanner f #:eq? (hash-eq? m))))
+  (define mt (if (hash-eq? m) ∅eq ∅))
+  (span m root (λ ([ys : (℘ Y)]) (set-union-map f ys mt))))
 
 (: hash-set-once! (∀ (X Y) (HashTable X Y) X Y → Void))
 (define (hash-set-once! m x v)
@@ -58,10 +63,10 @@
   (hash-update! m x (λ ([ys : (℘ Y)]) (set-add ys y)) mk))
 
 (: map-equal?/spanning-root
-   (∀ (X Y) (HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X)) → Boolean))
+   (∀ (X Y) ([(HashTable X (℘ Y)) (HashTable X (℘ Y)) (℘ X) (Y → (℘ X))] [(X → Boolean)] . ->* . Boolean)))
 ;; CHeck if 2 multimaps are equal up to the domain spanned by given set
-(define (map-equal?/spanning-root m₁ m₂ xs span)
-  (define-set seen : X #:eq? (hash-eq? m₁) #:as-mutable-hash? #t)
+(define (map-equal?/spanning-root m₁ m₂ xs span [check? (λ _ #t)])
+  (define-set seen : X #:eq? (hash-eq? m₁) #:mutable? #t)
   (let loop : Boolean ([xs : (℘ X) xs])
        (for/and : Boolean ([x (in-set xs)])
          (cond [(seen-has? x) #t]
@@ -69,14 +74,9 @@
                 (seen-add! x)
                 (define ys₁ (hash-ref m₁ x mk-∅))
                 (define ys₂ (hash-ref m₂ x mk-∅))
-                (and (equal? ys₁ ys₂)
+                (and ((check? x) . implies . (equal? ys₁ ys₂))
                      (for/and : Boolean ([y (in-set ys₁)])
                        (loop (span y))))]))))
-
-(: mk-set-spanner (∀ (X Y) ([(X → (℘ Y))] [#:eq? Boolean] . ->* . ((℘ X) → (℘ Y)))))
-(define (mk-set-spanner f #:eq? [use-eq? #f])
-  (cond [use-eq? (λ (xs) (for/unioneq : (℘ Y) ([x (in-set xs)]) (f x)))]
-        [else    (λ (xs) (for/union   : (℘ Y) ([x (in-set xs)]) (f x)))]))
 
 ;; For debugging
 (: large-ones (∀ (X Y) (HashTable X (℘ Y)) Natural → (HashTable X (℘ Y))))
@@ -88,3 +88,28 @@
 (: count-max : (∀ (X Y) ((HashTable X (℘ Y)) → Index)))
 (define (count-max m)
   (apply max 0 ((inst map Index (℘ Any)) set-count (hash-values m))))
+
+(: summarize-tables (∀ (X Y) (℘ (HashTable X Y)) → (HashTable X (℘ Y))))
+(define (summarize-tables ms)
+  (for*/fold ([acc : (HashTable X (℘ Y)) (hash)])
+             ([m (in-set ms)] [(x y) (in-hash m)])
+    (hash-update acc x (λ ([ys : (℘ Y)]) (set-add ys y)) mk-∅)))
+
+(: group (∀ (V X Y) (Sequenceof V) (V → X) (V → Y) → (HashTable X (℘ Y))))
+(define (group vs v-x v-y)
+  (for/fold ([acc : (HashTable X (℘ Y)) (hash)]) ([v vs])
+    (hash-update acc (v-x v) (λ ([ys : (℘ Y)]) (set-add ys (v-y v))) mk-∅)))
+
+(: m⊔ (∀ (X Y) (Immutable-HashTable X (℘ Y)) (Immutable-HashTable X (℘ Y)) → (Immutable-HashTable X (℘ Y))))
+(define (m⊔ m₁ m₂)
+  (if (> (hash-count m₁) (hash-count m₂))
+      (m⊔ m₂ m₁)
+      (for/fold ([m : (Immutable-HashTable X (℘ Y)) m₂])
+                ([(x ys) (in-hash m₁)])
+        (hash-update m x (λ ([ys₀ : (℘ Y)]) (∪ ys₀ ys)) mk-∅))))
+
+(: hash-first/rest (∀ (X Y) (Immutable-HashTable X Y) → (Values X Y (Immutable-HashTable X Y))))
+(define (hash-first/rest m)
+  (define i (assert (hash-iterate-first m)))
+  (define-values (k v) (hash-iterate-key+value m i))
+  (values k v (hash-remove m k)))

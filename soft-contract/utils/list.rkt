@@ -1,10 +1,12 @@
 #lang typed/racket/base
 
-(provide NeListof unzip-by unzip)
+(provide NeListof Assoc unzip-by unzip cartesian ?map)
 (require racket/match
-         racket/list)
+         racket/list
+         racket/set)
 
 (define-type (NeListof X) (Pairof X (Listof X)))
+(define-type (Assoc X Y) (Listof (Pairof X Y)))
 
 (: unzip-by (∀ (A X Y) (A → X) (A → Y) (Listof A) → (Values (Listof X) (Listof Y))))
 ;; Given a pair of functions, split list into 2
@@ -32,3 +34,35 @@
          (match-define-values (xs (list x)) (split-at l (sub1 (length l))))
          (values xs x)]
         [else (error 'init/last "empty list")]))
+
+(: cartesian (∀ (X Y)
+                (case->
+                 [(Listof (Setof X)) → (Listof (Listof X))]
+                 [(Listof (Setof X)) (X → Boolean : Y) → (Listof (Listof Y))])))
+(define cartesian
+  (case-lambda
+    [(xs) (apply cartesian-product (map (inst set->list X) xs))]
+    [(xs ok?)
+     (let go ([xs : (Listof (Setof X)) xs])
+       (match xs
+         [(cons x xs)
+          (define y (for/list : (Listof Y) ([xᵢ (in-set x)] #:when (ok? xᵢ)) xᵢ))
+          (cond
+            [(null? y) '()]
+            [else
+             (define ps (go xs))
+             (for*/list : (Listof (Listof Y)) ([yⱼ (in-list y)] [pᵢ (in-list ps)])
+               (cons yⱼ pᵢ))])]
+         [_ '{()}]))]))
+
+(: ?map (∀ (X Y Z) (X Y → (Option Z)) (Listof X) (Listof Y) → (Option (Listof Z))))
+(define (?map f xs ys)
+  (let go ([xs : (Listof X) xs] [ys : (Listof Y) ys])
+    (match* (xs ys)
+      [((cons x xs*) (cons y ys*))
+       (match (f x y)
+         [(? values z) (match (go xs* ys*)
+                         [(? values zs*) (cons z zs*)]
+                         [_ #f])]
+         [_ #f])]
+      [(_ _) '()])))

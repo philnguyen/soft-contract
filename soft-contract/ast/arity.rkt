@@ -10,6 +10,6 @@
 ;; The kind of arities that we care about, for now
 (Arity . ::= . Natural
                arity-at-least
-               [#:old (Listof (U Natural arity-at-least))])
+               [#:reuse (Listof (U Natural arity-at-least))])
 
 (define arity-0+ (arity-at-least 0))

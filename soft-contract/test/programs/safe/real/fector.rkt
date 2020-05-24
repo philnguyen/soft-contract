@@ -68,7 +68,7 @@
             (or/c vector?
                   (list/c exact-nonnegative-integer?
                           any/c
-                          (recursive-contract fector/c)))))
+                          (recursive-contract fector/c #:chaperone)))))
 
 (define (make-fector n x)
   (box (make-vector n x)))
@@ -121,13 +121,13 @@
 (provide
  (contract-out
   [fector? (any/c . -> . boolean?)]
-  [make-fector (exact-nonnegative-integer? any/c . -> . fector/c)]
+  [make-fector (exact-nonnegative-integer? any/c . -> . fector?)]
   [fector (() #:rest list? . ->* . fector?)]
   [fector-length
-   (fector/c . -> . exact-nonnegative-integer?)]
+   (fector? . -> . exact-nonnegative-integer?)]
   [build-fector
    (exact-nonnegative-integer? (exact-nonnegative-integer? . -> . any/c) . -> . fector?)]
   [fector-ref
-   (fector/c exact-nonnegative-integer? . -> . any/c)]
+   (fector? exact-nonnegative-integer? . -> . any/c)]
   [fector-set
-   (fector/c exact-nonnegative-integer? any/c . -> . any/c)]))
+   (fector? exact-nonnegative-integer? any/c . -> . any/c)]))

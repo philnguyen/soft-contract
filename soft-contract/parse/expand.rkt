@@ -9,7 +9,8 @@
          racket/hash
          racket/contract
          racket/contract/private/provide
-         "expand-keep-contracts.rkt")
+         "expand-keep-contracts.rkt"
+         (only-in "hacks.rkt" scv-struct-info-alias))
 
 (provide scv-ignore?)
 
@@ -17,13 +18,17 @@
   (if l (flatten l) null))
 
 (define (scv-ignore? stx)
-  (or (syntax-property stx 'scv:ignore)
-      (memf (λ (i) (eq? (syntax-e i) 'handle-contract-out)) (flatten* (syntax-property stx 'origin)))
-      (syntax-parse stx #:literals (define-values #%plain-app vector)
-        [(define-values (_:id)
-           (#%plain-app (~datum do-partial-app) _ _ _ _ (#%plain-app vector . _)))
-         #t]
-        [_ #f])))
+  (syntax-parse stx
+    [_:scv-struct-info-alias #f]
+    [_
+     (or (syntax-property stx 'scv:ignore)
+         (memf (λ (i) (eq? (syntax-e i) 'handle-contract-out)) (flatten* (syntax-property stx 'origin)))
+         (syntax-parse stx
+           #:literals (define-values #%plain-app vector)
+           [(define-values (_:id)
+              (#%plain-app (~datum do-partial-app) _ _ _ _ (#%plain-app vector . _)))
+            #t]
+           [_ #f]))]))
 
 (provide do-expand do-expand-file
          expander

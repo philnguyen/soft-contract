@@ -4,10 +4,9 @@
 
 (require typed/racket/unit
          set-extras
-         "../ast/main.rkt"
+         "../ast/signatures.rkt"
          "../runtime/signatures.rkt"
-         "../proof-relation/signatures.rkt"
-         "../reduction/signatures.rkt"
+         "../execution/signatures.rkt"
          "../signatures.rkt"
          "signatures.rkt"
          "prim-runtime.rkt"
@@ -17,6 +16,7 @@
          "prims-08.rkt"
          "prims-09.rkt"
          "prims-10.rkt"
+         "prims-11.rkt"
          "prims-13.rkt"
          "prims-15.rkt"
          "prims-16.rkt"
@@ -31,16 +31,16 @@
   (export prims^)
   (init-depend prim-runtime^)
 
-  (: get-prim : Symbol → -⟦f⟧)
+  (: get-prim : Symbol → Σ ℓ W → (Values R (℘ Err)))
   (define (get-prim o)
     (hash-ref rt:prim-table o (λ () (error 'get-prim "nothing for ~a" o))))
 
-  (: o⇒o : Symbol Symbol → -R)
-  (define (o⇒o p q)
+  (: o⊢o : Symbol Symbol → ?Dec)
+  (define (o⊢o p q)
     (cond [(eq? p q) '✓]
           [(∋ (rt:get-weakers p) q) '✓]
           [(∋ (rt:get-exclusions p) q) '✗]
-          [else '?]))
+          [else #f]))
 
   (: get-conservative-range : Symbol → Symbol)
   (define (get-conservative-range o) (hash-ref rt:range-table o (λ () 'any/c)))
@@ -56,12 +56,15 @@
     (cond [(parse-prim-table-ref rt:const-table id (λ () #f)) => values]
           [(alias-table-ref rt:alias-table id (λ () #f)) => parse-prim]
           [else #f]))
+
+  (define implement-predicate rt:implement-predicate)
   )
 
 (define-compound-unit/infer prims@
-  (import ast-pretty-print^ static-info^
-          proof-system^ local-prover^ widening^ app^ kont^ compile^ for-gc^
-          val^ pc^ sto^ instr^ pretty-print^ env^ mon^)
+  (import ast-pretty-print^ static-info^ meta-functions^
+          val^ sto^ cache^
+          prover^
+          exec^ app^ mon^ hv^)
   (export prims^ prim-runtime^)
   (link prim-runtime@
         pre-prims@
@@ -71,10 +74,12 @@
         prims-08@
         prims-09@
         prims-10@
+        prims-11@
         prims-13@
         prims-15@
         prims-16@
         prims-17@
         prims-math@
         prims-zo@
-        prims-scv@))
+        prims-scv@
+        ))
