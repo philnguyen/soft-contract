@@ -200,27 +200,41 @@
       (scv-syntax? . -> . void?)
 
       (define extractor->wrapper (make-hash))
-      (define wrapper->name (make-hash))
+      (define wrapper-2->wrapper-1 (make-hash))
+      (define wrapper-1->orig (make-hash))
+      (define (connect m extractor wrapper)
+        (define p (cur-path))
+        (hash-set! m (-𝒾 (syntax-e extractor) p) (-𝒾 (syntax-e wrapper) p)))
       (for-each-module-level-form!
        (syntax-parser
          #:literals (define-values #%plain-app quote)
-         [(~and stx (define-values (wrapper:id _:id)
+         [(~and stx (define-values (wrapper-1:id wrapper-2:id)
                       (#%plain-app f _ _ (quote name:id) _ _ _ ...)))
           #:when (eq? (syntax-e #'f) 'do-partial-app)
-          (define p (cur-path))
-          (hash-set! wrapper->name (-𝒾 (syntax-e #'wrapper) p) (-𝒾 (syntax-e #'name) p))]
+          (connect wrapper-2->wrapper-1 #'wrapper-2 #'wrapper-1)
+          (connect wrapper-1->orig #'wrapper-1 #'name)]
          [(define-values (extractor:id)
             (#%plain-app f wrapper:id))
           #:when (eq? (syntax-e #'f) 'wrapped-extra-arg-arrow-extra-neg-party-argument)
-          (define p (cur-path))
-          (hash-set! extractor->wrapper (-𝒾 (syntax-e #'extractor) p) (-𝒾 (syntax-e #'wrapper) p))]
+          (connect extractor->wrapper #'extractor #'wrapper)]
+         ;; after 7.4
+         [(define-values (extractor:id)
+            (#%plain-app f (#%plain-app _ _) wrapper:id _))
+          #:when (eq? (syntax-e #'f) 'build->*-plus-one-acceptor)
+          (connect extractor->wrapper #'extractor #'wrapper)]
          [_ (void)])
        stx)
 
       (for ([(extractor wrapper) (in-hash extractor->wrapper)])
-        (define orig (hash-ref wrapper->name wrapper))
-        (set-alternate-alias! extractor orig #t)
-        (set-alternate-alias! wrapper orig #f))))
+        (define (with-orig orig)
+          (set-alternate-alias! extractor orig #t)
+          (set-alternate-alias! wrapper orig #f))
+        (match (hash-ref wrapper-2->wrapper-1 wrapper #f)
+          [(? values x) (match (hash-ref wrapper-1->orig x #f)
+                          [(? values orig) (set-alternate-alias! x orig #f)
+                                           (with-orig orig)]
+                          [#f (with-orig x)])]
+          [#f (with-orig (hash-ref wrapper-1->orig wrapper))]))))
 
   ;; Convert syntax to `top-level-form`
   (define/contract parse-top-level-form
@@ -402,6 +416,9 @@
       [;; Hack ignoring generated garbage by `struct`
        (define-values (_:identifier) (#%plain-app f:id _:id))
        #:when (equal? 'wrapped-extra-arg-arrow-extra-neg-party-argument (syntax-e #'f))
+       #f]
+      [(define-values (_:identifier) (#%plain-app f (#%plain-app _ _) wrapper:id _))
+       #:when (eq? (syntax-e #'f) 'build->*-plus-one-acceptor)
        #f]
       [(~and d (define-values (x:identifier ...) e))
        (define lhs (syntax->datum #'(x ...)))
