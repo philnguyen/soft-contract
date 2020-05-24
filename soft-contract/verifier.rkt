@@ -19,8 +19,6 @@
          )
 
 (require (only-in typed/racket/unsafe unsafe-require/typed))
-(unsafe-require/typed redex/gui
-  [reduction-steps-cutoff (Parameterof Natural)])
 
 (define-unit verifier@
   (import parser^
