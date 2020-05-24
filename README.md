@@ -3,6 +3,27 @@
 Soft Contract Verifier
 =============================================================
 
+This is a branch of the tool that's under active development, with the main
+differences:
+* Writing the analysis as (a variant of) [abstract definitional interpreter]
+(https://dl.acm.org/doi/pdf/10.1145/3110256?download=true) with an improved
+cache-fixing loop that reduces redundant computation.
+* Per-step abstract garbage collection with respect to a much smaller
+live set, thanks to stack irrelevance and big-step formulation,
+as well-described in
+[Stack-Liberated Abstract Garbage Collection](https://icfp19.sigplan.org/details/scheme-2019-papers/12/Stack-Liberated-Abstract-Garbage-Collection),
+although the technique was independently discovered.
+* Dropping dependence on Z3 in favor of an internal solver,
+as the analysis's typical use case is a large number of very simple queries.
+
+The tool is expected to be plagued with bugs and not ready for production.
+
+The previous versions of the implementation are archived in branches
+[icfp14](https://github.com/philnguyen/soft-contract/tree/icfp14),
+[pldi-aec-2015](https://github.com/philnguyen/soft-contract/tree/pldi-aec-2015),
+[jpf](https://github.com/philnguyen/soft-contract/tree/jfp),
+[popl18-ae](https://github.com/philnguyen/soft-contract/tree/popl18-ae).
+
 ## Installation
 
 Clone this repository
@@ -25,20 +46,3 @@ To verify one or more modules, use `raco scv` command:
 Using non-standard constructs require `fake-contract`:
 
     (require soft-contract/fake-contract)
-
-#### Termination enforcing
-
-Annotating function contracts with `#:total? #t` enforces
-[size-change termination](https://en.wikipedia.org/wiki/Size-change_termination_principle),
-where the well-founded partial order is defined on integers (by absolute values) and (immutable) structs and pairs.
-
-```racket
-#lang racket/base
-(require soft-contract/fake-contract)
-
-(define (fact n)
-  (if (zero? n) 1 (* n (fact (sub1 n)))))
-
-(provide/contract
-  [f (exact-nonnegative-integer? . -> . exact-nonnegative-integer? #:total? #t)])
-```
