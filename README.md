@@ -5,8 +5,8 @@ Soft Contract Verifier
 
 This is a branch of the tool that's under active development, with the main
 differences:
-* Writing the analysis as (a variant of) [abstract definitional interpreter]
-(https://dl.acm.org/doi/pdf/10.1145/3110256?download=true) with an improved
+* Writing the analysis as (a variant of)
+[abstract definitional interpreter](https://dl.acm.org/doi/pdf/10.1145/3110256?download=true) with an improved
 cache-fixing loop that reduces redundant computation.
 * Per-step abstract garbage collection with respect to a much smaller
 live set, thanks to stack irrelevance and big-step formulation,
