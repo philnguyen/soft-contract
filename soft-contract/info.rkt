@@ -18,7 +18,6 @@
                "typed-racket-lib"
                "unreachable"
                "web-server-lib"
-               "z3"
                "zo-lib"))
 
 (define compile-omit-paths '("test"))
