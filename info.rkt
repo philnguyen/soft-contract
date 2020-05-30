@@ -12,7 +12,6 @@
                "set-extras"
                "typed-racket-lib"
                "web-server-lib"
-               "z3"
                "zo-lib"
 	       "unreachable"
 	       "typed-racket-hacks"))
