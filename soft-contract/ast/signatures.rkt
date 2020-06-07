@@ -86,6 +86,7 @@
                             [loc : ℓ])
             (-set! (U Symbol -𝒾) -e ℓ)
             (-error String ℓ)
+            (-parameterize (Listof (Pairof -e -e)) -e)
             
             ;; contract stuff
             (-rec/c -x)

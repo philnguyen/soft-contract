@@ -34,9 +34,11 @@
 (#|Store Deltas   |# ΔΣ . ≜  . (Immutable-HashTable α (Pairof S N)))
 (#|Storables      |# S .  ≜  . (U V^ (Vectorof V^)))
 (#|Values Lists   |# W .  ≜  . (Listof V^))
+(#|Dynamic Params |# B .  ≜  . (Immutable-HashTable α V^))
 (#|Non-Prim Funcs |# Fn . ::= . -λ ; delayed closure, for inlining
                                 (Clo -formals E H ℓ)
-                                (Case-Clo (Listof Clo) ℓ))
+                                (Case-Clo (Listof Clo) ℓ)
+                                (Param α))
 (#|Contracts      |# C . ::= . (And/C α α ℓ)
                                (Or/C α α ℓ)
                                (Not/C α ℓ)
@@ -130,12 +132,14 @@
                                (β:fn Ctx Fn/C-Sig)
                                ;; For values wrapped in seals
                                (β:sealed Symbol ℓ) ; points to wrapped objects
+                               ;; For initial value of dynamic parameters
+                               (β:param ℓ)
                                )
-(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ E)
-                                   ($:Key:Mon Σ Ctx V V^)
-                                   ($:Key:Fc Σ ℓ V V^)
-                                   ($:Key:App Σ ℓ V W)
-                                   ($:Key:Hv Σ α))
+(#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ B E)
+                                   ($:Key:Mon Σ B Ctx V V^)
+                                   ($:Key:Fc Σ B ℓ V V^)
+                                   ($:Key:App Σ B ℓ V W)
+                                   ($:Key:Hv Σ B α))
 (#|Named Domains  |# Dom . ::= . (Dom [name : Symbol] [ctc : (U Clo α)] [loc : ℓ]))
 (#|Cardinalities  |# N . ::= . 0 '? 1 'N)
 (#|Havoc Tags     |# HV-Tag . ≜ . (Option -l))
@@ -190,6 +194,13 @@
    [collapse-ΔΣs : ((℘ ΔΣ) → ΔΣ)]
    [ΔΣ⊔₁ : (ΔΣ (℘ ΔΣ) → (℘ ΔΣ))]
    ))
+
+(define-signature params^
+  ([current-parameter : ([α] [(→ V^)] . ->* . V^)]
+   [current-parameters : (→ B)]
+   [set-parameter : (α V^ → Void)]
+   [with-parameters : (∀ (X) ((Listof (Pairof V^ V^)) (→ X) → X))]
+   [with-parameters-2 : (∀ (X Y) ((Listof (Pairof V^ V^)) (→ (Values X Y)) → (Values X Y)))]))
 
 (define-signature cache^
   ([R-of : ([(U V V^ W)] [ΔΣ] . ->* . R)]

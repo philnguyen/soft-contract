@@ -24,7 +24,7 @@
 
 (define-unit app@
   (import meta-functions^ static-info^ ast-pretty-print^
-          sto^ cache^ val^ pretty-print^
+          params^ sto^ cache^ val^ pretty-print^
           prims^ prover^
           exec^ evl^ mon^ hv^ gc^)
   (export app^)
@@ -39,10 +39,10 @@
   (: app : Σ ℓ V^ W → (Values R (℘ Err)))
   (define (app Σ ℓ Vₕ^ W*)
     (define-values (W ΔΣ) (escape-clos Σ W*))
-    (define W:root (W-root W))
+    (define root₀ (∪ (W-root W) (B-root (current-parameters))))
     ((inst fold-ans V)
      (λ (Vₕ)
-       (define root (∪ W:root (V-root Vₕ)))
+       (define root (∪ root₀ (V-root Vₕ)))
        (define Σ* (gc root (⧺ Σ ΔΣ)))
        (log-scv-preval-debug "~n~a~a ⊢ₐ:~a ~a ~a~n"
                              (make-string (* 4 (db:depth)) #\space)
@@ -50,7 +50,7 @@
                              (show-full-ℓ ℓ)
                              (show-V Vₕ)
                              (show-W W))
-       (define-values (r es) (parameterize ([db:depth (+ (db:depth))]) (ref-$! ($:Key:App Σ* ℓ Vₕ W)
+       (define-values (r es) (parameterize ([db:depth (+ (db:depth))]) (ref-$! ($:Key:App Σ* (current-parameters) ℓ Vₕ W)
                                      (λ () (with-gc root Σ* (λ () (with-pre ΔΣ (app₁ Σ* ℓ Vₕ W))))))))
        (log-scv-eval-debug "~n~a~a ⊢ₐ:~a ~a ~a ⇓ ~a~n"
                            (make-string (* 4 (db:depth)) #\space)
@@ -82,6 +82,7 @@
                 [(-st-ac 𝒾 i) (app-st-ac 𝒾 i)]
                 [(-st-mut 𝒾 i) (app-st-mut 𝒾 i)]
                 [(? symbol? o) (app-prim o)]
+                [(Param α) (app-param α)]
                 [(Guarded ctx (? Fn/C? G) α)
                  (cond [(==>i? G)    (app-==>i ctx G α)]
                        [(∀/C? G)     (app-∀/C  ctx G α)]
@@ -116,7 +117,7 @@
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
            ;; TODO: code dup
-           (let ([root (∪ (E-root Vₕ) (W-root Wₓ))])
+           (let ([root (∪ (E-root Vₕ) (W-root Wₓ) (B-root (current-parameters)))])
              (define Σ₁ (gc root Σ))
              (define-values (rₐ es) (evl/history (⧺ Σ₁ ΔΣₓ) E))
              (define rn (trim-renamings (make-renamings fml Wₓ* assignable?)))
@@ -136,7 +137,7 @@
                   (if xᵣ (alloc-vararg xᵣ Wᵣ) ⊥ΔΣ))))
            ;; gc one more time against unpacked arguments
            ;; TODO: clean this up so only need to gc once?
-           (let ([root (∪ (V-root Vₕ) (W-root Wₓ))])
+           (let ([root (∪ (V-root Vₕ) (W-root Wₓ) (B-root (current-parameters)))])
              (define Σ₁ (gc root Σ))
              (define-values (rₐ es) (evl/history (⧺ Σ₁ ΔΣₓ) E)) ; no `ΔΣₓ` in result
              (define rn (trim-renamings (insert-fv-erasures ΔΣₓ (make-renamings fml Wₓ* assignable?))))
@@ -260,11 +261,19 @@
     ; TODO massage raw result
     ((get-prim o) Σ ℓ Wₓ))
 
+  (: app-param : α → ⟦F⟧)
+  (define ((app-param α) Σ ℓ Wₓ)
+    (match Wₓ
+      [(list) (just (current-parameter α (λ () (Σ@ α Σ))))]
+      [(list V) (set-parameter α V)
+                (just -void)]
+      [_ (err (Err:Arity (Param α) (length Wₓ) ℓ))]))
+
   (: app-==>i : (Pairof -l -l) ==>i α → ⟦F⟧)
   (define ((app-==>i ctx:saved G αₕ) Σ₀-full ℓ Wₓ*)
     (match-define (cons l+ l-) ctx:saved)
     (define Wₓ (unpack-W Wₓ* Σ₀-full))
-    (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ)) Σ₀-full))
+    (define Σ₀ (gc (∪ (set-add (V-root G) αₕ) (W-root Wₓ) (B-root (current-parameters))) Σ₀-full))
     (match-define (==>i (-var Doms ?Doms:rest) Rngs) G)
 
     (: mon-doms : Σ -l -l (Listof Dom) W → (Values R (℘ Err)))

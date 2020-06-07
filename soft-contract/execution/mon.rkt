@@ -22,7 +22,7 @@
 
 (define-unit mon@
   (import static-info^
-          cache^ val^ sto^ pretty-print^
+          params^ cache^ val^ sto^ pretty-print^
           exec^ app^ gc^
           prover^)
   (export mon^)
@@ -32,9 +32,9 @@
 
   (: mon : Σ Ctx V^ V^ → (Values R (℘ Err)))
   (define (mon Σ ctx C^ V^)
-    (define args:root (V^-root V^))
+    (define root₀ (∪ (V^-root V^) (B-root (current-parameters))))
     (fold-ans (λ ([C : V])
-                (define root (∪ (V-root C) args:root))
+                (define root (∪ (V-root C) root₀))
                 (define Σ* (gc root Σ))
                 (log-scv-preval-debug "~n~a~a ⊢ₘ:~a ~a ▷ ~a~n"
                                       (make-string (* 4 (db:depth)) #\space)
@@ -42,7 +42,7 @@
                                       (show-full-ℓ (Ctx-origin ctx))
                                       (show-V^ V^)
                                       (show-V C))
-                (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Mon Σ* ctx C V^)
+                (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Mon Σ* (current-parameters) ctx C V^)
                                               (λ () (with-gc root Σ* (λ () ((mon₁ C) Σ* ctx V^)))))))
                 (log-scv-eval-debug "~n~a~a ⊢ₘ:~a ~a ▷ ~a ⇓ ~a~n"
                                     (make-string (* 4 (db:depth)) #\space)
@@ -353,7 +353,7 @@
      (λ (C)
        (define root (∪ (V-root C) Vs:root))
        (define Σ₀* (gc root Σ₀))
-       (ref-$! ($:Key:Fc Σ₀* ℓ C Vs)
+       (ref-$! ($:Key:Fc Σ₀* (current-parameters) ℓ C Vs)
                (λ () (with-gc root Σ₀* (λ () (fc₁ Σ₀* ℓ C Vs))))))
      (unpack Cs Σ₀)))
 
