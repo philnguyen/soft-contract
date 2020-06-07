@@ -625,6 +625,19 @@
        (raise-syntax-error 'parse-e "TODO: non-top-level struct" #'stx)]
       [(#%plain-app f x ...)
        (-@/simp (parse-e #'f) (parse-es #'(x ...)) (next-ℓ! stx))]
+
+      ;; HACK for `parameterize`
+      [(with-continuation-mark param-key:id (#%plain-app ext-param:id _ args ...) e)
+       #:when (and (eq? (syntax-e #'param-key) 'parameterization-key)
+                   (eq? (syntax-e #'ext-param) 'extend-parameterization))
+       (define params
+         (let loop ([bs (syntax->list #'(args ...))])
+           (match bs
+             [(list* x e bs*)
+              (cons (cons (parse-e x) (parse-e e)) (loop bs*))]
+             ['() '()])))
+       (-parameterize params (parse-e #'e))]
+
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]
       [(begin e ...)

@@ -24,7 +24,7 @@
           parser^ verifier^)
   (link ast-pretty-print@ static-info@ meta-functions@ ast-macros@
         prims@ parser@
-        cache@ sto@ val@ pretty-print@
+        params@ cache@ sto@ val@ pretty-print@
         prover@
         exec@
         verifier@))

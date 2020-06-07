@@ -192,7 +192,7 @@
 
 (define-compound-unit/infer exec@
   (import meta-functions^ static-info^ ast-pretty-print^
-          sto^ cache^ val^ pretty-print^
+          params^ sto^ cache^ val^ pretty-print^
           prover^ prims^)
   (export exec^ hv^ mon^ app^)
   (link gc@ app@ evl@ mon@ hv@ fix@))

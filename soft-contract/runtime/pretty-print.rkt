@@ -27,6 +27,7 @@
       [(? -λ? V) (show-e V)]
       [(? Clo? clo) (show-Clo clo)]
       [(Case-Clo clos ℓ) `(case-lambda ,@(map show-Clo clos))]
+      [(Param (α:dyn (β:param ℓ) _)) (format-symbol "param@~a" (show-ℓ ℓ))]
       [(Guarded _ G α) `(,(show-Prox/C G) ◃ ,(show-α α))]
       [(St (α:dyn (β:st-elems ctx 𝒾) _) Ps) `(,(-𝒾-name 𝒾) ,(show-ctx/ℓ ctx) ,(show-Ps Ps "_"))]
       [(Vect (α:dyn (β:vect-elems ℓ n) _)) (format-symbol "~a~a" (show-ℓ ℓ) (n-sup n))]
@@ -159,7 +160,8 @@
       [(β:st/c-elems ℓ 𝒾) (show-ℓ ℓ)]
       [(β:dom ℓ) (show-ℓ ℓ)]
       [(β:fn ctx _) (show-β:ctx ctx)]
-      [(β:sealed x _) (format-symbol "⦇~a⦈" x)]))
+      [(β:sealed x _) (format-symbol "⦇~a⦈" x)]
+      [(β:param ℓ) (show-ℓ ℓ)]))
 
   (: show-β:ℓ (ℓ Natural → Symbol))
   (define (show-β:ℓ ℓ i) (format-symbol "~a@~a" (show-ℓ ℓ) i))
@@ -221,15 +223,15 @@
 
   (define show-$:Key : ($:Key → Sexp)
     (match-lambda
-      [($:Key:Exp Σ E)
+      [($:Key:Exp Σ _ E)
        `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
-      [($:Key:Mon Σ Ctx V V^)
+      [($:Key:Mon Σ _ Ctx V V^)
        `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
-      [($:Key:Fc Σ ℓ V V^)
+      [($:Key:Fc Σ _ ℓ V V^)
        `(Fc ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
-      [($:Key:App Σ ℓ V W)
+      [($:Key:App Σ _ ℓ V W)
        `(App ,(show-V V) ,@(show-W W) @ ,@(show-Σ Σ))]
-      [($:Key:Hv Σ α)
+      [($:Key:Hv Σ _ α)
        `(Hv ,(show-α α) @ ,@(show-Σ Σ))]))
 
   (define (sexp->string [s : Sexp]) (format "~a" s))

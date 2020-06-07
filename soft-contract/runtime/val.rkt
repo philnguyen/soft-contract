@@ -148,6 +148,7 @@
       [(-λ xs _ _) (shape xs)]
       [(Clo xs _ _ _) (shape xs)]
       [(Case-Clo clos _) (map arity clos)]
+      [(Param _) (list 0 1)]
       [(? And/C?) 1]
       [(? Or/C?) 1]
       [(? Not/C?) 1]

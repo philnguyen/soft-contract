@@ -24,7 +24,7 @@
 
 (define-unit evl@
   (import meta-functions^ static-info^ ast-pretty-print^
-          sto^ cache^ val^ pretty-print^
+          params^ sto^ cache^ val^ pretty-print^
           exec^ app^ mon^ gc^)
   (export evl^)
 
@@ -62,7 +62,8 @@
            [(== l) (values (γ:top 𝒾) (γ:wrp 𝒾))]
            [l:here (values (γ:wrp 𝒾) (γ:wrp (-𝒾 x l:here)))])]
         [(? -o? o)
-         (define x #|HACK|# (assert (show-e o) symbol?))
+         (define x #|HACK|#
+           (assert (show-e o) symbol?))
          (values (γ:imm o) (γ:wrp (-𝒾 x (current-module))))]))
     (match spec
       [(-p/c-item x c ℓ)
@@ -77,13 +78,13 @@
 
   (: evl : Σ E → (Values R (℘ Err)))
   (define (evl Σ E)
-    (define root (E-root E))
+    (define root (∪ (E-root E) (B-root (current-parameters))))
     (define Σ* (gc root Σ))
     (log-scv-preval-debug "~n~a~a ⊢ₑ ~a~n"
                           (make-string (* 4 (db:depth)) #\space)
                           (show-Σ Σ*)
                           (show-e E))
-    (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Exp Σ* E)
+    (define-values (r es) (parameterize ([db:depth (+ 1 (db:depth))]) (ref-$! ($:Key:Exp Σ* (current-parameters) E)
                                   (λ () (with-gc root Σ* (λ () (do-evl Σ* E)))))))
     (log-scv-eval-debug "~n~a~a ⊢ₑ ~a ⇓ ~a~n"
                         (make-string (* 4 (db:depth)) #\space)
@@ -189,6 +190,13 @@
              (foldl ΔΣ⊔ (car muts) (cdr muts))))
          (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
+      [(-parameterize bindings body)
+       (match/values (evl-param-bindings Σ bindings)
+         [((cons params ΔΣ) es)
+          (with-pre ΔΣ
+             (with-parameters-2 params
+               (λ () (evl (⧺ Σ ΔΣ) body))))]
+         [(#f es) (values ⊥R es)])]
       [(-rec/c (-x x ℓ))
        (match x
          [(-𝒾 _ l)
@@ -329,6 +337,32 @@
         (let ([ΔΣ (escape ℓ (set-subtract (fv c) (list->seteq ?deps)) Σ)])
           (values (cons (Clo (-var ?deps #f) c H₀ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
+
+  (: evl-param-bindings : Σ (Listof (Pairof -e -e)) → (Values (Option (Pairof (Listof (Pairof V^ V^)) ΔΣ)) (℘ Err)))
+  (define (evl-param-bindings Σ₀ bnds)
+    (define-values (ΔΣ* bnds* es*)
+      (let loop : (Values (Option ΔΣ) (Listof (Pairof V^ V^)) (℘ Err))
+           ([Σ : Σ Σ₀]
+            [bnds : (Listof (Pairof -e -e)) bnds]
+            [rev-bnds : (Listof (Pairof V^ V^)) '()]
+            [acc-ΔΣ : ΔΣ ⊥ΔΣ]
+            [acc-es : (℘ Err) ∅])
+        (match bnds
+          [(cons (cons (and x (-x _ ℓ)) e) bnds*)
+           (match/values ((evl/single/collapse ℓ) Σ x)
+             [((cons V₁ ΔΣ₁) es₁)
+              (match/values ((evl/single/collapse ℓ) (⧺ Σ ΔΣ₁) e)
+                [((cons V₂ ΔΣ₂) es₂)
+                 (define Σ* (⧺ Σ ΔΣ₁ ΔΣ₂))
+                 (loop Σ*
+                       bnds*
+                       (cons (cons (unpack V₁ Σ*) (unpack V₂ Σ*)) rev-bnds)
+                       (⧺ acc-ΔΣ ΔΣ₁ ΔΣ₂)
+                       (∪ acc-es es₁ es₂))]
+                [(#f es₂) (values #f '() (∪ acc-es es₁ es₂))])]
+             [(#f es₁) (values #f '() (∪ acc-es es₁))])]
+          ['() (values acc-ΔΣ (reverse rev-bnds) acc-es)])))
+    (values (and ΔΣ* (cons bnds* ΔΣ*)) es*))
 
   (: evl/arity : Σ E Natural ℓ → (Values R (℘ Err)))
   ;; Run expression with arity guard

@@ -19,7 +19,7 @@
 
 (define-unit hv@
   (import static-info^ meta-functions^ ast-pretty-print^
-          sto^ cache^ val^
+          params^ sto^ cache^ val^
           exec^ app^ gc^)
   (export hv^)
 
@@ -40,9 +40,9 @@
 
   (: hv : Σ γ:hv → (Values R (℘ Err)))
   (define (hv Σ αₕᵥ)
-    (define root {set αₕᵥ})
+    (define root (set-add (B-root (current-parameters)) αₕᵥ))
     (define Σ* (gc root Σ))
-    (ref-$! ($:Key:Hv Σ* αₕᵥ)
+    (ref-$! ($:Key:Hv Σ* (current-parameters) αₕᵥ)
             (λ ()
               (with-gc root Σ*
                 (λ ()

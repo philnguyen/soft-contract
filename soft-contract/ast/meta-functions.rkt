@@ -41,6 +41,9 @@
        (set-subtract (apply ∪ (fv e) (map (compose1 fv (inst cdr Any -e)) bnds)) bound)]
       [(-set! x e _) (if (symbol? x) (set-add (fv e) x) (fv e))]
       [(-if e e₁ e₂ _) (∪ (fv e) (fv e₁) (fv e₂))]
+      [(-parameterize bs e)
+       (define-values (ls rs) (unzip bs))
+       (apply ∪ (apply ∪ (fv e) (map fv ls)) (map fv rs))]
       [(-rec/c (-x x _)) (if (symbol? x) {set x} ∅eq)]
       [(-->i (-var cs c) d)
        (define dom-fv : (-dom → (℘ Symbol))
@@ -77,6 +80,9 @@
              (apply + (go e) (map (λ ([bnd : (Pairof Any -e)]) (go (cdr bnd))) bnds)))]
         [(-set! x e _) (go e)]
         [(-if e e₁ e₂ _) (+ (go e) (go e₁) (go e₂))]
+        [(-parameterize bs e)
+         (define-values (ls rs) (unzip bs))
+         (apply + (apply + (go e) (map go ls)) (map go rs))]
         [(-rec/c (-x x _)) (if (equal? x z) 1 0)]
         [(-->i (-var cs c) d)
          (define dom-count : (-dom → Natural)
@@ -172,6 +178,12 @@
               [(-set! x e* ℓ)
                (assert (not (hash-has-key? m x)))
                (-set! x (go m e*) ℓ)]
+              [(-parameterize bs e)
+               (define-values (xs es) (unzip bs))
+               (define bs*
+                 (for/list : (Listof (Pairof -e -e)) ([x (in-list xs)] [e (in-list es)])
+                   (cons (go m x) (go m e))))
+               (-parameterize bs* (go m e))]
               [(-rec/c (-x x _)) (if (hash-has-key? m x) !!! e)]
               [(? -->i? c) (go--->i m c)]
               [(case--> cases) (case--> (map (curry go--->i m) cases))]

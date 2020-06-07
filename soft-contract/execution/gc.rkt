@@ -109,6 +109,7 @@
       [(? -λ? V) (E-root V)]
       [(? Clo? V) (Clo-root V)]
       [(Case-Clo clos _) (apply ∪ ∅ (map Clo-root clos))]
+      [(Param α) {set α}]
       [(Guarded _ C α) (set-add (V-root C) α)]
       [(Sealed α) ∅] ; TODO confirm ok
       [(And/C α₁ α₂ _) {set α₁ α₂}]
@@ -165,6 +166,11 @@
   (: W-root : W → (℘ α))
   (define (W-root W) (apply ∪ ∅ (map V^-root W)))
 
+  (: B-root : B → (℘ α))
+  (define (B-root B)
+    (for/fold ([acc : (℘ α) ∅]) ([V (in-hash-values B)])
+      (∪ acc (V^-root V))))
+
   (define ==>i-root : (==>i → (℘ α))
     (match-lambda
       [(==>i (-var doms ?doms:rst) rng)
@@ -212,6 +218,9 @@
             (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
            [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
            [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
+           [(-parameterize bnds e)
+            (for/fold ([acc : (℘ γ) (E-root e)]) ([b (in-list bnds)])
+              (∪ acc (E-root (car b)) (E-root (cdr b))))]
            [(-rec/c x) (x-root x)]
            [(-->i (-var cs c) d)
             (define dom-E-root : (-dom → (℘ γ))
