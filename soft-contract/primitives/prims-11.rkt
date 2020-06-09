@@ -16,7 +16,7 @@
 
 (define-unit prims-11@
   (import prim-runtime^
-          sto^
+          params^ sto^
           exec^)
   (export)
 
@@ -30,5 +30,6 @@
   (def (make-parameter Σ ℓ W)
     #:init ([V any/c])
     (define α (α:dyn (β:param ℓ) H₀))
-    (just (Param α) (alloc α V)))
+    (set-parameter α V)
+    (just (Param α)))
 )

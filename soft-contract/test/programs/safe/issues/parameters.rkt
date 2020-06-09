@@ -7,6 +7,7 @@
 
 (define z (parameterize ([x (+ (x) 1)]
                          [y (string-length (y))])
+            (displayln "effect")
             (+ (x) 2 (y))))
 
 (provide

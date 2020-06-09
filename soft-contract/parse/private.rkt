@@ -627,7 +627,7 @@
        (-@/simp (parse-e #'f) (parse-es #'(x ...)) (next-ℓ! stx))]
 
       ;; HACK for `parameterize`
-      [(with-continuation-mark param-key:id (#%plain-app ext-param:id _ args ...) e)
+      [(with-continuation-mark param-key:id (#%plain-app ext-param:id _ args ...) e ...)
        #:when (and (eq? (syntax-e #'param-key) 'parameterization-key)
                    (eq? (syntax-e #'ext-param) 'extend-parameterization))
        (define params
@@ -636,7 +636,7 @@
              [(list* x e bs*)
               (cons (cons (parse-e x) (parse-e e)) (loop bs*))]
              ['() '()])))
-       (-parameterize params (parse-e #'e))]
+       (-parameterize params (-begin/simp (parse-es #'(e ...))))]
 
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]

@@ -264,7 +264,7 @@
   (: app-param : α → ⟦F⟧)
   (define ((app-param α) Σ ℓ Wₓ)
     (match Wₓ
-      [(list) (just (current-parameter α (λ () (Σ@ α Σ))))]
+      [(list) (just (current-parameter α))]
       [(list V) (set-parameter α V)
                 (just -void)]
       [_ (err (Err:Arity (Param α) (length Wₓ) ℓ))]))
