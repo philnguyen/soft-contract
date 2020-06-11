@@ -32,6 +32,8 @@
      . ->* . path-for-some-system?))
   (def path-replace-extension
     ((or/c path-string? path-for-some-system?) (or/c string? bytes?) . -> . path-for-some-system?))
+  (def path-replace-suffix
+    ((or/c path-string? path-for-some-system?) (or/c string? bytes?) . -> . path-for-some-system?))
 
   ;; 15.1.2 More Path Utilities
   (def file-name-from-path ((or/c path-string? path-for-some-system?) . -> . (or/c #f path-for-some-system?)))
