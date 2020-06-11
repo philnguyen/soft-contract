@@ -105,6 +105,7 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   (def-pred identifier?)
   (def-pred module-path-index?)
+  (def-pred module-path?)
   (def-pred index?)
   (def-pred nonnegative?)
   (def-pred nonpositive?)

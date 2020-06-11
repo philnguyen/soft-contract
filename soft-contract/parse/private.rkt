@@ -295,7 +295,7 @@
         #'(#%provide spec ...))]
       [(#%declare form ...)
        (raise-syntax-error 'parse-module-level-form "TODO: '#%declare" #'(#%declare form ...))]
-      [(begin-for-syntax _ ...) '()]
+      [(begin-for-syntax _ ...) #f]
       
       ;; Hack for reading our fake-contracts:
       [prov:scv-provide
