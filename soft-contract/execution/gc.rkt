@@ -132,6 +132,7 @@
       [(? ==>i? V) (==>i-root V)]
       [(∀/C xs c H ℓ) (E-H-root xs c H ℓ)]
       [(Case-=> Cs) (apply ∪ ∅ (map ==>i-root Cs))]
+      [(Param/C α _) {set α}]
       [(? α? α) {set α}]
       [(? T:@? T) (T-root T)]
       [(? -prim? p) (prim-root p)]
@@ -218,7 +219,7 @@
             (set-subtract (apply ∪ (E-root e) (map (compose1 E-root (inst cdr Any -e)) bnds)) bound)]
            [(-set! x e _) (set-add (E-root e) (if (symbol? x) (γ:lex x) (γ:top x)))]
            [(-if e e₁ e₂ _) (∪ (E-root e) (E-root e₁) (E-root e₂))]
-           [(-parameterize bnds e)
+           [(-parameterize bnds e _)
             (for/fold ([acc : (℘ γ) (E-root e)]) ([b (in-list bnds)])
               (∪ acc (E-root (car b)) (E-root (cdr b))))]
            [(-rec/c x) (x-root x)]

@@ -139,7 +139,8 @@
     (match-lambda
       [(==>i doms _) (shape doms)]
       [(Case-=> cases) (map guard-arity-of cases)]
-      [(∀/C _ E _ _) (E-arity-of E)]))
+      [(∀/C _ E _ _) (E-arity-of E)]
+      [(Param/C _ _) (list 0 1)]))
 
   (: E-arity-of : (case->
                    [-->i → (U Natural arity-at-least)]

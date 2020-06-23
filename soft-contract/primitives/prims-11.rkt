@@ -30,6 +30,7 @@
   (def (make-parameter Σ ℓ W)
     #:init ([V any/c])
     (define α (α:dyn (β:param ℓ) H₀))
-    (set-parameter α V)
+    (init-parameter α V)
     (just (Param α)))
+  (def-pred parameter?)
 )

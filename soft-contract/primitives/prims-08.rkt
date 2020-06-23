@@ -131,8 +131,12 @@
   (def cons/c (contract? contract? . -> . contract?))
   (def list/c (() #:rest (listof contract?) . ->* . list-contract?))
   (def syntax/c (flat-contract? . -> . flat-contract?))
-  (def parameter/c ; FIXME uses
-    (contract? . -> . contract?))
+
+  (def (parameter/c Σ ℓ W) ; FIXME uses
+    #:init ([V contract?])
+    (define α (α:dyn (β:param/c ℓ) H₀))
+    (just (Param/C α ℓ) (alloc α V)))
+
   (def procedure-arity-includes/c
     (exact-nonnegative-integer? . -> . flat-contract?))
   (def (hash/c Σ ℓ W)

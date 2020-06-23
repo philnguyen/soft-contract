@@ -96,6 +96,7 @@
    [exn:fail? ⇒ exn?]
    ;; procedures
    [primitive? ⇒ procedure?]
+   [parameter? ⇒ procedure?]
    [path? ⇒ path-for-some-system?]
    )
 

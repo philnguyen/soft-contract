@@ -231,6 +231,7 @@
                 (~literal srcloc?)
                 (~literal module-path-index?)
                 (~literal module-path?)
+                (~literal parameter?)
                 
                 (~literal z:stx-obj?)
                 (~literal z:compilation-top?)

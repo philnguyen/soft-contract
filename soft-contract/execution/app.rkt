@@ -87,6 +87,7 @@
                  (cond [(==>i? G)    (app-==>i ctx G α)]
                        [(∀/C? G)     (app-∀/C  ctx G α)]
                        [(Case-=>? G) (app-Case-=> ctx G α)]
+                       [(Param/C? G) (app-Param/C ctx G α)]
                        [else (app-Terminating/C ctx α)])]
                 [(And/C α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-And/C α₁ α₂ ℓ)]
                 [(Or/C  α₁ α₂ ℓ) #:when (C-flat? V Σ) (app-Or/C  α₁ α₂ ℓ)]
@@ -360,6 +361,23 @@
             Cs)
       [(? values C) ((app-==>i ctx C α) Σ ℓ Wₓ)]
       [#f (err (Err:Arity G n ℓ))]))
+
+  (: app-Param/C : (Pairof -l -l) Param/C α → ⟦F⟧)
+  (define ((app-Param/C ctx:saved G α) Σ ℓ Wₓ)
+    (match-define (cons l+ l-) ctx:saved)
+    (match-define (Param/C αₕ ℓₕ) G)
+    (define ctx (Ctx l+ l- ℓₕ ℓ))
+    (define C (Σ@ αₕ Σ))
+    (match Wₓ
+      [(list)
+       (with-collapsing/R [(ΔΣ (app collapse-W^ (list V))) (app Σ (ℓ-with-src ℓ l+) (Σ@ α Σ) '())]
+         (with-pre ΔΣ
+           (mon (⧺ Σ ΔΣ) ctx C V)))]
+      [(list V)
+       (with-collapsing/R [(ΔΣ Ws) (mon Σ (Ctx l- l+ ℓₕ ℓ) C V)]
+         (with-pre ΔΣ
+           (app (⧺ Σ ΔΣ) (ℓ-with-src ℓ l+) (Σ@ α Σ) (collapse-W^ Ws))))]
+      [_ (err (Err:Arity G (length Wₓ) ℓ))]))
 
   (: app-Terminating/C : Ctx α → ⟦F⟧)
   (define ((app-Terminating/C ctx α) Σ ℓ Wₓ)

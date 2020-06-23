@@ -73,7 +73,8 @@
 
   (: mon₁ : V → ⟦C⟧)
   (define (mon₁ C)
-    (cond [(Fn/C? C) (mon-Fn/C C)]
+    (cond [(Param/C? C) (mon-Param/C C)] ; `parameter/c` as a special case of function contract didn't help
+          [(Fn/C? C) (mon-Fn/C C)]
           [(St/C? C) (mon-St/C C)]
           [(Rec/C? C) (mon-Rec/C (Rec/C-_0 C))]
           [(And/C? C) (mon-And/C C)]
@@ -86,6 +87,15 @@
           [(Set/C? C) (mon-Set/C C)]
           [(Seal/C? C) (mon-Seal/C C)]
           [else (mon-Flat/C C)]))
+
+  (: mon-Param/C : Param/C → ⟦C⟧)
+  (define ((mon-Param/C C) Σ ctx Vs)
+    (match-define (Ctx l+ l- ℓₒ ℓ) ctx)
+    (with-split-Σ Σ 'parameter? (list Vs)
+      (λ (W ΔΣ₁)
+        (define αᵥ (α:dyn (β:unparam ctx) H₀))
+        (just (Guarded (cons l+ l-) C αᵥ) (alloc αᵥ (car W))))
+      (λ (W _) (err (blm l+ ℓₒ ℓ (list {set 'parameter?}) W)))))
 
   (: mon-Fn/C : Fn/C → ⟦C⟧)
   (define ((mon-Fn/C C) Σ ctx Vs)

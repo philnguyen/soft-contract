@@ -318,6 +318,7 @@
                                    [byte-pregexp?])
               ;; Manual cases
               [(values) (bool->Dec (or (not (-b? V₀)) (not (not (-b-unboxed V₀)))))]
+              [(parameter?) (check-among Param? (with-guard Param/C?))]
               [(procedure?) ; FIXME make sure `and/c` and friends are flat
                (check-among -o? Fn? (with-guard Fn/C?) proper-flat-contract?)]
               [(vector?)

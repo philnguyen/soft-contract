@@ -17,7 +17,7 @@
   (define current-parameters -current-params)
 
   (: current-parameter ([α] [(→ V^)] . ->* . V^))
-  (define (current-parameter α [default (λ () (error 'current-parameter "Nothing at ~a" α))])
+  (define (current-parameter α [default (λ () {(inst set V)})])
     (hash-ref (current-parameters) α default))
 
   (: with-parameters (∀ (X) (Listof (Pairof V^ V^)) (→ X) → X))
@@ -26,9 +26,14 @@
   (: with-parameters-2 (∀ (X Y) (Listof (Pairof V^ V^)) (→ (Values X Y)) → (Values X Y)))
   (define (with-parameters-2 bindings exec) (with-params bindings (exec)))
 
+  (: init-parameter : α V^ → Void)
+  (define (init-parameter α V)
+    (-current-params (hash-update (current-parameters) α (λ ([V₀ : V^]) (V⊔ V₀ V)) (λ () V))))
+
   (: set-parameter : α V^ → Void)
   (define (set-parameter α V)
-    (-current-params (hash-update (current-parameters) α (λ ([V₀ : V^]) (V⊔ V₀ V)) (λ () V))))
+    (when (hash-has-key? (current-parameters) α)
+      (-current-params (hash-update (current-parameters) α (λ ([V₀ : V^]) (V⊔ V₀ V))))))
 
   (define-syntax-rule (with-params bnds body)
     (parameterize ([-current-params

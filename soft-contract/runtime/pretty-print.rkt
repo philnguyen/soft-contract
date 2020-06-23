@@ -225,6 +225,8 @@
     (match-lambda
       [($:Key:Exp Σ _ E)
        `(Exp ,(show-e E) @ ,@(show-Σ Σ))]
+      [($:Key:Prm Σ _ Vₗ Vᵣ)
+       `(Prm ,(show-V Vₗ) ← ,(show-V^ Vᵣ))]
       [($:Key:Mon Σ _ Ctx V V^)
        `(Mon ,(show-V V) ,(show-V^ V^) @ ,@(show-Σ Σ))]
       [($:Key:Fc Σ _ ℓ V V^)

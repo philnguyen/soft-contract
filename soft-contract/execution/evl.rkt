@@ -190,8 +190,8 @@
              (foldl ΔΣ⊔ (car muts) (cdr muts))))
          (just -void (⧺ ΔΣ:rhs ΔΣ:mut)))]
       [(-error s ℓ) (err (Err:Raised s ℓ))]
-      [(-parameterize bindings body)
-       (match/values (evl-param-bindings Σ bindings)
+      [(-parameterize bindings body ℓ)
+       (match/values (evl-param-bindings Σ bindings ℓ)
          [((cons params ΔΣ) es)
           (with-pre ΔΣ
              (with-parameters-2 params
@@ -338,8 +338,8 @@
           (values (cons (Clo (-var ?deps #f) c H₀ ℓ) ΔΣ) ∅))
         ((evl/single/collapse ℓ) Σ c)))
 
-  (: evl-param-bindings : Σ (Listof (Pairof -e -e)) → (Values (Option (Pairof (Listof (Pairof V^ V^)) ΔΣ)) (℘ Err)))
-  (define (evl-param-bindings Σ₀ bnds)
+  (: evl-param-bindings : Σ (Listof (Pairof -e -e)) ℓ → (Values (Option (Pairof (Listof (Pairof V^ V^)) ΔΣ)) (℘ Err)))
+  (define (evl-param-bindings Σ₀ bnds ℓ)
     (define-values (ΔΣ* bnds* es*)
       (let loop : (Values (Option ΔΣ) (Listof (Pairof V^ V^)) (℘ Err))
            ([Σ : Σ Σ₀]
@@ -348,21 +348,51 @@
             [acc-ΔΣ : ΔΣ ⊥ΔΣ]
             [acc-es : (℘ Err) ∅])
         (match bnds
-          [(cons (cons (and x (-x _ ℓ)) e) bnds*)
+          [(cons (cons x e) bnds*)
            (match/values ((evl/single/collapse ℓ) Σ x)
              [((cons V₁ ΔΣ₁) es₁)
               (match/values ((evl/single/collapse ℓ) (⧺ Σ ΔΣ₁) e)
                 [((cons V₂ ΔΣ₂) es₂)
-                 (define Σ* (⧺ Σ ΔΣ₁ ΔΣ₂))
-                 (loop Σ*
-                       bnds*
-                       (cons (cons (unpack V₁ Σ*) (unpack V₂ Σ*)) rev-bnds)
-                       (⧺ acc-ΔΣ ΔΣ₁ ΔΣ₂)
-                       (∪ acc-es es₁ es₂))]
+                 (define Σ₂ (⧺ Σ ΔΣ₁ ΔΣ₂))
+                 (define-values (r es₃) (evl-param-binding Σ₂ V₁ V₂ ℓ))
+                 (match (collapse-R r)
+                   [(cons (app collapse-W^ (list lhs rhs)) ΔΣ₃)
+                    (define Σ* (⧺ Σ₂ ΔΣ₃))
+                    (loop Σ*
+                          bnds*
+                          (cons (cons lhs (unpack rhs Σ*)) rev-bnds)
+                          (⧺ acc-ΔΣ ΔΣ₁ ΔΣ₂ ΔΣ₃)
+                          (∪ acc-es es₁ es₂ es₃))]
+                   [#f (values #f '() (∪ acc-es es₁ es₂ es₃))])]
                 [(#f es₂) (values #f '() (∪ acc-es es₁ es₂))])]
              [(#f es₁) (values #f '() (∪ acc-es es₁))])]
           ['() (values acc-ΔΣ (reverse rev-bnds) acc-es)])))
     (values (and ΔΣ* (cons bnds* ΔΣ*)) es*))
+
+  (: evl-param-binding : Σ V^ V^ ℓ → (Values R (℘ Err)))
+  (define (evl-param-binding Σ Vₗ Vᵣ ℓ)
+    (define root₀ (∪ (V^-root Vᵣ) (B-root (current-parameters))))
+    ((inst fold-ans V)
+     (λ (V)
+       (define root (∪ root₀ (V-root V)))
+       (define Σ* (gc root Σ))
+       (ref-$! ($:Key:Prm Σ* (current-parameters) V Vᵣ)
+               (λ () (with-gc root Σ* (λ () (do-evl-param-binding Σ* V Vᵣ ℓ))))))
+     (unpack Vₗ Σ)))
+
+  (: do-evl-param-binding : Σ V V^ ℓ → (Values R (℘ Err)))
+  (define (do-evl-param-binding Σ Vₗ Vᵣ ℓ)
+    (match Vₗ
+      [(Param _) (just (list {set Vₗ} Vᵣ))]
+      [(Guarded (cons l+ l-) (Param/C αₕ ℓₕ) αᵥ)
+       (define C (Σ@ αₕ Σ))
+       (with-collapsing/R [(ΔΣ (app collapse-W^ (list Vᵣ*))) (mon Σ (Ctx l- l+ ℓₕ ℓ) C Vᵣ)]
+         (with-pre ΔΣ
+           (evl-param-binding (⧺ Σ ΔΣ) (Σ@ αᵥ Σ) Vᵣ* ℓ)))]
+      [_
+       (with-split-Σ Σ 'parameter? (list {set Vₗ})
+         (λ (W ΔΣ) (just (list ∅ Vᵣ) ΔΣ))
+         (λ (W _) (err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'Λ) (list {set 'parameter?}) W))))]))
 
   (: evl/arity : Σ E Natural ℓ → (Values R (℘ Err)))
   ;; Run expression with arity guard

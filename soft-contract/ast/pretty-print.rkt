@@ -108,7 +108,7 @@
       [(-begin es) `(begin ,@(show-es es))]
       [(-begin0 e es) `(begin0 ,(show-e e) ,@(show-es es))]
       [(-error msg _) `(error ,msg)]
-      [(-parameterize bs e)
+      [(-parameterize bs e _)
        `(parameterize ,(for/list : (Listof Sexp) ([b (in-list bs)])
                          `(,(show-e (car b)) ,(show-e (cdr b))))
           ,(show-e e))]

@@ -616,6 +616,9 @@
       [(#%plain-app (~literal fake:one-of/c) c ...)
        (-@ 'one-of/c (parse-es #'(c ...)) (next-ℓ! stx))]
       [c:scv-x/c (-rec/c (parse-ref (attribute c.ref)))]
+      [(#%plain-app param/c:id e:expr)
+       #:when (eq? (syntax-e #'param/c) 'parameter/c/proc)
+       (-@ 'parameter/c (list (parse-e #'e)) (next-ℓ! stx))]
 
       ;; Literals
       [(~or v:str v:number v:boolean) (-b (syntax->datum #'v))] 
@@ -636,7 +639,7 @@
              [(list* x e bs*)
               (cons (cons (parse-e x) (parse-e e)) (loop bs*))]
              ['() '()])))
-       (-parameterize params (-begin/simp (parse-es #'(e ...))))]
+       (-parameterize params (-begin/simp (parse-es #'(e ...))) (next-ℓ! stx))]
 
       [(with-continuation-mark e₀ e₁ e₂)
        (-wcm (parse-e #'e₀) (parse-e #'e₁) (parse-e #'e₂))]

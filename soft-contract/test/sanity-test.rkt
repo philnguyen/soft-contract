@@ -216,6 +216,7 @@
   (test "safe/issues/sub-exn.rkt" check-safe)
   (test "safe/issues/flonum.rkt" check-safe)
   (test "safe/issues/parameters.rkt" check-safe)
+  (test "safe/issues/parameter-contract.rkt" check-safe)
   
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -279,6 +280,7 @@
   (test "unsafe/issues/sub-exn.rkt" check-fail)
   (test "unsafe/issues/flonum.rkt" check-fail)
   (test "unsafe/issues/parameters.rkt" check-fail)
+  (test "unsafe/issues/parameter-contract.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

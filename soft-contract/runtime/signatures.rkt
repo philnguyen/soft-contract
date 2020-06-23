@@ -55,7 +55,8 @@
                                (Set/C α ℓ))
 (#|Func. Contracts|# Fn/C . ::= . (==>i [doms : (-var Dom)] [rng : (Option (Listof Dom))])
                                   (∀/C (Listof Symbol) E H ℓ)
-                                  (Case-=> (Listof ==>i))) 
+                                  (Case-=> (Listof ==>i))
+                                  (Param/C α ℓ))
 (#|Errors         |# Err . ::= . (Err:Raised String ℓ)
                                  (Err:Undefined Symbol ℓ)
                                  (Err:Values Natural E W ℓ)
@@ -128,14 +129,18 @@
                                (β:set/c:elem ℓ)
                                (β:st/c-elems ℓ -𝒾)
                                (β:dom ℓ)
+                               (β:param/c ℓ)
                                ;; for wrapped function
                                (β:fn Ctx Fn/C-Sig)
                                ;; For values wrapped in seals
                                (β:sealed Symbol ℓ) ; points to wrapped objects
+                               ;; For wrapped parameters
+                               (β:unparam Ctx)
                                ;; For initial value of dynamic parameters
                                (β:param ℓ)
                                )
 (#|Cache Keys     |# $:Key . ::= . ($:Key:Exp Σ B E)
+                                   ($:Key:Prm Σ B V V^)
                                    ($:Key:Mon Σ B Ctx V V^)
                                    ($:Key:Fc Σ B ℓ V V^)
                                    ($:Key:App Σ B ℓ V W)
@@ -199,6 +204,7 @@
   ([current-parameter : ([α] [(→ V^)] . ->* . V^)]
    [current-parameters : (→ B)]
    [set-parameter : (α V^ → Void)]
+   [init-parameter : (α V^ → Void)]
    [with-parameters : (∀ (X) ((Listof (Pairof V^ V^)) (→ X) → X))]
    [with-parameters-2 : (∀ (X Y) ((Listof (Pairof V^ V^)) (→ (Values X Y)) → (Values X Y)))]))
 
