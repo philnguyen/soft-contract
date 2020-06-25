@@ -162,7 +162,7 @@
 
   (define (mod-path->mod-name p)
     (match p ; hacks
-      [(or '#%kernel '#%runtime) 'Λ]
+      [(or '#%kernel '#%runtime '#%core) 'Λ]
       ['#%unsafe 'unsafe]
       ['|expanded module| (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
