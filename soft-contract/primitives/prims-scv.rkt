@@ -103,6 +103,8 @@
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;; MISC
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+  (def-pred identifier?)
+  (def-pred module-path-index?)
   (def-pred index?)
   (def-pred nonnegative?)
   (def-pred nonpositive?)
