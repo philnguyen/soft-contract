@@ -57,6 +57,7 @@
   (add! #'<=/c #'f:<=/c)
   (add! #'recursive-contract #'f:recursive-contract)
   (add! #'between/c #'f:between/c)
+  (add! #'parameter/c #'f:parameter/c)
   (add! #'flat-contract #'f:flat-contract)
   (add! #'define/contract #'f:define/contract)
   (add! #'contract? #'f:contract?)

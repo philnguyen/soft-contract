@@ -4,6 +4,7 @@
                     flat-contract
                     -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
+                    parameter/c
                     parametric->/c
                     recursive-contract
                     define/contract
@@ -86,7 +87,7 @@
   (re-export hash/c set/c contract? flat-contract
              listof list/c cons/c box/c vector/c vectorof
              any/c none/c and/c or/c one-of/c not/c false/c
-             =/c </c <=/c >/c >=/c between/c))
+             =/c </c <=/c >/c >=/c between/c parameter/c))
 
 (define-syntax dom-quote
   (let ([gen-name (syntax-parser

@@ -210,6 +210,7 @@
   (pattern (~literal fake:listof) #:attr real 'listof)
   (pattern (~literal fake:list/c) #:attr real 'list/c)
   (pattern (~literal fake:between/c) #:attr real 'between/c)
+  (pattern (~literal fake:parameter/c) #:attr real 'parameter/c)
   (pattern (~literal fake:flat-contract) #:attr real 'values)
   (pattern (~literal fake:hash/c) #:attr real 'hash/c) ; TODO doesn't work
   (pattern (~literal fake:set/c) #:attr real 'set/c)
