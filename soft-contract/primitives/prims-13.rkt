@@ -52,7 +52,13 @@
     (case->
      [-> (or/c char? eof-object?)]
      [input-port? . -> . (or/c char? eof-object?)]))
-
+  (def read-line
+    (case->
+     [input-port? . -> . (or/c string? eof-object?)]
+     [input-port?
+      (or/c 'linefeed 'return 'return-linefeed 'any 'any-one)
+      . -> .
+      (or/c string? eof-object?)]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.3 Byte and String Output

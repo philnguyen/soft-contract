@@ -4,6 +4,7 @@
                     flat-contract
                     -> ->i case-> and/c or/c any/c none/c list/c listof struct/c ->* provide/contract
                     one-of/c =/c >/c >=/c </c <=/c between/c not/c cons/c box/c vector/c vectorof hash/c
+                    parameter/c
                     parametric->/c
                     recursive-contract
                     define/contract
@@ -14,7 +15,9 @@
                      racket/syntax
                      syntax/parse
                      racket/pretty
-                     "parse/utils.rkt")
+                     "parse/utils.rkt"
+                     typed-racket/base-env/type-name-error)
+         racket/contract/private/provide
          racket/list
          racket/splicing
          syntax/parse/define
@@ -84,7 +87,7 @@
   (re-export hash/c set/c contract? flat-contract
              listof list/c cons/c box/c vector/c vectorof
              any/c none/c and/c or/c one-of/c not/c false/c
-             =/c </c <=/c >/c >=/c between/c))
+             =/c </c <=/c >/c >=/c between/c parameter/c))
 
 (define-syntax dom-quote
   (let ([gen-name (syntax-parser
@@ -184,14 +187,19 @@
   (begin (dynamic-provide/contract (list id ctc) ...)
          (scv:ignore (c:provide/contract [id ctc] ...)))) 
 
+(define-for-syntax (not-macro? id)
+  (define id-val (syntax-local-value id (λ () #f)))
+  (or (not id-val) (provide/contract-info? id-val)))
+
 (define-syntax (provide stx)
-  (syntax-parse stx #:literals (contract-out struct struct-out)
+  (syntax-parse stx #:literals (contract-out struct-out)
     [(_ (~or i:id
              (struct-out so:id)
              (contract-out (~or [p/i:id ctc:expr]
                                 ;; TODO confirm that ignoring parent declaration makes no difference
-                                [struct (~and s* (~or s:id (s:id _:id))) ([ac:id dom:expr] ...)]) ...))
+                                [(~datum struct) (~and s* (~or s:id (s:id _:id))) ([ac:id dom:expr] ...)]) ...))
         ...)
+     #:with (i* ...) (filter not-macro? (syntax->list #'(i ...)))
      (define (ids->str ids)
        (string-join (map symbol->string (map syntax-e (syntax->list ids)))))
      #;(unless (null? (syntax->list #'(i ...)))
@@ -210,7 +218,7 @@
          ;; Ignore all non-contracted identifiers because they might be macros even.
          ;; Verifying against `any/c` doesn't mean much anyways
          (dynamic-provide/contract
-          i ...
+          i* ...
           (list p/i ctc) ... ...
           (dynamic-id-struct-out 'so) ...
           (dynamic-struct-out 's (list 'ac dom) ...) ... ...))]))

@@ -188,6 +188,7 @@
                 (~literal port?)
                 (~literal path?)
                 (~literal path-for-some-system?)
+                (~literal complete-path?)
                 (~literal pair?)
                 (~literal list?)
                 (~literal placeholder?)

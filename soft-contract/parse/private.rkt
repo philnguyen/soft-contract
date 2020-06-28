@@ -162,7 +162,7 @@
 
   (define (mod-path->mod-name p)
     (match p ; hacks
-      [(or '#%kernel '#%runtime) 'Λ]
+      [(or '#%kernel '#%runtime '#%core) 'Λ]
       ['#%unsafe 'unsafe]
       ['|expanded module| (cur-mod)]
       [(or (? path-for-some-system?) (? path-string?)) (path->string (simplify-path p))]
@@ -295,7 +295,7 @@
         #'(#%provide spec ...))]
       [(#%declare form ...)
        (raise-syntax-error 'parse-module-level-form "TODO: '#%declare" #'(#%declare form ...))]
-      [(begin-for-syntax _ ...) '()]
+      [(begin-for-syntax _ ...) #f]
       
       ;; Hack for reading our fake-contracts:
       [prov:scv-provide

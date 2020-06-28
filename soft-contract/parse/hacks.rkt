@@ -35,7 +35,10 @@
                       with-output-to-file
                       string-join
                       sort
-                      remove-duplicates))
+                      remove-duplicates
+                      string-trim
+                      sequence/c
+                      string-split))
      (define (?recognized-name name) (first-prefix names name)))
   (define-syntax-class indirect-app
     #:description "hack pattern for some `variable-reference-constant?` usages"
@@ -207,6 +210,7 @@
   (pattern (~literal fake:listof) #:attr real 'listof)
   (pattern (~literal fake:list/c) #:attr real 'list/c)
   (pattern (~literal fake:between/c) #:attr real 'between/c)
+  (pattern (~literal fake:parameter/c) #:attr real 'parameter/c)
   (pattern (~literal fake:flat-contract) #:attr real 'values)
   (pattern (~literal fake:hash/c) #:attr real 'hash/c) ; TODO doesn't work
   (pattern (~literal fake:set/c) #:attr real 'set/c)

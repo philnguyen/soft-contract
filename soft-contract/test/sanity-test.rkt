@@ -11,7 +11,7 @@
          "../runtime/signatures.rkt"
          "../main.rkt")
 
-(define TIMEOUT 1200)
+(define TIMEOUT 2000)
 
 (define elapsed ((inst make-parameter (Option Integer)) #f)) ; HACK to avoid passing around
 
@@ -65,7 +65,7 @@
      (run-on-files path)]))
 
 (module+ test
-  
+
   ;; Order doesn't matter. I just run shorter ones first
   (test   "safe/octy" check-safe)
   (test "unsafe/octy" check-fail)
@@ -217,7 +217,8 @@
   (test "safe/issues/flonum.rkt" check-safe)
   (test "safe/issues/parameters.rkt" check-safe)
   (test "safe/issues/parameter-contract.rkt" check-safe)
-  
+  (test "safe/issues/except-in-setc.rkt" check-safe)
+
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
   (test "unsafe/issues/make-vector.rkt" check-fail)
@@ -281,6 +282,7 @@
   (test "unsafe/issues/flonum.rkt" check-fail)
   (test "unsafe/issues/parameters.rkt" check-fail)
   (test "unsafe/issues/parameter-contract.rkt" check-fail)
+  (test "unsafe/issues/except-in-setc.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
@@ -293,7 +295,7 @@
 
   (test   "safe/real/ring-buffer.rkt" check-safe)
   (test "unsafe/real/ring-buffer.rkt" check-fail)
-  
+
   ;; Multple files
   #;(test '("programs/safe/multiple/main.rkt"
           "programs/safe/multiple/helper-1.rkt"
@@ -325,7 +327,7 @@
 
   (test   "safe/interp/main.rkt" check-safe)
   (test "unsafe/interp/main.rkt" check-fail)
-  
+
   (test "safe/games/snake.rkt" check-safe)
   (test "safe/games/tetris.rkt" check-safe)
   (test "safe/games/zombie.rkt" check-safe)
