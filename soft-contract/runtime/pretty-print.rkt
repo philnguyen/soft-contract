@@ -82,6 +82,7 @@
       [(? ==>i? V) (show-==>i V)]
       [(∀/C xs C _ _) `(∀/C ,xs …)]
       [(Case-=> cases) `(case-> ,@(map show-==>i cases))]
+      [(Param/C α ℓ) `(parameter/c ,(show-α α))]
       [(? St/C? C) (define-values (_ ℓ 𝒾) (St/C-fields C))
                    (format-symbol "~a/c@~a" (-𝒾-name 𝒾) (show-ℓ ℓ))]
       [(Vectof/C α ℓ) `(vectorof ,(show-α α))]
@@ -159,8 +160,10 @@
       [(β:set/c:elem _) 'set/c:elem]
       [(β:st/c-elems ℓ 𝒾) (show-ℓ ℓ)]
       [(β:dom ℓ) (show-ℓ ℓ)]
+      [(β:param/c ℓ) (show-ℓ ℓ)]
       [(β:fn ctx _) (show-β:ctx ctx)]
       [(β:sealed x _) (format-symbol "⦇~a⦈" x)]
+      [(β:unparam ctx) (show-β:ctx ctx)]
       [(β:param ℓ) (show-ℓ ℓ)]))
 
   (: show-β:ℓ (ℓ Natural → Symbol))
