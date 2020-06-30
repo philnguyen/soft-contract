@@ -363,6 +363,7 @@
                (go V₀)]
               [(list?) (check-proper-list Σ V₀)]
               [(port? input-port? output-port?) '✗] ; ports can't reach here
+              [(impersonator?) (check-among Guarded?)]
               [else (and (bool-excludes? (get-conservative-range P)) '✓)])]
            [_ #f])]))
 

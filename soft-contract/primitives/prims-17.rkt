@@ -5,6 +5,7 @@
 (require racket/match
          racket/set
          racket/contract
+         racket/splicing
          typed/racket/unit
          racket/unsafe/ops
          set-extras
@@ -52,6 +53,30 @@
   (def-alias unsafe-vector-length vector-length)
   (def-alias unsafe-vector-ref vector-ref)
   (def-alias unsafe-vector-set! vector-set!)
+
+  (def unsafe-vector*-length
+    ((and/c vector? (not/c impersonator?)) . -> . fixnum?))
+  (splicing-let ([not/c-impersonator (list {set (Not/C (γ:imm 'impersonator?) +ℓ₀)})]
+                 [get-prim (λ ([o : Symbol]) (hash-ref prim-table o))])
+    (def (unsafe-vector*-ref Σ ℓ W)
+      #:init ([v vector?] [k fixnum?])
+      (with-split-Σ Σ 'impersonator? (list v)
+        (match-lambda**
+         [((list v*) ΔΣ)
+          (r:err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'unsafe-vector*-ref) not/c-impersonator (list v*)))])
+        (match-lambda**
+         [((list v*) ΔΣ)
+          (with-pre ΔΣ ((get-prim 'vector-ref) (⧺ Σ ΔΣ) ℓ (list v* k)))])))
+    (def (unsafe-vector*-set! Σ ℓ W)
+      #:init ([v vector?] [k fixnum?] [u any/c])
+      (with-split-Σ Σ 'impersonator? (list v)
+        (match-lambda**
+         [((list v*) ΔΣ)
+          (r:err (Blm (ℓ-src ℓ) ℓ (ℓ-with-src +ℓ₀ 'unsafe-vector*-set!) not/c-impersonator (list v*)))])
+        (match-lambda**
+         [((list v*) ΔΣ)
+          (with-pre ΔΣ ((get-prim 'vector-set!) (⧺ Σ ΔΣ) ℓ (list v* k u)))]))))
+  
 
   (def (unsafe-struct-ref Σ ℓ W)
     #:init ([Vᵥ any/c] [Vᵢ integer?])
