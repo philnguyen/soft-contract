@@ -85,7 +85,7 @@
     (if (>= i o)
         (car (vector-ref (get-struct-info 𝒾) (- i o)))
         (let ([𝒾* (hash-ref (-static-info-parentstruct (current-static-info)) 𝒾)])
-          (struct-accessor-name 𝒾* (- i o)))))
+          (struct-accessor-name 𝒾* i))))
   (define (all-struct-accessors [𝒾 : -𝒾]) : (Listof -st-ac)
     (let loop ([𝒾 : -𝒾 𝒾] [acs : (Listof -st-ac) '()])
       (define offset (struct-offset 𝒾))
