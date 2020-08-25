@@ -430,7 +430,7 @@
                  (~and rhs
                        (#%plain-app
                         (~literal make-self-ctor-checked-struct-info)
-                        _ _
+                        _ _ _ ...
                         (#%plain-lambda () (quote-syntax k1:id))))))
        (define lhs (syntax-e #'k1))
        (add-top-level! (-𝒾 lhs (cur-path)))

@@ -219,6 +219,7 @@
   (test "safe/issues/parameter-contract.rkt" check-safe)
   (test "safe/issues/except-in-setc.rkt" check-safe)
   (test "safe/issues/unsafe-vector-star.rkt" check-safe)
+  (test "safe/issues/top-struct.rkt" check-safe)
 
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
