@@ -285,6 +285,10 @@
   (test "unsafe/issues/parameter-contract.rkt" check-fail)
   (test "unsafe/issues/except-in-setc.rkt" check-fail)
   (test "unsafe/issues/unsafe-vector-star.rkt" check-fail)
+  (test "unsafe/issues/two-calls.rkt" check-fail)
+  (test "unsafe/issues/sequential-calls.rkt" check-fail)
+  (test "unsafe/issues/reverse-args.rkt" check-fail)
+  (test "unsafe/issues/guarded-first-order.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
