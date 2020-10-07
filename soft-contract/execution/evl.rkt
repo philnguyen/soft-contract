@@ -107,25 +107,14 @@
            (values (cons V Cases-rev) (⧺ ΔΣ ΔΣ*))))
        (just (Case-Clo (reverse Cases-rev) ℓ) ΔΣ*)]
       [(-x x ℓ)
-       (define-values (α modify-Vs)
-         (cond [(symbol? x)
-                (values (γ:lex x) (inst values V^))]
-               [(equal? (ℓ-src ℓ) (-𝒾-src x))
-                (values (γ:top x) (inst values V^))]
+       (define-values (res ΔΣ)
+         (cond [(symbol? x) (values (lookup (γ:lex x) Σ) ⊥ΔΣ)]
+               [(equal? (ℓ-src ℓ) (-𝒾-src x)) (values (lookup (γ:top x) Σ) ⊥ΔΣ)]
                [(hash-has-key? Σ (γ:wrp x))
-                (values (γ:wrp x)
-                        (if (symbol? (-𝒾-src x))
-                            (λ ([Vs : V^])
-                              (for/set: : V^ ([V (in-set (unpack Vs Σ))])
-                                (with-negative-party (ℓ-src ℓ) V)))
-                            (λ ([Vs : V^])
-                              (for/set: : V^ ([V (in-set (unpack Vs Σ))])
-                                (with-positive-party 'dummy+
-                                  (with-negative-party (ℓ-src ℓ) V))))))]
+                (with-negative-party (ℓ-src ℓ) (unpack (lookup (γ:wrp x) Σ) Σ) Σ)]
                [else ; HACK for some expanded program referring to unprovided + unchecked identifiers
-                (values (γ:top x) (inst values V^))]))
-       (define res (modify-Vs (lookup α Σ)))
-       (define r (R-of (if (set? res) (set-remove res -undefined) res)))
+                (values (lookup (γ:top x) Σ) ⊥ΔΣ)]))
+       (define r (R-of (if (set? res) (set-remove res -undefined) res) ΔΣ))
        (define es (if (∋ (unpack res Σ) -undefined)
                       {set (Err:Undefined (if (-𝒾? x) (-𝒾-name x) x) ℓ)}
                       ∅))
@@ -458,4 +447,37 @@
                   (⧺ Σ ΔΣ₁)
                   xs*)]
            [(#f es) (values #f (∪ acc-es es))])])))
+
+  (: with-negative-party : -l V^ Σ → (Values V^ ΔΣ))
+  (define (with-negative-party l Vs Σ)
+    (define cache : (Mutable-HashTable V V) (make-hash))
+
+    (: go-V^ : V^ → (Values V^ ΔΣ))
+    (define (go-V^ Vs)
+      (for/fold ([Vs : V^ ∅] [ΔΣ : ΔΣ ⊥ΔΣ]) ([V (in-set Vs)])
+        (define-values (V* ΔΣ*) (go-V V))
+        (values (set-add Vs V*) (ΔΣ⊔ ΔΣ ΔΣ*))))
+
+    (: go-V : V → (Values V ΔΣ))
+    (define go-V
+      (match-lambda
+        [(Guarded (cons l+ 'dummy-) C α) (values (Guarded (cons l+ l) C α) ⊥ΔΣ)]
+        ;; Value with unrealized negative party is in the heap,
+        ;; so we allocate new value with realized negative party.
+        [(and V (St (and α (α:dyn (β:st-elems (Ctx l+ 'dummy- ℓₒ ℓ) 𝒾) H)) Ps))
+         (match (hash-ref cache V #f)
+           [(? values V*) (values V* ⊥ΔΣ)]
+           [#f
+            (define α* (α:dyn (β:st-elems (Ctx l+ l ℓₒ ℓ) 𝒾) H))
+            (define V* (St α* Ps))
+            (hash-set! cache V V*)
+            (let ([ΔΣ : ΔΣ ⊥ΔΣ])
+              (define S* (for/vector : (Vectorof V^) ([Vs (in-vector (Σ@/blob α Σ))])
+                           (define-values (Vs* ΔΣ*) (go-V^ Vs))
+                           (set! ΔΣ (ΔΣ⊔ ΔΣ ΔΣ*))
+                           Vs*))
+              (values V* (ΔΣ⊔ ΔΣ (alloc α* S*))))])]
+        [V (values V ⊥ΔΣ)]))
+
+    (go-V^ Vs))
   )

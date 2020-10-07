@@ -182,16 +182,6 @@
       [(-∀/c _ E _) (E-arity E)]
       [E (error 'E-arity "~a" E)]))
 
-  (:* with-negative-party with-positive-party : -l V → V)
-  (define with-negative-party
-    (match-lambda**
-     [(l- (Guarded (cons l+ 'dummy-) C α)) (Guarded (cons l+ l-) C α)]
-     [(_ V) V]))
-  (define with-positive-party
-    (match-lambda**
-     [(l+ (Guarded (cons 'dummy+ l-) C α)) (Guarded (cons l+ l-) C α)]
-     [(_ V) V]))
-
   (: make-renamings : (U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)
   (define (make-renamings fml W prevent?)
     (define xs (if (-var? fml) (-var-init fml) fml))

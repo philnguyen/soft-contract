@@ -230,8 +230,6 @@
    [C^-flat? : (V^ Σ → Boolean)]
    [arity : (V → (Option Arity))]
    [guard-arity : (Fn/C → Arity)]
-   [with-negative-party : (-l V → V)]
-   [with-positive-party : (-l V → V)]
    [make-renamings : ((U (Listof Symbol) -formals) W (Symbol → Boolean) → Renamings)]
    [rename : (Renamings → (case->
                            [T → (Option T)]

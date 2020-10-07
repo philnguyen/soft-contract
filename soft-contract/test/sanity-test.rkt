@@ -220,6 +220,7 @@
   (test "safe/issues/except-in-setc.rkt" check-safe)
   (test "safe/issues/unsafe-vector-star.rkt" check-safe)
   (test "safe/issues/top-struct.rkt" check-safe)
+  (test "safe/issues/exported-function-list.rkt" check-safe)
 
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -251,6 +252,7 @@
   (test "unsafe/issues/thread-cells.rkt" check-fail)
   (test "unsafe/issues/issue-83.rkt" check-fail)
   (test "unsafe/issues/bogus-prop.rkt" check-fail)
+  (test "unsafe/issues/exported-function-list.rkt" check-fail)
   (test '("programs/unsafe/issues/re-exported-struct/posn-untyped.rkt"
           "programs/unsafe/issues/re-exported-struct/posn-typed.rkt")
         check-fail)
