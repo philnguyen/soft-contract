@@ -1,6 +1,7 @@
 #lang info
 (define collection 'multi)
-(define deps '("base"
+(define deps '("r5rs-lib"
+               "base"
                "bnf"
                "compiler-lib"
                "htdp-lib"
