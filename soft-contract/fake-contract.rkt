@@ -8,6 +8,7 @@
                     parametric->/c
                     recursive-contract
                     define/contract
+                    contract
                     contract?)
          (except-in racket/set set/c)
          (for-syntax racket/base
@@ -37,7 +38,7 @@
          dynamic-struct-out
          dynamic-id-struct-out
          dynamic-define-opaque
-         define/contract dynamic-mon
+         define/contract contract dynamic-mon
          (rename-out [-define define])
          --> forall
          (rename-out [--> ⇒] [forall ∀]))
@@ -232,6 +233,13 @@
     [(_ x         c e    )
      (with-syntax ([rhs (with-syntax-source #'x #'(dynamic-mon 'x c e))])
        #'(define x rhs))]))
+
+(define-syntax contract
+  (syntax-parser
+    [(_ c e _ _)
+     (with-syntax-source #'e #'(dynamic-mon 'anonymous c e))]
+    [(_ c e _ _ (quote name:id) _)
+     (with-syntax-source #'e #'(dynamic-mon 'name c e))]))
 
 (define (dynamic-mon x c e) e)
 
