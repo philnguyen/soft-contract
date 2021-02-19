@@ -44,6 +44,7 @@
       [(-parameterize bs e _)
        (define-values (ls rs) (unzip bs))
        (apply ∪ (apply ∪ (fv e) (map fv ls)) (map fv rs))]
+      [(-contract c e _ _ _) (∪ (fv c) (fv e))]
       [(-rec/c (-x x _)) (if (symbol? x) {set x} ∅eq)]
       [(-->i (-var cs c) d)
        (define dom-fv : (-dom → (℘ Symbol))
@@ -83,6 +84,7 @@
         [(-parameterize bs e _)
          (define-values (ls rs) (unzip bs))
          (apply + (apply + (go e) (map go ls)) (map go rs))]
+        [(-contract c e _ _ _) (+ (go c) (go e))]
         [(-rec/c (-x x _)) (if (equal? x z) 1 0)]
         [(-->i (-var cs c) d)
          (define dom-count : (-dom → Natural)
@@ -184,6 +186,8 @@
                  (for/list : (Listof (Pairof -e -e)) ([x (in-list xs)] [e (in-list es)])
                    (cons (go m x) (go m e))))
                (-parameterize bs* (go m e) ℓ)]
+              [(-contract c e l+ l- ℓ)
+               (-contract (go m c) (go m e) l+ l- ℓ)]
               [(-rec/c (-x x _)) (if (hash-has-key? m x) !!! e)]
               [(? -->i? c) (go--->i m c)]
               [(case--> cases) (case--> (map (curry go--->i m) cases))]

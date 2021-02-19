@@ -547,7 +547,15 @@
          [wrap? (-@ f-ref (parse-es #'(args ...)) (next-ℓ! stx))]
          [(and (not wrap?) (null? (syntax->list #'(args ...)))) f-ref]
          [else (error 'parser "my understanding is wrong")])]
-      
+
+      ;; HACK for `contract` form
+      [e:scv-attach-contract
+       (define l+ (syntax-e (attribute e.pos)))
+       (define l- (syntax-e (attribute e.neg)))
+       (add-transparent-module! l+)
+       (add-transparent-module! l-)
+       (-contract (parse-e (attribute e.ctc)) (parse-e (attribute e.exp)) l+ l- (next-ℓ! #'e))]
+
 
       ;;; Contracts
       ;; Terminating contract

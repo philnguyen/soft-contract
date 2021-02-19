@@ -222,6 +222,7 @@
            [(-parameterize bnds e _)
             (for/fold ([acc : (℘ γ) (E-root e)]) ([b (in-list bnds)])
               (∪ acc (E-root (car b)) (E-root (cdr b))))]
+           [(-contract c e _ _ _) (∪ (E-root c) (E-root e))]
            [(-rec/c x) (x-root x)]
            [(-->i (-var cs c) d)
             (define dom-E-root : (-dom → (℘ γ))

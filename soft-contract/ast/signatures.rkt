@@ -87,6 +87,7 @@
             (-set! (U Symbol -𝒾) -e ℓ)
             (-error String ℓ)
             (-parameterize (Listof (Pairof -e -e)) -e ℓ)
+            (-contract [protector : -e] [protectee : -e] [pos : -l] [neg : -l] ℓ)
             
             ;; contract stuff
             (-rec/c -x)

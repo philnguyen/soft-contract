@@ -112,6 +112,8 @@
        `(parameterize ,(for/list : (Listof Sexp) ([b (in-list bs)])
                          `(,(show-e (car b)) ,(show-e (cdr b))))
           ,(show-e e))]
+      [(-contract c e l+ l- _)
+       `(contract ,(show-e c) ,(show-e e) ,l+ ,l-)]
       #;[(-apply f xs _) `(apply ,(show-e f) ,(go show-e xs))]
       [(-if i t e _) `(if ,(show-e i) ,(show-e t) ,(show-e e))]
       [(-rec/c (-x x _)) `(recursive-contract ,(if (symbol? x) x (-𝒾-name x)))]

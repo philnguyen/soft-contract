@@ -352,6 +352,13 @@
            #:attr lhs (syntax-e #'x)
            #:attr rhs #'v))
 
+(define-syntax-class scv-attach-contract
+  #:description "hacked `contract` form"
+  #:literal-sets (lits)
+  #:attributes (ctc exp pos neg)
+  (pattern (#%plain-app apply-contract:id ctc:expr exp:expr (quote pos:id) (quote neg:id) _ ...)
+           #:when (equal? (syntax-e #'apply-contract) 'apply-contract)))
+
 (define range-expr
   (syntax-parser
     #:literal-sets (lits)

@@ -186,6 +186,12 @@
              (with-parameters-2 params
                (λ () (evl (⧺ Σ ΔΣ) body))))]
          [(#f es) (values ⊥R es)])]
+      [(-contract c e l+ l- ℓ)
+       (with-collapsed/R [(cons C ΔΣ₁) ((evl/single/collapse ℓ) Σ c)]
+         (define Σ₁ (⧺ Σ ΔΣ₁))
+         (with-collapsed/R [(cons V ΔΣ₂) ((evl/single/collapse ℓ) Σ₁ e)]
+           (define Σ₂ (⧺ Σ₁ ΔΣ₂))
+           (with-pre (⧺ ΔΣ₁ ΔΣ₂) (mon Σ₂ (Ctx l+ l- ℓ ℓ) (unpack C Σ₂) (unpack V Σ₁)))))]
       [(-rec/c (-x x ℓ))
        (match x
          [(-𝒾 _ l)

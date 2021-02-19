@@ -221,6 +221,7 @@
   (test "safe/issues/unsafe-vector-star.rkt" check-safe)
   (test "safe/issues/top-struct.rkt" check-safe)
   (test "safe/issues/exported-function-list.rkt" check-safe)
+  (test "safe/issues/issue-125.rkt" check-safe)
 
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -292,6 +293,7 @@
   (test "unsafe/issues/sequential-calls.rkt" check-fail)
   (test "unsafe/issues/reverse-args.rkt" check-fail)
   (test "unsafe/issues/guarded-first-order.rkt" check-fail)
+  (test "unsafe/issues/issue-125.rkt" (check 'Failed 5 #f))
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting
