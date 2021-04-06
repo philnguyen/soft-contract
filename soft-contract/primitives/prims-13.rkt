@@ -85,18 +85,19 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;; 13.5 Writing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  (def write
+  (def* (write writeln)
     (case->
      [any/c . -> . void?]
      [any/c output-port? . -> . void?]))
-  (def display
+  (def* (display displayln)
     (case->
      [any/c . -> . void?]
      [any/c output-port? . -> . void?]))
-  (def displayln
+  (def* (print println)
     (case->
      [any/c . -> . void?]
-     (any/c output-port? . -> . void?)))
+     [any/c output-port? . -> . void?]
+     [any/c output-port? (or/c 0 1) . -> . void?]))
   (def fprintf (->* (output-port? string?) #:rest list? void?))
   (def printf (->* (string?) #:rest list? void?))
   (def format ((string?) #:rest list? . ->* . string?))
