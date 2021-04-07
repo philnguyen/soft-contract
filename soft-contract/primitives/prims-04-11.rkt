@@ -150,12 +150,13 @@
                   (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set!} (list V*^ {set (-b i)} Vᵤ*))]
                     #:fail acc
                     (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) es))))]
-             [(Vect-Of α* ℓₒ)
+             [(Vectof/C α* ℓₒ)
               (define ctx* (Ctx l- l+ ℓₒ ℓ))
               (with-collapsing [(ΔΣ₀ Ws) (mon Σ ctx* (unpack α* Σ) Vᵤ)]
                 #:fail acc
                 (define Vᵤ* (car (collapse-W^ Ws)))
-                (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set} V*^ Vᵢ Vᵤ*)]
+                (with-collapsing [(ΔΣ₁ _) (app (⧺ Σ ΔΣ₀) ℓₒ {set 'vector-set!} (list V*^ Vᵢ Vᵤ*))]
+                  #:fail acc
                   (values (ΔΣ⊔ acc (⧺ ΔΣ₀ ΔΣ₁)) ∅)))])]
           [_ (values acc es)])))
     (values (R-of -void ΔΣ*) es*))
