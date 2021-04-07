@@ -224,6 +224,7 @@
   (test "safe/issues/issue-125.rkt" check-safe)
   (test "safe/issues/io-primitives.rkt" check-safe)
   (test "safe/issues/vector-set.rkt" check-safe)
+  (test "safe/issues/vector-init-then-set.rkt" check-safe)
 
   (test "unsafe/issues/list2vector.rkt" check-fail)
   (test "unsafe/issues/oop-encoding.rkt" check-fail)
@@ -298,6 +299,7 @@
   (test "unsafe/issues/issue-125.rkt" (check 'Failed 5 #f))
   (test "unsafe/issues/io-primitives.rkt" check-fail)
   (test "unsafe/issues/vector-set.rkt" check-fail)
+  (test "unsafe/issues/vector-init-then-set.rkt" check-fail)
 
   ;; Slightly larger ones
   (test "safe/real/hash-srfi-69.rkt" (check 'Ok-pos 0 #f)) ; duplicates, depending on counting

@@ -126,7 +126,7 @@
   (def (vector-set! Σ ℓ W)
     #:init ([V^ vector?] [Vᵢ exact-nonnegative-integer?] [Vᵤ any/c])
     (define-values (ΔΣ* es*)
-      (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set V^)])
+      (for/fold ([acc : ΔΣ ⊥ΔΣ] [es : (℘ Err) ∅]) ([V (in-set (unpack V^ Σ))])
         (match V
           [(Vect α)
            (define S (Σ@/blob α Σ))
